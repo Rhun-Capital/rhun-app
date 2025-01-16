@@ -1,29 +1,18 @@
-import "./globals.css";
-import { Metadata } from "next";
-import { Toaster } from "sonner";
-import { Sidebar } from "@/components/sidebar";
-
-
-export const metadata: Metadata = {
-  metadataBase: new URL("https://ai-sdk-preview-attachments.vercel.dev"),
-  title: "Attachments Preview",
-  description: "Experimental preview of attachments in useChat hook",
-};
+import './globals.css';
+import AuthProvider from '@/components/auth-provider';
+import { Sidebar } from '@/components/sidebar';
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body>
-        
-        <Toaster position="top-center" richColors />
-          <Sidebar>
-            <div className="flex-1">{children}</div>
-          </Sidebar>
-          
+        <AuthProvider>
+          <Sidebar>{children}</Sidebar>
+        </AuthProvider>
       </body>
     </html>
   );
