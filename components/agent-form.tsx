@@ -2,12 +2,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AlertCircleIcon, CloseIcon } from './icons';
+import { usePrivy } from '@privy-io/react-auth';
+
 
 const AgentForm = ({ initialData = null }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const { user } = usePrivy();
+
   
   const textAreaFields = [
     {
@@ -165,7 +169,7 @@ const AgentForm = ({ initialData = null }) => {
     ];
 
   const defaultFormData = {
-    userId: 'example_user_id', // TODO: replace with real id
+    userId: user?.id, 
     name: '',
     coreCapabilities: '',
     behavioralGuidelines: '',
