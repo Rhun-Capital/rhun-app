@@ -1,6 +1,8 @@
 import "./globals.css";
 import { Metadata } from "next";
 import { Toaster } from "sonner";
+import { Sidebar } from "@/components/sidebar";
+
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://ai-sdk-preview-attachments.vercel.dev"),
@@ -16,8 +18,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        
         <Toaster position="top-center" richColors />
-        {children}
+          <Sidebar>
+            <div className="flex-1">{children}</div>
+          </Sidebar>
+          
       </body>
     </html>
   );
