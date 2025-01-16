@@ -72,7 +72,7 @@ export default function AgentDetailsPage() {
           <h1 className="text-3xl font-bold">{agent.name}</h1>
           <Link 
             href={`/agents/${params.userId}/${params.agentId}/edit`}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition"
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition"
           >
             Edit Agent
           </Link>
