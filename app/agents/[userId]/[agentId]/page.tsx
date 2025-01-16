@@ -12,8 +12,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Markdown } from "@/components/markdown";
-import { ChartComponent } from "@/components/line-chart";
-import { PieChart } from "@/components/pie-chart";
+import { useParams } from 'next/navigation';
+import { usePrivy } from "@privy-io/react-auth";
+
+// import { ChartComponent } from "@/components/line-chart";
+// import { PieChart } from "@/components/pie-chart";
 
 const getTextFromDataUrl = (dataUrl: string) => {
   const base64 = dataUrl.split(",")[1];
@@ -41,8 +44,12 @@ function TextFilePreview({ file }: { file: File }) {
 }
 
 export default function Home() {
+  const { user } = usePrivy();
+  const params = useParams();
+  const agentId = params.agentId;  
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
+      body: { agentId, userId: user?.id || params.userId },
       onError: () =>
         toast.error("You've been rate limited, please try again later!"),
     });
@@ -116,9 +123,9 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // useEffect(() => {
-  //   scrollToBottom();
-  // }, [messages]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Function to handle file selection via the upload button
   const handleUploadClick = () => {
@@ -188,7 +195,7 @@ export default function Home() {
                     <div className="text-zinc-800 dark:text-zinc-300 flex flex-col gap-4">
                       <Markdown>{message.content}</Markdown>
                       
-                     {message.role === 'assistant' ? <PieChart/> : null}
+                     {/* {message.role === 'assistant' ? <PieChart/> : null} */}
                     </div>
                     <div className="flex flex-row gap-2">
                       {message.experimental_attachments?.map((attachment) =>

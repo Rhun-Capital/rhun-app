@@ -3,20 +3,22 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AgentForm from '@/components/agent-form';
+import { usePrivy } from '@privy-io/react-auth';
 
 export default function EditAgentPage() {
   const params = useParams();
   const [agent, setAgent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user } = usePrivy();
 
   useEffect(() => {
     const fetchAgent = async () => {
       try {
-        // TODO: Replace hardcoded userId with actual user ID from auth
-        const userId = "example_user_id";
+        const userId = user?.id || '';
+        console.log(userId, 99)
         const response = await fetch(`/api/agents/${userId}/${params.agentId}`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch agent');
         }
@@ -31,7 +33,7 @@ export default function EditAgentPage() {
     };
 
     fetchAgent();
-  }, [params.id]);
+  }, [user, params.id]);
 
   if (loading) {
     return (
