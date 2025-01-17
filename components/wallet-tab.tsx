@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
 
-const LAMPORTS_PER_SOL = 1000000000;
 
 export default function WalletTab({ agentId }: { agentId: string }) {
   const { createWallet, exportWallet, wallets } = useSolanaWallets();
@@ -15,21 +14,16 @@ export default function WalletTab({ agentId }: { agentId: string }) {
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [isAdvancedOptionsOpen, setIsAdvancedOptionsOpen] = useState(false);
-
   const params = useParams();
 
   // Fetch wallet address when available
   useEffect(() => {
-    if (wallets.length > 0) {
-      // loop over wallets and look for wallet.connectorType === "embedded"
-      for (const wallet of wallets) {
-        if (wallet.connectorType === 'embedded') {
-          setWalletAddress(wallet.address);
-          break;
-        }
-      }
-    }
-  }, [wallets]);
+    const fetchAgent = async () => {
+      const agent = await getAgent();
+      setWalletAddress(agent.wallets?.solana);
+    };
+    fetchAgent();
+  }, []);
 
   // Fetch balance
   const fetchBalance = async (walletId: string) => {
@@ -52,10 +46,21 @@ export default function WalletTab({ agentId }: { agentId: string }) {
     }
   }, [walletAddress]);    
 
+  const getAgent = async () => {
+    try {
+      const response = await fetch(`/api/agents/${params.userId}/${agentId}`);
+      if (!response.ok) throw new Error('Failed to fetch agent');
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching agent:', error);
+    }
+  };
+
   const handleCreateWallet = async () => {
     try {
       setLoading(true);
-      const wallet = await createWallet();
+      const wallet = await createWallet({createAdditional: true});
       setWalletAddress(wallet.address);
       
       await fetch(`/api/agents/${params.userId}/${agentId}/wallet`, {

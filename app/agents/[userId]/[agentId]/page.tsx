@@ -1,11 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import { ToolInvocation } from 'ai';
 import {
   AttachmentIcon,
   BotIcon,
   UserIcon,
 } from "@/components/icons";
+import Image from 'next/image';
 import { useChat } from "ai/react";
 import { DragEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -47,11 +49,18 @@ export default function Home() {
   const { user } = usePrivy();
   const params = useParams();
   const agentId = params.agentId;  
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+  const { messages, input, handleSubmit, handleInputChange, addToolResult, isLoading } =
     useChat({
       body: { agentId, user },
       onError: () =>
         toast.error("You've been rate limited, please try again later!"),
+      maxSteps: 2,
+      async onToolCall({ toolCall }) {
+        if (toolCall.toolName === 'getSolanaBalance') {
+
+        }
+      },
+
     });
 
   const [files, setFiles] = useState<FileList | null>(null);
@@ -194,7 +203,50 @@ export default function Home() {
                   <div className="flex flex-col gap-1">
                     <div className="text-zinc-800 dark:text-zinc-300 flex flex-col gap-4">
                       <Markdown>{message.content}</Markdown>
-                      
+                      {message.toolInvocations?.map((toolInvocation: ToolInvocation) => {
+                        const toolCallId = toolInvocation.toolCallId;
+                        // const addResult = (result: string) =>
+                        //   addToolResult({ toolCallId, result });
+                        console.log(toolInvocation )
+                        // render confirmation tool (client-side tool with user interaction)
+                        if (toolInvocation.toolName === 'getUserSolanaBalance') {
+                          return (
+                            <div key={toolCallId}>
+                              {toolInvocation.args.message}
+                              {/* Balance Display */}
+                              <div className="bg-zinc-800 rounded-lg border border-zinc-700">
+                                <div className="flex items-center gap-3 bg-zinc-900 rounded-lg p-4">
+                                  <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
+                                  <span className="text-xl font-semibold">
+                                    {"result" in toolInvocation ? (toolInvocation.result.balance as number).toFixed(4) : 0}
+                                  </span>
+                                  <span className="text-zinc-400">SOL</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }    
+
+                        if (toolInvocation.toolName === 'getAgentSolanaBalance') {
+                          return (
+                            <div key={toolCallId}>
+                              {toolInvocation.args.message}
+                              {/* Balance Display */}
+                              <div className="bg-zinc-800 rounded-lg border border-zinc-700">
+                                <div className="flex items-center gap-3 bg-zinc-900 rounded-lg p-4">
+                                  <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
+                                  <span className="text-xl font-semibold">
+                                    {"result" in toolInvocation ? (toolInvocation.result.balance as number).toFixed(4) : 0}
+                                  </span>
+                                  <span className="text-zinc-400">SOL</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }                          
+
+                      })}                
+                        
                      {/* {message.role === 'assistant' ? <PieChart/> : null} */}
                     </div>
                     <div className="flex flex-row gap-2">
