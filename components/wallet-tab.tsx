@@ -3,53 +3,54 @@
 import React, { useState, useEffect } from 'react';
 import {useSolanaWallets} from '@privy-io/react-auth/solana';
 import Image from 'next/image';
-
+import { useParams } from 'next/navigation';
+import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
 
 const LAMPORTS_PER_SOL = 1000000000;
 
 export default function WalletTab({ agentId }: { agentId: string }) {
-  const { createWallet, wallets } = useSolanaWallets();
+  const { createWallet, exportWallet, wallets } = useSolanaWallets();
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [isAdvancedOptionsOpen, setIsAdvancedOptionsOpen] = useState(false);
 
-    // Fetch wallet address when available
-    useEffect(() => {
-        if (wallets.length > 0) {
-            // loop over wallets and look for wallet.connectorType === "embedded"
-            for (const wallet of wallets) {
-                if (wallet.connectorType === 'embedded') {
-                    console.log(wallet);
-                    setWalletAddress(wallet.address);
-                    break;
-                }
-            }
+  const params = useParams();
+
+  // Fetch wallet address when available
+  useEffect(() => {
+    if (wallets.length > 0) {
+      // loop over wallets and look for wallet.connectorType === "embedded"
+      for (const wallet of wallets) {
+        if (wallet.connectorType === 'embedded') {
+          setWalletAddress(wallet.address);
+          break;
         }
-    }, [wallets]);
+      }
+    }
+  }, [wallets]);
 
-    // Fetch balance
-    const fetchBalance = async (walletId: string) => {
-        try {
-        const response = await fetch(`/api/wallets/${walletId}/balance`);
-        if (!response.ok) throw new Error('Failed to fetch balance');
-        const data = await response.json();
-        setBalance(data.balance);
-        } catch (error) {
-        console.error('Error fetching balance:', error);
-        }
-    };
+  // Fetch balance
+  const fetchBalance = async (walletId: string) => {
+    try {
+      const response = await fetch(`/api/wallets/${walletId}/balance`);
+      if (!response.ok) throw new Error('Failed to fetch balance');
+      const data = await response.json();
+      setBalance(data.balance);
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+    }
+  };
 
-
-    useEffect(() => {
-        if (walletAddress) {
-            fetchBalance(walletAddress);
-            // Refresh balance every 30 seconds
-            const interval = setInterval(() => fetchBalance(walletAddress), 30000);
-            return () => clearInterval(interval);
-        }
-        }, [walletAddress]);    
-
-
+  useEffect(() => {
+    if (walletAddress) {
+      fetchBalance(walletAddress);
+      // Refresh balance every 30 seconds
+      const interval = setInterval(() => fetchBalance(walletAddress), 30000);
+      return () => clearInterval(interval);
+    }
+  }, [walletAddress]);    
 
   const handleCreateWallet = async () => {
     try {
@@ -57,12 +58,12 @@ export default function WalletTab({ agentId }: { agentId: string }) {
       const wallet = await createWallet();
       setWalletAddress(wallet.address);
       
-      await fetch(`/api/agents/${agentId}/wallet`, {
-        method: 'POST',
+      await fetch(`/api/agents/${params.userId}/${agentId}/wallet`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ walletAddress: wallet.address }),
+        body: JSON.stringify({ wallets: {solana: wallet.address} }),
       });
     } catch (error) {
       console.error('Error creating wallet:', error);
@@ -71,12 +72,30 @@ export default function WalletTab({ agentId }: { agentId: string }) {
     }
   };
 
+  const handleExportWallet = async () => {
+    setExportLoading(true);
+    try {
+      const wallet = wallets.find((w) => w.address === walletAddress);
+      if (wallet) {
+        await exportWallet(wallet);
+      }
+    } catch (error) {
+      console.error('Error exporting wallet:', error);
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
+  const toggleAdvancedOptions = () => {
+    setIsAdvancedOptionsOpen(!isAdvancedOptionsOpen);
+  }
+
   return (
     <div className="space-y-6">
       <div className="border-b border-zinc-700 pb-4">
         <div className='flex items-center gap-3'>
-            <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
-            <h2 className="text-lg font-semibold">Agent Wallet</h2>
+          <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
+          <h2 className="text-lg font-semibold">Agent Wallet</h2>
         </div>
         
         <p className="text-sm text-zinc-400">Manage your agent's Solana wallet</p>
@@ -111,6 +130,34 @@ export default function WalletTab({ agentId }: { agentId: string }) {
                 </span>
                 <span className="text-zinc-400">SOL</span>
               </div>
+            </div>
+
+            {/* Advanced Options Accordion */}
+            <div className="pt-4 border-t border-zinc-700">
+              <button 
+                onClick={toggleAdvancedOptions}
+                className="w-full flex justify-between items-center text-sm font-medium text-zinc-300 hover:text-zinc-100 transition"
+              >
+                <span>Advanced Options</span>
+                {isAdvancedOptionsOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              </button>
+
+              {isAdvancedOptionsOpen && (
+                <div className="mt-4 space-y-4 bg-zinc-900 rounded-lg p-4">
+                  <div>
+                    <button
+                      onClick={handleExportWallet}
+                      disabled={exportLoading}
+                      className="px-10 py-1 text-white outline outline-orange-600 hover:opacity-70  rounded-md transition disabled:opacity-50"
+                    >
+                      {exportLoading ? 'Exporting...' : 'Export Wallet'}
+                    </button>
+                    <p className="text-xs text-zinc-400 mt-2">
+                      Export your wallet private key. Use with caution.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -49,7 +49,7 @@ export default function Home() {
   const agentId = params.agentId;  
   const { messages, input, handleSubmit, handleInputChange, isLoading } =
     useChat({
-      body: { agentId, userId: user?.id || params.userId },
+      body: { agentId, user },
       onError: () =>
         toast.error("You've been rate limited, please try again later!"),
     });

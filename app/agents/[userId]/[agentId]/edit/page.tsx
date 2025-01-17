@@ -16,7 +16,6 @@ export default function EditAgentPage() {
     const fetchAgent = async () => {
       try {
         const userId = user?.id || '';
-        console.log(userId, 99)
         const response = await fetch(`/api/agents/${userId}/${params.agentId}`);
 
         if (!response.ok) {

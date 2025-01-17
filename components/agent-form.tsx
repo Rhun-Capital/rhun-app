@@ -12,6 +12,7 @@ interface InitialData {
   id: string;
   userId: string;
   name: string;
+  description: string;
   coreCapabilities: string;
   interactionStyle: string;
   analysisApproach: string;
@@ -44,8 +45,16 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     name: FormDataKeys;
     label: string;
     rows?: number;
+    required?: boolean;
     placeholder: string;
   }[] = [
+    {
+      name: "description",
+      label: "Description",
+      rows: 4,
+      required: true,
+      placeholder: 'e.g., "A crypto analyst providing insights on market trends"',
+    },    
     {
       name: "coreCapabilities",
       label: "Core Capabilities & Knowledge Domains",
@@ -192,7 +201,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
 
   const defaultFormData = {
     userId: user?.id,
-    name: "",
+    description: "",
     coreCapabilities: "",
     interactionStyle: "",
     analysisApproach: "",
@@ -379,10 +388,10 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
                     {field.label}
                   </label>
                   <textarea
+                    required={field.required || false}
                     id={field.name}
                     name={field.name}
                     placeholder={field.placeholder}
-                    required
                     value={formData[field.name]}
                     onChange={handleChange}
                     rows={field.rows || 10}
