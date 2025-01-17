@@ -99,7 +99,6 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       });
   
       const data = await response.json();
-      console.log(data); // Log full response for debugging
       if (!response.ok) {
         // Log the error response body
         const errorBody = await response.text();

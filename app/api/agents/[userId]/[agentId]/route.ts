@@ -54,6 +54,7 @@ export async function PUT(
       },
       UpdateExpression: `SET 
         #name = :name,
+        description = :description,
         coreCapabilities = :cc,
         interactionStyle = :is,
         analysisApproach = :aa,
@@ -70,6 +71,7 @@ export async function PUT(
       },
       ExpressionAttributeValues: {
         ':name': body.name,
+        ':description': body.description,
         ':cc': body.coreCapabilities,
         ':is': body.interactionStyle,
         ':aa': body.analysisApproach,

@@ -245,3 +245,41 @@ export const ChevronRightIcon = () => {
     </svg>
   );
 };
+
+export const ChevronDownIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1.293 5.293a1 1 0 011.414 0L8 10.586l5.293-5.293a1 1 0 011.414 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const ChevronUpIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1.293 10.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L8 5.414 2.707 10.707a1 1 0 01-1.414 0z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};

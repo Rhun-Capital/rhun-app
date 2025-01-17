@@ -1,4 +1,3 @@
-// app/api/wallets/[walletId]/balance/route.ts
 import { NextResponse } from 'next/server';
 import { getSolanaBalance } from '@/utils/solana';
 
@@ -14,7 +13,6 @@ export async function GET(
     }
     const balance = await getSolanaBalance(walletId, heliusApiKey);
     const data = { balance };
-    console.log('Balance:', data);
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching balance:', error);

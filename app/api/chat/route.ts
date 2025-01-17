@@ -16,17 +16,14 @@ async function getAgentConfig(userId: string, agentId: string) {
 
 
 export async function POST(req: Request) {
-  const { messages, userId, agentId } = await req.json();
-
-  console.log(userId, agentId, messages);
-
+  const { messages, user, agentId } = await req.json();
   // Get the latest user message
   const latestMessage = messages[messages.length - 1];
 
   // Fetch both context and agent configuration in parallel
   const [context, agentConfig] = await Promise.all([
     retrieveContext(latestMessage.content, agentId),
-    getAgentConfig(userId, agentId)
+    getAgentConfig(user.id, agentId)
   ]);
 
   // Format context for the prompt
@@ -36,9 +33,19 @@ export async function POST(req: Request) {
 
 
   const systemPrompt = `
-# System Prompt for Financial Research AI Assistant
 
-You are an expert financial research analyst AI assistant, specialized in cryptocurrency and digital asset markets. Your primary role is to help users analyze markets, understand trends, and make informed decisions based on available data and research.
+## User Information:
+- User's ID: ${user.id}
+- User's Email: ${user.email || 'N/A'}
+- User's Wallet: ${user.wallet.address || 'N/A'}
+
+## Agent Information:
+- Agent's ID: ${agentConfig.id}
+- Agent's Name: ${agentConfig.name}
+- Agent's Description: ${agentConfig.description}
+
+## Agent's Solana Wallet Address:
+${agentConfig.wallets?.solana || 'N/A'}
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
@@ -79,9 +86,6 @@ ${agentConfig.specialInstructions}
 
 ## Style Guide
 ${agentConfig.styleGuide}
-
-## Important Notes
-Remember: Your primary goal is to help users make more informed decisions through better understanding of markets and research, not to provide direct investment advice.      
 
 # Relevant Context for This Query:
 ${contextText}
