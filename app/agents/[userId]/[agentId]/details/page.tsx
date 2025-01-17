@@ -4,9 +4,23 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
+interface Agent {
+  name: string;
+  coreCapabilities: string;
+  interactionStyle: string;
+  analysisApproach: string;
+  riskCommunication: string;
+  responseFormat: string;
+  limitationsDisclaimers: string;
+  prohibitedBehaviors: string;
+  knowledgeUpdates: string;
+  responsePriorityOrder: string;
+  styleGuide: string;
+}
+
 export default function AgentDetailsPage() {
   const params = useParams();
-  const [agent, setAgent] = useState(null);
+  const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -20,7 +34,11 @@ export default function AgentDetailsPage() {
         const data = await response.json();
         setAgent(data);
       } catch (err) {
-        setError(err.message);
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred');
+        }
       } finally {
         setLoading(false);
       }
@@ -53,7 +71,6 @@ export default function AgentDetailsPage() {
 
   const sections = [
     { label: 'Core Capabilities', value: agent.coreCapabilities },
-    { label: 'Behavioral Guidelines', value: agent.behavioralGuidelines },
     { label: 'Interaction Style', value: agent.interactionStyle },
     { label: 'Analysis Approach', value: agent.analysisApproach },
     { label: 'Risk Communication', value: agent.riskCommunication },

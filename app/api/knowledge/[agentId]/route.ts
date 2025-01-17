@@ -11,7 +11,7 @@ export async function GET(
 
     // Query Pinecone for all vectors with matching agentId
     const queryResponse = await index.query({
-      vector: new Array(1536).fill(0), // Dummy vector for metadata-only query
+      vector: new Array(1536).fill(0.1), // Dummy vector for metadata-only query
       topK: 1000,
       filter: {
         agentId: { $eq: params.agentId }

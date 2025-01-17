@@ -63,14 +63,14 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
           {authenticated ? (
             <button 
               onClick={logout}
-              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
+              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-green-500"
             >
               Disconnect
             </button>
           ) : (
             <button 
               onClick={login}
-              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
+              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-green-500"
             >
               Connect Wallet
             </button>

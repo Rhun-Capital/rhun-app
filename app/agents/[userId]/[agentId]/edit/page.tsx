@@ -26,7 +26,7 @@ export default function EditAgentPage() {
         const data = await response.json();
         setAgent(data);
       } catch (err) {
-        setError(err.message);
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }

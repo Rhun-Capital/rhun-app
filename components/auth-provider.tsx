@@ -2,6 +2,14 @@
 
 import { PrivyProvider } from '@privy-io/react-auth';
 
+import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
+
+
+const solanaConnectors = toSolanaWalletConnectors({
+    // By default, shouldAutoConnect is enabled
+    shouldAutoConnect: true,
+});
+
 export default function AuthProvider({
   children,
 }: {
@@ -15,8 +23,18 @@ export default function AuthProvider({
         appearance: {
           theme: 'dark',
           accentColor: '#22c55e',
-          showWalletLoginFirst: true,
+          // logo: "https://your-logo-url",
+          walletChainType: "solana-only",   
+          showWalletLoginFirst: true,       
         },
+
+        externalWallets: {
+          solana: {
+              connectors: solanaConnectors,
+          },
+        },
+      
+      
       }}
     >
       {children}

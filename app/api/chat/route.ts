@@ -44,10 +44,6 @@ You are an expert financial research analyst AI assistant, specialized in crypto
 ${agentConfig.coreCapabilities}
 
 
-## Behavioral Guidelines
-${agentConfig.behavioralGuidelines}
-
-
 ### Interaction Style
 ${agentConfig.interactionStyle}
 
