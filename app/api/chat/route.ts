@@ -1,6 +1,8 @@
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText } from "ai";
 import { retrieveContext } from '@/utils/retrieval';
+import { z } from 'zod';
+import { getSolanaBalance } from '@/utils/solana';
 
 async function getAgentConfig(userId: string, agentId: string) {
   // Use absolute URL with the base URL from environment variable
@@ -34,15 +36,16 @@ export async function POST(req: Request) {
 
   const systemPrompt = `
 
-## User Information:
+## User Information (the user that's interacting with the agent):
 - User's ID: ${user.id}
 - User's Email: ${user.email || 'N/A'}
 - User's Wallet: ${user.wallet.address || 'N/A'}
 
-## Agent Information:
+## Agent Information (the agent that's answering the user's query):
 - Agent's ID: ${agentConfig.id}
 - Agent's Name: ${agentConfig.name}
 - Agent's Description: ${agentConfig.description}
+- Agent's Wallet: ${agentConfig.wallets?.solana || 'N/A'}
 
 ## Agent's Solana Wallet Address:
 ${agentConfig.wallets?.solana || 'N/A'}
@@ -97,6 +100,41 @@ Remember to use this context when relevant to answer the user's query.`
     model: openai("gpt-4o"),
     system: systemPrompt,
     messages: convertToCoreMessages(messages),
+    tools: {
+      // server-side tool with execute function:
+      getUserSolanaBalance: {
+        description: "show the user's solana balance for their connected wallet to the user",
+        parameters: z.object({ user: z.string() }),
+        execute: async ({}: { user: string }) => {
+          // fetch the balance from the Solana blockchain
+          if (user.wallet.address && process.env.HELIUS_API_KEY) {
+            const balance = await getSolanaBalance(user.wallet.address, process.env.HELIUS_API_KEY);
+            console.log("User Balance", balance)
+            return {balance, address: user.wallet.address};
+          } else {
+            throw new Error('User wallet address or Helius API key is missing');
+          }
+        },
+      },
+
+      getAgentSolanaBalance: {
+        description: "show the agents's solana balance for their embedded wallet to the user",
+        parameters: z.object({ agent: z.string() }),
+        execute: async ({}: { agent: string }) => {
+          // fetch the balance from the Solana blockchain
+          if (agentConfig.wallets.solana && process.env.HELIUS_API_KEY) {
+            const balance = await getSolanaBalance(agentConfig.wallets.solana, process.env.HELIUS_API_KEY);
+            console.log("Agent Balance", balance)
+            return {balance, address: agentConfig.wallets.solana};
+          } else {
+            throw new Error('Agent wallet address or Helius API key is missing');
+          }
+          
+        },
+      }
+      
+      
+    },    
   });
 
   return result.toDataStreamResponse();

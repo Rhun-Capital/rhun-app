@@ -7,7 +7,6 @@ import { AlertCircleIcon, CloseIcon } from "./icons";
 import { usePrivy } from "@privy-io/react-auth";
 import { useParams } from "next/navigation";
 
-//  interfacer for initialData
 interface InitialData {
   id: string;
   userId: string;
@@ -31,7 +30,7 @@ interface AgentFormProps {
 }
 
 export default function AgentForm({ initialData = null }: AgentFormProps) {
-  const [activeTab, setActiveTab] = useState("config"); // 'config' or 'knowledge'
+  const [activeTab, setActiveTab] = useState("config");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -200,6 +199,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   ];
 
   const defaultFormData = {
+    name: "",
     userId: user?.id,
     description: "",
     coreCapabilities: "",
