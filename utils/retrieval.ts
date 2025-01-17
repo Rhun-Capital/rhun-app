@@ -31,7 +31,7 @@ export async function retrieveContext(
     const results = queryResponse.matches?.map(match => ({
       text: match.metadata?.text as string,
       source: match.metadata?.source as string,
-      score: match.score,
+      score: match.score ?? 0,
     })) || [];
 
     return results;

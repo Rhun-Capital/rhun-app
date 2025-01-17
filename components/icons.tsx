@@ -169,3 +169,79 @@ export const CloseIcon = () => {
     </svg>
   );
 };
+
+export const PlusIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M8 1C8.55228 1 9 1.44772 9 2V7H14C14.5523 7 15 7.44772 15 8C15 8.55228 14.5523 9 14 9H9V14C9 14.5523 8.55228 15 8 15C7.44772 15 7 14.5523 7 14V9H2C1.44772 9 1 8.55228 1 8C1 7.44772 1.44772 7 2 7H7V2C7 1.44772 7.44772 1 8 1Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const BrainCircuitIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2C10.3431 2 9 3.34315 9 5V6H8C6.34315 6 5 7.34315 5 9V10H4C2.34315 10 1 11.3431 1 13V15C1 16.6569 2.34315 18 4 18H5V19C5 20.6569 6.34315 22 8 22H10C11.6569 22 13 20.6569 13 19V18H14C15.6569 18 17 16.6569 17 15V14H18C19.6569 14 21 12.6569 21 11V9C21 7.34315 19.6569 6 18 6H17V5C17 3.34315 15.6569 2 14 2H12ZM11 5C11 4.44772 11.4477 4 12 4H14C14.5523 4 15 4.44772 15 5V6H11V5ZM9 8H15V10H9V8ZM7 10H5C4.44772 10 4 10.4477 4 11V13C4 13.5523 4.44772 14 5 14H7V10ZM17 10H19C19.5523 10 20 10.4477 20 11V13C20 13.5523 19.5523 14 19 14H17V10ZM11 18V19C11 19.5523 10.5523 20 10 20H8C7.44772 20 7 19.5523 7 19V18H11ZM13 16H11V14H13V16ZM15 16H17C17.5523 16 18 15.5523 18 15V14H15V16ZM9 16H7V14H9V16ZM9 12H15V14H9V12Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const MessageIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1 2C1 0.895431 1.89543 0 3 0H13C14.1046 0 15 0.895431 15 2V10C15 11.1046 14.1046 12 13 12H4.41421L1.70711 14.7071C1.07714 15.3371 0 14.8906 0 14.0858V2ZM3 2H13V10H3V2Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const ChevronRightIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M5.293 1.293a1 1 0 011.414 0L11.707 6.293a1 1 0 010 1.414L6.707 12.707a1 1 0 01-1.414-1.414L9.586 8 5.293 3.707a1 1 0 010-1.414z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};

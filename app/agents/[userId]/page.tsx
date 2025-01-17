@@ -44,7 +44,6 @@ export default async function AgentPage({ params }: { params: { id: string } }) 
         <div className="space-y-6">
           {[
             { label: 'Core Capabilities', value: agent.coreCapabilities },
-            { label: 'Behavioral Guidelines', value: agent.behavioralGuidelines },
             { label: 'Interaction Style', value: agent.interactionStyle },
             { label: 'Analysis Approach', value: agent.analysisApproach },
             { label: 'Risk Communication', value: agent.riskCommunication },

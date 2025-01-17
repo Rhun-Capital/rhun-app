@@ -36,7 +36,7 @@ export function KnowledgeList({ agentId }: { agentId: string }) {
   if (error) {
     return (
       <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2">
-        <AlertCircleIcon className="h-5 w-5 text-white" />
+        <AlertCircleIcon />
         <p className="text-ehite">{error}</p>
       </div>
     );

@@ -240,7 +240,7 @@ export default function Home() {
                   <AttachmentIcon />
                 </p>
                 <p>
-                  You can ask the Rhun Bot any technical question you'd like. You can also drag and drop files here to send them as attachments. You can
+                  You can ask the agent any technical question you&apos;d like. You can also drag and drop files here to send them as attachments. You can
                   send images and text files.
                 </p>
                 <p>
@@ -251,7 +251,7 @@ export default function Home() {
                     href="https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot#attachments-experimental"
                     target="_blank"
                   >
-                    Rhun Bot{" "}
+                    Rhun Capital Agent{" "}
                   </Link>
                   in the rhun docs.
                 </p>

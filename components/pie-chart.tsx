@@ -33,7 +33,7 @@ export const NonMemoPieChart = ({ children }: { children: string }) => {
             datalabels: {
                 color: 'white',
                 anchor: 'end',
-                align: 'start',
+                align: 'end',
                 labels: {
   
                     value:  {
@@ -50,7 +50,8 @@ export const NonMemoPieChart = ({ children }: { children: string }) => {
     return (
         <div className="pt-20 pb-20">
             <h1 className="pb-10 text-xl">TVL Breakdown by Chain</h1>
-            <Pie data={data} options={options} />
+            {/* TODO fix options here */}
+            {/* <Pie data={data} options={options} /> */}
         </div>
     );
 };
