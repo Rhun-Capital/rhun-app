@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
 
 export default function AgentsPage() {
-  const { user } = usePrivy();
+  const { user, getAccessToken } = usePrivy();
   const [agents, setAgents] = useState<AttributeMap[]>([]);
 
   useEffect(() => {
@@ -53,21 +53,28 @@ export default function AgentsPage() {
               <div className="h-48 p-6 bg-zinc-800 rounded-lg border border-zinc-700 
                            transition-all duration-200 ease-in-out
                            hover:border-zinc-600 hover:shadow-lg hover:-translate-y-1">
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full items-center justify-center">
                   <h2 className="text-xl font-semibold mb-2 group-hover:text-indigo-400 transition-colors">
                     {agent.name}
                   </h2>
-                  <div className="flex-grow" />
-                  <div className="flex justify-between items-center mt-4 text-sm text-zinc-400">
-                    <Link 
+                  
+                  {/* <div className="flex justify-between items-center mt-4 text-sm text-zinc-400">
+                    <button className="outline outline-indigo-400 px-6 py-1 rounded-lg hover:opacity-50"><Link 
                       key={agent.id + '-edit'}
                       href={`/agents/${user?.id}/${agent.id}/edit`}
-                      className="group hover:opacity-50"
-                    >View Details</Link>
+                      className="group"
+                    >View Details</Link></button>
+                    <button className="bg-indigo-400 px-6 py-1 rounded-lg hover:opacity-50 text-white"><Link 
+                      key={agent.id + '-edit'}
+                      href={`/agents/${user?.id}/${agent.id}/edit`}
+                      className="group"
+                    >Start Chat
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity">
                       →
-                    </span>
-                  </div>
+                    </span>                    
+                    </Link></button>                    
+
+                  </div> */}                  
                 </div>
               </div>
             </Link>

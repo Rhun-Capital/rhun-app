@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { PlusIcon, CheckIcon } from '@/components/icons';
 import { IconWrapper } from './app-icons';
+import { usePrivy } from '@privy-io/react-auth';
 
 interface App {
   id: string;
@@ -16,6 +17,7 @@ interface AppMarketplaceTabProps {
 }
 
 export default function AppMarketplaceTab({ agentId }: AppMarketplaceTabProps) {
+  const { getAccessToken } = usePrivy();
   const [apps, setApps] = useState<App[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

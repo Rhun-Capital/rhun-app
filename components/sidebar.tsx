@@ -7,7 +7,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
 
 export const Sidebar = ({ children }: { children: React.ReactNode }) => {
-  const { login, logout, authenticated, user } = usePrivy();
+  const { login, logout, authenticated, user, getAccessToken } = usePrivy();
   const pathname = usePathname();
 
   // Safely get the display text for the user

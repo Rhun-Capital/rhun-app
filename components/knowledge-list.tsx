@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { AlertCircleIcon } from './icons';
+import { usePrivy } from '@privy-io/react-auth';
 
 export function KnowledgeList({ agentId }: { agentId: string }) {
+  const { getAccessToken } = usePrivy();
   const [knowledge, setKnowledge] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -11,9 +13,18 @@ export function KnowledgeList({ agentId }: { agentId: string }) {
   useEffect(() => {
     const fetchKnowledge = async () => {
       try {
-        const response = await fetch(`/api/knowledge/${agentId}`);
+        const accessToken = await getAccessToken();
+        const response = await fetch(
+          `/api/knowledge/${agentId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }            
+        );
         if (!response.ok) throw new Error('Failed to fetch knowledge');
         const data = await response.json();
+        console.log(data);
         setKnowledge(data.knowledge);
       } catch (err: any) {
         setError(err.message);

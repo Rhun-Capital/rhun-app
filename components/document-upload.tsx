@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
 
 export default function DocumentUpload() {
+  const { getAccessToken } = usePrivy();
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,9 +14,13 @@ export default function DocumentUpload() {
     e.preventDefault();
     setLoading(true);
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json' ,
+          'Authorization': `Bearer ${accessToken}`
+        },
         body: JSON.stringify({
           text,
           type: 'text',
@@ -38,10 +44,10 @@ export default function DocumentUpload() {
     e.preventDefault();
     setLoading(true);
     try {
-      // First fetch the URL content
+      const accessToken = await getAccessToken();
       const response = await fetch('/api/scrape', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
         body: JSON.stringify({ url }),
       });
 

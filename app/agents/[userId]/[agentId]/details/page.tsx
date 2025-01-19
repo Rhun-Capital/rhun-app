@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { usePrivy } from '@privy-io/react-auth';
+import { access } from 'fs';
+import LoadingIndicator from '@/components/loading-indicator';
 
 interface Agent {
   name: string;
@@ -19,6 +22,7 @@ interface Agent {
 }
 
 export default function AgentDetailsPage() {
+  const { getAccessToken } = usePrivy();
   const params = useParams();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +31,15 @@ export default function AgentDetailsPage() {
   useEffect(() => {
     const fetchAgent = async () => {
       try {
-        const response = await fetch(`/api/agents/${params.userId}/${params.agentId}`);
+        const accessToken = await getAccessToken();
+        const response = await fetch(
+          `/api/agents/${params.userId}/${params.agentId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
         if (!response.ok) {
           throw new Error('Failed to fetch agent');
         }
@@ -50,7 +62,7 @@ export default function AgentDetailsPage() {
   if (loading) {
     return (
       <div className="min-h-screen dark:bg-zinc-900 text-gray-100 p-6">
-        <div className="max-w-4xl mx-auto">Loading...</div>
+        <div className="max-w-4xl mx-auto"><LoadingIndicator></LoadingIndicator></div>
       </div>
     );
   }

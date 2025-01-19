@@ -4,29 +4,33 @@ import { useState, useRef } from 'react';
 import { KnowledgeList } from './knowledge-list';
 import { AlertCircleIcon, CloseIcon } from './icons';
 import { useParams } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
 
 export default function KnowledgeTab({ agentId }: { agentId: string }) {
+  const { getAccessToken } = usePrivy();
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loading2, setLoading2] = useState(false);
+  const [loading3, setLoading3] = useState(false);
   const [message, setMessage] = useState('');
   const params = useParams();
   const topRef = useRef<HTMLDivElement>(null);
   
-    const scrollToTop = () => {
+  const scrollToTop = () => {
     topRef.current?.scrollIntoView({ behavior: 'smooth' });
   }
-  // ;
-  // Your existing handlers...
+
   const handleTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
 
-    setLoading(true);
+    setLoading2(true);
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',      
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}`},
         body: JSON.stringify({
           text,
           type: 'text',
@@ -46,7 +50,8 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
-      setLoading(false);
+      setLoading2(false);
+      scrollToTop();
     }
   };
   
@@ -55,11 +60,12 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     e.preventDefault();
     if (!url.trim()) return;
 
-    setLoading(true);
+    setLoading3(true);
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch('/api/scrape', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
         body: JSON.stringify({ 
           url,
           metadata: {
@@ -78,7 +84,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       setMessage(`Error: ${error.message}`);
     } finally {
       scrollToTop();
-      setLoading(false);
+      setLoading3(false);
     }
   };
 
@@ -92,7 +98,9 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     formData.append('agentId', agentId);
 
     try {
+      const accessToken = await getAccessToken()
       const response = await fetch('/api/upload/file', {
+        headers: { 'Authorization': `Bearer ${accessToken}` },
         method: 'POST',
         // Remove Content-Type header to let browser set it automatically
         body: formData,
@@ -131,7 +139,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
         <div className={`p-4 rounded-lg flex items-center gap-2 ${
           message.includes('Error') 
             ? 'bg-red-900/50 border border-red-500' 
-            : 'bg-green-900/50 border border-indigo-500'
+            : 'bg-green-900/50 border border-green-500'
         }`}>
           <div className="flex-1">
             <div className="flex align-center gap-2">
@@ -186,10 +194,10 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
           />
           <button
             type="submit"
-            disabled={loading || !text}
+            disabled={loading2 || !text}
             className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition disabled:opacity-50"
           >
-            {loading ? 'Adding...' : 'Add to Knowledge Base'}
+            {loading2 ? 'Adding...' : 'Add to Knowledge Base'}
           </button>
         </form>
       </div>
@@ -207,10 +215,10 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
           />
           <button
             type="submit"
-            disabled={loading || !url}
+            disabled={loading3 || !url}
             className="px-4 py-2 bg-indigo-500 rounded-lg transition disabled:opacity-50"
           >
-            {loading ? 'Processing...' : 'Process URL'}
+            {loading3 ? 'Processing...' : 'Process URL'}
           </button>
         </form>
       </div>

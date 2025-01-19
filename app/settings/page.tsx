@@ -27,14 +27,7 @@ export default function SettingsPage() {
   }  
 
 const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(
-        () => {
-            console.log("Copied to clipboard successfully!");
-        },
-        (err) => {
-            console.error("Failed to copy text: ", err);
-        }
-    );
+    navigator.clipboard.writeText(text)
 };
 
   const handleLogout = async () => {

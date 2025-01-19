@@ -4,14 +4,16 @@ import { retrieveContext } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
-// import { getTransactionCount, getTransactionVolume } from '@/utils/network-activity';
 
 async function getAgentConfig(userId: string, agentId: string) {
   // Use absolute URL with the base URL from environment variable
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/agents/${userId}/${agentId}`, baseUrl).toString();
-  
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error('Failed to fetch agent configuration');
   }
@@ -24,7 +26,11 @@ async function getPortfolioValue(walletAddress: string) {
   }
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/portfolio/${walletAddress}`, baseUrl).toString();
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error('Failed to fetch portfolio data');
   }
@@ -34,7 +40,11 @@ async function getPortfolioValue(walletAddress: string) {
 async function getTokenHoldings(walletAddress: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/portfolio/${walletAddress}`, baseUrl).toString();
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) throw new Error("Failed to fetch portfolio data");
   return response.json();
 }
@@ -42,7 +52,11 @@ async function getTokenHoldings(walletAddress: string) {
 async function getFearGreedIndex() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/tools/market-sentiment/fear-and-greed`, baseUrl).toString();
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) throw new Error("Failed to fetch market sentiment data");
   return response.json();
 }
@@ -50,7 +64,11 @@ async function getFearGreedIndex() {
 async function getTransactionVolumeAndCount(timeframe: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/tools/network-activity/transaction-volume`, baseUrl).toString();
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) throw new Error("Failed to fetch transaction volume data");
   return response.json();
 }
@@ -58,7 +76,11 @@ async function getTransactionVolumeAndCount(timeframe: string) {
 async function getTokenInfo(contractAddress: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/tools/token-info/${contractAddress}`, baseUrl).toString();
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) return { error: 'Failed to fetch token information' };
   return response.json();
 }
@@ -66,7 +88,11 @@ async function getTokenInfo(contractAddress: string) {
 async function getMarketMovers() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/tools/market-movers`, baseUrl).toString();
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) throw new Error("Failed to fetch market movers");
   return response.json();
 }
@@ -74,18 +100,15 @@ async function getMarketMovers() {
 async function searchTokens(query: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/tools/token-search?query=${query}`, baseUrl).toString();
-  const response = await fetch(url);
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
   if (!response.ok) throw new Error("Failed to fetch token search results");
   return response.json();
 }
 
-async function getOnchainTokenInfo(address: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const url = new URL(`/api/tools/onchain-token-info?address=${encodeURIComponent(address)}`, baseUrl).toString();
-  const response = await fetch(url);
-  if (!response.ok) throw new Error("Failed to fetch onchain token info");
-  return response.json();
-}
 
 export async function POST(req: Request) {
   const { messages, user, agentId } = await req.json();
@@ -325,17 +348,6 @@ Remember to use this context when relevant to answer the user's query.`
           return response;
         },
       },
-
-      getOnchainTokenInfo: {
-        description: "Get detailed information about a onchain Solana token",
-        parameters: z.object({
-          address: z.string().describe('The Solana token address to fetch information for')
-        }),
-        execute: async ({ address }) => {
-          const response = await getOnchainTokenInfo(address);
-          return response;
-        },
-      },      
       
     },    
   });

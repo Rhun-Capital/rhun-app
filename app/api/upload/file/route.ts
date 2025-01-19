@@ -1,35 +1,28 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { initPinecone, createEmbedding, chunkText } from '@/utils/embeddings';
-import { PDFDocument } from 'pdf-lib';
 import mammoth from 'mammoth';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
 async function extractPDFText(buffer: Buffer): Promise<string> {
   try {
-    // Alternative libraries for text extraction
-    const pdfjs = await import('pdfjs-dist');
-    
-    // Configure PDF.js
-    const loadingTask = pdfjs.getDocument({ data: buffer });
-    const pdf = await loadingTask.promise;
-    
-    let fullText = '';
-    
-    // Extract text from each page
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      
-      // Combine text items
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      
-      fullText += pageText + '\n';
-    }
+    const PDFParser = (await import('pdf2json')).default;
+    const pdfParser = new PDFParser();
 
-    return fullText.trim();
+    return new Promise((resolve, reject) => {
+      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        const text = decodeURIComponent(pdfData.Pages.map((page: any) => 
+          page.Texts.map((text: any) => text.R[0].T).join(' ')
+        ).join('\n'));
+        resolve(text);
+      });
+
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        reject(new Error(errData.parserError));
+      });
+
+      pdfParser.parseBuffer(buffer);
+    });
   } catch (error) {
     console.error('Text Extraction Error:', error);
     throw error;
@@ -42,24 +35,20 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File;
     const agentId = formData.get('agentId') as string;
 
-
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-
-    // Save file temporarily
+    // Convert File to Buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const tempPath = join('/tmp', file.name);
-    await writeFile(tempPath, new Uint8Array(buffer));
 
     // Extract text based on file type
     let text = '';
     if (file.name.endsWith('.pdf')) {
       text = await extractPDFText(buffer);
     } else if (file.name.endsWith('.docx')) {
-      const result = await mammoth.extractRawText({ path: tempPath });
+      const result = await mammoth.extractRawText({ buffer });  // Note: changed to use buffer directly
       text = result.value;
     } else if (file.name.endsWith('.txt')) {
       text = buffer.toString('utf8');

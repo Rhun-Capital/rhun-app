@@ -114,7 +114,7 @@ export function PortfolioAnalysis({
         </div>
       </div>
 
-      {/* <hr className="opacity-30"/> */}
+      <hr className="opacity-30"/>
 
       {/* Holdings Table */}
       {holdings.map(token => (
