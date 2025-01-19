@@ -13,14 +13,14 @@ export default function HomePage() {
       description: 'Create and customize AI agents with specific knowledge and behaviors. Train them with documents and define how they interact.',
       icon: BotIcon,
       link: '/agents',
-      color: 'text-green-500',
+      color: 'text-indigo-500',
     },
     {
       title: 'Chat',
       description: 'Interact with your agents through a chat interface. Upload files, ask questions, and get AI-powered responses.',
       icon: MessageIcon,
       link: '/chat',
-      color: 'text-blue-500',
+      color: 'text-indigo-500',
     },
     {
       title: 'Settings',
@@ -61,13 +61,13 @@ export default function HomePage() {
                            transition-all duration-200 ease-in-out
                            hover:border-zinc-600 hover:shadow-lg hover:-translate-y-1">
                 <div className="mb-4"><feature.icon /></div>
-                <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-colors">
+                <h2 className="text-xl font-semibold mb-2 group-hover:text-indigo-400 transition-colors">
                   {feature.title}
                 </h2>
                 <p className="text-zinc-400 mb-4">
                   {feature.description}
                 </p>
-                <div className="flex items-center text-sm text-zinc-500 group-hover:text-green-400 transition-colors">
+                <div className="flex items-center text-sm text-zinc-500 group-hover:text-indigo-400 transition-colors">
                   <span>Learn more</span>
                   <div className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform"><ChevronRightIcon /></div>
                 </div>
@@ -80,10 +80,10 @@ export default function HomePage() {
         <div className="bg-zinc-800 rounded-lg border border-zinc-700 p-8">
           <h2 className="text-2xl font-bold mb-6">Getting Started</h2>
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="space-y-4">
+            <div className="space-y-4 pt-5">
               {steps.map((step, index) => (
                 <div key={index} className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/10 text-green-500
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-500/10 text-indigo-500
                                 flex items-center justify-center font-semibold">
                     {index + 1}
                   </div>
@@ -107,8 +107,7 @@ export default function HomePage() {
         <div className="text-center">
           <Link 
             href="/agents"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600 
-                     rounded-lg font-semibold transition-colors text-lg"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-semibold transition-colors text-lg"
           >
             Get Started
             <ChevronRightIcon/>

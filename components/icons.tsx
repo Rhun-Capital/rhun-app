@@ -283,3 +283,174 @@ export const ChevronUpIcon = () => {
     </svg>
   );
 };
+
+export const BarChartIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1 14V2H3V14H1ZM6 14V6H8V14H6ZM11 14V9H13V14H11ZM0 15H16V16H0V15Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const GlobeIcon = () => {
+  return (
+    <svg
+      height="18"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+      width="18"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm1 16.057v-3.057h2.994c-.059 1.143-.212 2.24-.456 3.279-.823-.12-1.674-.188-2.538-.222zm1.957 2.162c-.499 1.33-1.159 2.497-1.957 3.456v-3.62c.666.028 1.319.081 1.957.164zm-1.957-7.219v-3.015c.868-.034 1.721-.103 2.548-.224.238 1.027.389 2.111.446 3.239h-2.994zm0-5.014v-3.661c.806.969 1.471 2.15 1.971 3.496-.642.084-1.3.137-1.971.165zm2.703-3.267c1.237.496 2.354 1.228 3.29 2.146-.642.234-1.311.442-2.019.607-.344-.992-.775-1.91-1.271-2.753zm-7.241 13.56c-.244-1.039-.398-2.136-.456-3.279h2.994v3.057c-.865.034-1.714.102-2.538.222zm2.538 1.776v3.62c-.798-.959-1.458-2.126-1.957-3.456.638-.083 1.291-.136 1.957-.164zm-2.994-7.055c.057-1.128.207-2.212.446-3.239.827.121 1.68.19 2.548.224v3.015h-2.994zm1.024-5.179c.5-1.346 1.165-2.527 1.97-3.496v3.661c-.671-.028-1.329-.081-1.97-.165zm-2.005-.35c-.708-.165-1.377-.373-2.018-.607.937-.918 2.053-1.65 3.29-2.146-.496.844-.927 1.762-1.272 2.753zm-.549 1.918c-.264 1.151-.434 2.36-.492 3.611h-3.933c.165-1.658.739-3.197 1.617-4.518.88.361 1.816.67 2.808.907zm.009 9.262c-.988.236-1.92.542-2.797.9-.89-1.328-1.471-2.879-1.637-4.551h3.934c.058 1.265.231 2.488.5 3.651zm.553 1.917c.342.976.768 1.881 1.257 2.712-1.223-.49-2.326-1.211-3.256-2.115.636-.229 1.299-.435 1.999-.597zm9.924 0c.7.163 1.362.367 1.999.597-.931.903-2.034 1.625-3.257 2.116.489-.832.915-1.737 1.258-2.713zm.553-1.917c.27-1.163.442-2.386.501-3.651h3.934c-.167 1.672-.748 3.223-1.638 4.551-.877-.358-1.81-.664-2.797-.9zm.501-5.651c-.058-1.251-.229-2.46-.492-3.611.992-.237 1.929-.546 2.809-.907.877 1.321 1.451 2.86 1.616 4.518h-3.933z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const CheckIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M13.707 3.293a1 1 0 00-1.414 0L6 9.586 3.707 7.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const MarketplaceIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M2 1C1.44772 1 1 1.44772 1 2V3H0V4H1V13C1 13.5523 1.44772 14 2 14H14C14.5523 14 15 13.5523 15 13V4H16V3H15V2C15 1.44772 14.5523 1 14 1H2ZM2 3V2H14V3H2ZM2 5V13H14V5H2ZM4 7H6V9H4V7ZM7 7H9V9H7V7ZM10 7H12V9H10V7Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const WalletIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M0 4C0 2.89543 0.895431 2 2 2H14C15.1046 2 16 2.89543 16 4V12C16 13.1046 15.1046 14 14 14H2C0.895431 14 0 13.1046 0 12V4ZM2 4V12H14V4H2ZM11 7C10.4477 7 10 7.44772 10 8C10 8.55228 10.4477 9 11 9C11.5523 9 12 8.55228 12 8C12 7.44772 11.5523 7 11 7Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const MoonIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M8 0C4.68629 0 2 2.68629 2 6C2 9.31371 4.68629 12 8 12C11.3137 12 14 9.31371 14 6C14 2.68629 11.3137 0 8 0ZM8 1.5C10.4853 1.5 12.5 3.51472 12.5 6C12.5 8.48528 10.4853 10.5 8 10.5C5.51472 10.5 3.5 8.48528 3.5 6C3.5 3.51472 5.51472 1.5 8 1.5Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const LockIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M8 1C6.34315 1 5 2.34315 5 4V6H4C3.44772 6 3 6.44772 3 7V13C3 13.5523 3.44772 14 4 14H12C12.5523 14 13 13.5523 13 13V7C13 6.44772 12.5523 6 12 6H11V4C11 2.34315 9.65685 1 8 1ZM9 6V4C9 3.44772 8.55228 3 8 3C7.44772 3 7 3.44772 7 4V6H9ZM5 8H11V12H5V8Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const MegaphoneIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1 4.5C1 3.67157 1.67157 3 2.5 3H11.5C12.3284 3 13 3.67157 13 4.5V11.5C13 12.3284 12.3284 13 11.5 13H2.5C1.67157 13 1 12.3284 1 11.5V4.5ZM2.5 4C2.22386 4 2 4.22386 2 4.5V11.5C2 11.7761 2.22386 12 2.5 12H11.5C11.7761 12 12 11.7761 12 11.5V4.5C12 4.22386 11.7761 4 11.5 4H2.5ZM14 5.5C14.5523 5.5 15 5.94772 15 6.5V9.5C15 10.0523 14.5523 10.5 14 10.5C13.4477 10.5 13 10.0523 13 9.5V6.5C13 5.94772 13.4477 5.5 14 5.5ZM4 14C4 13.4477 4.44772 13 5 13H9C9.55228 13 10 13.4477 10 14C10 14.5523 9.55228 15 9 15H5C4.44772 15 4 14.5523 4 14Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};
+
+export const CopyIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 16 16"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M4 1C3.44772 1 3 1.44772 3 2V12C3 12.5523 3.44772 13 4 13H12C12.5523 13 13 12.5523 13 12V2C13 1.44772 12.5523 1 12 1H4ZM4 0H12C13.1046 0 14 0.895431 14 2V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V2C2 0.895431 2.89543 0 4 0ZM1 4C1 3.44772 1.44772 3 2 3H3V12C3 13.1046 3.89543 14 5 14H12V15C12 15.5523 11.5523 16 11 16H2C1.44772 16 1 15.5523 1 15V4Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};

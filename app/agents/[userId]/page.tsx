@@ -35,7 +35,7 @@ export default async function AgentPage({ params }: { params: { id: string } }) 
           <h1 className="text-3xl font-bold">{agent.name}</h1>
           <a 
             href={`/agents/${agent.id}/edit`}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition"
           >
             Edit Agent
           </a>

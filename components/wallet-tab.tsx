@@ -95,6 +95,14 @@ export default function WalletTab({ agentId }: { agentId: string }) {
     setIsAdvancedOptionsOpen(!isAdvancedOptionsOpen);
   }
 
+  if (!agentId) {
+    return (
+      <div className="p-6 bg-zinc-800 rounded-lg text-zinc-400">
+        Configure your agent before creating a wallet.
+      </div>
+    );
+  }  
+
   return (
     <div className="space-y-6">
       <div className="border-b border-zinc-700 pb-4">
@@ -111,7 +119,7 @@ export default function WalletTab({ agentId }: { agentId: string }) {
           <button
             onClick={handleCreateWallet}
             disabled={loading}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition disabled:opacity-50"
           >
             {loading ? 'Creating Wallet...' : 'Create Wallet'}
           </button>

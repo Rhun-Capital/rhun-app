@@ -131,7 +131,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
         <div className={`p-4 rounded-lg flex items-center gap-2 ${
           message.includes('Error') 
             ? 'bg-red-900/50 border border-red-500' 
-            : 'bg-green-900/50 border border-green-500'
+            : 'bg-green-900/50 border border-indigo-500'
         }`}>
           <div className="flex-1">
             <div className="flex align-center gap-2">
@@ -163,8 +163,8 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
               file:mr-4 file:py-2 file:px-4
               file:rounded-lg file:border-0
               file:text-sm file:font-semibold
-              file:bg-green-500 file:text-white
-              file:cursor-pointer file:hover:bg-green-600
+              file:bg-indigo-500 file:text-white
+              file:cursor-pointer file:hover:bg-indigo-600
               disabled:opacity-50"
           />
           <p className="text-xs text-zinc-500">
@@ -187,7 +187,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
           <button
             type="submit"
             disabled={loading || !text}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition disabled:opacity-50"
           >
             {loading ? 'Adding...' : 'Add to Knowledge Base'}
           </button>
@@ -208,7 +208,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
           <button
             type="submit"
             disabled={loading || !url}
-            className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-500 rounded-lg transition disabled:opacity-50"
           >
             {loading ? 'Processing...' : 'Process URL'}
           </button>

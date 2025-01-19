@@ -73,7 +73,7 @@ export default function DocumentUpload() {
           <button
             type="submit"
             disabled={loading || !text}
-            className="px-4 py-2 bg-green-500 rounded-lg disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-500 rounded-lg disabled:opacity-50"
           >
             {loading ? 'Processing...' : 'Upload Text'}
           </button>
@@ -94,7 +94,7 @@ export default function DocumentUpload() {
           <button
             type="submit"
             disabled={loading || !url}
-            className="px-4 py-2 bg-green-500 rounded-lg disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-500 rounded-lg disabled:opacity-50"
           >
             {loading ? 'Processing...' : 'Process URL'}
           </button>
