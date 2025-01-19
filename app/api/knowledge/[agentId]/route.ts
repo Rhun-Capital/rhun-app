@@ -6,17 +6,28 @@ export async function GET(
   { params }: { params: { agentId: string } }
 ) {
   try {
-    const pinecone = await initPinecone();
+    const pinecone = initPinecone();
     const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
 
-    // Query Pinecone for all vectors with matching agentId
+    // Try different vector approaches:
     const queryResponse = await index.query({
-      vector: new Array(1536).fill(0.1), // Dummy vector for metadata-only query
+      vector: Array(1536).fill(0.1),  // Simple non-zero vector
+      // Alternatively, try these other approaches:
+      // vector: Array(1536).fill(1/1536),  // Normalized small values
+      // vector: Array(1536).fill(Math.random()), // Random values
       topK: 1000,
       filter: {
         agentId: { $eq: params.agentId }
       },
-      includeMetadata: true
+      includeMetadata: true,
+      includeValues: false  // Add this to exclude vector values from response
+    });
+
+    // Add debug logging
+    console.log('Query response:', {
+      matchCount: queryResponse.matches?.length || 0,
+      firstMatch: queryResponse.matches?.[0],
+      filter: { agentId: { $eq: params.agentId } }
     });
 
     const knowledge = queryResponse.matches?.map(match => ({
@@ -25,7 +36,10 @@ export async function GET(
       score: match.score
     }));
 
-    return NextResponse.json({ knowledge });
+    return NextResponse.json({ 
+      knowledge,
+      matchCount: knowledge?.length || 0  // Add count to response
+    });
   } catch (error: any) {
     console.error('Error fetching knowledge:', error);
     return NextResponse.json(

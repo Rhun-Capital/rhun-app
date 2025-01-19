@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import KnowledgeTab from "./knowledge-tab";
 import WalletTab from "./wallet-tab";
 import AppMarketplaceTab from "./app-marketplace-tab";
-import { AlertCircleIcon, CloseIcon } from "./icons";
+import { AlertCircleIcon, CloseIcon, ChatIcon } from "./icons";
 import { usePrivy } from "@privy-io/react-auth";
 import { useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { getAccessToken } from "@privy-io/react-auth";
 
 interface InitialData {
   id: string;
@@ -38,6 +40,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const topRef = useRef<HTMLDivElement>(null);
   const { user } = usePrivy();
   const params = useParams();
+  const router = useRouter();
 
   type FormDataKeys = keyof typeof defaultFormData;
 
@@ -264,10 +267,14 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
         ? `/api/agents/${initialData?.userId}/${initialData.id}`
         : "/api/agents";
 
+      const accessToken = await getAccessToken();
+
       const response = await fetch(url, {
         method: initialData ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+
         },
         body: JSON.stringify(agentData),
       });
@@ -277,10 +284,10 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
       }
 
       setSuccess(true);
-      window.location.href = "/agents";
-      // if (!initialData) {
-      //   setFormData(defaultFormData); // Only reset form on create, not edit
-      // }
+      
+      if (!initialData) {
+        router.push("/agents"); // Redirect to agents list after creation
+      }
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -289,7 +296,9 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
       }
     } finally {
       setLoading(false);
-      // scrollToTop();
+      if (initialData) {
+        scrollToTop();
+      }
       // redirect tp newly created agent
     }
   };
@@ -301,6 +310,10 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     { id: "apps", label: "App Marketplace" },
   ];
 
+  const goBack = () => {
+    router.back();
+  };
+  
   return (
     <div
       className="min-h-screen dark:bg-zinc-900 text-gray-100 p-6"
@@ -309,8 +322,16 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">
-            {initialData ? "Edit Agent" : "Create New Agent"}
+            {initialData ? initialData.name || "Edit Agent" : "Create New Agent"}
           </h1>
+          <button
+            onClick={goBack}
+            className="px-4 py-2 bg-transparent rounded-lg transition"
+          >
+            
+           <div className="flex gap-2 items-center"><span className="text-white outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500"><div className="flex gap-2 items-center"><span>Start Chat</span><ChatIcon/></div>  </span> </div>
+           </button>
+
         </div>
 
         {/* Tabs */}
@@ -344,7 +365,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
             )}
 
             {success && (
-              <div className="mb-6 p-4 bg-green-900/50 border border-indigo-500 rounded-lg">
+              <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
                 <div className="flex">
                   <p className="text-white flex-1">
                     Agent {initialData ? "updated" : "created"} successfully!

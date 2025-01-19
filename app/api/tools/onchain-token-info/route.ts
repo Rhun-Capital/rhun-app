@@ -18,8 +18,6 @@ export async function GET(
       );
     }
 
-    console.log('getting:' , `${COINGECKO_BASE_URL}/onchain/networks/solana/tokens/${address}/info`)
-
     const response = await fetch(
       `${COINGECKO_BASE_URL}/onchain/networks/solana/tokens/${address}/info`,
       {

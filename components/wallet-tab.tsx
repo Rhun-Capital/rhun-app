@@ -5,16 +5,19 @@ import {useSolanaWallets} from '@privy-io/react-auth/solana';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
+import { usePrivy } from '@privy-io/react-auth';
 
 
 export default function WalletTab({ agentId }: { agentId: string }) {
   const { createWallet, exportWallet, wallets } = useSolanaWallets();
+  const { getAccessToken } = usePrivy();
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [isAdvancedOptionsOpen, setIsAdvancedOptionsOpen] = useState(false);
   const params = useParams();
+  
 
   // Fetch wallet address when available
   useEffect(() => {
@@ -28,7 +31,15 @@ export default function WalletTab({ agentId }: { agentId: string }) {
   // Fetch balance
   const fetchBalance = async (walletId: string) => {
     try {
-      const response = await fetch(`/api/wallets/${walletId}/balance`);
+      const accessToken = await getAccessToken();
+      const response = await fetch(
+        `/api/wallets/${walletId}/balance`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error('Failed to fetch balance');
       const data = await response.json();
       setBalance(data.balance);
@@ -48,7 +59,15 @@ export default function WalletTab({ agentId }: { agentId: string }) {
 
   const getAgent = async () => {
     try {
-      const response = await fetch(`/api/agents/${params.userId}/${agentId}`);
+      const accessToken = await getAccessToken();
+      const response = await fetch(
+        `/api/agents/${params.userId}/${agentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
       if (!response.ok) throw new Error('Failed to fetch agent');
       const data = await response.json();
       return data;
@@ -62,11 +81,13 @@ export default function WalletTab({ agentId }: { agentId: string }) {
       setLoading(true);
       const wallet = await createWallet({createAdditional: true});
       setWalletAddress(wallet.address);
+      const accessToken = await getAccessToken();
       
       await fetch(`/api/agents/${params.userId}/${agentId}/wallet`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ wallets: {solana: wallet.address} }),
       });

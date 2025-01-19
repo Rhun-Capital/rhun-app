@@ -31,10 +31,7 @@ interface TransactionVolume {
         }),
       });
   
-      const data = await response.json();
-
-      console.log(data);
-      
+      const data = await response.json();      
       // Calculate total transaction count and volume
       const transactionCount = data.result.reduce(
         (acc: number, sample: any) => acc + sample.numTransactions,
