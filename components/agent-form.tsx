@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import KnowledgeTab from "./knowledge-tab";
 import WalletTab from "./wallet-tab";
+import AppMarketplaceTab from "./app-marketplace-tab";
 import { AlertCircleIcon, CloseIcon } from "./icons";
 import { usePrivy } from "@privy-io/react-auth";
 import { useParams } from "next/navigation";
@@ -297,6 +298,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     { id: "config", label: "Configuration" },
     { id: "knowledge", label: "Knowledge Base" },
     { id: "wallet", label: "Wallet" },
+    { id: "apps", label: "App Marketplace" },
   ];
 
   return (
@@ -320,7 +322,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
                 onClick={() => setActiveTab(tab.id)}
                 className={`pb-4 px-1 ${
                   activeTab === tab.id
-                    ? "border-b-2 border-green-500 text-white"
+                    ? "border-b-2 border-indigo-500 text-white"
                     : "text-zinc-400 hover:text-zinc-300"
                 }`}
               >
@@ -342,7 +344,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
             )}
 
             {success && (
-              <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
+              <div className="mb-6 p-4 bg-green-900/50 border border-indigo-500 rounded-lg">
                 <div className="flex">
                   <p className="text-white flex-1">
                     Agent {initialData ? "updated" : "created"} successfully!
@@ -404,7 +406,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="h-10 px-6 py-2 bg-green-500 hover:bg-green-600 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-10 px-6 py-2 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading
                     ? initialData
@@ -429,6 +431,16 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
           />
         ) : activeTab === "wallet" ? (
           <WalletTab
+            agentId={
+              initialData?.id ||
+              (Array.isArray(params?.agentId)
+                ? params.agentId[0]
+                : params?.agentId) ||
+              ""
+            }
+          />
+        ) : activeTab === "apps" ? (
+          <AppMarketplaceTab
             agentId={
               initialData?.id ||
               (Array.isArray(params?.agentId)

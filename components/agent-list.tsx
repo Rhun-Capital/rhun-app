@@ -36,7 +36,7 @@ export default function AgentsPage() {
           <h1 className="text-3xl font-bold">My Agents</h1>
           <Link 
             href="/agents/create"
-            className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg transition"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 rounded-lg transition"
           >
             <PlusIcon />
             Create New Agent
@@ -54,7 +54,7 @@ export default function AgentsPage() {
                            transition-all duration-200 ease-in-out
                            hover:border-zinc-600 hover:shadow-lg hover:-translate-y-1">
                 <div className="flex flex-col h-full">
-                  <h2 className="text-xl font-semibold mb-2 group-hover:text-green-400 transition-colors">
+                  <h2 className="text-xl font-semibold mb-2 group-hover:text-indigo-400 transition-colors">
                     {agent.name}
                   </h2>
                   <div className="flex-grow" />
@@ -80,9 +80,9 @@ export default function AgentsPage() {
           >
             <div className="h-full p-6 bg-zinc-800 rounded-lg border border-zinc-700 border-dashed
                          transition-all duration-200 ease-in-out
-                         hover:border-green-500 hover:border-solid
+                         hover:border-indigo-500 hover:border-solid
                          flex flex-col items-center justify-center gap-4 text-zinc-400
-                         hover:text-green-400">
+                         hover:text-indigo-400">
               <PlusIcon />
               <span className="text-sm font-medium">Create New Agent</span>
             </div>

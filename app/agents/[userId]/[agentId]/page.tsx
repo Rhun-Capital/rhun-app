@@ -1,11 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
-
 import { ToolInvocation } from 'ai';
 import {
   AttachmentIcon,
   BotIcon,
   UserIcon,
+  GlobeIcon,
+  AlertCircleIcon
 } from "@/components/icons";
 import Image from 'next/image';
 import { useChat } from "ai/react";
@@ -16,6 +17,8 @@ import Link from "next/link";
 import { Markdown } from "@/components/markdown";
 import { useParams } from 'next/navigation';
 import { usePrivy } from "@privy-io/react-auth";
+import LoadingIndicator from "@/components/loading-indicator";
+
 
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
@@ -48,18 +51,19 @@ function TextFilePreview({ file }: { file: File }) {
 export default function Home() {
   const { user } = usePrivy();
   const params = useParams();
+  const [agent, setAgent] = useState<any>();
   const agentId = params.agentId;  
   const { messages, input, handleSubmit, handleInputChange, addToolResult, isLoading } =
     useChat({
       body: { agentId, user },
       onError: () =>
         toast.error("You've been rate limited, please try again later!"),
-      maxSteps: 2,
-      async onToolCall({ toolCall }) {
-        if (toolCall.toolName === 'getSolanaBalance') {
+      maxSteps: 20,
+      // async onToolCall({ toolCall }) {
+      //   if (toolCall.toolName === 'getSolanaBalance') {
 
-        }
-      },
+      //   }
+      // },
 
     });
 
@@ -67,6 +71,22 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null); // Reference for the hidden file input
   const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    // get agent and sey agent name
+    if (!user) return;
+    getAgent().then((agent) => {
+      setAgent(agent);
+    });
+  }, [user])
+
+  const getAgent = async () => {
+    const response = await fetch(`/api/agents/${user?.id}/${agentId}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch agent configuration");
+    }
+    return response.json();
+  }
 
   const handlePaste = (event: React.ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -160,6 +180,14 @@ export default function Home() {
     }
   };
 
+  if (!agent) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="text-2xl font-semibold"><LoadingIndicator/></div>
+      </div>
+    );
+  }
+
   return (
 
       <div
@@ -205,9 +233,6 @@ export default function Home() {
                       <Markdown>{message.content}</Markdown>
                       {message.toolInvocations?.map((toolInvocation: ToolInvocation) => {
                         const toolCallId = toolInvocation.toolCallId;
-                        // const addResult = (result: string) =>
-                        //   addToolResult({ toolCallId, result });
-                        console.log(toolInvocation )
                         // render confirmation tool (client-side tool with user interaction)
                         if (toolInvocation.toolName === 'getUserSolanaBalance') {
                           return (
@@ -228,6 +253,7 @@ export default function Home() {
                         }    
 
                         if (toolInvocation.toolName === 'getAgentSolanaBalance') {
+
                           return (
                             <div key={toolCallId}>
                               {toolInvocation.args.message}
@@ -243,7 +269,375 @@ export default function Home() {
                               </div>
                             </div>
                           );
-                        }                          
+                        }   
+                        
+                        if (toolInvocation.toolName === 'getUserPortfolioValue' || toolInvocation.toolName === 'getAgentPortfolioValue') {
+                          {toolInvocation.args.message}
+                          return (
+                            <div className="p-6 bg-zinc-800 rounded-lg" key={toolCallId}>
+                            <h3 className="text-sm text-zinc-400 mb-2">Portfolio Value</h3>
+                            <p className="text-2xl font-bold">
+                              $
+                              {"result" in toolInvocation ? toolInvocation.result.totalValue.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }) : 0}
+                            </p>
+                          </div>  
+                          )            
+                        }
+
+                        if (toolInvocation.toolName === 'getUserTokenHoldings' || toolInvocation.toolName === 'getAgentTokenHoldings') {
+                          return (
+                            <div key={toolCallId}>
+                              {toolInvocation.args.message}
+                              {/* Balance Display */}
+                                {"result" in toolInvocation ? toolInvocation.result.map((token: any) => (
+                                  <div key={token.mint} className="flex justify-between items-center p-4 bg-zinc-800 rounded-lg mb-2">
+                                    <div className="flex items-center gap-4">
+                                      {token.logoURI ? (
+                                        <img 
+                                          src={token.logoURI} 
+                                          alt={token.symbol}
+                                          className="w-8 h-8 rounded-full"
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            const nextSibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                                            if (nextSibling) {
+                                              nextSibling.style.display = 'flex';
+                                            }
+                                          }}
+                                        />
+                                      ) : 
+                                      
+                                      <div>
+                                        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                                            <span className="text-xs text-zinc-300">?</span>
+                                        </div>
+                                      </div>
+                                      }
+
+                                      <div>
+                                        <p className="font-medium">{token.name}</p>
+                                        <p className="text-sm text-zinc-400">
+                                          {token.amount.toLocaleString(undefined, { 
+                                            maximumFractionDigits: 4 
+                                          })} {token.symbol}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-medium">
+                                        ${token.usdValue.toLocaleString(undefined, { 
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2 
+                                        })}
+                                      </p>
+                                      <p className={`text-sm ${
+                                        token.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'
+                                      }`}>
+                                        {token.priceChange24h.toFixed(2)}%
+                                      </p>
+                                    </div>
+                                  </div>
+                                )) : null}
+
+
+                            </div>
+                          );
+                        }
+
+                        if (toolInvocation.toolName === 'getFearAndGreedIndex') {
+
+                          return (
+                            <div key={toolCallId}>
+                              <div className="p-6 bg-zinc-800 rounded-lg">
+                                {toolInvocation.args.message}
+                                <h3 className="text-lg font-semibold mb-4">Fear & Greed Index</h3>
+                                <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`text-3xl font-bold ${
+                                      "result" in toolInvocation ? toolInvocation.result.value > 50 
+                                        ? 'text-green-500' 
+                                        : 'text-red-500'
+                                    : null} `}>
+                                      {"result" in toolInvocation ? toolInvocation.result.value : <LoadingIndicator/>}
+                                    </div>
+                                    <div className="text-zinc-400">
+                                      {"result" in toolInvocation ? toolInvocation.result.classification : ''}
+                                    </div>
+                                  </div>                                  
+
+                                </div>
+                              </div>
+                            </div>     
+                          )                     
+                        }
+
+                        if (toolInvocation.toolName === 'getSolanaTransactionVolume') {
+
+                          return (
+                            <div key={toolCallId}>
+                              <div className="p-6 bg-zinc-800 rounded-lg">
+                              {toolInvocation.args.message}
+                              <div className="mb-4">
+                                <h3 className="text-lg font-semibold">Transaction Volume</h3>
+                                <small className="text-zinc-400">Last 24 hours</small>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 mb-2">
+                                <div className="bg-zinc-900 p-4 rounded-lg">
+                                  <div className="text-sm text-zinc-400 mb-1">Volume (USD)</div>
+                                  <div className="text-lg font-bold">
+                                  {"result" in toolInvocation ? toolInvocation.result.volume.volumeUSD.toLocaleString(undefined, {
+                                      maximumFractionDigits: 2
+                                    }) : <LoadingIndicator/>}
+                                  </div>
+                                </div>
+
+                                <div className="bg-zinc-900 p-4 rounded-lg">
+                                  <div className="text-sm text-zinc-400 mb-1">Volume (SOL)</div>
+                                  <div className="text-lg font-bold flex items-center gap-2">
+                                    <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
+                                    {"result" in toolInvocation ? toolInvocation.result.volume.volumeSOL.toLocaleString(undefined, {
+                                      maximumFractionDigits: 2
+                                    }) : <LoadingIndicator/>}
+                                  </div>
+                                </div>
+                              </div>
+                              </div>
+                              </div>
+                          )
+    
+                          
+                        }        
+                        
+                        if (toolInvocation.toolName === 'getTokenInfo') {
+
+                          // handle error from api 
+                          if ("result" in toolInvocation && "error" in toolInvocation.result) {
+                            return (
+                              <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
+                                <div className="text-zinc-400 flex items-center gap-2">
+                                  <AlertCircleIcon />
+                                  {toolInvocation.result.error}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          if ("result" in toolInvocation) {
+                            return (
+                              <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg space-y-4">
+                                <div className="flex justify-between items-start mb-4">
+                                  <div>
+                                    {/*  coin image  */}
+                                    <Image
+                                      src={toolInvocation.result.image}
+                                      alt={toolInvocation.result.name}
+                                      width={55}
+                                      height={55}
+                                      className=" rounded-full"
+                                      />
+                                  </div>
+                                  <div>
+                                    <h3 className="text-lg font-semibold">{"result" in toolInvocation ? toolInvocation.result.name : null }</h3>
+                                    <p className="text-zinc-400">{"result" in toolInvocation ? toolInvocation.result.symbol.toUpperCase() : null}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-xl font-bold">
+                                      {"result" in toolInvocation ? '$' + toolInvocation.result.currentPrice.toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 6
+                                      }) : null} 
+                                    </div>
+                                    <div className={`text-sm ${
+                                      "result" in toolInvocation ? toolInvocation.result.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500' : null
+                                    }`}>
+                                      {"result" in toolInvocation ? toolInvocation.result.priceChange24h.toFixed(2) + '%': null}
+                                    </div>
+                                  </div>
+                                </div>
+                          
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="bg-zinc-900 p-4 rounded-lg">
+                                    <div className="text-sm text-zinc-400">Market Cap</div>
+                                    <div className="text-lg font-semibold">
+                                      ${"result" in toolInvocation ? toolInvocation.result.marketCap.toLocaleString() : null}
+                                    </div>
+                                  </div>
+                          
+                                  <div className="bg-zinc-900 p-4 rounded-lg">
+                                    <div className="text-sm text-zinc-400">24h Volume</div>
+                                    <div className="text-lg font-semibold">
+                                      ${"result" in toolInvocation ? toolInvocation.result.totalVolume.toLocaleString() : null}
+                                    </div>
+                                  </div>
+                          
+                                  <div className="bg-zinc-900 p-4 rounded-lg">
+                                    <div className="text-sm text-zinc-400">Circulating Supply</div>
+                                    <div className="text-lg font-semibold">
+                                      {"result" in toolInvocation ? toolInvocation.result.circulatingSupply.toLocaleString() : null}
+                                    </div>
+                                  </div>
+                          
+                                  <div className="bg-zinc-900 p-4 rounded-lg">
+                                    <div className="text-sm text-zinc-400">Total Supply</div>
+                                    <div className="text-lg font-semibold">
+                                      {"result" in toolInvocation ? toolInvocation.result.totalSupply.toLocaleString() : null}
+                                    </div>
+                                  </div>
+                                </div>
+                          
+                                {"result" in toolInvocation && toolInvocation.result.description && (
+                                  <div className="mt-4 text-sm text-zinc-400">
+                                    {"result" in toolInvocation ? toolInvocation.result.description : null}
+                                  </div>
+                                )}
+
+                                <div className="flex flex-row gap-4 justify-between items-center">
+                                <div className="text-xs text-zinc-500 mt-4">
+                                  Last updated: {"result" in toolInvocation ? new Date(toolInvocation.result.lastUpdated).toLocaleString() : null}
+                                </div>
+
+                                
+                                    
+                                    <div className="flex flex-row gap-4 mt-3 mr-2">
+                                      
+                                      {"result" in toolInvocation && toolInvocation.result.twitter && (
+                                        <div className="text-sm text-zinc-400">
+                                          {"result" in toolInvocation ? (<a target="_blank" href={toolInvocation.result.homePage}>
+                                            <GlobeIcon/>
+                                          </a>) : null}
+                                        </div>
+                                      )}                                 
+
+                                      {"result" in toolInvocation && toolInvocation.result.twitter && (
+                                        <div className="text-sm text-zinc-400">
+                                          {"result" in toolInvocation ? (<a target="_blank" href={`https://x.com/${toolInvocation.result.twitter}`}>
+                                              <Image src="/images/social/x-logo.svg" alt="X Platform" width={15} height={15} />
+                                          </a>) : null}
+                                        </div>
+                                      )}   
+                                    </div> 
+                                </div>
+                                
+
+
+                              </div>
+                            );
+                          }
+                        } 
+                        
+                        if (toolInvocation.toolName === 'getMarketMovers') {
+                          return (
+                            <div>
+                            <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg mb-4">
+                              {toolInvocation.args.message}
+                              <h3 className="text-lg font-semibold mb-4">Top Gainers</h3>
+                              <div className="grid grid-cols-2 gap-4">
+                                {"result" in toolInvocation ? toolInvocation.result.top_gainers.map((coin: any) => (
+                                  <div key={coin.symbol} className="bg-zinc-900 p-4 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                      <Image src={coin.image} alt={coin.name} width={20} height={20} />
+                                      <div>
+                                        <p className="text-sm text-zinc-400">{coin.symbol.toUpperCase()}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )) : null}
+                              </div>
+                            </div>
+
+                            <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg ">
+                              {toolInvocation.args.message}
+                              <h3 className="text-lg font-semibold mb-4">Top Losers</h3>
+                              <div className="grid grid-cols-2 gap-4">
+                                {"result" in toolInvocation ? toolInvocation.result.top_losers.map((coin: any) => (
+                                  <div key={coin.symbol} className="bg-zinc-900 p-4 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                      <Image src={coin.image} alt={coin.name} width={20} height={20} />
+                                      <div>
+                                        <p className="text-sm text-zinc-400">{coin.symbol.toUpperCase()}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )) : null}
+                              </div>
+                            </div>
+
+
+                            </div>
+                          );
+                        }
+
+                        if (toolInvocation.toolName === 'searchTokens') {
+                          return (
+                            <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-4">Search Results</h3>
+                              <div className="space-y-3">
+                                {"result" in toolInvocation && toolInvocation.result.coins.map((coin: any) => (
+                                  <div 
+                                    key={coin.id} 
+                                    className="flex items-center justify-between p-3 bg-zinc-900 rounded-lg hover:bg-zinc-800 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <img 
+                                        src={coin.thumb} 
+                                        alt={coin.name} 
+                                        className="w-8 h-8 rounded-full"
+                                      />
+                                      <div>
+                                        <div className="font-medium">{coin.name}</div>
+                                        <div className="text-sm text-zinc-400">
+                                          {coin.symbol.toUpperCase()}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {coin.marketCapRank && (
+                                      <div className="text-right">
+                                        <div className="text-sm text-zinc-400">
+                                          Rank #{coin.marketCapRank}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                                
+                                {"result" in toolInvocation && toolInvocation.result.coins.length === 0 && (
+                                  <div className="text-zinc-400 text-center py-4">
+                                    No results found
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }   
+                        
+                        if (toolInvocation.toolName === 'getOnchainTokenInfo' && "result" in toolInvocation) {
+                          return (
+                            <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
+                              <h3 className="text-lg font-semibold mb-4">Token Information</h3>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="p-4 bg-zinc-900 rounded-lg">
+                                    <div className="text-sm text-zinc-400">Name</div>
+                                    <div className="font-medium">{toolInvocation.result.attributes.name}</div>
+                                  </div>
+                                  <div className="p-4 bg-zinc-900 rounded-lg">
+                                    <div className="text-sm text-zinc-400">Symbol</div>
+                                    <div className="font-medium">{toolInvocation.result.attributes.symbol}</div>
+                                  </div>
+                     
+                                </div>
+
+                                <div className="p-4 bg-zinc-900 rounded-lg">
+                                  <div className="text-sm text-zinc-400 mb-2">Token Address</div>
+                                  <div className="font-mono text-sm break-all">{toolInvocation.result.attributes.address}</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
 
                       })}                
                         
@@ -286,7 +680,7 @@ export default function Home() {
           ) : (
             <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
               <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 dark:border-zinc-700">
-                <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 dark:text-zinc-50">
+                <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 dark:text-zinc-50">  
                   <BotIcon />
                   <span>+</span>
                   <AttachmentIcon />
@@ -297,15 +691,15 @@ export default function Home() {
                 </p>
                 <p>
                   {" "}
-                  Learn more about the{" "}
+                  Learn more about how to use{" "}
                   <Link
-                    className="text-blue-500 dark:text-blue-400"
-                    href="https://sdk.vercel.ai/docs/ai-sdk-ui/chatbot#attachments-experimental"
+                    className="text-indigo-500 dark:text-indigo-400"
+                    href="https://rhun.io"
                     target="_blank"
                   >
-                    Rhun Capital Agent{" "}
+                    {agent.name + " "}
                   </Link>
-                  in the rhun docs.
+                  in the docs.
                 </p>
               </div>
             </motion.div>

@@ -1,12 +1,25 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 
+export function getSolanaConnection(
+  heliusApiKey: string
+): Connection {
+  const rpcUrl = process.env.HELIUS_RPC_URL;
+  
+  if (!rpcUrl) {
+    throw new Error('HELIUS_RPC_URL is not defined in environment variables');
+  }
+
+  return new Connection(`${rpcUrl}/?api-key=${heliusApiKey}`, 'confirmed');
+}
+
 export async function getSolanaBalance(
   walletAddress: string, 
   heliusApiKey: string
 ): Promise<number> {
+  const rpcUrl = process.env.HELIUS_RPC_URL;
   try {
     const connection = new Connection(
-      `https://mainnet.helius-rpc.com/?api-key=${heliusApiKey}`, 
+      `${rpcUrl}/?api-key=${heliusApiKey}`, 
       'confirmed'
     );
     

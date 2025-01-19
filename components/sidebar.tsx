@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { SettingsIcon, BookIcon, BotIcon, HomeIcon } from './icons';
+import { SettingsIcon, BarChartIcon, BotIcon, HomeIcon, MarketplaceIcon } from './icons';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
@@ -25,7 +25,8 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
     { name: 'Home', href: '/', icon: HomeIcon },
     ...(authenticated ? [
       { name: 'Agents', href: '/agents', icon: BotIcon },
-      { name: 'Research', href: '/research', icon: BookIcon },
+      { name: 'Portfolio', href: '/portfolio', icon: BarChartIcon },
+      { name: 'Apps', href: '/marketplace', icon: MarketplaceIcon },
       { name: 'Settings', href: '/settings', icon: SettingsIcon },
     ] : []),
   ];
@@ -63,14 +64,14 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
           {authenticated ? (
             <button 
               onClick={logout}
-              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-green-500"
+              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
             >
               Disconnect
             </button>
           ) : (
             <button 
               onClick={login}
-              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-green-500"
+              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
             >
               Connect Wallet
             </button>
