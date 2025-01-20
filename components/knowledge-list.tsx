@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { AlertCircleIcon } from './icons';
 import { usePrivy } from '@privy-io/react-auth';
 
-export function KnowledgeList({ agentId }: { agentId: string }) {
+export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, refreshTrigger?: number }) {
   const { getAccessToken } = usePrivy();
   const [knowledge, setKnowledge] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,6 @@ export function KnowledgeList({ agentId }: { agentId: string }) {
         );
         if (!response.ok) throw new Error('Failed to fetch knowledge');
         const data = await response.json();
-        console.log(data);
         setKnowledge(data.knowledge);
       } catch (err: any) {
         setError(err.message);
@@ -34,7 +33,7 @@ export function KnowledgeList({ agentId }: { agentId: string }) {
     };
 
     fetchKnowledge();
-  }, [agentId]);
+  }, [agentId, refreshTrigger]); // Add refreshTrigger to dependency array
 
   if (loading) {
     return (
@@ -67,18 +66,12 @@ export function KnowledgeList({ agentId }: { agentId: string }) {
         <div key={index} className="p-4 bg-zinc-800 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">
-              {item.metadata.source}
-            </span>
-            <span className="text-xs text-zinc-500">
-              {new Date(item.metadata.timestamp).toLocaleDateString()}
+              {JSON.parse(item).source}
             </span>
           </div>
-          <p className="text-sm text-zinc-400 mb-2">
-            {item.metadata.text}
-          </p>
           <div className="flex gap-2">
             <span className="text-xs px-2 py-1 bg-zinc-700 rounded-full">
-              {item.metadata.type}
+              {JSON.parse(item).type}
             </span>
           </div>
         </div>

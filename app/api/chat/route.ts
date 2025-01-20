@@ -109,6 +109,42 @@ async function searchTokens(query: string) {
   return response.json();
 }
 
+async function getTotalCryptoMarketCap() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const url = new URL(`/api/tools/total-crypto-marketcap`, baseUrl).toString();
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error("Failed to fetch total crypto market cap");
+  return response.json();
+}
+
+async function getMarketCategories() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const url = new URL(`/api/tools/market-categories`, baseUrl).toString();
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error("Failed to fetch market categories");
+  return response.json();
+}
+
+async function getDerivativesExchanges() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const url = new URL(`/api/tools/derivatives-exchanges`, baseUrl).toString();
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error("Failed to fetch derivatives exchanges");
+  return response.json();
+}
+
 
 export async function POST(req: Request) {
   const { messages, user, agentId } = await req.json();
@@ -336,7 +372,7 @@ Remember to use this context when relevant to answer the user's query.`
           return response;
 
         },
-      },    
+      },   
       
       searchTokens: {
         description: "Search for cryptocurrencies by name or symbol",
@@ -345,6 +381,33 @@ Remember to use this context when relevant to answer the user's query.`
         }),
         execute: async ({ query }) => {
           const response = await searchTokens(query);
+          return response;
+        },
+      },
+
+      getTotalCryptoMarketCap: {
+        description: "Show the total market capitalization of all cryptocurrencies",
+        parameters: z.object({}),
+        execute: async () => {
+          const response = await getTotalCryptoMarketCap();
+          return response;
+        },
+      },
+
+      getMarketCategories: {
+        description: "Get coin categories with market data (market cap, volume, etc.)",
+        parameters: z.object({}),
+        execute: async () => {
+          const response = await getMarketCategories();
+          return response;
+        },
+      },
+
+      getDerivativesExchanges: {  
+        description: "Get information about derivatives exchanges and their trading volume, name, open interest, website, etc.",
+        parameters: z.object({}),
+        execute: async () => {
+          const response = await getDerivativesExchanges();
           return response;
         },
       },

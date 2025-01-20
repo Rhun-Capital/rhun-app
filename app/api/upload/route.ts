@@ -4,7 +4,7 @@ import { isRateLimited } from '@/utils/rate-limiter';
 
 export async function POST(req: Request) {
   try {
-    const { text, source, type } = await req.json();
+    const { text, source, type, agentId } = await req.json();
 
     if (!text) {
       return NextResponse.json(
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     }
 
     // Initialize Pinecone
-    const pinecone = await initPinecone();
+    const pinecone = initPinecone();
     const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
 
     // Split text into chunks
@@ -41,10 +41,13 @@ export async function POST(req: Request) {
             source: source || "unknown",
             type: type || "text",
             timestamp: new Date().toISOString(),
+            agentId
           },
         };
       })
     );
+
+    console.log(vectors)
 
     // Upload to Pinecone
     await index.upsert(vectors);

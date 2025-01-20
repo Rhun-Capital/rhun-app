@@ -13,12 +13,13 @@ import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
 
 export default function AgentsPage() {
-  const { user, getAccessToken } = usePrivy();
+  const { user } = usePrivy();
   const [agents, setAgents] = useState<AttributeMap[]>([]);
 
   useEffect(() => {
     async function init() {
-      const data = await getAgents(user?.id || '');
+      if (!user) return;
+      const data = await getAgents(user?.id);
       const formattedData = data.map((item: AWS.DynamoDB.DocumentClient.AttributeMap) => ({
         id: item.id,
         name: item.name,

@@ -310,8 +310,8 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     { id: "apps", label: "App Marketplace" },
   ];
 
-  const goBack = () => {
-    router.back();
+  const goToChat = () => {
+    router.push(`/agents/${params.userId}/${params.agentId}`);
   };
   
   return (
@@ -325,7 +325,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
             {initialData ? initialData.name || "Edit Agent" : "Create New Agent"}
           </h1>
           <button
-            onClick={goBack}
+            onClick={goToChat}
             className="px-4 py-2 bg-transparent rounded-lg transition"
           >
             

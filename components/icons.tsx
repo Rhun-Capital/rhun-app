@@ -492,3 +492,22 @@ export const ChatIcon = () => {
     </svg>
   );
 };
+
+export const MessageSquareIcon = () => {
+  return (
+    <svg
+      height="16"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+      width="16"
+      style={{ color: "currentcolor" }}
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M4 2C2.89543 2 2 2.89543 2 4V16C2 17.1046 2.89543 18 4 18H8L12 22V18H20C21.1046 18 22 17.1046 22 16V4C22 2.89543 21.1046 2 20 2H4ZM4 4H20V16H11.4142L8 19.4142V16H4V4Z"
+        fill="currentColor"
+      ></path>
+    </svg>
+  );
+};

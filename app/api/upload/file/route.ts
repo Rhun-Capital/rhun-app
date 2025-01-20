@@ -1,8 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { initPinecone, createEmbedding, chunkText } from '@/utils/embeddings';
 import mammoth from 'mammoth';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
 
 async function extractPDFText(buffer: Buffer): Promise<string> {
   try {

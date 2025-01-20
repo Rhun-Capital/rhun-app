@@ -8,4 +8,3 @@ export interface TokenHolding {
     logoURI?: string;
     name: string;
   }
-  
