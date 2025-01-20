@@ -4,7 +4,8 @@ import React from 'react';
 import { SettingsIcon, BarChartIcon, BotIcon, HomeIcon, MarketplaceIcon } from './icons';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
-import { usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation'
+import { RecentChats } from './recent-chats';
 
 export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const { login, logout, authenticated, user, getAccessToken } = usePrivy();
@@ -41,7 +42,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
         </div>
         
         <nav className="p-4 flex-1">
-          <ul className="space-y-2">
+          <ul className="space-y-2 mb-10">
             {navigation.map((item) => (
               <li key={item.name}>
                 <Link 
@@ -58,7 +59,12 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
               </li>
             ))}
           </ul>
+
+          {authenticated && <RecentChats />}
+
         </nav>   
+
+        
         
         <div className="p-4">
           {authenticated ? (

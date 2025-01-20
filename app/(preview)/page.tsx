@@ -13,6 +13,7 @@ export default function HomePage() {
       description: 'Create and customize AI agents with specific knowledge and behaviors. Train them with documents and define how they interact.',
       icon: BotIcon,
       link: '/agents',
+      linkText: 'Create an Agent',
       color: 'text-indigo-500',
     },
     {
@@ -20,6 +21,7 @@ export default function HomePage() {
       description: 'Interact with your agents through a chat interface. Upload files, ask questions, and get AI-powered responses.',
       icon: MessageIcon,
       link: '/chat',
+      linkText: 'Start Chatting',
       color: 'text-indigo-500',
     },
     {
@@ -27,6 +29,7 @@ export default function HomePage() {
       description: 'Configure your account settings and manage your preferences.',
       icon: SettingsIcon,
       link: '/settings',
+      linkText: 'View Settings',
       color: 'text-purple-500',
     },
   ];
@@ -68,7 +71,7 @@ export default function HomePage() {
                   {feature.description}
                 </p>
                 <div className="flex items-center text-sm text-zinc-500 group-hover:text-indigo-400 transition-colors">
-                  <span>Learn more</span>
+                  <span>{feature.linkText}</span>
                   <div className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform"><ChevronRightIcon /></div>
                 </div>
               </div>
@@ -96,7 +99,7 @@ export default function HomePage() {
               <ul className="space-y-3 text-zinc-400">
                 <li>• Provide detailed instructions when creating agents</li>
                 <li>• Upload documents to improve agent knowledge</li>
-                <li>• Use clear, specific questions when chatting</li>
+                <li>• Ask the agent what tools it has access to</li>
                 <li>• Review and adjust agent settings as needed</li>
               </ul>
             </div>

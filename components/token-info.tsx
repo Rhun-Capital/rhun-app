@@ -211,7 +211,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
         <div className="flex flex-row gap-4 mt-3 mr-2">
           {market?.homePage && (
             <Link href={market.homePage} target="_blank" className="text-zinc-400 hover:text-zinc-300">
-              <GlobeIcon size={20} />
+              <GlobeIcon/>
             </Link>
           )}
           

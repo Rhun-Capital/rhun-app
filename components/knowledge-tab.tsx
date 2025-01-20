@@ -14,9 +14,14 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
   const [loading2, setLoading2] = useState(false);
   const [loading3, setLoading3] = useState(false);
   const [message, setMessage] = useState('');
+  const [refreshCounter, setRefreshCounter] = useState(0);
   const params = useParams();
   const topRef = useRef<HTMLDivElement>(null);
   
+  const refreshKnowledge = () => {
+    setRefreshCounter(prev => prev + 1);
+  };
+
   const scrollToTop = () => {
     topRef.current?.scrollIntoView({ behavior: 'smooth' });
   }
@@ -35,10 +40,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
           text,
           type: 'text',
           source: 'manual-input',
-          metadata: {
-            agentId: agentId || params?.agentId,
-            type: 'text-input'
-          }
+          agentId: agentId || params?.agentId,
         }),
       });
 
@@ -47,6 +49,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       
       setMessage(`Success! Added to agent's knowledge base.`);
       setText(''); // Clear the input on success
+      refreshKnowledge(); // Refresh the knowledge list
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -54,7 +57,6 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       scrollToTop();
     }
   };
-  
 
   const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,6 +82,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       
       setMessage('URL processed and added to knowledge base');
       setUrl(''); // Clear the input on success
+      refreshKnowledge(); // Refresh the knowledge list
     } catch (error: any) {
       setMessage(`Error: ${error.message}`);
     } finally {
@@ -102,25 +105,23 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       const response = await fetch('/api/upload/file', {
         headers: { 'Authorization': `Bearer ${accessToken}` },
         method: 'POST',
-        // Remove Content-Type header to let browser set it automatically
         body: formData,
       });
   
       const data = await response.json();
       if (!response.ok) {
-        // Log the error response body
         const errorBody = await response.text();
         console.error('Error response body:', errorBody);
         throw new Error(data.error || 'Upload failed');
       }
       
       setMessage(`File "${file.name}" processed and added to knowledge base`);
+      refreshKnowledge(); // Refresh the knowledge list
     } catch (error: any) {
       console.error('Full error:', error);
       setMessage(`Error: ${error.message}`);
     } finally {
       setLoading(false);
-      // Reset file input
       e.target.value = '';
     }
   };
@@ -223,10 +224,10 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
         </form>
       </div>
 
-      {/* Knowledge List Section */}
-      { agentId ? <div className="border-t border-zinc-700 pt-6">
+     {/* Knowledge List Section */}
+     { agentId ? <div className="border-t border-zinc-700 pt-6">
         <h3 className="text-lg font-semibold mb-4">Knowledge Base Content</h3>
-        <KnowledgeList agentId={agentId} />
+        <KnowledgeList agentId={agentId} refreshTrigger={refreshCounter} />
       </div> : null } 
 
 

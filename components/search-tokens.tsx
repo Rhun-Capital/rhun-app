@@ -52,7 +52,6 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
     setIsLoading(true);
     setError(null);
     const accessToken = await getAccessToken();
-    console.log(accessToken)
     try {
       const response = await fetch(`/api/tools/coin/${coinId}`, {
         headers: {
@@ -210,7 +209,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
         )}
 
         {/* Platform Information */}
-        {selectedCoin.platforms && Object.keys(selectedCoin.platforms).length > 0 && (
+        {selectedCoin.platforms && Object.keys(selectedCoin.platforms).length > 0 && Object.keys(selectedCoin.platforms)[0] !== '' && (
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2">Contract Addresses</h3>
             <div className="space-y-2">

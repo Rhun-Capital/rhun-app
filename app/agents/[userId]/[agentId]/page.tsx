@@ -8,20 +8,26 @@ import {
 } from "@/components/icons";
 import Image from 'next/image';
 import { useChat } from "ai/react";
-import { DragEvent, useEffect, useRef, useState } from "react";
+import { DragEvent, use, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Markdown } from "@/components/markdown";
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { usePrivy } from "@privy-io/react-auth";
 import LoadingIndicator from "@/components/loading-indicator";
 import MarketMovers from "@/components/market-movers";
 import TokenInfo from "@/components/token-info";
 import SearchTokens from "@/components/search-tokens";
+import TotalCryptoMarketCap from "@/components/total-crypto-marketcap";
+import MarketCategories from "@/components/market-categories";
+import DerivativesExchanges from "@/components/derivatives-exchanges";
+// import { Message } from "@/types"
+import { Message } from 'ai'; // Use the AI SDK Message type
 
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
+
 
 const getTextFromDataUrl = (dataUrl: string) => {
   const base64 = dataUrl.split(",")[1];
@@ -50,10 +56,23 @@ function TextFilePreview({ file }: { file: File }) {
 
 export default function Home() {
   const { user, getAccessToken } = usePrivy();
-  const params = useParams();
+  
   const [agent, setAgent] = useState<any>();
   const [headers, setHeaders] = useState<any>();
+  const [files, setFiles] = useState<FileList | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // Reference for the hidden file input
+  const [isDragging, setIsDragging] = useState(false);
+  const [commandHistory, setCommandHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [savedInput, setSavedInput] = useState("");
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+
+  const params = useParams();
   const agentId = params.agentId;  
+  const searchParams = useSearchParams(); 
+  const chatId = searchParams.get('chatId');  
 
   useEffect(() => {
     const setupHeaders = async () => {
@@ -66,24 +85,188 @@ export default function Home() {
     setupHeaders();
   }, [getAccessToken]);
 
+  useEffect(() => {
+    const loadInitialMessages = async (): Promise<void> => {
+      if (!chatId || !user?.id) return;
+      
+      try {
+        const token = await getAccessToken();
+        const response = await fetch(
+          `/api/chat/${chatId}?userId=${user.id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+  
+        if (!response.ok) throw new Error('Failed to load chat history');
+        
+        const data = await response.json();
+        
+        if (data.messages && data.messages.length > 0) {
+          // Convert string dates to Date objects
+          const formattedMessages: Message[] = data.messages.map((msg: any) => ({
+            id: msg.messageId,
+            createdAt: new Date(msg.createdAt),
+            role: msg.role,
+            content: msg.content,
+            toolInvocations: msg.toolInvocations?.map((tool: any) => ({
+              toolName: tool.toolName,
+              toolCallId: tool.toolCallId,
+              args: tool.args,
+              result: tool.result  // Include the complete result data
+            }))
+          }));
+          
+          setInitialMessages(formattedMessages);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+        toast.error('Failed to load chat history');
+      }
+    };
+  
+    loadInitialMessages();
+  }, [chatId, user?.id, getAccessToken]); 
 
-  const { messages, input, handleSubmit, handleInputChange, addToolResult, isLoading } =
+
+  const { messages, input, handleSubmit, handleInputChange, addToolResult , isLoading } =
     useChat({
       headers,
       body: { agentId, user },
+      maxSteps: 20,
+      initialMessages,
+      id: chatId ?? undefined,
       onError: () =>
         toast.error("You've been rate limited, please try again later!"),
-      maxSteps: 20,
-      // async onToolCall({ toolCall }) {
-      //   if (toolCall.toolName === 'getSolanaBalance') {
-      //   }
-      // },
+      // onToolCall: async ({ toolCall }) => {},
+      onFinish: async (message) => {
+        // Move message storage here to ensure we get the complete message
+        const currentMessages = [...messages, message];  // Include the final message
+        updateChatInDB(currentMessages);
+      },
     });
+  
+  // Add this handler function
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      console.log('Arrow key pressed');
+      event.preventDefault();
+      
+      if (commandHistory.length === 0) return;
+  
+      if (event.key === 'ArrowUp') {
+        // Save current input if we're just starting to look through history
+        if (historyIndex === -1) {
+          setSavedInput(input);
+        }
+  
+        // Move back through history
+        const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
+        setHistoryIndex(newIndex);
+        handleInputChange({ target: { value: commandHistory[commandHistory.length - 1 - newIndex] } } as any);
+      } else if (event.key === 'ArrowDown') {
+        if (historyIndex === -1) return;
+  
+        // Move forward through history
+        const newIndex = historyIndex - 1;
+        setHistoryIndex(newIndex);
+        
+        if (newIndex === -1) {
+          // Restore the saved input when we reach the bottom
+          handleInputChange({ target: { value: savedInput } } as any);
+        } else {
+          handleInputChange({ target: { value: commandHistory[commandHistory.length - 1 - newIndex] } } as any);
+        }
+      }
+    }
+  };
 
-  const [files, setFiles] = useState<FileList | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null); // Reference for the hidden file input
-  const [isDragging, setIsDragging] = useState(false);
+  const updateChatInDB = async (messages: Message[]) => {
+    if (messages.length === 0) return;
+  
+    const lastMessage = messages[messages.length - 1];
+    
+    // Use existing chatId from URL, or stored chatId, or generate a new one
+    const chatIdentifier = chatId || currentChatId || `chat_${user?.id}_${Date.now()}`;
+    
+    // If we generated a new chatId, store it
+    if (!chatId && !currentChatId) {
+      setCurrentChatId(chatIdentifier);
+    }
+  
+    // Add safety check for required fields
+    if (!user?.id || !lastMessage.id) {
+      console.error('Missing required fields for chat update');
+      return;
+    }
+    
+    try {
+      const token = await getAccessToken();
+      console.log('Updating chat with message:', lastMessage.id);
+  
+      // Update chat metadata
+      await fetch('/api/chat/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: chatIdentifier,  // Use consistent chatId
+          userId: user?.id,
+          agentId,
+          agentName: agent?.name,
+          lastMessage: lastMessage.content,
+          lastUpdated: lastMessage.createdAt ? new Date(lastMessage.createdAt).toISOString() : ''
+        })
+      });
+  
+      // Store the actual message
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: chatIdentifier,
+          messageId: lastMessage.id,
+          userId: user?.id,
+          role: lastMessage.role,
+          content: lastMessage.content,
+          createdAt: lastMessage.createdAt,
+          toolInvocations: lastMessage.toolInvocations?.map(tool => ({
+            toolName: tool.toolName,
+            toolCallId: tool.toolCallId,
+            args: tool.args,
+            result: 'result' in tool ? tool.result : undefined  // Store the complete result
+          }))
+        })
+      });
+    } catch (error) {
+      console.error('Error updating chat:', error);
+    }
+  };
+    
+  // Add a ref to track the last saved message
+  const lastSavedMessageId = useRef<string | null>(null);
+
+  // Modify your form submit handler to save commands to history
+  const handleFormSubmit = (event: React.FormEvent, options = {}) => {
+    if (input.trim()) {
+      // Only add to history if it's different from the last command
+      if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== input.trim()) {
+        setCommandHistory(prev => [...prev, input.trim()]);
+      }
+      setHistoryIndex(-1); // Reset history index
+      setSavedInput(""); // Reset saved input
+    }
+    handleSubmit(event, options);
+    setFiles(null);
+  };
+  
 
   useEffect(() => {
     // get agent and sey agent name
@@ -169,13 +352,13 @@ export default function Home() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // const scrollToBottom = () => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [messages]);
 
   // Function to handle file selection via the upload button
   const handleUploadClick = () => {
@@ -239,7 +422,7 @@ export default function Home() {
               {messages.map((message, index) => (
                 <motion.div
                   key={message.id}
-                  className={`flex flex-row gap-2 px-4 w-full md:w-[500px] md:px-0 ${
+                  className={`flex flex-row gap-2 px-4 w-full md:w-[1000px] md:px-0 ${
                     index === 0 ? "pt-20" : ""
                   }`}
                   initial={{ y: 5, opacity: 0 }}
@@ -249,7 +432,7 @@ export default function Home() {
                     {message.role === "assistant" ? <BotIcon /> : <UserIcon />}
                   </div>
 
-                  <div className="flex flex-col gap-1">
+                  <div className={`flex flex-col gap-1 ${message.toolInvocations?.some(invocation => invocation.toolName === 'getDerivativesExchanges') ? 'w-full' : ''}`}>
                     <div className="text-zinc-800 dark:text-zinc-300 flex flex-col gap-4">
                       <Markdown>{message.content}</Markdown>
                       {message.toolInvocations?.map((toolInvocation: ToolInvocation) => {
@@ -441,7 +624,19 @@ export default function Home() {
 
                         if (toolInvocation.toolName === 'searchTokens') {
                           return <SearchTokens toolCallId={toolCallId} toolInvocation={toolInvocation}/>                          
-                        }   
+                        }  
+                        
+                        if (toolInvocation.toolName === 'getTotalCryptoMarketCap') {
+                          return <TotalCryptoMarketCap toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                        }  
+                        
+                        if (toolInvocation.toolName === 'getMarketCategories') {
+                          return <MarketCategories toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                        } 
+                        
+                        if (toolInvocation.toolName === 'getDerivativesExchanges') {
+                          return <DerivativesExchanges toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                        }
                         
 
                       })}                
@@ -470,7 +665,7 @@ export default function Home() {
 
               {isLoading &&
                 messages[messages.length - 1].role !== "assistant" && (
-                  <div className="flex flex-row gap-2 px-4 w-full md:w-[500px] md:px-0">
+                  <div className="flex flex-row gap-2 px-4 w-full md:w-[1000px] md:px-0">
                     <div className="size-[24px] flex flex-col justify-center items-center flex-shrink-0 text-zinc-400">
                       <BotIcon />
                     </div>
@@ -522,13 +717,13 @@ export default function Home() {
             className="flex flex-col gap-2  items-center"
             onSubmit={(event) => {
               const options = files ? { experimental_attachments: files } : {};
-              handleSubmit(event, options);
+              handleFormSubmit(event, options);
               setFiles(null);
             }}
           >
             <AnimatePresence>
               {files && files.length > 0 && (
-                <div className="flex flex-row gap-2 absolute bottom-12 px-4 w-full md:w-[500px] md:px-0">
+                <div className="flex flex-row gap-2 absolute bottom-12 px-4 w-full md:w-[1000px] md:px-0">
                   {Array.from(files).map((file) =>
                     file.type.startsWith("image") ? (
                       <div key={file.name}>
@@ -577,7 +772,7 @@ export default function Home() {
               onChange={handleFileChange}
             />
 
-            <div className="flex items-center w-full md:max-w-[500px] max-w-[calc(100dvw-32px)] bg-zinc-100 dark:bg-zinc-700 rounded-full px-4 py-2">
+            <div className="flex items-center w-full md:max-w-[1000px] max-w-[calc(100dvw-32px)] bg-zinc-100 dark:bg-zinc-700 rounded-full px-4 py-2">
               {/* Upload Button */}
               <button
                 type="button"
@@ -597,6 +792,7 @@ export default function Home() {
                 placeholder="Send a message..."
                 value={input}
                 onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
               />
             </div>
