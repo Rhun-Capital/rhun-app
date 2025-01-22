@@ -202,7 +202,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
           <div className="mt-6">
             <h3 className="text-lg font-semibold mb-2">About</h3>
             <div 
-              className="text-sm text-zinc-400"
+              className="text-sm text-zinc-400 md:w-[500px]"
               dangerouslySetInnerHTML={{ __html: selectedCoin.description.en }}
             />
           </div>

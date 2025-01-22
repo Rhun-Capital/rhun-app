@@ -26,6 +26,7 @@
     "cheerio": "^1.0.0",
     "docx": "^9.1.1",
     "framer-motion": "^11.3.19",
+    "lodash": "^4.17.21",
     "mammoth": "^1.9.0",
     "next": "14.2.5",
     "openai": "^4.78.1",
@@ -39,10 +40,11 @@
     "react-markdown": "^9.0.1",
     "recharts": "^2.15.0",
     "remark-gfm": "^4.0.0",
-    "sonner": "^1.5.0",
+    "sonner": "^1.7.2",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.14",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.4",
     "@types/pdfjs-dist": "^2.10.377",

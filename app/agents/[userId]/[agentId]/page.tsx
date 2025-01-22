@@ -7,10 +7,12 @@ import {
   UserIcon
 } from "@/components/icons";
 import Image from 'next/image';
+import { useRecentChats } from '@/contexts/chat-context';
 import { useChat } from "ai/react";
-import { DragEvent, use, useEffect, useRef, useState } from "react";
+import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
+import { Toaster } from 'sonner';
 import Link from "next/link";
 import { Markdown } from "@/components/markdown";
 import { useParams, useSearchParams } from 'next/navigation';
@@ -22,8 +24,10 @@ import SearchTokens from "@/components/search-tokens";
 import TotalCryptoMarketCap from "@/components/total-crypto-marketcap";
 import MarketCategories from "@/components/market-categories";
 import DerivativesExchanges from "@/components/derivatives-exchanges";
-// import { Message } from "@/types"
+// import AnalyzeSolanaTokenHolders from "@/components/analyze-solana-token-holders";
+import TopHoldersDisplay from "@/components/get-top-holders";
 import { Message } from 'ai'; // Use the AI SDK Message type
+import  ChatSidebar  from "@/components/chat-sidebar";
 
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
@@ -56,7 +60,7 @@ function TextFilePreview({ file }: { file: File }) {
 
 export default function Home() {
   const { user, getAccessToken } = usePrivy();
-  
+  const { refreshRecentChats } = useRecentChats();
   const [agent, setAgent] = useState<any>();
   const [headers, setHeaders] = useState<any>();
   const [files, setFiles] = useState<FileList | null>(null);
@@ -68,6 +72,10 @@ export default function Home() {
   const [savedInput, setSavedInput] = useState("");
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isNewChat, setIsNewChat] = useState(true);
+  const chatCreatedRef = useRef(false);  
+  
 
   const params = useParams();
   const agentId = params.agentId;  
@@ -105,21 +113,25 @@ export default function Home() {
         const data = await response.json();
         
         if (data.messages && data.messages.length > 0) {
-          // Convert string dates to Date objects
+          // Convert string dates to Date objects and preserve all tool data
           const formattedMessages: Message[] = data.messages.map((msg: any) => ({
             id: msg.messageId,
             createdAt: new Date(msg.createdAt),
             role: msg.role,
             content: msg.content,
             toolInvocations: msg.toolInvocations?.map((tool: any) => ({
+              ...tool, // Preserve all tool properties
               toolName: tool.toolName,
               toolCallId: tool.toolCallId,
               args: tool.args,
-              result: tool.result  // Include the complete result data
+              result: tool.result
             }))
           }));
           
           setInitialMessages(formattedMessages);
+          setIsNewChat(false); // Mark as existing chat
+          chatCreatedRef.current = true; // Prevent new chat creation
+
         }
       } catch (error) {
         console.error('Error loading chat history:', error);
@@ -128,18 +140,19 @@ export default function Home() {
     };
   
     loadInitialMessages();
-  }, [chatId, user?.id, getAccessToken]); 
+  }, [chatId, user?.id, getAccessToken]);
 
 
-  const { messages, input, handleSubmit, handleInputChange, addToolResult , isLoading } =
+  const { messages, input, handleSubmit, handleInputChange, addToolResult , isLoading, append } =
     useChat({
       headers,
       body: { agentId, user },
       maxSteps: 20,
       initialMessages,
       id: chatId ?? undefined,
-      onError: () =>
-        toast.error("You've been rate limited, please try again later!"),
+      onError: () => {
+        toast.error('Failed to send message. Please try again.')
+      },
       // onToolCall: async ({ toolCall }) => {},
       onFinish: async (message) => {
         // Move message storage here to ensure we get the complete message
@@ -183,47 +196,76 @@ export default function Home() {
     }
   };
 
-  const updateChatInDB = async (messages: Message[]) => {
-    if (messages.length === 0) return;
-  
-    const lastMessage = messages[messages.length - 1];
-    
-    // Use existing chatId from URL, or stored chatId, or generate a new one
-    const chatIdentifier = chatId || currentChatId || `chat_${user?.id}_${Date.now()}`;
-    
-    // If we generated a new chatId, store it
-    if (!chatId && !currentChatId) {
-      setCurrentChatId(chatIdentifier);
+  const createNewChat = async (message: string) => {
+    if (!isNewChat || chatId || currentChatId || chatCreatedRef.current) {
+      return chatId || currentChatId;
     }
   
-    // Add safety check for required fields
-    if (!user?.id || !lastMessage.id) {
-      console.error('Missing required fields for chat update');
-      return;
-    }
-    
+    const newChatId = `chat_${user?.id}_${Date.now()}`;
+    const token = await getAccessToken();
+  
     try {
-      const token = await getAccessToken();
-      console.log('Updating chat with message:', lastMessage.id);
-  
-      // Update chat metadata
-      await fetch('/api/chat/update', {
+      const response = await fetch(`/api/chat/${newChatId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          chatId: chatIdentifier,  // Use consistent chatId
           userId: user?.id,
           agentId,
           agentName: agent?.name,
-          lastMessage: lastMessage.content,
-          lastUpdated: lastMessage.createdAt ? new Date(lastMessage.createdAt).toISOString() : ''
+          lastMessage: message,
+          lastUpdated: new Date().toISOString()
         })
       });
   
-      // Store the actual message
+      if (!response.ok) {
+        throw new Error('Failed to create chat');
+      }
+  
+      setCurrentChatId(newChatId);
+      setIsNewChat(false);
+      chatCreatedRef.current = true;
+      
+      // Refresh the recent chats list
+      await refreshRecentChats();
+
+      return newChatId;
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      throw error;
+    }
+  };  
+
+  const updateChatInDB = async (messages: Message[]) => {
+    if (messages.length === 0 || !user?.id) return;
+  
+    const lastMessage = messages[messages.length - 1];
+    const chatIdentifier = await createNewChat(lastMessage.content);
+    
+    if (!chatIdentifier) return;
+  
+    const token = await getAccessToken();
+    
+    try {
+      // Update chat metadata
+      await fetch(`/api/chat/${chatIdentifier}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          agentId,
+          agentName: agent?.name,
+          lastMessage: lastMessage.content,
+          lastUpdated: new Date().toISOString()
+        })
+      });
+  
+      // Store the message with tool invocations
       await fetch('/api/chat/messages', {
         method: 'POST',
         headers: {
@@ -233,7 +275,7 @@ export default function Home() {
         body: JSON.stringify({
           chatId: chatIdentifier,
           messageId: lastMessage.id,
-          userId: user?.id,
+          userId: user.id,
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
@@ -241,7 +283,7 @@ export default function Home() {
             toolName: tool.toolName,
             toolCallId: tool.toolCallId,
             args: tool.args,
-            result: 'result' in tool ? tool.result : undefined  // Store the complete result
+            result: 'result' in tool ? tool.result : undefined
           }))
         })
       });
@@ -249,11 +291,42 @@ export default function Home() {
       console.error('Error updating chat:', error);
     }
   };
+  
+  const handleToolSelect = useCallback(async (command: string) => {
+    const token = await getAccessToken();
     
-  // Add a ref to track the last saved message
-  const lastSavedMessageId = useRef<string | null>(null);
+    try {
+      const chatIdentifier = await createNewChat(command);
+      
+      if (chatIdentifier) {
+        await fetch(`/api/chat/${chatIdentifier}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            userId: user?.id,
+            agentId,
+            agentName: agent?.name,
+            lastMessage: command,
+            lastUpdated: new Date().toISOString()
+          })
+        });
+      }
+  
+      append({
+        role: 'user',
+        content: command,
+      });
+      
+      // Rest of the function...
+    } catch (error) {
+      console.error('Error in handleToolSelect:', error);
+    }
+  }, [append, user?.id, agentId, agent?.name, getAccessToken, isNewChat]);
 
-  // Modify your form submit handler to save commands to history
+  // Make sure your handleFormSubmit function looks like this:
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
       // Only add to history if it's different from the last command
@@ -392,14 +465,15 @@ export default function Home() {
     );
   }
 
-  return (
+  return (  
 
-      <div
-        className="flex flex-row justify-center pb-20  bg-white dark:bg-zinc-900"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
+<div className="flex flex-row gap-4 pb-20 bg-white dark:bg-zinc-900">
+  <div className={`flex-1 flex ${sidebarOpen ? 'ml-40' : 'justify-center'}`}>
+    <div className="flex flex-col justify-between gap-4 relative" 
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
         <AnimatePresence>
           {isDragging && (
             <motion.div
@@ -422,7 +496,7 @@ export default function Home() {
               {messages.map((message, index) => (
                 <motion.div
                   key={message.id}
-                  className={`flex flex-row gap-2 px-4 w-full md:w-[1000px] md:px-0 ${
+                  className={`flex flex-row gap-2 px-4 w-full md:w-[500px] md:px-0 ${
                     index === 0 ? "pt-20" : ""
                   }`}
                   initial={{ y: 5, opacity: 0 }}
@@ -432,7 +506,7 @@ export default function Home() {
                     {message.role === "assistant" ? <BotIcon /> : <UserIcon />}
                   </div>
 
-                  <div className={`flex flex-col gap-1 ${message.toolInvocations?.some(invocation => invocation.toolName === 'getDerivativesExchanges') ? 'w-full' : ''}`}>
+                  <div className={`flex flex-col gap-1 ${message.toolInvocations?.some(invocation => invocation.toolName === 'getDerivativesExchanges') ? 'w-90' : ''}`}>
                     <div className="text-zinc-800 dark:text-zinc-300 flex flex-col gap-4">
                       <Markdown>{message.content}</Markdown>
                       {message.toolInvocations?.map((toolInvocation: ToolInvocation) => {
@@ -637,7 +711,15 @@ export default function Home() {
                         if (toolInvocation.toolName === 'getDerivativesExchanges') {
                           return <DerivativesExchanges toolCallId={toolCallId} toolInvocation={toolInvocation} />
                         }
-                        
+
+                        // if (toolInvocation.toolName === 'analyzeSolanaTokenHolders') {
+                        //   return <AnalyzeSolanaTokenHolders toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                        // }
+
+                        // getTopHolders
+                        if (toolInvocation.toolName === 'getTopHolders') {
+                          return <TopHoldersDisplay toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                        }
 
                       })}                
                         
@@ -665,7 +747,7 @@ export default function Home() {
 
               {isLoading &&
                 messages[messages.length - 1].role !== "assistant" && (
-                  <div className="flex flex-row gap-2 px-4 w-full md:w-[1000px] md:px-0">
+                  <div className="flex flex-row gap-2 px-4 w-full md:w-[500px] md:px-0">
                     <div className="size-[24px] flex flex-col justify-center items-center flex-shrink-0 text-zinc-400">
                       <BotIcon />
                     </div>
@@ -723,7 +805,7 @@ export default function Home() {
           >
             <AnimatePresence>
               {files && files.length > 0 && (
-                <div className="flex flex-row gap-2 absolute bottom-12 px-4 w-full md:w-[1000px] md:px-0">
+                <div className="flex flex-row gap-2 absolute bottom-12 px-4 w-full md:w-[500px] md:px-0">
                   {Array.from(files).map((file) =>
                     file.type.startsWith("image") ? (
                       <div key={file.name}>
@@ -772,7 +854,7 @@ export default function Home() {
               onChange={handleFileChange}
             />
 
-            <div className="flex items-center w-full md:max-w-[1000px] max-w-[calc(100dvw-32px)] bg-zinc-100 dark:bg-zinc-700 rounded-full px-4 py-2">
+            <div className="flex items-center w-full md:max-w-[500px] max-w-[calc(100dvw-32px)] bg-zinc-100 dark:bg-zinc-700 rounded-full px-4 py-2">
               {/* Upload Button */}
               <button
                 type="button"
@@ -799,6 +881,21 @@ export default function Home() {
           </form>
         </div>
       </div>
+
+      <Toaster />
+
+      </div>
+
+
+      <ChatSidebar 
+      agent={agent}
+      isOpen={sidebarOpen}
+      onToggle={() => setSidebarOpen(!sidebarOpen)}
+      onToolSelect={handleToolSelect}
+    />
+          
+      </div>
+      
     
   );
 }

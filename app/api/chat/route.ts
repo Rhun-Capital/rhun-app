@@ -121,6 +121,37 @@ async function getTotalCryptoMarketCap() {
   return response.json();
 }
 
+async function getSolanaTokenHolders(tokenAddresses: string[]) {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const url = new URL('/api/tools/analyze-solana-token-holders', baseUrl).toString();
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (process.env.INTERNAL_API_SECRET) {
+      headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ tokenAddresses })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch token holders: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching token holders:', error);
+    throw error;
+  }
+}
+
 async function getMarketCategories() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const url = new URL(`/api/tools/market-categories`, baseUrl).toString();
@@ -142,6 +173,19 @@ async function getDerivativesExchanges() {
   }
   const response = await fetch(url, { headers });
   if (!response.ok) throw new Error("Failed to fetch derivatives exchanges");
+  return response.json();
+}
+
+
+async function getTopHolders(address: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const url = new URL(`/api/tools/top-holders?address=${address}`, baseUrl).toString();
+  const headers: HeadersInit = {};
+  if (process.env.INTERNAL_API_SECRET) {
+    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+  }
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error("Failed to fetch top holders");
   return response.json();
 }
 
@@ -187,6 +231,7 @@ When your listing token holdings do not add the token image to the list.
 You only have token data on for the Solana blockchain. If the user asks for token data on another blockchain, let them know that you only have data for Solana tokens.
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
 If you can find a token using getTokenInfo try the onchain token info tool to see if you can get more information about the token and do not show the failed to fetch token information error message to the user.
+When generating numbered lists male sure to format it correctly. Make sure the number and the item are on the same line. Also make sure that items do not use numbers. 
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
@@ -411,9 +456,33 @@ Remember to use this context when relevant to answer the user's query.`
           return response;
         },
       },
+
+      // analyzeSolanaTokenHolders: {
+      //   description: "Analyze new Solana tokens (created in last 36 hours) that share holders with specified tokens",
+      //   parameters: z.object({ tokenAddresses: z.array(z.string()) }),
+      //   execute: async ({ tokenAddresses }) => {
+      //     console.log(tokenAddresses);
+      //     const response = await getSolanaTokenHolders(tokenAddresses);
+      //     console.log(response);
+      //     return response;
+      //   }
+      // }      
+
+      getTopHolders: {
+        description: "Get the top holders of a Solana token",
+        parameters: z.object({ address: z.string() }),
+        execute: async ({ address }) => {
+          const holders = await getTopHolders(address);
+          return holders;
+        }
+      },
+
+
       
     },    
   });
+
+  console.log(result)
 
   return result.toDataStreamResponse();
 }
