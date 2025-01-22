@@ -71,6 +71,11 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       command: 'Search for tokens'
     },
     { 
+      name: 'Get Top Token Holders', 
+      description: 'View top token holders and activity',
+      command: 'Show me the top token holders'
+    },
+    { 
       name: 'Get Total Crypto Market Cap', 
       description: 'View the total crypto market cap',
       command: 'Show me the total crypto market cap'
@@ -103,14 +108,14 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
   return (
     <div className={`fixed right-0 top-0 h-full border-l border-zinc-700 transition-all duration-300 bg-zinc-900 z-10 ${
-      isOpen ? 'w-80' : 'w-12'
+      isOpen ? 'w-80' : 'w-0'
     }`}>
       {/* Toggle Button */}
       <button 
         onClick={onToggle}
         className="absolute -left-10 top-1/2 -translate-y-1/2 p-2 bg-zinc-800 rounded-l-lg border-l border-t border-b border-zinc-700 hover:bg-zinc-700 transition-colors"
       >
-        <ChevronRightIcon  />
+        {isOpen ? <div>&raquo;</div> : <div>&laquo;</div>}
       </button>
 
       {isOpen && (

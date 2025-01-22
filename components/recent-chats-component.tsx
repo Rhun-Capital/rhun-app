@@ -1,10 +1,19 @@
-'use client';
-
-import React from 'react';
+// components/recent-chats.tsx
+import React, { useEffect, useState } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { MessageSquareIcon } from '@/components/icons';
-import { usePrivy } from '@privy-io/react-auth';
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 import { useRecentChats } from '@/contexts/chat-context';
+
+interface Chat {
+  chatId: string;
+  agentId: string;
+  agentName: string;
+  lastMessage: string;
+  lastUpdated: number;
+}
 
 function formatTimeAgo(timestamp: number) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -15,13 +24,10 @@ function formatTimeAgo(timestamp: number) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export const RecentChats = () => {
+export const RecentChats = ({ maxVisible = 5 }) => {
   const { user } = usePrivy();
   const router = useRouter();
   const { recentChats } = useRecentChats();
-
-  // Add console.log to debug
-  console.log('Recent chats from context:', recentChats);
 
   if (!user) {
     return null;
@@ -35,11 +41,18 @@ export const RecentChats = () => {
     );
   }
 
+  // Only show first maxVisible chats
+  const visibleChats = recentChats.slice(0, maxVisible);
+  const hasMore = recentChats.length > maxVisible;
+
   return (
     <div className="p-4">
-      <h3 className="text-sm font-medium text-zinc-400 mb-2">Recent Chats</h3>
-      <div className="space-y-1">
-        {recentChats.map((chat) => (
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-sm font-medium text-zinc-400">Recent Chats</h3>
+      </div>
+
+      <div className="space-y-1 mb-3">
+        {visibleChats.map((chat) => (
           <button
             key={chat.chatId}
             onClick={() => router.push(`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`)}
@@ -59,7 +72,16 @@ export const RecentChats = () => {
             </div>
           </button>
         ))}
+    
       </div>
+      {hasMore && (
+          <Link 
+            href="/recent-chats" 
+            className="text-xs text-zinc-400 hover:text-indigo-300 flex items-center"
+          >
+            View all &rarr;
+          </Link>
+        )}          
     </div>
   );
 };
