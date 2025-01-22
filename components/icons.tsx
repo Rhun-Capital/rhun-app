@@ -511,3 +511,24 @@ export const MessageSquareIcon = () => {
     </svg>
   );
 };
+
+export const ToolsIcon = () => {
+
+    return (
+      <svg
+        height="16"
+        strokeLinejoin="round"
+        viewBox="0 0 16 16"
+        width="16"
+        style={{ color: "currentcolor" }}
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M1 1H7V7H1V1ZM9 1H15V7H9V1ZM1 9H7V15H1V9ZM9 9H15V15H9V9Z"
+          fill="currentColor"
+        ></path>
+      </svg>
+    );
+    
+  };

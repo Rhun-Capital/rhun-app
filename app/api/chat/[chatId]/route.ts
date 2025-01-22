@@ -19,13 +19,12 @@ export async function GET(
       );
     }
 
+    // Simplify the query to just use the chatId as the primary key
     const queryParams = {
       TableName: 'ChatMessages',
       KeyConditionExpression: 'chatId = :chatId',
-      FilterExpression: 'userId = :userId',
       ExpressionAttributeValues: {
-        ':chatId': params.chatId,
-        ':userId': userId
+        ':chatId': params.chatId
       }
     };
 
@@ -35,15 +34,21 @@ export async function GET(
       return NextResponse.json({ messages: [] });
     }
 
-    // Sort messages by createdAt timestamp
+    // Sort messages and preserve all tool invocation data
     const messages = result.Items
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .map(item => ({
-        id: item.messageId,
+        messageId: item.messageId,
         createdAt: item.createdAt,
         role: item.role,
         content: item.content,
-        toolInvocations: item.toolInvocations || [] // Include tool invocations in response
+        toolInvocations: item.toolInvocations ? item.toolInvocations.map((tool: any) => ({
+          ...tool,  // Preserve all tool data
+          toolName: tool.toolName,
+          toolCallId: tool.toolCallId,
+          args: tool.args,
+          result: tool.result
+        })) : []
       }));
 
     return NextResponse.json({ messages });
@@ -51,6 +56,45 @@ export async function GET(
     console.error('Error fetching chat history:', error);
     return NextResponse.json(
       { error: 'Failed to fetch chat history' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: { chatId: string } }
+) {
+  try {
+    const { userId, agentId, agentName, lastMessage, lastUpdated } = await request.json();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const chatParams = {
+      TableName: 'Chats',
+      Item: {
+        chatId: params.chatId,
+        userId,
+        agentId,
+        agentName,
+        lastMessage,
+        lastUpdated,
+        createdAt: new Date().toISOString()
+      }
+    };
+
+    await dynamodb.put(chatParams).promise();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating chat:', error);
+    return NextResponse.json(
+      { error: 'Failed to update chat' },
       { status: 500 }
     );
   }

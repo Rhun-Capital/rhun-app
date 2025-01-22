@@ -4,23 +4,23 @@ import React from 'react';
 import { SettingsIcon, BarChartIcon, BotIcon, HomeIcon, MarketplaceIcon } from './icons';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
-import { usePathname } from 'next/navigation'
-import { RecentChats } from './recent-chats';
+import { usePathname } from 'next/navigation';
+import { RecentChats } from './recent-chats-component';
 
 export const Sidebar = ({ children }: { children: React.ReactNode }) => {
-  const { login, logout, authenticated, user, getAccessToken } = usePrivy();
+  const { login, logout, authenticated, user } = usePrivy();
   const pathname = usePathname();
 
   // Safely get the display text for the user
-  const userDisplay = React.useMemo(() => {
-    if (!user) return '';
-    if (user.email) return user.email.address;
-    if (typeof user.wallet?.address === 'string') {
-      const addr = user.wallet.address;
-      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-    }
-    return '';
-  }, [user]);
+  // const userDisplay = React.useMemo(() => {
+  //   if (!user) return '';
+  //   if (user.email) return user.email.address;
+  //   if (typeof user.wallet?.address === 'string') {
+  //     const addr = user.wallet.address;
+  //     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  //   }
+  //   return '';
+  // }, [user]);
 
   const navigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
@@ -49,12 +49,20 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
                   href={item.href}
                   className={`flex items-center p-2 rounded transition-colors ${
                     pathname === item.href
-                      ? 'bg-zinc-800 text-white'
-                      : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                      ? 'bg-zinc-800' 
+                      : 'hover:bg-zinc-800'
                   }`}
                 >
-                  <item.icon />
-                  <span className="ml-3">{item.name}</span>
+                  <div className="text-zinc-400"> 
+                    <item.icon />
+                  </div>
+                  <span className={`ml-3 ${ 
+                    pathname === item.href
+                      ? 'text-white'
+                      : 'text-white hover:text-white'
+                  }`}>
+                    {item.name}
+                  </span>
                 </Link>
               </li>
             ))}
@@ -62,9 +70,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
           {authenticated && <RecentChats />}
 
-        </nav>   
-
-        
+        </nav>
         
         <div className="p-4">
           {authenticated ? (
@@ -86,17 +92,6 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
       </div>
 
       <div className="flex-1 overflow-auto">
-        <header className="dark:bg-zinc-900 text-zinc-400 shadow-sm p-4 border-b border-zinc-700">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">&nbsp;</h2>
-            {authenticated && userDisplay && (
-              <div className="text-sm text-zinc-400">
-                {userDisplay}
-              </div>
-            )}
-          </div>
-        </header>
-
         <main className="p-6">
           {children}
         </main>
