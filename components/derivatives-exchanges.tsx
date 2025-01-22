@@ -143,9 +143,9 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
                   <SortIcon field="volume" />
                 </div>
               </th>
-              <th className="pb-4 text-right">Perp Pairs</th>
-              <th className="pb-4 text-right">Futures</th>
-              <th className="pb-4 text-right">Est.</th>
+              {/* <th className="pb-4 text-right">Perp Pairs</th> */}
+              {/* <th className="pb-4 text-right">Futures</th> */}
+              {/* <th className="pb-4 text-right">Est.</th> */}
               <th className="pb-4"></th>
             </tr>
           </thead>
@@ -175,16 +175,16 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
                 <td className="py-4 text-right text-zinc-300">
                   {formatBTC(exchange.trade_volume_24h_btc)}
                 </td>
-                <td className="py-4 text-right text-zinc-300">
+                {/* <td className="py-4 text-right text-zinc-300">
                   {exchange.number_of_perpetual_pairs}
-                </td>
-                <td className="py-4 text-right text-zinc-300">
+                </td> */}
+                {/* <td className="py-4 text-right text-zinc-300">
                   {exchange.number_of_futures_pairs}
-                </td>
-                <td className="py-4 text-right text-zinc-400">
+                </td> */}
+                {/* <td className="py-4 text-right text-zinc-400">
                   {exchange.year_established || '-'}
-                </td>
-                <td className="py-4 text-right">
+                </td> */}
+                <td className="pl-5 py-4 text-right">
                   {exchange.url && (
                     <Link
                       href={exchange.url}

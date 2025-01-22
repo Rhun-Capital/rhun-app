@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { MessageSquareIcon } from '@/components/icons';
+import LoadingIndicator from './loading-indicator';
 
 interface Chat {
   chatId: string;
@@ -63,7 +64,7 @@ export const RecentChatsPage = () => {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <h1 className="text-2xl font-bold text-white mb-8">Recent Chats</h1>
-        <div className="text-zinc-400">Loading chats...</div>
+        <div className="text-zinc-400"><LoadingIndicator /></div>
       </div>
     );
   }
@@ -74,15 +75,13 @@ export const RecentChatsPage = () => {
       
       {/* Search bar */}
       <div className="mb-8">
-        <div className="relative">
-          <input
+      <input
             type="text"
             placeholder="Search chats..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-zinc-800 text-white rounded-lg border border-zinc-700 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-5 pr-4 py-2 bg-zinc-800 text-white rounded-lg border border-zinc-700 focus:outline-none focus:border-indigo-500"
           />
-        </div>
       </div>
 
       {/* Chats list */}

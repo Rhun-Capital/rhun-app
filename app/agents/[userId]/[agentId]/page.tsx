@@ -496,7 +496,7 @@ export default function Home() {
               {messages.map((message, index) => (
                 <motion.div
                   key={message.id}
-                  className={`flex flex-row gap-2 px-4 w-full md:w-[500px] md:px-0 ${
+                  className={`flex flex-row gap-2 px-4 w-full ${message.toolInvocations?.some(invocation => invocation.toolName === 'getDerivativesExchanges') ? 'md:w-[700px]' : 'md:w-[500px]'}  md:px-0 ${
                     index === 0 ? "pt-20" : ""
                   }`}
                   initial={{ y: 5, opacity: 0 }}
