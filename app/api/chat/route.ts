@@ -7,7 +7,7 @@ import { TokenHolding } from "@/types";
 
 async function getAgentConfig(userId: string, agentId: string) {
   // Use absolute URL with the base URL from environment variable
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/agents/${userId}/${agentId}`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -24,7 +24,7 @@ async function getPortfolioValue(walletAddress: string) {
   if (!walletAddress) {
     return "I don't have a wallet configured yet, you can create by visiting the wallet tab in the agent settings.";
   }
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/portfolio/${walletAddress}`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -38,7 +38,7 @@ async function getPortfolioValue(walletAddress: string) {
 }
 
 async function getTokenHoldings(walletAddress: string) {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/portfolio/${walletAddress}`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -50,7 +50,7 @@ async function getTokenHoldings(walletAddress: string) {
 }
 
 async function getFearGreedIndex() {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/market-sentiment/fear-and-greed`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -62,7 +62,7 @@ async function getFearGreedIndex() {
 }
 
 async function getTransactionVolumeAndCount(timeframe: string) {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/network-activity/transaction-volume`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -74,7 +74,7 @@ async function getTransactionVolumeAndCount(timeframe: string) {
 }
 
 async function getTokenInfo(contractAddress: string) {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/token-info/${contractAddress}`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -86,7 +86,7 @@ async function getTokenInfo(contractAddress: string) {
 }
 
 async function getMarketMovers() {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/market-movers`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -98,7 +98,7 @@ async function getMarketMovers() {
 }
 
 async function searchTokens(query: string) {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/token-search?query=${query}`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -110,7 +110,7 @@ async function searchTokens(query: string) {
 }
 
 async function getTotalCryptoMarketCap() {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/total-crypto-marketcap`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -123,7 +123,7 @@ async function getTotalCryptoMarketCap() {
 
 async function getSolanaTokenHolders(tokenAddresses: string[]) {
   try {
-    const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+    const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
     const url = new URL('/api/tools/analyze-solana-token-holders', baseUrl).toString();
     
     const headers: HeadersInit = {
@@ -153,7 +153,7 @@ async function getSolanaTokenHolders(tokenAddresses: string[]) {
 }
 
 async function getMarketCategories() {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/market-categories`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -165,7 +165,7 @@ async function getMarketCategories() {
 }
 
 async function getDerivativesExchanges() {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/derivatives-exchanges`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -178,7 +178,7 @@ async function getDerivativesExchanges() {
 
 
 async function getTopHolders(address: string) {
-  const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
   const url = new URL(`/api/tools/top-holders?address=${address}`, baseUrl).toString();
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
@@ -191,7 +191,7 @@ async function getTopHolders(address: string) {
 
 
 async function swapTokens(inputMint: string, outputMint: string, amount: string) {
-    const baseUrl = process.env.VERCEL_URL || 'http://localhost:3000';
+    const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
     const url = new URL(`/api/swap?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}`, baseUrl).toString();
     const headers: HeadersInit = {};
     if (process.env.INTERNAL_API_SECRET) {
