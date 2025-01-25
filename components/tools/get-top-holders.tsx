@@ -71,7 +71,7 @@ interface TopHoldersDisplayProps {
   toolInvocation: {
     toolName: string;
     args: { message: string };
-    result?: { data: TokenHolder[] };
+    result?: TokenHolder[];
   };
 }
 
@@ -479,7 +479,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       <div className="text-xs text-zinc-400 mb-3">Click to see more details</div>
 
       <div className="space-y-3">
-        {toolInvocation.result && toolInvocation.result.data.map((holder, index) => (
+        {toolInvocation.result && toolInvocation.result.map((holder, index) => (
           <div 
             key={holder.owner}
             onClick={() => fetchActivities(holder.owner)}

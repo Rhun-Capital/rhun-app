@@ -272,7 +272,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
           <div 
             key={coin.id} 
             className="flex items-center border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg transition-all duration-200 ease-in-out
-                           hover:border-indigo-400 hover:shadow-lg transition-colors cursor-pointer"
+                           hover:border-indigo-400 hover:shadow-lg transition-colors cursor-pointer w-[300px]"
             onClick={() => handleCoinClick(coin.id)}
           >
             <div className="flex items-center gap-3">

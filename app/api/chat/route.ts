@@ -4,202 +4,19 @@ import { retrieveContext } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
-
-async function getAgentConfig(userId: string, agentId: string) {
-  const baseUrl = `https://${process.env.VERCEL_URL}`;
-  const url = new URL(`/api/agents/${userId}/${agentId}`, baseUrl).toString();
-  const headers = {
-    'x-internal-key': process.env.INTERNAL_API_SECRET || ''
-  };
-  
-  const response = await fetch(url, { headers });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch agent configuration: ${response.status}`);
-  }
-  return response.json();
-}
-
-async function getPortfolioValue(walletAddress: string) {
-  if (!walletAddress) {
-    return "I don't have a wallet configured yet, you can create by visiting the wallet tab in the agent settings.";
-  }
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/portfolio/${walletAddress}`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) {
-    throw new Error('Failed to fetch portfolio data');
-  }
-  return response.json();  
-}
-
-async function getTokenHoldings(walletAddress: string) {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/portfolio/${walletAddress}`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch portfolio data");
-  return response.json();
-}
-
-async function getFearGreedIndex() {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/market-sentiment/fear-and-greed`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch market sentiment data");
-  return response.json();
-}
-
-async function getTransactionVolumeAndCount(timeframe: string) {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/network-activity/transaction-volume`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch transaction volume data");
-  return response.json();
-}
-
-async function getTokenInfo(contractAddress: string) {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/token-info/${contractAddress}`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) return { error: 'Failed to fetch token information' };
-  return response.json();
-}
-
-async function getMarketMovers() {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/market-movers`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch market movers");
-  return response.json();
-}
-
-async function searchTokens(query: string) {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/token-search?query=${query}`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch token search results");
-  return response.json();
-}
-
-async function getTotalCryptoMarketCap() {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/total-crypto-marketcap`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch total crypto market cap");
-  return response.json();
-}
-
-async function getSolanaTokenHolders(tokenAddresses: string[]) {
-  try {
-    const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-    const url = new URL('/api/tools/analyze-solana-token-holders', baseUrl).toString();
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json'
-    };
-    
-    if (process.env.INTERNAL_API_SECRET) {
-      headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-    }
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ tokenAddresses })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch token holders: ${response.status}`);
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching token holders:', error);
-    throw error;
-  }
-}
-
-async function getMarketCategories() {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/market-categories`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch market categories");
-  return response.json();
-}
-
-async function getDerivativesExchanges() {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/derivatives-exchanges`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch derivatives exchanges");
-  return response.json();
-}
-
-
-async function getTopHolders(address: string) {
-  const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-  const url = new URL(`/api/tools/top-holders?address=${address}`, baseUrl).toString();
-  const headers: HeadersInit = {};
-  if (process.env.INTERNAL_API_SECRET) {
-    headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-  }
-  const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error("Failed to fetch top holders");
-  return response.json();
-}
-
-
-async function swapTokens(inputMint: string, outputMint: string, amount: string) {
-    const baseUrl = `https://${process.env.VERCEL_URL}` || 'http://localhost:3000';
-    const url = new URL(`/api/swap?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}`, baseUrl).toString();
-    const headers: HeadersInit = {};
-    if (process.env.INTERNAL_API_SECRET) {
-      headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
-    }
-    const response = await fetch(url, { headers });
-    if (!response.ok) throw new Error("Failed to fetch swap quote");
-    return response.json();
-  }
+import { 
+  getAgentConfig, 
+  getPortfolioValue, 
+  getFearGreedIndex, 
+  getTransactionVolumeAndCount, 
+  getTokenInfo, 
+  getMarketMovers,
+  searchTokens,
+  getTotalCryptoMarketCap,
+  getMarketCategories,
+  getDerivativesExchanges,
+  getTopHolders
+ } from '@/utils/agent-tools';
 
 
 export async function POST(req: Request) {
@@ -332,10 +149,10 @@ Remember to use this context when relevant to answer the user's query.`
         execute: async ({}: { user: string }) => {
           const data = await getPortfolioValue(user.wallet.address);
         // Calculate portfolio metrics
-        const totalValue = data.holdings.reduce(
+        const totalValue = typeof data === 'object' && 'holdings' in data ? data.holdings.reduce(
           (sum: number, token: TokenHolding) => sum + token.usdValue,
           0
-        );
+        ) : 0;
         // const totalChange24h = data.holdings.reduce(
         //   (sum: number, token: TokenHolding) =>
         //     sum + (token.usdValue * token.priceChange24h) / 100,
@@ -357,10 +174,10 @@ Remember to use this context when relevant to answer the user's query.`
           const data = await getPortfolioValue(agentConfig.wallets.solana);
 
          // Calculate portfolio metrics
-        const totalValue = data.holdings.reduce(
+        const totalValue = typeof data === 'object' && 'holdings' in data ? data.holdings.reduce(
           (sum: number, token: TokenHolding) => sum + token.usdValue,
           0
-        );
+        ) : 0;
         // const totalChange24h = data.holdings.reduce(
         //   (sum: number, token: TokenHolding) =>
         //     sum + (token.usdValue * token.priceChange24h) / 100,
@@ -375,8 +192,12 @@ Remember to use this context when relevant to answer the user's query.`
         description: "show the user's token holdings for their connected wallet to the user",
         parameters: z.object({ userDetails: z.string() }),
         execute: async ({}: { userDetails: string }) => {
-          const data = await getTokenHoldings(user.wallet.address);
-          return data.holdings;
+          const data = await getPortfolioValue(user.wallet.address);
+          if (typeof data === 'object' && 'holdings' in data) {
+            return data.holdings;
+          } else {
+            throw new Error("No holdings data available");
+          }
         }
       },
 
@@ -384,8 +205,12 @@ Remember to use this context when relevant to answer the user's query.`
         description: "show the agents token holdings for their embedded wallet to the user",
         parameters: z.object({ agentDetails: z.string() }),
         execute: async ({}: { agentDetails: string }) => {
-          const data = await getTokenHoldings(agentConfig.wallets.solana);
-          return data.holdings;
+          const data = await getPortfolioValue(agentConfig.wallets.solana);
+          if (typeof data === 'object' && 'holdings' in data) {
+            return data.holdings;
+          } else {
+            throw new Error("No holdings data available");
+          }
         }
       },
       
@@ -476,15 +301,12 @@ Remember to use this context when relevant to answer the user's query.`
       // }      
 
       getTopHolders: {
-        description: "Get the top holders of a Solana token by address",
-        parameters: z.object({ address: z.string() }),
+        description: "Get the top holders of a Solana token by contract address",
+        parameters: z.object({ address: z.string().describe('The address of the token to get top holders for') }),
         execute: async ({ address }) => {
           const holders = await getTopHolders(address);
+          console.log(holders);
           return holders;
-        },
-        onError: (error: Error) => {
-          console.error('Error fetching top holders:', error);
-          return { error: 'Failed to fetch top holders' };
         }
       },
 
