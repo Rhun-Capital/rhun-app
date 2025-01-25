@@ -23,8 +23,6 @@ export async function GET(request: Request) {
     }
 
     const holders = await getTopHolders(address);
-
-    console.log(holders, 'holders')
     
     return NextResponse.json({
       success: true,

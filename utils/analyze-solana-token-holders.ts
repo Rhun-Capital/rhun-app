@@ -100,8 +100,6 @@
 //       }
 //     });
 
-//     console.log(response, 'response')
-
 //     if (!response.ok) {
 //       throw new Error('Failed to fetch holder list');
 //     }
@@ -132,7 +130,6 @@
 // ): Promise<Array<{ token: string; count: number; percentage: number }>> {
 //   const bigTokenHolders = new Set(await getHolderList(newToken));
 //   const totalHolders = bigTokenHolders.size;
-//   console.log(totalHolders, 'totalHolders')
 
 //   // const overlaps = await Promise.all(
 //   //   comparisonTokens.map(async (compareToken) => {
@@ -163,7 +160,6 @@
 
 //     // Get trending tokens
 //     const trendingTokens = await getRecentTokens(10);
-//     console.log(trendingTokens, 'trendingTokens')
     
 //     // Get holder counts
 //     const tokensWithHolders = await Promise.all(
@@ -173,23 +169,15 @@
 //       }))
 //     );
 
-//     console.log(tokensWithHolders, 'tokensWithHolders')
-
 //     // Filter for significant tokens based on holders over 1000
 //     const significantTokens = tokensWithHolders.filter(token => 
 //       token.holders > 1000
 //     );
 
-//     console.log(significantTokens, 'significantTokens')
-
-//     console.log(significantTokens.length, 'significantTokens.length')
-
 //     // Analyze each significant token
 //     // const analyses = await Promise.all(
 //     //   significantTokens.map(async (token) => {
 //     //     const overlap = await analyzeHolderOverlap(token.address, tokenAddresses);
-//     //     console.log(overlap)
-
 //     //     return {
 //     //       address: token.address,
 //     //       symbol: token.symbol,

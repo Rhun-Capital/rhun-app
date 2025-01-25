@@ -3,9 +3,13 @@
 import { BotIcon, MessageIcon, SettingsIcon, ChevronRightIcon } from '@/components/icons';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
+import { toast } from "sonner";
+import { Toaster } from 'sonner';
+import {useRouter} from 'next/navigation';
 
 export default function HomePage() {
-  const { user } = usePrivy();
+  const { user, ready } = usePrivy();
+  const router = useRouter();
 
   const features = [
     {
@@ -41,6 +45,16 @@ export default function HomePage() {
     'Refine agent settings based on interactions'
   ];
 
+  const handleFeatureClick = (e: React.MouseEvent, feature: { title: string; description: string; icon: React.ElementType; link: string; linkText: string; color: string }) => {
+    if (!user && ready) {
+      e.preventDefault();
+      toast.error('Please sign in to access this feature.');
+      return
+    }
+    router.push(feature.link);
+  };
+
+
   return (
     <div className="min-h-screen dark:bg-zinc-900 text-white p-6">
       <div className="max-w-6xl mx-auto space-y-12">
@@ -50,17 +64,30 @@ export default function HomePage() {
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
             Create, customize, and interact with AI agents tailored to your needs.
           </p>
+          <div className="flex justify-center">
+            <Link 
+              href="https://rhun.io"
+              target='_blank'
+              className="inline-flex items-center gap-2 px-6 py-1 outline outline-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-sm"
+            >
+              <span>Read The Docs</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20l9-5-9-5-9 5 9 5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l9-5-9-5-9 5 9 5z" />
+              </svg>
+            </Link>
+          </div>
         </div>
 
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {features.map((feature) => (
-            <Link 
+            <div 
               key={feature.title} 
-              href={feature.link}
               className="group"
+              onClick={(e) => handleFeatureClick(e, feature)}
             >
-              <div className="p-6 bg-zinc-800 rounded-lg border border-zinc-700 h-full
+              <div className="p-6 bg-zinc-800 rounded-lg border border-zinc-700 h-full cursor-pointer
                            transition-all duration-200 ease-in-out
                            hover:border-zinc-600 hover:shadow-lg hover:-translate-y-1">
                 <div className="mb-4"><feature.icon /></div>
@@ -75,7 +102,7 @@ export default function HomePage() {
                   <div className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform"><ChevronRightIcon /></div>
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
 
@@ -107,16 +134,23 @@ export default function HomePage() {
         </div>
 
         {/* Start Button */}
-        <div className="text-center">
+        {!user && ready && <div className="text-center">
           <Link 
             href="/agents"
             className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-semibold transition-colors text-lg"
+            onClick={(e) => {
+              if (!user && ready) {
+                e.preventDefault();
+                toast.error('Please sign in to access this feature.');
+              }
+            }}            
           >
             Get Started
             <ChevronRightIcon/>
           </Link>
-        </div>
+        </div> }
       </div>
+      <Toaster />
     </div>
   );
 }

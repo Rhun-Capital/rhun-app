@@ -190,6 +190,19 @@ async function getTopHolders(address: string) {
 }
 
 
+async function swapTokens(inputMint: string, outputMint: string, amount: string) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const url = new URL(`/api/swap?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}`, baseUrl).toString();
+    const headers: HeadersInit = {};
+    if (process.env.INTERNAL_API_SECRET) {
+      headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+    }
+    const response = await fetch(url, { headers });
+    if (!response.ok) throw new Error("Failed to fetch swap quote");
+    return response.json();
+  }
+
+
 export async function POST(req: Request) {
   const { messages, user, agentId } = await req.json();
   // Get the latest user message
@@ -231,7 +244,8 @@ When your listing token holdings do not add the token image to the list.
 You only have token data on for the Solana blockchain. If the user asks for token data on another blockchain, let them know that you only have data for Solana tokens.
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
 If you can find a token using getTokenInfo try the onchain token info tool to see if you can get more information about the token and do not show the failed to fetch token information error message to the user.
-When generating numbered lists male sure to format it correctly. Make sure the number and the item are on the same line. Also make sure that items do not use numbers. 
+When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
+When ever you render the searchTokens and getTopHolders tools make sure to let the user know they can click on the token to get more information about the token.
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
@@ -291,7 +305,6 @@ Remember to use this context when relevant to answer the user's query.`
           // fetch the balance from the Solana blockchain
           if (user.wallet.address && process.env.HELIUS_API_KEY) {
             const balance = await getSolanaBalance(user.wallet.address, process.env.HELIUS_API_KEY);
-            console.log("User Balance", balance)
             return {balance, address: user.wallet.address};
           } else {
             throw new Error('User wallet address or Helius API key is missing');
@@ -306,7 +319,6 @@ Remember to use this context when relevant to answer the user's query.`
           // fetch the balance from the Solana blockchain
           if (agentConfig.wallets.solana && process.env.HELIUS_API_KEY) {
             const balance = await getSolanaBalance(agentConfig.wallets.solana, process.env.HELIUS_API_KEY);
-            console.log("Agent Balance", balance)
             return {balance, address: agentConfig.wallets.solana};
           } else {
             throw new Error('Agent wallet address or Helius API key is missing');
@@ -344,7 +356,6 @@ Remember to use this context when relevant to answer the user's query.`
         parameters: z.object({ agent: z.string() }),
         execute: async ({}: { agentDetails: string }) => {
           const data = await getPortfolioValue(agentConfig.wallets.solana);
-          console.log("Agent Portfolio Value", data)
 
          // Calculate portfolio metrics
         const totalValue = data.holdings.reduce(
@@ -393,7 +404,6 @@ Remember to use this context when relevant to answer the user's query.`
         parameters: z.object({ timeframe: z.string() }),
         execute: async ({ timeframe }: { timeframe: string }) => {
           const response = await getTransactionVolumeAndCount(timeframe);
-          console.log("Transaction Volume", response)
           return response;
         },
       },      
@@ -461,28 +471,48 @@ Remember to use this context when relevant to answer the user's query.`
       //   description: "Analyze new Solana tokens (created in last 36 hours) that share holders with specified tokens",
       //   parameters: z.object({ tokenAddresses: z.array(z.string()) }),
       //   execute: async ({ tokenAddresses }) => {
-      //     console.log(tokenAddresses);
       //     const response = await getSolanaTokenHolders(tokenAddresses);
-      //     console.log(response);
       //     return response;
       //   }
       // }      
 
       getTopHolders: {
-        description: "Get the top holders of a Solana token",
+        description: "Get the top holders of a Solana token by address",
         parameters: z.object({ address: z.string() }),
         execute: async ({ address }) => {
           const holders = await getTopHolders(address);
           return holders;
+        },
+        onError: (error: Error) => {
+          console.error('Error fetching top holders:', error);
+          return { error: 'Failed to fetch top holders' };
         }
       },
+
+      // swap: {
+      //   description: "Get a Solana token swap quote using Jupiter and execute the swap",
+      //   parameters: z.object({
+      //     inputMint: z.string().describe('Input token mint address'),
+      //     outputMint: z.string().describe('Output token mint address'),
+      //     amount: z.string().describe('Amount to swap in lamports/smallest decimal unit')
+      //   }),
+      //   execute: async ({ inputMint, outputMint, amount }) => {
+      //     // const tokenInfo = await getTokenInfo(outputMint);
+      //     // const decimals = tokenInfo.onchain.attributes.decimals
+      //     // const response = await swapTokens(inputMint, outputMint, amount);
+      //     // add decimal conversion to response
+      //     // response.displayAmount = Number(response.outAmount) / Math.pow(10, decimals);
+      //     // return response;
+      //     return []
+            
+      //   },
+      // },
 
 
       
     },    
   });
 
-  console.log(result)
 
   return result.toDataStreamResponse();
 }

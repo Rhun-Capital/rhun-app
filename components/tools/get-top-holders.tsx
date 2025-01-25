@@ -1,8 +1,10 @@
 // components/TopHoldersDisplay.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ChevronLeftIcon } from '@/components/icons';
 import { usePrivy } from '@privy-io/react-auth';
 import _ from 'lodash';
+import { AlertCircleIcon } from '@/components/icons';
+import LoadingIndicator from '@/components/loading-indicator';
 
 
 interface TokenHolder {
@@ -73,6 +75,8 @@ interface TopHoldersDisplayProps {
   };
 }
 
+const PAGE_SIZE = 10;
+
 const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolInvocation }) => {
   const { getAccessToken } = usePrivy();
   const [selectedHolder, setSelectedHolder] = React.useState<string | null>(null);
@@ -80,6 +84,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showFilters, setShowFilters] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
   const [filters, setFilters] = React.useState<FilterState>({
     startTime: '',
     endTime: '',
@@ -90,55 +95,44 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     token: ''
   });
 
+  useEffect(() => {
+    if (selectedHolder && currentPage > 0) {
+      fetchActivities(selectedHolder);
+    }
+  }, [selectedHolder, currentPage]);
+
+  // const totalItems = activities?.total || 0;
+  // const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+  const paginatedActivities = activities?.data || [];
+
   const fetchActivities = React.useCallback(async (address: string) => {
     try {
       setIsLoading(true);
       setError(null);
       setShowFilters(false);
       const token = await getAccessToken();
-
+  
       const params = new URLSearchParams();
       params.append('address', address);
-
-      // Time range filters
+      params.append('page', currentPage.toString());
+      params.append('page_size', PAGE_SIZE.toString());
+  
       if (filters.startTime && filters.endTime) {
         params.append('block_time[]', Math.floor(new Date(filters.startTime).getTime() / 1000).toString());
         params.append('block_time[]', Math.floor(new Date(filters.endTime).getTime() / 1000).toString());
       }
-
-      // Activity types
-      filters.activityTypes.forEach(type => {
-        params.append('activity_type[]', type);
-      });
-
-      // From address
-      if (filters.from) {
-        params.append('from', filters.from);
-      }
-
-      // Platform addresses (max 5)
-      filters.platforms.slice(0, 5).forEach(platform => {
-        params.append('platform[]', platform);
-      });
-
-      // Source addresses (max 5)
-      filters.sources.slice(0, 5).forEach(source => {
-        params.append('source[]', source);
-      });
-
-      // Token address
-      if (filters.token) {
-        params.append('token', filters.token);
-      }
-
+  
+      filters.activityTypes.forEach(type => params.append('activity_type[]', type));
+      if (filters.from) params.append('from', filters.from);
+      filters.platforms.slice(0, 5).forEach(p => params.append('platform[]', p));
+      filters.sources.slice(0, 5).forEach(s => params.append('source[]', s));
+      if (filters.token) params.append('token', filters.token);
+  
       const response = await fetch(`/api/tools/account-activities?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
+  
       if (!response.ok) throw new Error('Failed to fetch activities');
-      
       const data = await response.json();
       setActivities(data);
       setSelectedHolder(address);
@@ -148,11 +142,33 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     } finally {
       setIsLoading(false);
     }
-  }, [filters, getAccessToken]);
+  }, [filters, getAccessToken, currentPage]);
 
   const formatAmount = (amount: number, decimals: number) => {
     return (amount / Math.pow(10, decimals)).toFixed(decimals > 6 ? 6 : decimals);
   };
+
+  const PaginationControls = () => (
+    <div className="flex justify-between items-center mt-4 px-2">
+      <button
+        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+        disabled={currentPage === 1}
+        className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-600 transition-colors"
+      >
+        Previous
+      </button>
+      <span className="text-zinc-400">
+        Page {currentPage}
+      </span>
+      <button
+        onClick={() => setCurrentPage(p => p + 1)}
+        disabled={!activities?.data || activities.data.length < 10}
+        className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-600 transition-colors"
+      >
+        Next
+      </button>
+    </div>
+  );
 
   // Define literal types for input field names
   type FilterInputName = 'startTime' | 'endTime' | 'from' | 'token' | 'platforms' | 'sources';
@@ -202,7 +218,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         return newFilters;
       });
     }, [debouncedSetFilters]);
-
+  
     return (
       <div className="bg-zinc-900 p-4 rounded-lg mb-4 space-y-4">
         {/* Time Range Filters */}
@@ -325,7 +341,9 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
   if (isLoading) {
     return (
       <div className="p-6 bg-zinc-800 rounded-lg">
-        <div className="text-center text-zinc-400">Loading...</div>
+        <div className="text-center text-zinc-400">
+          <LoadingIndicator/>
+        </div>
       </div>
     );
   }
@@ -376,18 +394,20 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
           </div>
         </div>
 
-        {/* Activity list */}
-        <div className="space-y-3">
-          {activities.data.length > 0 ? (
-            activities.data.map((activity, index) => {
-              const token1 = activities.metadata.tokens[activity.routers.token1];
-              const token2 = activities.metadata.tokens[activity.routers.token2];
+     {/* Activity list */}
+     <div className="space-y-3">
+          {paginatedActivities.length > 0 ? (
+            <>
+              {paginatedActivities.map((activity, index) => {
+                const token1 = activities.metadata.tokens[activity.routers.token1];
+                const token2 = activities.metadata.tokens[activity.routers.token2];
 
-              return (
-                <div 
-                  key={index}
-                  className="border border-zinc-900 p-4 bg-zinc-900 rounded-lg"
-                >
+                return (
+                  <div 
+                    key={index}
+                    className="border border-zinc-900 p-4 bg-zinc-900 rounded-lg"
+                  >
+   
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-sm font-medium">
                       {activity.activity_type.replace('ACTIVITY_', '')}
@@ -426,9 +446,11 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
                     </div>
                   </div>
                 </div>
-              );
-            })
-          ): (
+                );
+              })}
+              <PaginationControls />
+            </>
+          ) : (
             <div className="text-center text-zinc-400 py-8">
               No activities found
             </div>
@@ -437,9 +459,23 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-zinc-800 rounded-lg">
+        <div className="flex items-center gap-2 text-red-500">
+          <AlertCircleIcon />
+          <span>{error}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">Top Token Holders</h3>
+      <div className="text-xs text-zinc-400 mb-3">Click to see more details</div>
+
       <div className="space-y-3">
         {toolInvocation.result && toolInvocation.result.data.map((holder, index) => (
           <div 

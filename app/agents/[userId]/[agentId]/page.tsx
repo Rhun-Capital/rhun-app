@@ -4,7 +4,9 @@ import { ToolInvocation } from 'ai';
 import {
   AttachmentIcon,
   BotIcon,
-  UserIcon
+  UserIcon,
+  SettingsIcon, 
+  MessageIcon 
 } from "@/components/icons";
 import Image from 'next/image';
 import { useRecentChats } from '@/contexts/chat-context';
@@ -18,16 +20,17 @@ import { Markdown } from "@/components/markdown";
 import { useParams, useSearchParams } from 'next/navigation';
 import { usePrivy } from "@privy-io/react-auth";
 import LoadingIndicator from "@/components/loading-indicator";
-import MarketMovers from "@/components/market-movers";
-import TokenInfo from "@/components/token-info";
-import SearchTokens from "@/components/search-tokens";
-import TotalCryptoMarketCap from "@/components/total-crypto-marketcap";
-import MarketCategories from "@/components/market-categories";
-import DerivativesExchanges from "@/components/derivatives-exchanges";
+import MarketMovers from "@/components/tools/market-movers";
+import TokenInfo from "@/components/tools/token-info";
+import SearchTokens from "@/components/tools/search-tokens";
+import TotalCryptoMarketCap from "@/components/tools/total-crypto-marketcap";
+import MarketCategories from "@/components/tools/market-categories";
+import DerivativesExchanges from "@/components/tools/derivatives-exchanges";
 // import AnalyzeSolanaTokenHolders from "@/components/analyze-solana-token-holders";
-import TopHoldersDisplay from "@/components/get-top-holders";
+import TopHoldersDisplay from "@/components/tools/get-top-holders";
 import { Message } from 'ai'; // Use the AI SDK Message type
 import  ChatSidebar  from "@/components/chat-sidebar";
+import  SwapComponent  from "@/components/tools/swap-component";
 
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
@@ -147,7 +150,7 @@ export default function Home() {
     useChat({
       headers,
       body: { agentId, user },
-      maxSteps: 20,
+      maxSteps: 16,
       initialMessages,
       id: chatId ?? undefined,
       onError: () => {
@@ -164,7 +167,6 @@ export default function Home() {
   // Add this handler function
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-      console.log('Arrow key pressed');
       event.preventDefault();
       
       if (commandHistory.length === 0) return;
@@ -200,6 +202,8 @@ export default function Home() {
     if (!isNewChat || chatId || currentChatId || chatCreatedRef.current) {
       return chatId || currentChatId;
     }
+
+    if (message.trim() === '') return
   
     const newChatId = `chat_${user?.id}_${Date.now()}`;
     const token = await getAccessToken();
@@ -239,9 +243,10 @@ export default function Home() {
   };  
 
   const updateChatInDB = async (messages: Message[]) => {
-    if (messages.length === 0 || !user?.id) return;
-  
     const lastMessage = messages[messages.length - 1];
+
+    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !user?.id) return;  
+    
     const chatIdentifier = await createNewChat(lastMessage.content);
     
     if (!chatIdentifier) return;
@@ -468,7 +473,8 @@ export default function Home() {
   return (  
 
 <div className="flex flex-row gap-4 pb-20 bg-white dark:bg-zinc-900">
-  <div className={`flex-1 flex ${sidebarOpen ? 'ml-40' : 'justify-center'}`}>
+{/* edit agent button here */}
+  <div className={`flex-1 flex ${sidebarOpen ? 'sm:ml-[10%] md:ml-[15%] lg:ml-[15%]' : 'justify-center'}`}>
     <div className="flex flex-col justify-between gap-4 relative" 
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -689,27 +695,27 @@ export default function Home() {
                         }        
                         
                         if (toolInvocation.toolName === 'getTokenInfo') {
-                          return <TokenInfo toolCallId={toolCallId} toolInvocation={toolInvocation}/>
+                          return <TokenInfo key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation}/>
                         } 
 
                         if (toolInvocation.toolName === 'getMarketMovers') {
-                          return <MarketMovers toolCallId={toolCallId} toolInvocation={toolInvocation}/>
+                          return <MarketMovers key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation}/>
                         }
 
                         if (toolInvocation.toolName === 'searchTokens') {
-                          return <SearchTokens toolCallId={toolCallId} toolInvocation={toolInvocation}/>                          
+                          return <SearchTokens key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation}/>                          
                         }  
                         
                         if (toolInvocation.toolName === 'getTotalCryptoMarketCap') {
-                          return <TotalCryptoMarketCap toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                          return <TotalCryptoMarketCap key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
                         }  
                         
                         if (toolInvocation.toolName === 'getMarketCategories') {
-                          return <MarketCategories toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                          return <MarketCategories key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
                         } 
                         
                         if (toolInvocation.toolName === 'getDerivativesExchanges') {
-                          return <DerivativesExchanges toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                          return <DerivativesExchanges key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
                         }
 
                         // if (toolInvocation.toolName === 'analyzeSolanaTokenHolders') {
@@ -718,12 +724,15 @@ export default function Home() {
 
                         // getTopHolders
                         if (toolInvocation.toolName === 'getTopHolders') {
-                          return <TopHoldersDisplay toolCallId={toolCallId} toolInvocation={toolInvocation} />
+                          return <TopHoldersDisplay key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
                         }
+
+                        // if (toolInvocation.toolName === 'swap') {
+                        //   return <SwapComponent key={toolCallId} quote={''} agent={agent} />;
+                        // }               
 
                       })}                
                         
-                     {/* {message.role === 'assistant' ? <PieChart/> : null} */}
                     </div>
                     <div className="flex flex-row gap-2">
                       {message.experimental_attachments?.map((attachment) =>
@@ -783,20 +792,12 @@ export default function Home() {
                   </Link>
                   in the docs. You can edit the agent details by clicking the button below.
                 </p>
-
-                <Link 
-                      key={agent.id + '-edit'}
-                      href={`/agents/${user?.id}/${agent.id}/edit`}
-                      className="group"
-                    ><button className="outline outline-indigo-400 px-6 py-1 rounded-md hover:outline-indigo-500">Edit Agent Details</button></Link>
-
-
               </div>
             </motion.div>
           )}
 
           <form
-            className="flex flex-col gap-2  items-center"
+            className="flex flex-col gap-2 items-center pb-5"
             onSubmit={(event) => {
               const options = files ? { experimental_attachments: files } : {};
               handleFormSubmit(event, options);
@@ -879,6 +880,17 @@ export default function Home() {
               />
             </div>
           </form>
+
+          <div className="flex flex-row gap-8">
+                  <Link href={`/agents/${user?.id}/${agentId}/edit`}>
+                    <button className="outline outline-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-500">
+                    <div className="flex gap-2 items-center"><SettingsIcon /><span>Configure Agent</span></div>
+                    </button>
+                  </Link>
+                    <button className="outline outline-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-500" onClick={() => handleToolSelect('What tools do you have access to?')}>
+                    <div className="flex gap-2 items-center"><MessageIcon/><span>Describe Tools</span></div>
+                    </button>
+                </div>
         </div>
       </div>
 

@@ -102,8 +102,6 @@ export async function GET(
         market: marketDataResponse.ok
       }
     };
-
-    console.log(combinedData)
     
     return NextResponse.json(combinedData);
   } catch (error) {

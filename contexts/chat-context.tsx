@@ -24,12 +24,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const fetchRecentChats = async () => {
     if (!user?.id) {
-      console.log('No user ID available');
       return;
     }
     
     try {
-      console.log('Fetching recent chats for user:', user.id);
       const token = await getAccessToken();
       const response = await fetch(`/api/chat/recent?userId=${user.id}`, {
         headers: {
@@ -40,7 +38,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) throw new Error('Failed to fetch chats');
       
       const data = await response.json();
-      console.log('Fetched chats:', data.chats);
       setRecentChats(data.chats);
     } catch (error) {
       console.error('Error fetching chats:', error);
@@ -48,7 +45,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    console.log('ChatProvider useEffect triggered', { userId: user?.id });
     fetchRecentChats();
   }, [user?.id, getAccessToken]);
 
@@ -57,7 +53,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     refreshRecentChats: fetchRecentChats
   };
 
-  console.log('ChatProvider rendering with chats:', recentChats);
 
   return (
     <ChatContext.Provider value={contextValue}>

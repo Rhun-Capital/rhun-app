@@ -27,8 +27,6 @@ interface MarketMoversProps {
 const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  console.log(toolInvocation, toolCallId);
-
   if (toolInvocation.toolName !== 'getMarketMovers') return null;
 
   const formatPrice = (price: number) => {
@@ -45,7 +43,7 @@ const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation 
   };
 
   const renderCoinCard = (coin: CoinData) => (
-    <div key={coin.symbol} className="bg-zinc-900 p-4 rounded-lg">
+    <div key={coin.symbol + Math.random()} className="bg-zinc-900 p-4 rounded-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Image src={coin.image} alt={coin.name} width={20} height={20} />
