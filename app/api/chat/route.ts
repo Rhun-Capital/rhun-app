@@ -8,20 +8,14 @@ import { TokenHolding } from "@/types";
 async function getAgentConfig(userId: string, agentId: string) {
   const baseUrl = `https://${process.env.VERCEL_URL}`;
   const url = new URL(`/api/agents/${userId}/${agentId}`, baseUrl).toString();
-  console.log('Fetching agent config from:', url);
-  
   const headers: HeadersInit = {};
   if (process.env.INTERNAL_API_SECRET) {
     headers['x-internal-key'] = process.env.INTERNAL_API_SECRET;
+    console.log('Headers:', headers);
   }
+  console.log('URL:', url);
   const response = await fetch(url, { headers });
-  console.log('Response status:', response.status);
-  
-  if (!response.ok) {
-    const text = await response.text();
-    console.error('Error response:', text);
-    throw new Error('Failed to fetch agent configuration');
-  }
+  console.log('Response:', response.status);
   return response.json();
 }
 
