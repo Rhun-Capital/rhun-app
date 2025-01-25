@@ -40,9 +40,12 @@ export default function MarketplacePage() {
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl mb-6">
               App Marketplace
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
-              Enhance your AI agents with powerful tools and integrations. Coming soon to the platform.
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400 mb-7">
+              Enhance your AI agents with powerful tools and integrations.
             </p>
+            <div className="inline-flex items-center px-5 py-0.5 rounded-full text-sm font-medium outline outline-indigo-500 text-white">
+              Coming Soon
+            </div>
           </div>
 
           {/* Statistics */}

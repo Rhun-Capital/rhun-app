@@ -324,15 +324,26 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
           <h1 className="text-3xl font-bold">
             {initialData ? initialData.name || "Edit Agent" : "Create New Agent"}
           </h1>
-          <button
+          
+          { params.agentId && <button
             onClick={goToChat}
             className="px-4 py-2 bg-transparent rounded-lg transition"
           >
             
-           <div className="flex gap-2 items-center"><span className="text-white outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500"><div className="flex gap-2 items-center"><span>Start Chat</span><ChatIcon/></div>  </span> </div>
-           </button>
+           <div className="flex gap-2 items-center">
+            <span className="text-white outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500">
+            <div className="flex gap-2 items-center">
+              <span>Start Chat</span>
+              <ChatIcon/>
+            </div>  
+            </span> 
+            </div>
+           </button>  
+           }
 
-        </div>
+      </div>
+
+      
 
         {/* Tabs */}
         <div className="border-b border-zinc-700 mb-6">

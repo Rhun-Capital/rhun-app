@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
 import { RecentChats } from './recent-chats-component';
+import Image from 'next/image';
 
 export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const { login, logout, authenticated, user } = usePrivy();
@@ -36,13 +37,18 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
     <div className="flex h-screen dark:bg-zinc-900 text-zinc-400">
       <div className="w-64 dark:bg-zinc-900 text-zinc-400 shadow-lg flex flex-col border-r border-zinc-700">
         <div className="p-4 border-b border-zinc-700">
-          <h1 className="text-xl font-bold text-white">
-            R H U N
-          </h1>
+        <Link href='/'>
+          <div className="flex items-center">
+            <Image src="/images/rhun-logo.png" alt="Rhun Capital" height={35} width={35} className="pr-2 antialiased"/>
+            <h1 className="text-xl font-bold text-white">  
+              R&nbsp; H&nbsp; U&nbsp; N
+            </h1>
+          </div>
+        </Link>
         </div>
         
         <nav className="p-4 flex-1">
-          <ul className="space-y-2 mb-10">
+          <ul className="space-y-2 mb-5">
             {navigation.map((item) => (
               <li key={item.name}>
                 <Link 

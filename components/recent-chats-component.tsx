@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { MessageSquareIcon } from '@/components/icons';
-import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRecentChats } from '@/contexts/chat-context';
 
@@ -24,7 +23,7 @@ function formatTimeAgo(timestamp: number) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export const RecentChats = ({ maxVisible = 5 }) => {
+export const RecentChats = ({ maxVisible = 3 }) => {
   const { user } = usePrivy();
   const router = useRouter();
   const { recentChats } = useRecentChats();

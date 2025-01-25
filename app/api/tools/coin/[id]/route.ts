@@ -31,7 +31,6 @@ export async function GET(
     }
 
     const data = await response.json();
-    console.log(data);
 
     // Format the response to include only the data we need
     const formattedData = {

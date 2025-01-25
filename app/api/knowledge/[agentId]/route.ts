@@ -10,7 +10,6 @@ export async function GET(
     const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
 
     const stats = await index.describeIndexStats();
-    console.log('Current index stats:', stats);
      
     // Create a random vector to query the index so that we dont cache
     const randomVector = new Array(1536).fill(0).map(x => Math.random() * 0.0001);

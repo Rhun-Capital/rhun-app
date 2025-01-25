@@ -18,7 +18,6 @@
 // }
 
 // const AnalyzeSolanaTokenHolders: React.FC<TokenAnalysisProps> = ({ toolCallId, toolInvocation }) => {
-//     console.log(toolInvocation)
 //   return (
 //     <div className="space-y-4">
 //       {data.map((token: typeof data[0]) => (

@@ -1,7 +1,9 @@
 // components/chat-sidebar.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WalletIcon, ToolsIcon, ChevronRightIcon } from '@/components/icons';
 import Image from 'next/image';
+import { usePrivy } from '@privy-io/react-auth';
+import LoadingIndicator from './loading-indicator';
 
 interface Tool {
   name: string;
@@ -18,6 +20,10 @@ interface SidebarProps {
 
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect }) => {
   const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('wallet');
+  const { user, getAccessToken } = usePrivy();
+  const [portfolio, setPortfolio] = useState<any>(null);
+  const [solanaBalance, setSolanaBalance] = useState<any>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const tools: Tool[] = [
     { 
@@ -90,11 +96,11 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       description: 'View derivatives exchanges',
       command: 'Show me derivatives exchanges'
     },
-    { 
-      name: 'Market Data', 
-      description: 'View market information',
-      command: 'Show me the current market data'
-    },
+    // { 
+    //   name: 'Market Data Summary', 
+    //   description: 'View a summary of the market.',
+    //   command: 'Give a summary of the market.'
+    // },
     { 
       name: 'Fear & Greed Index', 
       description: 'Check market sentiment',
@@ -105,6 +111,65 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const handleToolClick = (tool: Tool) => {
     onToolSelect(tool.command);
   };
+
+  const copyToClipboard = async () => {
+    if (agent.wallets?.solana) {
+      try {
+        await navigator.clipboard.writeText(agent.wallets.solana);
+        setCopySuccess(true);
+        // Reset copy success message after 2 seconds
+        setTimeout(() => {
+          setCopySuccess(false);
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy wallet address:', err);
+      }
+    }
+  };  
+
+  async function getPortfolioValue(walletAddress: string) {
+    const url = `/api/portfolio/${walletAddress}`;
+    const token = await getAccessToken();
+    const headers = { 'Authorization': `Bearer ${token}` };
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new Error('Failed to fetch portfolio data');
+    }
+    return response.json();  
+  }
+
+  //  get solana balance 
+
+  async function getSolanaBalance(walletAddress: string) {
+    const url = `/api/wallets/${walletAddress}/balance`;
+    const token = await getAccessToken();
+    const headers = { 'Authorization': `Bearer ${token}` };
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+      throw new Error('Failed to fetch portfolio data');
+    }
+    return response.json();
+  }
+
+  useEffect(() => {
+    if (activeTab === 'wallet' && agent.wallets?.solana) {
+      getPortfolioValue(agent.wallets.solana)
+        .then((portfolio) => {
+          setPortfolio(portfolio);
+        })
+        .catch((error) => console.error('Error fetching portfolio:', error));
+    }
+  }, [activeTab, agent.wallets?.solana]);
+
+  useEffect(() => {
+    if (activeTab === 'wallet' && agent.wallets?.solana) {
+      getSolanaBalance(agent.wallets.solana)
+        .then((response) => {
+          setSolanaBalance(response);
+        })
+        .catch((error) => console.error('Error fetching balance:', error));
+    }
+  }, [portfolio]);  
 
   return (
     <div className={`fixed right-0 top-0 h-full border-l border-zinc-700 transition-all duration-300 bg-zinc-900 z-10 ${
@@ -154,14 +219,36 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
           <div className="flex-1 overflow-y-auto">
             {activeTab === 'wallet' ? (
               <div className="p-4 space-y-4">
+                {/* Wallet Address */}
+                <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                  <div className="text-sm text-zinc-400 mb-1">Wallet Address</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm text-white truncate">
+                      {agent.wallets?.solana || 
+                                            <div className="text-sm text-zinc-500">
+                                            Configure wallet to view address
+                                          </div>
+                      }
+                    </div>
+                    {agent.wallets?.solana && (
+                      <button
+                        onClick={copyToClipboard}
+                        className="px-2 py-1 text-xs bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
+                      >
+                        {copySuccess ? 'Copied!' : 'Copy'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Wallet Balance */}
                 <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
                   <div className="text-sm text-zinc-400 mb-1">Balance</div>
                   <div className="flex items-center gap-2">
-                    <Image src="/images/chains/solana.svg" alt="SOL" width={20} height={20} />
+                    <Image src="/images/chains/solana.svg" alt="SOL" width={14} height={14} />
                     <div className="text-xl font-semibold text-white">
                       {agent.wallets?.solana 
-                        ? '0.00 SOL'
+                        ? solanaBalance ? solanaBalance?.balance + ' SOL' : <div className="ml-5"><LoadingIndicator /></ div>
                         : 'No wallet configured'
                       }
                     </div>

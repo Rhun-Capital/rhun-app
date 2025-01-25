@@ -5,6 +5,8 @@ import { PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { getBulkPriceData } from '@/utils/prices';
 import { getTokenMetadata } from '@/utils/tokens';
+import  {LAMPORTS_PER_SOL} from "@solana/web3.js";
+
 
 export async function GET(
   request: Request,
@@ -20,7 +22,7 @@ export async function GET(
 
     // Get native SOL balance
     const solBalance = await connection.getBalance(pubKey);
-    const solInWallet = solBalance / 1e9; // Convert lamports to SOL
+    const solInWallet = solBalance / LAMPORTS_PER_SOL; // Convert lamports to SOL
 
     // Get token accounts
     const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
