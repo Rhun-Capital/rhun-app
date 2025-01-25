@@ -185,6 +185,8 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       []
     );
 
+    FiltersPanel.displayName = 'FiltersPanel';
+
     // Handle input changes with proper typing
     const handleLocalFilterChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const name = e.target.name as FilterInputName;
@@ -506,5 +508,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     </div>
   );
 };
+
+TopHoldersDisplay.displayName = 'TopHoldersDisplay';
 
 export default TopHoldersDisplay;

@@ -100,7 +100,7 @@ export default function MarketplacePage() {
           <div className="bg-gradient-to-r from-indigo-500/10 to-blue-500/10 rounded-lg p-8 flex flex-col items-center text-center">
             <h2 className="text-3xl font-bold mb-4">Coming Soon</h2>
             <p className="text-zinc-400 max-w-2xl">
-              We're working hard to bring you a powerful marketplace of tools and integrations.
+              We&apos;re working hard to bring you a powerful marketplace of tools and integrations.
               The App Marketplace will not be available during the beta phase but stay tuned for updates!
             </p>
           </div>

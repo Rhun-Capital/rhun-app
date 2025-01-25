@@ -132,7 +132,7 @@ export default function WalletTab({ agentId }: { agentId: string }) {
           <h2 className="text-lg font-semibold">Agent Wallet</h2>
         </div>
         
-        <p className="text-sm text-zinc-400">Manage your agent's Solana wallet</p>
+        <p className="text-sm text-zinc-400">Manage your agent&apos;s Solana wallet</p>
       </div>
 
       {!walletAddress ? (
