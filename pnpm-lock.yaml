@@ -101,9 +101,6 @@ dependencies:
   sonner:
     specifier: ^1.7.2
     version: 1.7.2(react-dom@18.3.1)(react@18.3.1)
-  upgrade:
-    specifier: ^1.1.0
-    version: 1.1.0
   uuid:
     specifier: ^11.0.5
     version: 11.0.5
@@ -8049,10 +8046,6 @@ packages:
       node-fetch-native: 1.6.6
       ofetch: 1.4.1
       ufo: 1.5.4
-    dev: false
-
-  /upgrade@1.1.0:
-    resolution: {integrity: sha512-NtkVvqVCqsJo5U3mYRum2Tw6uCltOxfIJ/AfTZeTmw6U39IB5X23xF+kRZ9aiPaORqeiQQ7Q209/ibhOvxzwHA==}
     dev: false
 
   /uri-js@4.4.1:
