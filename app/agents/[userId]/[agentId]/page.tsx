@@ -488,7 +488,7 @@ export default function Home() {
 
   return (
     <div>
-    <div className="flex flex-col h-screen bg-white dark:bg-zinc-900">
+    <div className="flex flex-col h-screen bg-white bg-zinc-900">
       {/* Mobile header */}
       {/* <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-zinc-900 border-b border-zinc-700 p-4">
         <div className="flex items-center justify-between">
@@ -615,8 +615,8 @@ export default function Home() {
                 <div>
                 <div className={`h-[350px] flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
                 <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
-                    <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 dark:border-zinc-700">
-                      <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 dark:text-zinc-50">  
+                    <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm text-zinc-400 border-zinc-700">
+                      <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 text-zinc-50">  
                         <BotIcon />
                         <span>+</span>
                         <AttachmentIcon />
