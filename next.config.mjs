@@ -4,7 +4,7 @@ const nextConfig = {
         remotePatterns: [
           {
             protocol: 'https',
-            hostname: 'beta.rhun.io',
+            hostname: 'rhun.io',
             port: '',
             pathname: '/images/**/**'
           },
