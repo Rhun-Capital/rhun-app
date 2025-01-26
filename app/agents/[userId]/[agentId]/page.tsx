@@ -630,8 +630,7 @@ export default function Home() {
                         Learn more about how to use{" "}
                         <Link
                           className="text-indigo-500 dark:text-indigo-400"
-                          href="https://rhun.io"
-                          target="_blank"
+                          href={`/agents/${user?.id}/${agentId}/edit`}
                         >
                           {agent.name + " "}
                         </Link>
