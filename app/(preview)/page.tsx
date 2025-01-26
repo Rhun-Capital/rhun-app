@@ -1,6 +1,6 @@
 'use client';
 
-import { BotIcon, MessageIcon, SettingsIcon, ChevronRightIcon, MarketplaceIcon } from '@/components/icons';
+import { BotIcon, BookIcon, SettingsIcon, ChevronRightIcon, MarketplaceIcon } from '@/components/icons';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from "sonner";
@@ -71,10 +71,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 px-6 py-1 outline outline-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-sm"
             >
               <span>Read The Docs</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20l9-5-9-5-9 5 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l9-5-9-5-9 5 9 5z" />
-              </svg>
+              <BookIcon />
             </Link>
           </div>
         </div>
