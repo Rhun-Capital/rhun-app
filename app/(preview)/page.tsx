@@ -96,7 +96,7 @@ export default function HomePage() {
                 </p>
                 <div className="flex items-center text-sm text-zinc-500 group-hover:text-indigo-400 transition-colors">
                   <span>{feature.linkText}</span>
-                  <div className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform"><ChevronRightIcon /></div>
+                  <div className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform">&#8250;</div>
                 </div>
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function HomePage() {
             }}            
           >
             Get Started
-            <ChevronRightIcon/>
+            &#8250;
           </Link>
         </div> }
       </div>
