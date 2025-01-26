@@ -22,8 +22,7 @@ export default function LoginPage() {
         body: JSON.stringify({ token }),
       })
       if (response.ok) {
-        router.refresh()
-        router.replace('/')
+        window.location.href = '/'
       } else {
         const data = await response.json()
         setError(data.message || 'Invalid token or this token has already been verified.')
