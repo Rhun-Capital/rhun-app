@@ -22,15 +22,15 @@ export default function LoginPage() {
         body: JSON.stringify({ token }),
       })
       if (response.ok) {
-        router.push('/')
-        setIsLoading(false)
+        router.refresh()
+        router.replace('/')
       } else {
         const data = await response.json()
         setError(data.message || 'Invalid token or this token has already been verified.')
-        setIsLoading(false)
       }
     } catch (error) {
       setError('An error occurred. Please try again.')
+    }  finally {
       setIsLoading(false)
     }
   }
