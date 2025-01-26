@@ -14,7 +14,7 @@ export default function LoginPage() {
     setError('')
     setIsLoading(true)
     try {
-      const response = await fetch('/api/verify-early-access-token', {
+      const response = await fetch('/api/verify-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
