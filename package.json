@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.40",
+    "@aws-sdk/client-dynamodb": "^3.734.0",
+    "@aws-sdk/lib-dynamodb": "^3.734.0",
+    "@crossmint/client-sdk-react-ui": "^1.13.3",
     "@pinecone-database/pinecone": "^4.1.0",
     "@privy-io/react-auth": "^2.0.8",
     "@privy-io/server-auth": "^1.18.2",

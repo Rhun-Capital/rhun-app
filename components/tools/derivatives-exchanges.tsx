@@ -1,5 +1,5 @@
-// components/derivatives-exchanges.tsx
-import React, { useState } from 'react';
+'use client';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { GlobeIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 
@@ -32,6 +32,13 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
   const [sortField, setSortField] = useState<'open_interest' | 'volume'>('open_interest');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewType, setViewType] = useState<'table' | 'cards'>('table');
+
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setViewType('cards');
+    }
+  }, []);
 
   if (!("result" in toolInvocation) || !toolInvocation.result) return null;
 
@@ -43,6 +50,16 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
     })}`;
   };
 
+  const sortedExchanges = [...toolInvocation.result].sort((a, b) => {
+    const aValue = sortField === 'open_interest' ? a.open_interest_btc : parseFloat(a.trade_volume_24h_btc);
+    const bValue = sortField === 'open_interest' ? b.open_interest_btc : parseFloat(b.trade_volume_24h_btc);
+    return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+  });
+
+  const totalPages = Math.ceil(sortedExchanges.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedExchanges = sortedExchanges.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  
   const handleSort = (field: 'open_interest' | 'volume') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -53,50 +70,79 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
     setCurrentPage(1); // Reset to first page on sort
   };
 
-  const sortedExchanges = [...toolInvocation.result].sort((a, b) => {
-    const aValue = sortField === 'open_interest' 
-      ? a.open_interest_btc 
-      : parseFloat(a.trade_volume_24h_btc);
-    const bValue = sortField === 'open_interest' 
-      ? b.open_interest_btc 
-      : parseFloat(b.trade_volume_24h_btc);
-    
-    return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-  });
+  const SortIcon = ({ field }: { field: 'open_interest' | 'volume' }) => (
+    sortField === field ? (sortDirection === 'asc' ? <ChevronUpIcon /> : <ChevronDownIcon/>) : null
+  );
 
-  // Pagination calculations
-  const totalPages = Math.ceil(sortedExchanges.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedExchanges = sortedExchanges.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const CardView = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {paginatedExchanges.map((exchange, index) => (
+        <div key={exchange.id} className="bg-zinc-900 p-4 rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {exchange.image && (
+                <img
+                  src={exchange.image}
+                  alt={exchange.name}
+                  className="w-8 h-8 rounded-full"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              )}
+              <span className="font-medium">{exchange.name}</span>
+            </div>
+            <span className="text-zinc-400">#{startIndex + index + 1}</span>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-zinc-400 text-sm">Open Interest</span>
+              <span className="font-medium">{formatBTC(exchange.open_interest_btc)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400 text-sm">24h Volume</span>
+              <span className="text-zinc-300">{formatBTC(exchange.trade_volume_24h_btc)}</span>
+            </div>
+          </div>
 
-  const SortIcon = ({ field }: { field: 'open_interest' | 'volume' }) => {
-    if (sortField !== field) return null;
-    return sortDirection === 'asc' ? <ChevronUpIcon /> : <ChevronDownIcon/>;
-  };
+          {exchange.url && (
+            <div className="mt-4 flex justify-end">
+              <Link
+                href={exchange.url}
+                target="_blank"
+                className="text-zinc-400 hover:text-zinc-300"
+              >
+                <GlobeIcon />
+              </Link>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 
   const Pagination = () => (
-    <div className="flex items-center justify-between mt-4 text-sm">
-      <div className="text-zinc-400">
-        Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, sortedExchanges.length)} of {sortedExchanges.length} exchanges
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 text-sm">
+      <div className="text-zinc-400 text-center sm:text-left">
+        {startIndex + 1} - {Math.min(startIndex + ITEMS_PER_PAGE, sortedExchanges.length)} of {sortedExchanges.length}
       </div>
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:hover:bg-transparent"
+          className="p-2 rounded-lg hover:bg-zinc-700 disabled:opacity-50"
         >
           <ChevronLeftIcon />
         </button>
         
-        <div className="flex items-center gap-1">
-          {[...Array(totalPages)].map((_, i) => (
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {Array.from({length: totalPages}, (_, i) => (
             <button
               key={i}
               onClick={() => setCurrentPage(i + 1)}
               className={`w-8 h-8 rounded-lg ${
-                currentPage === i + 1 
-                  ? 'bg-indigo-500 text-white' 
-                  : 'hover:bg-zinc-700'
+                currentPage === i + 1 ? 'bg-indigo-500 text-white' : 'hover:bg-zinc-700'
               }`}
             >
               {i + 1}
@@ -105,9 +151,9 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
         </div>
 
         <button
-          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg hover:bg-zinc-700 disabled:opacity-50 disabled:hover:bg-transparent"
+          className="p-2 rounded-lg hover:bg-zinc-700 disabled:opacity-50"
         >
           <ChevronRightIcon />
         </button>
@@ -116,90 +162,97 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
   );
 
   return (
-    <div className="p-6 bg-zinc-800 rounded-lg">
-      <h3 className="text-lg font-semibold mb-4">Derivatives Exchanges</h3>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="text-zinc-400 text-sm">
-            <tr>
-              <th className="pb-4">#</th>
-              <th className="pb-4">Exchange</th>
-              <th 
-                className="pb-4 text-right cursor-pointer hover:text-zinc-300"
-                onClick={() => handleSort('open_interest')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Open Interest
-                  <SortIcon field="open_interest" />
-                </div>
-              </th>
-              <th 
-                className="pb-4 text-right cursor-pointer hover:text-zinc-300"
-                onClick={() => handleSort('volume')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  24h Volume
-                  <SortIcon field="volume" />
-                </div>
-              </th>
-              {/* <th className="pb-4 text-right">Perp Pairs</th> */}
-              {/* <th className="pb-4 text-right">Futures</th> */}
-              {/* <th className="pb-4 text-right">Est.</th> */}
-              <th className="pb-4"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-700">
-            {paginatedExchanges.map((exchange, index) => (
-              <tr key={exchange.id} className="group hover:bg-zinc-700/50 transition-colors">
-                <td className="py-4 text-zinc-400">{startIndex + index + 1}</td>
-                <td className="py-4">
-                  <div className="flex items-center gap-3">
-                    {exchange.image && (
-                      <img
-                        src={exchange.image}
-                        alt={exchange.name}
-                        className="w-6 h-6 rounded-full"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                    )}
-                    <span className="font-medium">{exchange.name}</span>
-                  </div>
-                </td>
-                <td className="py-4 text-right font-medium">
-                  {formatBTC(exchange.open_interest_btc)}
-                </td>
-                <td className="py-4 text-right text-zinc-300">
-                  {formatBTC(exchange.trade_volume_24h_btc)}
-                </td>
-                {/* <td className="py-4 text-right text-zinc-300">
-                  {exchange.number_of_perpetual_pairs}
-                </td> */}
-                {/* <td className="py-4 text-right text-zinc-300">
-                  {exchange.number_of_futures_pairs}
-                </td> */}
-                {/* <td className="py-4 text-right text-zinc-400">
-                  {exchange.year_established || '-'}
-                </td> */}
-                <td className="pl-5 py-4 text-right">
-                  {exchange.url && (
-                    <Link
-                      href={exchange.url}
-                      target="_blank"
-                      className="text-zinc-400 hover:text-zinc-300 transition-colors"
-                    >
-                      <GlobeIcon />
-                    </Link>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h3 className="text-lg font-semibold">Derivatives Exchanges</h3>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setViewType('table')}
+            className={`p-2 rounded-lg ${viewType === 'table' ? 'bg-zinc-700' : 'hover:bg-zinc-700'}`}
+          >
+            Table
+          </button>
+          <button
+            onClick={() => setViewType('cards')}
+            className={`p-2 rounded-lg ${viewType === 'cards' ? 'bg-zinc-700' : 'hover:bg-zinc-700'}`}
+          >
+            Cards
+          </button>
+        </div>
       </div>
+
+      {viewType === 'table' ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="text-zinc-400 text-sm">
+              <tr>
+                <th className="pb-4">#</th>
+                <th className="pb-4">Exchange</th>
+                <th 
+                  className="pb-4 text-right cursor-pointer hover:text-zinc-300"
+                  onClick={() => handleSort('open_interest')}
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    Open Interest
+                    <SortIcon field="open_interest" />
+                  </div>
+                </th>
+                <th 
+                  className="pb-4 text-right cursor-pointer hover:text-zinc-300"
+                  onClick={() => handleSort('volume')}
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    24h Volume
+                    <SortIcon field="volume" />
+                  </div>
+                </th>
+                <th className="pb-4"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-700">
+              {paginatedExchanges.map((exchange, index) => (
+                <tr key={exchange.id} className="group hover:bg-zinc-700/50">
+                  <td className="py-4 text-zinc-400">{startIndex + index + 1}</td>
+                  <td className="py-4">
+                    <div className="flex items-center gap-3">
+                      {exchange.image && (
+                        <img
+                          src={exchange.image}
+                          alt={exchange.name}
+                          className="w-6 h-6 rounded-full"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <span className="font-medium">{exchange.name}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 text-right font-medium">
+                    {formatBTC(exchange.open_interest_btc)}
+                  </td>
+                  <td className="py-4 text-right text-zinc-300">
+                    {formatBTC(exchange.trade_volume_24h_btc)}
+                  </td>
+                  <td className="pl-5 py-4 text-right">
+                    {exchange.url && (
+                      <Link
+                        href={exchange.url}
+                        target="_blank"
+                        className="text-zinc-400 hover:text-zinc-300"
+                      >
+                        <GlobeIcon />
+                      </Link>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <CardView />
+      )}
 
       <Pagination />
     </div>
