@@ -6,6 +6,7 @@ import { getAgents } from '@/utils/actions';
 import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
 import { EditIcon } from 'lucide-react';
+import LoadingIndicator from '@/components/loading-indicator';
 
 
 type AttributeMap = {
@@ -16,16 +17,19 @@ type AttributeMap = {
 export default function AgentsPage() {
   const { user } = usePrivy();
   const [agents, setAgents] = useState<AttributeMap[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function init() {
       if (!user) return;
+      setLoading(true);
       const data = await getAgents(user?.id);
       const formattedData = data.map((item: AWS.DynamoDB.DocumentClient.AttributeMap) => ({
         id: item.id,
         name: item.name,
       }));
       setAgents(formattedData);
+      setLoading(false);
     }
     init();
   }, [user]);
@@ -43,6 +47,8 @@ export default function AgentsPage() {
             <span className="whitespace-nowrap">Create New Agent</span>
           </Link>
         </div>
+
+        {loading ? <LoadingIndicator/> :
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {agents.map((agent) => (
@@ -80,7 +86,7 @@ export default function AgentsPage() {
               <span className="text-xs sm:text-sm font-medium text-center">Create New Agent</span>
             </div>
           </Link>
-        </div>
+        </div> }
       </div>
     </div>
   );
