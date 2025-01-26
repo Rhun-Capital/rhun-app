@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
-import { DynamoDB } from 'aws-sdk';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 const privy = new PrivyClient(
   process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
   process.env.PRIVY_APP_SECRET!
 );
 
-const dynamodb = new DynamoDB.DocumentClient({
+const client = new DynamoDBClient({
   region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+  },
 });
+
+const dynamodb = DynamoDBDocumentClient.from(client);
 
 const PUBLIC_API_ROUTES = new Set([
   '/api/verify-early-access-token',
@@ -27,10 +32,10 @@ const PUBLIC_PAGE_ROUTES = new Set([
 
 async function verifyAccessToken(token: string): Promise<boolean> {
   try {
-    const result = await dynamodb.get({
+    const result = await dynamodb.send(new GetCommand({
       TableName: 'EarlyAccess',
       Key: { Access_key: token }
-    }).promise();
+    }));
     return !!result.Item && result.Item.verified === true;
   } catch (error) {
     console.error('DynamoDB error:', error);
@@ -85,7 +90,9 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!PUBLIC_PAGE_ROUTES.has(pathname)) {    
+    
     const accessToken = request.cookies.get('rhun_early_access_token')?.value;
+    console.log('Access token:', accessToken);
     if (!accessToken || !(await verifyAccessToken(accessToken))) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -94,6 +101,8 @@ export async function middleware(request: NextRequest) {
     if (!authToken) {
       return NextResponse.redirect(new URL('/', request.url));
     }    
+    
+
   }
 
   return NextResponse.next();
