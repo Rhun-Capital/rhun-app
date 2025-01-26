@@ -46,7 +46,7 @@ export async function POST(request: Request) {
    const isValid = await verifyAndUpdateToken(token);
 
    if (isValid) {
-     cookies().set('access_token', token, {
+     cookies().set('rhun_early_access_token', token, {
        maxAge: 30 * 24 * 60 * 60,
        path: '/',
        secure: process.env.NODE_ENV === 'production',
