@@ -20,7 +20,7 @@ const client = new DynamoDBClient({
 const dynamodb = DynamoDBDocumentClient.from(client);
 
 const PUBLIC_API_ROUTES = new Set([
-  '/api/verify-early-access-token',
+  '/api/verify-token',
   '/api/auth/callback',
   '/api/webhooks'
 ]);
