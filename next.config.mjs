@@ -8,7 +8,12 @@ const nextConfig = {
             port: '',
             pathname: '/images/**/**'
           },
-          
+          {
+            protocol: 'https',
+            hostname: 'rhun-app.vercel.app',
+            port: '',
+            pathname: '/images/**/**'
+          },
           {
             protocol: 'https',
             hostname: 'coin-images.coingecko.com',
