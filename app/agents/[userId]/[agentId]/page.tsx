@@ -645,7 +645,7 @@ export default function Home() {
                 </div>
               )}
 
-              <div >
+              {/* <div >
 
               <Link href={`/agents/${user?.id}/${agentId}/edit`}>
                 <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
@@ -659,7 +659,7 @@ export default function Home() {
                 <div className="flex items-center"><MessageIcon/>&nbsp;Describe Tools</div>
               </button>
 
-              </div>              
+              </div>               */}
   
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
