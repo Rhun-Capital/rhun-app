@@ -1,5 +1,5 @@
 // app/api/chats/recent/route.ts
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { DynamoDB } from 'aws-sdk';
 
 const dynamodb = new DynamoDB.DocumentClient({
@@ -8,7 +8,7 @@ const dynamodb = new DynamoDB.DocumentClient({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
