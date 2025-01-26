@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import FastPassComponent from '@/components/fast-pass-component';
+import MintPage from '@/components/fast-pass-component';
 import { CrossmintProvider, CrossmintCheckoutProvider } from '@crossmint/client-sdk-react-ui';
 
 const FastPassPage: React.FC = () => {
@@ -15,7 +15,7 @@ const FastPassPage: React.FC = () => {
     return (
         <CrossmintProvider apiKey={clientApiKey}>
             <CrossmintCheckoutProvider>
-                <FastPassComponent />
+                <MintPage />
             </CrossmintCheckoutProvider>
         </CrossmintProvider>
     );

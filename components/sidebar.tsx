@@ -3,13 +3,13 @@
 import React, { useState } from 'react';
 import { SettingsIcon, BarChartIcon, BotIcon, HomeIcon, MarketplaceIcon, MenuIcon, CloseIcon} from './icons';
 import Link from 'next/link';
-import { usePrivy } from '@privy-io/react-auth';
+import { getAccessToken, usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
 import { RecentChats } from './recent-chats-component';
 import Image from 'next/image';
 
 export const Sidebar = ({ children }: { children: React.ReactNode }) => {
-  const { login, logout, authenticated, user } = usePrivy();
+  const { login, logout, authenticated, user, getAccessToken } = usePrivy();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -25,12 +25,17 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
+  const clearCookies = async () => {
+    const accessToken = await getAccessToken();
+    await fetch('/api/clear-access', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` } });
+  }
+
   return (
-    <div className="flex h-screen dark:bg-zinc-900 text-zinc-400">
+    <div className="flex h-screen bg-zinc-900 text-zinc-400">
       {/* Mobile menu button */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md dark:bg-zinc-800"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-zinc-800"
       >
         {isOpen ? <CloseIcon /> : <MenuIcon/>}
       </button>
@@ -40,7 +45,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
         fixed lg:static inset-y-0 left-0 z-40
         transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 transition-transform duration-300 ease-in-out
-        w-64 dark:bg-zinc-900 text-zinc-400 shadow-lg flex flex-col border-r border-zinc-700
+        w-64 bg-zinc-900 text-zinc-400 shadow-lg flex flex-col border-r border-zinc-700
       `}>
         <div className="p-4 border-b border-zinc-700">
           <Link href='/' onClick={() => setIsOpen(false)}>
@@ -101,7 +106,16 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
             </button>
           )}
         </div> }
+
+        {/* {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
+        <button onClick={() => clearCookies()}>
+          Clear Cookies
+        </button>
+      )} */}
+
       </div>
+
+
 
       {/* Overlay */}
       {isOpen && (
@@ -113,7 +127,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
       {/* Main content */}
       <div className="flex-1 overflow-auto">
-        <main className="p-6 dark:bg-zinc-900">
+        <main className="p-6 bg-zinc-900">
           {children}
         </main>
       </div>

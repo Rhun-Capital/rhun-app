@@ -56,7 +56,7 @@ export default function HomePage() {
 
 
   return (
-    <div className="min-h-screen dark:bg-zinc-900 text-white p-6">
+    <div className="min-h-screen bg-zinc-900 text-white p-6">
       <div className="max-w-6xl mx-auto space-y-12">
         {/* Hero Section */}
         <div className="text-center space-y-4 py-12">

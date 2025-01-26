@@ -1,36 +1,49 @@
+import { DynamoDB } from 'aws-sdk';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
+const dynamodb = new DynamoDB.DocumentClient({
+  region: process.env.AWS_REGION,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
 
 export async function POST(request: Request) {
- try {
-   const { id, order } = await request.json();
+  try {
+    const { id, order } = await request.json();
 
-   const response = await fetch(`https://dynamodb.${process.env.AWS_REGION}.amazonaws.com`, {
-     method: 'POST',
-     headers: {
-       'Content-Type': 'application/x-amz-json-1.0',
-       'X-Amz-Target': 'DynamoDB_20120810.PutItem',
-       'Authorization': `AWS4-HMAC-SHA256 Credential=${process.env.AWS_ACCESS_KEY_ID}/${process.env.AWS_REGION}/dynamodb/aws4_request`,
-     },
-     body: JSON.stringify({
-       TableName: process.env.DYNAMODB_TABLE_NAME,
-       Item: {
-         'id': { 'S': id },
-         'order': { 'S': JSON.stringify(order) },
-         'createdAt': { 'S': new Date().toISOString() }
-       }
-     })
-   });
+    // Verify order with Crossmint
+    const response = await fetch(`https://api.crossmint.com/api/v1-alpha1/orders/${order.id}`, {
+      headers: {
+        'x-api-key': process.env.CROSSMINT_API_KEY as string
+      }
+    });
+    
+    const orderData = await response.json();
+    if (!orderData.buyer?.walletAddress) {
+      return NextResponse.json({ error: "Invalid order" }, { status: 400 });
+    }
 
-   if (!response.ok) {
-     throw new Error(`DynamoDB error: ${response.status}`);
-   }
+    await dynamodb.put({
+      TableName: 'FastPassOrders',
+      Item: {
+        id,
+        order,
+        walletAddress: orderData.buyer.walletAddress,
+        createdAt: new Date().toISOString(),
+      },
+    }).promise();
 
-   return NextResponse.json({ success: true, id });
- } catch (error) {
-   console.error("Error saving to DynamoDB:", error);
-   return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
- }
+    cookies().set('crossmint_order_id', order.id, {
+      maxAge: 30 * 24 * 60 * 60,
+      path: '/',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    return NextResponse.json({ success: true, id });
+  } catch (error) {
+    console.error("Error saving to DynamoDB:", error);
+    return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
+  }
 }

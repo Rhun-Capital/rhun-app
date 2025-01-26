@@ -30,13 +30,44 @@ const PUBLIC_PAGE_ROUTES = new Set([
   '/fast-pass'
 ]);
 
+async function verifyNFTOwnership(walletAddress: string): Promise<boolean> {
+  try {
+    const response = await fetch(`https://api.crossmint.com/api/v1-alpha1/wallets/${walletAddress}/nfts?collectionId=${process.env.NEXT_PUBLIC_COLLECTION_ID}`, {
+      headers: {
+        'x-api-key': process.env.CROSSMINT_API_KEY as string
+      }
+    });
+    const data = await response.json();
+    return data.nfts?.length > 0;
+  } catch (error) {
+    console.error('Crossmint API error:', error);
+    return false;
+  }
+}
+
+async function getWalletFromOrder(orderId: string): Promise<string | null> {
+  try {
+    const response = await fetch(`https://api.crossmint.com/api/v1-alpha1/orders/${orderId}`, {
+      headers: {
+        'x-api-key': process.env.CROSSMINT_API_KEY as string
+      }
+    });
+    const data = await response.json();
+    return data.buyer?.walletAddress || null;
+  } catch (error) {
+    console.error('Error getting wallet:', error);
+    return null;
+  }
+}
+
 async function verifyAccessToken(token: string): Promise<boolean> {
   try {
     const result = await dynamodb.send(new GetCommand({
       TableName: 'EarlyAccess',
       Key: { Access_key: token }
     }));
-    return !!result.Item && result.Item.verified === true;
+    // return !!result.Item && result.Item.verified === true; // TODO: if we see that ppl are sharing the token, we can add this check
+    return !!result.Item;
   } catch (error) {
     console.error('DynamoDB error:', error);
     return false;
@@ -91,7 +122,12 @@ export async function middleware(request: NextRequest) {
 
   if (!PUBLIC_PAGE_ROUTES.has(pathname)) {    
     const accessToken = request.cookies.get('rhun_early_access_token')?.value;
-    if (!accessToken || !(await verifyAccessToken(accessToken))) {
+    const orderId = request.cookies.get('crossmint_order_id')?.value;
+    
+    const hasValidToken = accessToken && (await verifyAccessToken(accessToken));
+    const hasNFT = orderId && (await verifyNFTOwnership(orderId));
+  
+    if (!hasValidToken && !hasNFT) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 

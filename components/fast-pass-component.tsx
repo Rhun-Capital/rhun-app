@@ -35,11 +35,11 @@ export default function MintPage() {
     }, [order]);    
 
     return (
-        <main className="min-h-screen bg-gray-100 dark:bg-zinc-900 py-12 px-4">
+        <main className="min-h-screen bg-gray-100 bg-zinc-900 py-12 px-4">
             {showSuccess && (
                 <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-zinc-800 rounded-lg p-8 max-w-md mx-4">
-                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+                    <div className="bg-white bg-zinc-800 rounded-lg p-8 max-w-md mx-4">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-900 text-white">
                             <div className="flex items-center">
 
                         <span className="text-green-500 mr-2">
@@ -50,11 +50,11 @@ export default function MintPage() {
                         Purchase Successful!
                         </div>
                         </h2>
-                        <p className="text-gray-600 dark:text-gray-300 mb-6">
+                        <p className="text-gray-600 text-gray-300 mb-6">
                             Your Fast Pass NFT has been minted successfully. Check your wallet for the NFT.
                         </p>
                         <div className="mb-6">
-                            <label className="block text-white dark:text-gray-300 mb-2" htmlFor="accessId">
+                            <label className="block text-white text-gray-300 mb-2" htmlFor="accessId">
                                 Access ID
                             </label>
                             <div className="flex items-center">
@@ -63,7 +63,7 @@ export default function MintPage() {
                                     type="text"
                                     value={uniqueID || ""}
                                     readOnly
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 dark:text-gray-300 dark:bg-zinc-700"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 text-gray-300 bg-zinc-700"
                                 />
                                 <button
                                     onClick={() => {
@@ -91,12 +91,12 @@ export default function MintPage() {
             )}
 
             <div className="max-w-2xl mx-auto">
-                <div className="bg-white dark:bg-zinc-800 p-8 rounded-xl shadow-lg outline outline-zinc-500">
+                <div className="bg-white bg-zinc-800 p-8 rounded-xl shadow-lg outline outline-zinc-500">
                     <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold mb-1 text-gray-900 dark:text-white">
+                        <h1 className="text-3xl font-bold mb-1 text-gray-900 text-white">
                             Mint <em>Fast Pass NFT</em>
                         </h1>
-                        <p className="mb-8 text-gray-500 dark:text-gray-400">
+                        <p className="mb-8 text-gray-500 text-gray-400">
                             Get early access to the Rhun platform with a Fast Pass NFT
                         </p>                        
                         <Image
@@ -117,7 +117,7 @@ export default function MintPage() {
                                 priority
                             />
                             <div className="text-2xl font-bold text-white mb-6">
-                                <span className="text-2xl font-bold text-purple-600 dark:text-indigo-400 ml-3">
+                                <span className="text-2xl font-bold text-purple-600 text-indigo-400 ml-3">
                                 1 SOL
                                 </span>
                             </div>
@@ -141,7 +141,7 @@ export default function MintPage() {
                         </div>                        
                     </div>
 
-                    <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <div className="text-sm text-gray-600 text-gray-300 space-y-4 border-t border-gray-200 border-gray-700 pt-6">
                         <p className="text-xs">
                             By proceeding with this purchase, you acknowledge and agree to the following:
                         </p>
@@ -153,7 +153,7 @@ export default function MintPage() {
                             <li>Network fees are non-refundable.</li>
                             <li>This purchase does not guarantee any future returns or benefits.</li>
                         </ul>
-                        <p className="text-xs mt-4 text-gray-500 dark:text-gray-400">
+                        <p className="text-xs mt-4 text-gray-500 text-gray-400">
                             This NFT is provided &ldquo;as is&ldquo; without any warranties, either express or implied. 
                             The creators are not liable for any losses or damages arising from this purchase.
                         </p>

@@ -35,7 +35,7 @@ export default function AgentsPage() {
   }, [user]);
 
   return (
-    <div className="min-h-screen dark:bg-zinc-900 text-white p-4 sm:p-6">
+    <div className="min-h-screen bg-zinc-900 text-white p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold">My Agents</h1>
