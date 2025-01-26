@@ -90,20 +90,16 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!PUBLIC_PAGE_ROUTES.has(pathname)) {    
-    
     const accessToken = request.cookies.get('rhun_early_access_token')?.value;
-    console.log('Access token:', accessToken);
     if (!accessToken || !(await verifyAccessToken(accessToken))) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
     const authToken = request.cookies.get('privy-token');
-    if (!authToken) {
+    if (!authToken && pathname !== '/') {
       return NextResponse.redirect(new URL('/', request.url));
     }    
-    
-
-  }
+}
 
   return NextResponse.next();
 }
