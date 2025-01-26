@@ -551,3 +551,22 @@ export const ToolsIcon = () => {
       </svg>
     );
   };
+
+  export const EditIcon = () => {
+    return (
+      <svg
+        height="16"
+        strokeLinejoin="round"
+        viewBox="0 0 16 16"
+        width="16"
+        style={{ color: "currentcolor" }}
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-8 8a1 1 0 01-.293.207l-4 2a1 1 0 01-1.293-1.293l2-4a1 1 0 01.207-.293l8-8zM12 3.414L10.586 2 3 9.586V11h1.414L12 3.414z"
+          fill="currentColor"
+        ></path>
+      </svg>
+    );
+  };
