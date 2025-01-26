@@ -315,44 +315,34 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   };
   
   return (
-    <div
-      className="min-h-screen dark:bg-zinc-900 text-gray-100 p-6"
-      ref={topRef}
-    >
+    <div className="min-h-screen dark:bg-zinc-900 text-gray-100 p-4 sm:p-6" ref={topRef}>
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold">
             {initialData ? initialData.name || "Edit Agent" : "Create New Agent"}
           </h1>
           
-          { params.agentId && <button
-            onClick={goToChat}
-            className="px-4 py-2 bg-transparent rounded-lg transition"
-          >
-            
-           <div className="flex gap-2 items-center">
-            <span className="text-white outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500">
-            <div className="flex gap-2 items-center">
-              <span>Start Chat</span>
-              <ChatIcon/>
-            </div>  
-            </span> 
-            </div>
-           </button>  
-           }
-
-      </div>
-
-      
-
+          {params.agentId && (
+            <button
+              onClick={goToChat}
+              className="w-full sm:w-auto px-4 py-2 bg-transparent rounded-lg transition"
+            >
+              <div className="flex justify-center items-center gap-2 outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500">
+                <span>Start Chat</span>
+                <ChatIcon/>
+              </div>
+            </button>
+          )}
+        </div>
+  
         {/* Tabs */}
-        <div className="border-b border-zinc-700 mb-6">
-          <nav className="flex space-x-8">
+        <div className="border-b border-zinc-700 mb-6 overflow-x-auto">
+          <nav className="flex min-w-max space-x-4 sm:space-x-8 pb-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`pb-4 px-1 ${
+                className={`pb-3 px-1 text-sm sm:text-base whitespace-nowrap ${
                   activeTab === tab.id
                     ? "border-b-2 border-indigo-500 text-white"
                     : "text-zinc-400 hover:text-zinc-300"
@@ -363,62 +353,50 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
             ))}
           </nav>
         </div>
-
-        {/* Tab Content */}
-
-        {activeTab === "config" ? (
+  
+        {/* Form Content */}
+        {activeTab === "config" && (
           <div>
             {error && (
-              <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2">
+              <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2 text-sm sm:text-base">
                 <AlertCircleIcon />
                 <p className="text-red-500">{error}</p>
               </div>
             )}
-
+  
             {success && (
               <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
-                <div className="flex">
-                  <p className="text-white flex-1">
+                <div className="flex items-center">
+                  <p className="text-white flex-1 text-sm sm:text-base">
                     Agent {initialData ? "updated" : "created"} successfully!
                   </p>
-                  <button
-                    onClick={() => {
-                      setSuccess(false);
-                    }}
-                  >
+                  <button onClick={() => setSuccess(false)}>
                     <CloseIcon />
                   </button>
                 </div>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="block text-sm font-medium mb-2"
-                  >
-                    Agent Name
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    placeholder='e.g., "Crypto Analyst"'
-                    required
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-700 flex-grow outline-zinc-700 text-zinc-800 dark:text-zinc-300 placeholder-zinc-400"
-                  />
-                </div>
+  
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium mb-2">
+                  Agent Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder='e.g., "Crypto Analyst"'
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+                />
               </div>
-
+  
               {textAreaFields.map((field) => (
                 <div key={field.name}>
-                  <label
-                    htmlFor={field.name}
-                    className="block text-sm font-medium mb-2"
-                  >
+                  <label htmlFor={field.name} className="block text-sm font-medium mb-2">
                     {field.label}
                   </label>
                   <textarea
@@ -429,16 +407,16 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
                     value={formData[field.name]}
                     onChange={handleChange}
                     rows={field.rows || 10}
-                    className="w-full px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-700 flex-grow outline-zinc-700 text-zinc-800 dark:text-zinc-300 placeholder-zinc-400"
+                    className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
                   />
                 </div>
               ))}
-
-              <div className="flex justify-end">
+  
+              <div className="flex justify-end pt-4">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="h-10 px-6 py-2 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto h-10 px-6 py-2 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {loading
                     ? initialData
@@ -451,37 +429,24 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
               </div>
             </form>
           </div>
-        ) : activeTab === "knowledge" ? (
+        )}
+  
+        {/* Other tabs */}
+        {activeTab === "knowledge" && (
           <KnowledgeTab
-            agentId={
-              initialData?.id ||
-              (Array.isArray(params?.agentId)
-                ? params.agentId[0]
-                : params?.agentId) ||
-              ""
-            }
+            agentId={initialData?.id || (Array.isArray(params?.agentId) ? params.agentId[0] : params?.agentId) || ""}
           />
-        ) : activeTab === "wallet" ? (
+        )}
+        {activeTab === "wallet" && (
           <WalletTab
-            agentId={
-              initialData?.id ||
-              (Array.isArray(params?.agentId)
-                ? params.agentId[0]
-                : params?.agentId) ||
-              ""
-            }
+            agentId={initialData?.id || (Array.isArray(params?.agentId) ? params.agentId[0] : params?.agentId) || ""}
           />
-        ) : activeTab === "apps" ? (
+        )}
+        {activeTab === "apps" && (
           <AppMarketplaceTab
-            agentId={
-              initialData?.id ||
-              (Array.isArray(params?.agentId)
-                ? params.agentId[0]
-                : params?.agentId) ||
-              ""
-            }
+            agentId={initialData?.id || (Array.isArray(params?.agentId) ? params.agentId[0] : params?.agentId) || ""}
           />
-        ) : null}
+        )}
       </div>
     </div>
   );

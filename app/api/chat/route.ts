@@ -305,7 +305,6 @@ Remember to use this context when relevant to answer the user's query.`
         parameters: z.object({ address: z.string().describe('The address of the token to get top holders for') }),
         execute: async ({ address }) => {
           const holders = await getTopHolders(address);
-          console.log(holders);
           return holders;
         }
       },

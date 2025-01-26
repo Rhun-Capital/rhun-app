@@ -6,7 +6,9 @@ import {
   BotIcon,
   UserIcon,
   SettingsIcon, 
-  MessageIcon 
+  MessageIcon,
+  CloseIcon,
+  MenuIcon
 } from "@/components/icons";
 import Image from 'next/image';
 import { useRecentChats } from '@/contexts/chat-context';
@@ -30,10 +32,16 @@ import DerivativesExchanges from "@/components/tools/derivatives-exchanges";
 import TopHoldersDisplay from "@/components/tools/get-top-holders";
 import { Message } from 'ai'; // Use the AI SDK Message type
 import  ChatSidebar  from "@/components/chat-sidebar";
+import SolanaBalance  from "@/components/tools/solana-balance";
+import PortfolioValue  from "@/components/tools/portfolio-value";
+import TokenHoldings  from "@/components/tools/token-holdings";
+import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
+import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import  SwapComponent  from "@/components/tools/swap-component";
 
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
+
 
 
 const getTextFromDataUrl = (dataUrl: string) => {
@@ -78,12 +86,16 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isNewChat, setIsNewChat] = useState(true);
   const chatCreatedRef = useRef(false);  
-  
-
   const params = useParams();
   const agentId = params.agentId;  
   const searchParams = useSearchParams(); 
   const chatId = searchParams.get('chatId');  
+
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, []);
 
   useEffect(() => {
     const setupHeaders = async () => {
@@ -150,7 +162,7 @@ export default function Home() {
     useChat({
       headers,
       body: { agentId, user },
-      maxSteps: 16,
+      maxSteps: 25,
       initialMessages,
       id: chatId ?? undefined,
       onError: () => {
@@ -298,6 +310,10 @@ export default function Home() {
   };
   
   const handleToolSelect = useCallback(async (command: string) => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+
     const token = await getAccessToken();
     
     try {
@@ -470,444 +486,279 @@ export default function Home() {
     );
   }
 
-  return (  
-
-<div className="flex flex-row gap-4 pb-20 bg-white dark:bg-zinc-900">
-{/* edit agent button here */}
-  <div className={`flex-1 flex ${sidebarOpen ? 'sm:ml-[10%] md:ml-[15%] lg:ml-[15%]' : 'justify-center'}`}>
-    <div className="flex flex-col justify-between gap-4 relative" 
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-        <AnimatePresence>
-          {isDragging && (
-            <motion.div
-              className="fixed pointer-events-none dark:bg-zinc-900/90 h-dvh w-dvw z-10 flex flex-row justify-center items-center flex flex-col gap-1 bg-zinc-100/90"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <div>Drag and drop files here</div>
-              <div className="text-sm dark:text-zinc-400 text-zinc-500">
-                {"(images and text)"}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="flex flex-col justify-between gap-4">
-          {messages.length > 0 ? (
-            <div className="flex flex-col gap-2 h-full w-full items-center">
-              {messages.map((message, index) => (
+  return (
+    <div>
+    <div className="flex flex-col h-screen bg-white dark:bg-zinc-900">
+      {/* Mobile header */}
+      {/* <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-zinc-900 border-b border-zinc-700 p-4">
+        <div className="flex items-center justify-between">
+          <Link href='/'>
+            <div className="flex items-center">
+              <Image src="/images/rhun-logo.png" alt="Rhun Capital" height={30} width={30} className="pr-2"/>
+              <h1 className="text-lg font-bold text-white">RHUN</h1>
+            </div>
+          </Link>
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 text-zinc-400 hover:text-white"
+          >
+            {sidebarOpen ? <CloseIcon/> : <MenuIcon />}
+          </button>
+        </div>
+      </div> */}
+  
+      <div className="flex flex-1 pt-16 lg:pt-0">
+  
+        {/* Main chat area */}
+        <div className="flex-1 flex flex-col">
+          <div 
+            className="flex-1 overflow-y-auto pb-32"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {/* Drag overlay */}
+            <AnimatePresence>
+              {isDragging && (
                 <motion.div
-                  key={message.id}
-                  className={`flex flex-row gap-2 px-4 w-full ${message.toolInvocations?.some(invocation => invocation.toolName === 'getDerivativesExchanges') ? 'md:w-[700px]' : 'md:w-[500px]'}  md:px-0 ${
-                    index === 0 ? "pt-20" : ""
-                  }`}
-                  initial={{ y: 5, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
+                  className="fixed inset-0 z-50 bg-zinc-900/90 flex items-center justify-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 >
-                  <div className="size-[24px] flex flex-col justify-center items-center flex-shrink-0 text-zinc-400">
-                    {message.role === "assistant" ? <BotIcon /> : <UserIcon />}
-                  </div>
-
-                  <div className={`flex flex-col gap-1 ${message.toolInvocations?.some(invocation => invocation.toolName === 'getDerivativesExchanges') ? 'w-90' : ''}`}>
-                    <div className="text-zinc-800 dark:text-zinc-300 flex flex-col gap-4">
-                      <Markdown>{message.content}</Markdown>
-                      {message.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-                        const toolCallId = toolInvocation.toolCallId;
-                        // render confirmation tool (client-side tool with user interaction)
-                        if (toolInvocation.toolName === 'getUserSolanaBalance') {
-                          return (
-                            <div key={toolCallId}>
-                              {toolInvocation.args.message}
-                              {/* Balance Display */}
-                              <div className="bg-zinc-800 rounded-lg border border-zinc-700">
-                                <div className="flex items-center gap-3 bg-zinc-900 rounded-lg p-4">
-                                  <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
-                                  <span className="text-xl font-semibold">
-                                    {"result" in toolInvocation ? (toolInvocation.result.balance as number).toFixed(4) : 0}
-                                  </span>
-                                  <span className="text-zinc-400">SOL</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }    
-
-                        if (toolInvocation.toolName === 'getAgentSolanaBalance') {
-
-                          return (
-                            <div key={toolCallId}>
-                              {toolInvocation.args.message}
-                              {/* Balance Display */}
-                              <div className="bg-zinc-800 rounded-lg border border-zinc-700">
-                                <div className="flex items-center gap-3 bg-zinc-900 rounded-lg p-4">
-                                  <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
-                                  <span className="text-xl font-semibold">
-                                    {"result" in toolInvocation ? (toolInvocation.result.balance as number).toFixed(4) : 0}
-                                  </span>
-                                  <span className="text-zinc-400">SOL</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }   
-                        
-                        if (toolInvocation.toolName === 'getUserPortfolioValue' || toolInvocation.toolName === 'getAgentPortfolioValue') {
-                          {toolInvocation.args.message}
-                          return (
-                            <div className="p-6 bg-zinc-800 rounded-lg" key={toolCallId}>
-                            <h3 className="text-sm text-zinc-400 mb-2">Portfolio Value</h3>
-                            <p className="text-2xl font-bold">
-                              {"result" in toolInvocation ? '$' + toolInvocation.result.totalValue.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }) : <LoadingIndicator/>}
-                            </p>
-                          </div>  
-                          )            
-                        }
-
-                        if (toolInvocation.toolName === 'getUserTokenHoldings' || toolInvocation.toolName === 'getAgentTokenHoldings') {
-                          return (
-                            <div key={toolCallId}>
-                              {toolInvocation.args.message}
-                              {/* Balance Display */}
-                                {"result" in toolInvocation ? toolInvocation.result.map((token: any) => (
-                                  <div key={token.mint} className="flex justify-between items-center p-4 bg-zinc-800 rounded-lg mb-2">
-                                    <div className="flex items-center gap-4">
-                                      {token.logoURI ? (
-                                        <img 
-                                          src={token.logoURI} 
-                                          alt={token.symbol}
-                                          className="w-8 h-8 rounded-full"
-                                          onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                            const nextSibling = e.currentTarget.nextElementSibling as HTMLElement | null;
-                                            if (nextSibling) {
-                                              nextSibling.style.display = 'flex';
-                                            }
-                                          }}
-                                        />
-                                      ) : 
-                                      
-                                      <div>
-                                        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
-                                            <span className="text-xs text-zinc-300">?</span>
-                                        </div>
-                                      </div>
-                                      }
-
-                                      <div>
-                                        <p className="font-medium">{token.name}</p>
-                                        <p className="text-sm text-zinc-400">
-                                          {token.amount.toLocaleString(undefined, { 
-                                            maximumFractionDigits: 4 
-                                          })} {token.symbol}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="text-right">
-                                      <p className="font-medium">
-                                        ${token.usdValue.toLocaleString(undefined, { 
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2 
-                                        })}
-                                      </p>
-                                      <p className={`text-sm ${
-                                        token.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'
-                                      }`}>
-                                        {token.priceChange24h.toFixed(2)}%
-                                      </p>
-                                    </div>
-                                  </div>
-                                )) : null}
-
-
-                            </div>
-                          );
-                        }
-
-                        if (toolInvocation.toolName === 'getFearAndGreedIndex') {
-
-                          return (
-                            <div key={toolCallId}>
-                              <div className="p-6 bg-zinc-800 rounded-lg">
-                                {toolInvocation.args.message}
-                                <h3 className="text-lg font-semibold mb-4">Fear & Greed Index</h3>
-                                <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`text-3xl font-bold ${
-                                      "result" in toolInvocation ? toolInvocation.result.value > 50 
-                                        ? 'text-green-500' 
-                                        : 'text-red-500'
-                                    : null} `}>
-                                      {"result" in toolInvocation ? toolInvocation.result.value : <LoadingIndicator/>}
-                                    </div>
-                                    <div className="text-zinc-400">
-                                      {"result" in toolInvocation ? toolInvocation.result.classification : ''}
-                                    </div>
-                                  </div>                                  
-
-                                </div>
-                              </div>
-                            </div>     
-                          )                     
-                        }
-
-                        if (toolInvocation.toolName === 'getSolanaTransactionVolume') {
-
-                          return (
-                            <div key={toolCallId}>
-                              <div className="p-6 bg-zinc-800 rounded-lg">
-                              {toolInvocation.args.message}
-                              <div className="mb-4">
-                                <h3 className="text-lg font-semibold">Transaction Volume</h3>
-                                <small className="text-zinc-400">Last 24 hours</small>
-                              </div>
-                              <div className="grid grid-cols-2 gap-4 mb-2">
-                                <div className="bg-zinc-900 p-4 rounded-lg">
-                                  <div className="text-sm text-zinc-400 mb-1">Volume (USD)</div>
-                                  <div className="text-lg font-bold">
-                                  {"result" in toolInvocation ? toolInvocation.result.volume.volumeUSD.toLocaleString(undefined, {
-                                      maximumFractionDigits: 2
-                                    }) : <LoadingIndicator/>}
-                                  </div>
-                                </div>
-
-                                <div className="bg-zinc-900 p-4 rounded-lg">
-                                  <div className="text-sm text-zinc-400 mb-1">Volume (SOL)</div>
-                                  <div className="text-lg font-bold flex items-center gap-2">
-                                    <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
-                                    {"result" in toolInvocation ? toolInvocation.result.volume.volumeSOL.toLocaleString(undefined, {
-                                      maximumFractionDigits: 2
-                                    }) : <LoadingIndicator/>}
-                                  </div>
-                                </div>
-                              </div>
-                              </div>
-                              </div>
-                          )
-    
-                          
-                        }        
-                        
-                        if (toolInvocation.toolName === 'getTokenInfo') {
-                          return <TokenInfo key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation}/>
-                        } 
-
-                        if (toolInvocation.toolName === 'getMarketMovers') {
-                          return <MarketMovers key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation}/>
-                        }
-
-                        if (toolInvocation.toolName === 'searchTokens') {
-                          return <SearchTokens key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation}/>                          
-                        }  
-                        
-                        if (toolInvocation.toolName === 'getTotalCryptoMarketCap') {
-                          return <TotalCryptoMarketCap key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
-                        }  
-                        
-                        if (toolInvocation.toolName === 'getMarketCategories') {
-                          return <MarketCategories key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
-                        } 
-                        
-                        if (toolInvocation.toolName === 'getDerivativesExchanges') {
-                          return <DerivativesExchanges key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
-                        }
-
-                        // if (toolInvocation.toolName === 'analyzeSolanaTokenHolders') {
-                        //   return <AnalyzeSolanaTokenHolders toolCallId={toolCallId} toolInvocation={toolInvocation} />
-                        // }
-
-                        // getTopHolders
-                        if (toolInvocation.toolName === 'getTopHolders') {
-                          return <TopHoldersDisplay key={toolCallId} toolCallId={toolCallId} toolInvocation={toolInvocation} />
-                        }
-
-                        // if (toolInvocation.toolName === 'swap') {
-                        //   return <SwapComponent key={toolCallId} quote={''} agent={agent} />;
-                        // }               
-
-                      })}                
-                        
-                    </div>
-                    <div className="flex flex-row gap-2">
-                      {message.experimental_attachments?.map((attachment) =>
-                        attachment.contentType?.startsWith("image") ? (
-                          <img
-                            className="rounded-md w-40 mb-3"
-                            key={attachment.name}
-                            src={attachment.url}
-                            alt={attachment.name}
-                          />
-                        ) : attachment.contentType?.startsWith("text") ? (
-                          <div className="text-xs w-40 h-24 overflow-hidden text-zinc-400 border p-2 rounded-md dark:bg-zinc-800 dark:border-zinc-700 mb-3">
-                            {getTextFromDataUrl(attachment.url)}
-                          </div>
-                        ) : null
-                      )}
-                    </div>
+                  <div className="text-center">
+                    <p className="text-white text-lg">Drop files here</p>
+                    <p className="text-zinc-400">(images and text only)</p>
                   </div>
                 </motion.div>
-              ))}
-
-              {isLoading &&
-                messages[messages.length - 1].role !== "assistant" && (
-                  <div className="flex flex-row gap-2 px-4 w-full md:w-[500px] md:px-0">
-                    <div className="size-[24px] flex flex-col justify-center items-center flex-shrink-0 text-zinc-400">
-                      <BotIcon />
-                    </div>
-                    <div className="flex flex-col gap-1 text-zinc-400">
-                      <div>hmm...</div>
-                    </div>
-                  </div>
-                )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          ) : (
-            <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
-              <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 dark:border-zinc-700">
-                <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 dark:text-zinc-50">  
-                  <BotIcon />
-                  <span>+</span>
-                  <AttachmentIcon />
-                </p>
-                <p>
-                  You can ask the agent any technical question you&apos;d like. You can also drag and drop files here to send them as attachments. You can
-                  send images and text files.
-                </p>
-                <p className="mb-2">
-                  {" "}
-                  Learn more about how to use{" "}
-                  <Link
-                    className="text-indigo-500 dark:text-indigo-400"
-                    href="https://rhun.io"
-                    target="_blank"
+              )}
+            </AnimatePresence>
+  
+            {/* Messages */}
+            <div className="max-w-4xl mx-auto px-1">
+              {messages.length > 0 ? (
+                messages.map((message, index) => (
+                  <motion.div
+                    key={message.id}
+                    className={`flex gap-3 py-4 w-full`}
+                    initial={{ y: 5, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
                   >
-                    {agent.name + " "}
-                  </Link>
-                  in the docs. You can edit the agent details by clicking the button below.
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          <form
-            className="flex flex-col gap-2 items-center pb-5"
-            onSubmit={(event) => {
-              const options = files ? { experimental_attachments: files } : {};
-              handleFormSubmit(event, options);
-              setFiles(null);
-            }}
-          >
+                    <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
+                      {message.role === "assistant" ? <BotIcon /> : <UserIcon />}
+                    </div>
+  
+                    <div className="flex-1 space-y-2 max-w-[75%]">
+                      <Markdown>{message.content}</Markdown>
+                      
+                      {/* Tool Invocations */}
+                      {message.toolInvocations?.map((tool) => {
+                        switch(tool.toolName) {
+                          case 'getUserSolanaBalance':
+                            return <SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getAgentSolanaBalance':
+                            return <SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getUserPortfolioValue':
+                            return <PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getAgentPortfolioValue':
+                            return <PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getUserTokenHoldings':
+                            return <TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getFearAndGreedIndex':
+                            return <FearAndGreedIndex key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getSolanaTransactionVolume':
+                            return <SolanaTransactionVolume key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getAgentTokenHoldings':
+                            return <TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getMarketMovers':
+                            return <MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getTokenInfo':
+                            return <TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'searchTokens':
+                            return <SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getTotalCryptoMarketCap':
+                            return <TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getMarketCategories':
+                            return <MarketCategories key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getDerivativesExchanges':
+                            return <DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getTopHolders':
+                            return <TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          default:
+                            return null;
+                        }
+                      })}
+  
+                      {/* Attachments */}
+                      {(message.experimental_attachments?.length ?? 0) > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {message.experimental_attachments?.map((attachment) =>
+                            attachment.contentType?.startsWith("image") ? (
+                              <img
+                                key={attachment.name}
+                                src={attachment.url}
+                                alt={attachment.name}
+                                className="rounded-md w-40 h-40 object-cover"
+                              />
+                            ) : attachment.contentType?.startsWith("text") ? (
+                              <div key={attachment.name} className="text-xs w-40 h-24 overflow-hidden text-zinc-400 border p-2 rounded-md bg-zinc-800 border-zinc-700">
+                                {attachment.url ? <TextFilePreview file={new File([getTextFromDataUrl(attachment.url ?? '')], attachment.name || '')} /> : null}
+                              </div>
+                            ) : null
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <div className={`h-[350px] flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
+                <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
+                    <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 dark:border-zinc-700">
+                      <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 dark:text-zinc-50">  
+                        <BotIcon />
+                        <span>+</span>
+                        <AttachmentIcon />
+                      </p>
+                      <p>
+                        You can ask the agent any technical question you&apos;d like. You can also drag and drop files here to send them as attachments. You can
+                        send images and text files.
+                      </p>
+                      <p className="mb-2">
+                        {" "}
+                        Learn more about how to use{" "}
+                        <Link
+                          className="text-indigo-500 dark:text-indigo-400"
+                          href="https://rhun.io"
+                          target="_blank"
+                        >
+                          {agent.name + " "}
+                        </Link>
+                        in the docs. You can edit the agent details by clicking the button below.
+                      </p>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+  
+              {/* Loading state */}
+              {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                <div className="flex gap-3 py-4 w-full">
+                  <div className="w-6 h-6 text-zinc-400">
+                    <BotIcon />
+                  </div>
+                  <LoadingIndicator />
+                </div>
+              )}
+            </div>
+          </div>
+  
+          {/* Input area */}
+          <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4">
+            {/* File previews */}
             <AnimatePresence>
-              {files && files.length > 0 && (
-                <div className="flex flex-row gap-2 absolute bottom-12 px-4 w-full md:w-[500px] md:px-0">
+              {files && (
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
                   {Array.from(files).map((file) =>
                     file.type.startsWith("image") ? (
-                      <div key={file.name}>
-                        <motion.img
-                          src={URL.createObjectURL(file)}
-                          alt={file.name}
-                          className="rounded-md w-16"
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{
-                            y: -10,
-                            scale: 1.1,
-                            opacity: 0,
-                            transition: { duration: 0.2 },
-                          }}
-                        />
-                      </div>
-                    ) : file.type.startsWith("text") ? (
-                      <motion.div
+                      <motion.img
                         key={file.name}
-                        className="text-[8px] leading-1 w-28 h-16 overflow-hidden text-zinc-500 border p-2 rounded-lg bg-white dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400"
+                        src={URL.createObjectURL(file)}
+                        alt={file.name}
+                        className="h-16 w-16 object-cover rounded-md"
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        exit={{
-                          y: -10,
-                          scale: 1.1,
-                          opacity: 0,
-                          transition: { duration: 0.2 },
-                        }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                      />
+                    ) : (
+                      <motion.div
+                        key={file.name}
+                        className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
                       >
                         <TextFilePreview file={file} />
                       </motion.div>
-                    ) : null
+                    )
                   )}
                 </div>
               )}
             </AnimatePresence>
-
-            {/* Hidden file input */}
-            <input
-              type="file"
-              multiple
-              accept="image/*,text/*"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={handleFileChange}
-            />
-
-            <div className="flex items-center w-full md:max-w-[500px] max-w-[calc(100dvw-32px)] bg-zinc-100 dark:bg-zinc-700 rounded-full px-4 py-2">
-              {/* Upload Button */}
-              <button
-                type="button"
-                onClick={handleUploadClick}
-                className="text-zinc-500 dark:text-zinc-300 hover:text-zinc-700 dark:hover:text-zinc-100 focus:outline-none mr-3"
-                aria-label="Upload Files"
-              >
-                <span className="w-5 h-5">
-                  <AttachmentIcon aria-hidden="true" />
-                </span>
-              </button>
-
-              {/* Message Input */}
+  
+            {/* Input form */}
+            <form onSubmit={handleFormSubmit} className="max-w-4xl mx-auto flex gap-2">
               <input
-                ref={inputRef}
-                className="bg-transparent flex-grow outline-none text-zinc-800 dark:text-zinc-300 placeholder-zinc-400"
-                placeholder="Send a message..."
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                multiple
+                accept="image/*,text/*"
+                onChange={handleFileChange}
               />
-            </div>
-          </form>
+              
+              <div className="flex-1 flex items-center bg-zinc-800 rounded-full px-4">
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  className="p-2 text-zinc-400 hover:text-white"
+                >
+                  <AttachmentIcon />
+                </button>
+                
+                <input
+                  ref={inputRef}
+                  className="flex-1 bg-transparent py-2 px-2 text-white outline-none"
+                  placeholder="Send a message..."
+                  value={input}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                />
+              </div>
+  
+              {!isLoading && input.trim() && (
+                <button
+                  type="submit"
+                  className="p-2 text-white bg-indigo-600 rounded-full hover:bg-indigo-700"
+                >
+                  <MessageIcon />
+                </button>
+              )}
+            </form>
+          </div>
 
-          <div className="flex flex-row gap-8">
-                  <Link href={`/agents/${user?.id}/${agentId}/edit`}>
-                    <button className="outline outline-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-500">
-                    <div className="flex gap-2 items-center"><SettingsIcon /><span>Configure Agent</span></div>
-                    </button>
-                  </Link>
-                    <button className="outline outline-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-500" onClick={() => handleToolSelect('What tools do you have access to?')}>
-                    <div className="flex gap-2 items-center"><MessageIcon/><span>Describe Tools</span></div>
-                    </button>
-                </div>
+
         </div>
-      </div>
 
+      </div>
+  
+      {/* Tool buttons */}
+      <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-2 lg:hidden">
+        <Link href={`/agents/${user?.id}/${agentId}/edit`}>
+          <button className="p-3 text-white bg-indigo-600 rounded-full hover:bg-indigo-700">
+            <SettingsIcon />
+          </button>
+        </Link>
+        <button 
+          onClick={() => handleToolSelect('What tools do you have access to?')}
+          className="p-3 text-white bg-indigo-600 rounded-full hover:bg-indigo-700"
+        >
+          <MessageIcon/>
+        </button>
+      </div>
+  
       <Toaster />
-
-      </div>
-
-
-      <ChatSidebar 
-      agent={agent}
-      isOpen={sidebarOpen}
-      onToggle={() => setSidebarOpen(!sidebarOpen)}
-      onToolSelect={handleToolSelect}
-    />
-          
-      </div>
-      
-    
+    </div>
+          {/* Sidebar container */}
+          <ChatSidebar 
+            agent={agent}
+            isOpen={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            onToolSelect={handleToolSelect}
+          />      
+    </div>
   );
+
+
 }

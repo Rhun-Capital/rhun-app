@@ -532,3 +532,22 @@ export const ToolsIcon = () => {
     );
     
   };
+
+  export const MenuIcon = () => {
+    return (
+      <svg
+        height="16"
+        strokeLinejoin="round"
+        viewBox="0 0 16 16"
+        width="16"
+        style={{ color: "currentcolor" }}
+      >
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M1 3.5C1 3.22386 1.22386 3 1.5 3H14.5C14.7761 3 15 3.22386 15 3.5C15 3.77614 14.7761 4 14.5 4H1.5C1.22386 4 1 3.77614 1 3.5ZM1 8C1 7.72386 1.22386 7.5 1.5 7.5H14.5C14.7761 7.5 15 7.72386 15 8C15 8.27614 14.7761 8.5 14.5 8.5H1.5C1.22386 8.5 1 8.27614 1 8ZM1.5 12C1.22386 12 1 12.2239 1 12.5C1 12.7761 1.22386 13 1.5 13H14.5C14.7761 13 15 12.7761 15 12.5C15 12.2239 14.7761 12 14.5 12H1.5Z"
+          fill="currentColor"
+        ></path>
+      </svg>
+    );
+  };

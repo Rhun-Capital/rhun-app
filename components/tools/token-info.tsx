@@ -74,7 +74,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
   
   if (toolInvocation.result && "error" in toolInvocation.result) {
     return (
-      <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
+      <div key={toolCallId} className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
         <div className="text-zinc-400 flex items-center gap-2">
           <AlertCircleIcon />
           {toolInvocation.result.error}
@@ -87,7 +87,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
 
   if (!market && !onchain) {
     return (
-      <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
+      <div key={toolCallId} className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
         <div className="text-zinc-400 flex items-center gap-2">
           <AlertCircleIcon />
           No token information available
@@ -98,36 +98,38 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
 
   const onchainAttributes = onchain?.attributes;
 
+
   return (
-    <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg space-y-4">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-        {market?.image || (onchainAttributes?.image_url && onchainAttributes.image_url !== 'missing.png') ? (
+    <div key={toolCallId} className="p-4 sm:p-6 bg-zinc-800 rounded-lg space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 sm:gap-6 mb-4">
+        <div className="flex items-center gap-4">
+          {market?.image || (onchainAttributes?.image_url && onchainAttributes.image_url !== 'missing.png') ? (
             <Image
               src={market?.image || onchainAttributes?.image_url || ''}
               alt={market?.name || onchainAttributes?.name || 'Token'}
-              width={55}
-              height={55}
-              className="rounded-full"
+              width={40}
+              height={40}
+              className="rounded-full sm:w-[55px] sm:h-[55px]"
             />
           ) : (
-            <div className="w-[55px] h-[55px] rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400">
+            <div className="w-10 h-10 sm:w-[55px] sm:h-[55px] rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400">
               N/A
             </div>
           )}
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold">
+              {market?.name || onchainAttributes?.name}
+            </h3>
+            <p className="text-sm text-zinc-400">
+              {(market?.symbol || onchainAttributes?.symbol || '').toUpperCase()}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-lg font-semibold">
-            {market?.name || onchainAttributes?.name}
-          </h3>
-          <p className="text-zinc-400">
-            {(market?.symbol || onchainAttributes?.symbol || '').toUpperCase()}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-xl font-bold">
+        <div className="text-center sm:text-right">
+          <div className="text-lg sm:text-xl font-bold">
             {market?.currentPrice || onchainAttributes?.price_usd 
-              ? `${(market?.currentPrice || parseFloat(onchainAttributes?.price_usd || '0')).toLocaleString(undefined, {
+              ? `$${(market?.currentPrice || parseFloat(onchainAttributes?.price_usd || '0')).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 6
                 })}`
@@ -144,30 +146,31 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-zinc-900 p-4 rounded-lg">
-          <div className="text-sm text-zinc-400">Market Cap</div>
-          <div className="text-lg font-semibold">
-            {market?.marketCap || onchainAttributes?.market_cap_usd
-              ? `${(market?.marketCap || parseFloat(onchainAttributes?.market_cap_usd || '0')).toLocaleString()}`
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+          <div className="text-xs sm:text-sm text-zinc-400">Market Cap</div>
+          <div className="text-sm sm:text-lg font-semibold truncate">
+            ${market?.marketCap || onchainAttributes?.market_cap_usd
+              ? (market?.marketCap || parseFloat(onchainAttributes?.market_cap_usd || '0')).toLocaleString()
               : 'N/A'
             }
           </div>
         </div>
 
-        <div className="bg-zinc-900 p-4 rounded-lg">
-          <div className="text-sm text-zinc-400">24h Volume</div>
-          <div className="text-lg font-semibold">
-            {market?.totalVolume || onchainAttributes?.volume_usd?.h24
-              ? `${(market?.totalVolume || parseFloat(onchainAttributes?.volume_usd?.h24 || '0')).toLocaleString()}`
+        <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+          <div className="text-xs sm:text-sm text-zinc-400">24h Volume</div>
+          <div className="text-sm sm:text-lg font-semibold truncate">
+            ${market?.totalVolume || onchainAttributes?.volume_usd?.h24
+              ? (market?.totalVolume || parseFloat(onchainAttributes?.volume_usd?.h24 || '0')).toLocaleString()
               : 'N/A'
             }
           </div>
         </div>
 
-        <div className="bg-zinc-900 p-4 rounded-lg">
-          <div className="text-sm text-zinc-400">Total Supply</div>
-          <div className="text-lg font-semibold">
+        <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+          <div className="text-xs sm:text-sm text-zinc-400">Total Supply</div>
+          <div className="text-sm sm:text-lg font-semibold truncate">
             {market?.totalSupply || onchainAttributes?.total_supply
               ? (market?.totalSupply || parseFloat(onchainAttributes?.total_supply || '0')).toLocaleString()
               : 'N/A'
@@ -175,40 +178,42 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
           </div>
         </div>
 
-        <div className="bg-zinc-900 p-4 rounded-lg">
-          <div className="text-sm text-zinc-400">Total Reserve in USD</div>
-          <div className="text-lg font-semibold">
-            {onchainAttributes?.total_reserve_in_usd
-              ? `${parseFloat(onchainAttributes.total_reserve_in_usd).toLocaleString()}`
+        <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+          <div className="text-xs sm:text-sm text-zinc-400">Total Reserve in USD</div>
+          <div className="text-sm sm:text-lg font-semibold truncate">
+            ${onchainAttributes?.total_reserve_in_usd
+              ? parseFloat(onchainAttributes.total_reserve_in_usd).toLocaleString()
               : 'N/A'
             }
           </div>
         </div>
 
         {onchainAttributes && (
-          <div className="bg-zinc-900 p-4 rounded-lg col-span-2">
-            <div className="text-sm text-zinc-400">Contract Address</div>
-            <div className="text-sm font-semibold text-zinc-300 truncate">
+          <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg col-span-1 sm:col-span-2">
+            <div className="text-xs sm:text-sm text-zinc-400">Contract Address</div>
+            <div className="text-xs sm:text-sm font-semibold text-zinc-300 truncate">
               {onchainAttributes.address}
             </div>
           </div>
         )}
       </div>
 
+      {/* Description */}
       {market?.description && (
-        <div className="mt-4 text-sm text-zinc-400">
+        <div className="text-xs sm:text-sm text-zinc-400 mt-4 line-clamp-3 sm:line-clamp-none">
           {market.description}
         </div>
       )}
 
-      <div className="flex flex-row gap-4 justify-between items-center">
+      {/* Footer */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between items-start sm:items-center mt-4">
         {market?.lastUpdated && (
-          <div className="text-xs text-zinc-500 mt-4">
+          <div className="text-xs text-zinc-500 order-2 sm:order-1">
             Last updated: {new Date(market.lastUpdated).toLocaleString()}
           </div>
         )}
 
-        <div className="flex flex-row gap-4 mt-3 mr-2">
+        <div className="flex gap-4 order-1 sm:order-2">
           {market?.homePage && (
             <Link href={market.homePage} target="_blank" className="text-zinc-400 hover:text-zinc-300">
               <GlobeIcon/>
@@ -228,7 +233,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
       </div>
 
       {!status.market && status.onchain && (
-        <div className="text-sm text-zinc-400 mt-4">
+        <div className="text-xs sm:text-sm text-zinc-400 mt-4">
           Note: Using on-chain data. Some market data may be limited.
         </div>
       )}
