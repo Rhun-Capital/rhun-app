@@ -612,6 +612,7 @@ export default function Home() {
                   </motion.div>
                 ))
               ) : (
+                <div>
                 <div className={`h-[350px] flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
                 <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
                     <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 dark:border-zinc-700">
@@ -638,8 +639,27 @@ export default function Home() {
                       </p>
                     </div>
                   </motion.div>
+
+                </div>
+
                 </div>
               )}
+
+              <div >
+
+              <Link href={`/agents/${user?.id}/${agentId}/edit`}>
+                <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
+                <div className="flex items-center"> <SettingsIcon/>&nbsp;Edit Agent</div>
+                </button>
+              </Link>
+              <button 
+                onClick={() => handleToolSelect('What tools do you have access to?')}
+                className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5"
+              >
+                <div className="flex items-center"><MessageIcon/>&nbsp;Describe Tools</div>
+              </button>
+
+              </div>              
   
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
@@ -715,17 +735,15 @@ export default function Home() {
                   onKeyDown={handleKeyDown}
                   onPaste={handlePaste}
                 />
+                <button type="submit" className="p-2 text-zinc-400 hover:text-white">
+                  Submit
+                </button>
               </div>
   
-              {!isLoading && input.trim() && (
-                <button
-                  type="submit"
-                  className="p-2 text-white bg-indigo-600 rounded-full hover:bg-indigo-700"
-                >
-                  <MessageIcon />
-                </button>
-              )}
+
             </form>
+
+
           </div>
 
 
@@ -734,7 +752,7 @@ export default function Home() {
       </div>
   
       {/* Tool buttons */}
-      <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-2 lg:hidden">
+      {/* <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-2 lg:hidden">
         <Link href={`/agents/${user?.id}/${agentId}/edit`}>
           <button className="p-3 text-white bg-indigo-600 rounded-full hover:bg-indigo-700">
             <SettingsIcon />
@@ -746,7 +764,7 @@ export default function Home() {
         >
           <MessageIcon/>
         </button>
-      </div>
+      </div> */}
   
       <Toaster />
     </div>

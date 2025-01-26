@@ -336,7 +336,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
         </div>
   
         {/* Tabs */}
-        <div className="border-b border-zinc-700 mb-6 overflow-x-auto">
+        <div className="mb-6 overflow-x-auto">
           <nav className="flex min-w-max space-x-4 sm:space-x-8 pb-1">
             {tabs.map((tab) => (
               <button

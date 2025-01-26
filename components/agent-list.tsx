@@ -1,16 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-type AttributeMap = {
-  id: string;
-  name: string;
-  // Add other properties as needed
-};
 import { usePrivy } from '@privy-io/react-auth';
 import { getAgents } from '@/utils/actions';
 import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
+import { EditIcon } from 'lucide-react';
+
+
+type AttributeMap = {
+  id: string;
+  name: string;
+};
 
 export default function AgentsPage() {
   const { user } = usePrivy();
@@ -45,21 +46,25 @@ export default function AgentsPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {agents.map((agent) => (
-            <Link 
-              key={agent.id}
-              href={`/agents/${user?.id}/${agent.id}`}
-              className="group"
-            >
-              <div className="h-36 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-zinc-700 
-                           transition-all duration-200 ease-in-out
-                           hover:border-zinc-600 hover:shadow-lg hover:-translate-y-1">
-                <div className="flex flex-col h-full items-center justify-center">
-                  <h2 className="text-lg sm:text-xl font-semibold mb-2 group-hover:text-indigo-400 transition-colors text-center">
-                    {agent.name}
-                  </h2>
+            <div key={agent.id} className="group relative">
+              <Link href={`/agents/${user?.id}/${agent.id}`}>
+                <div className="h-36 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-zinc-700 
+                             transition-all duration-200 ease-in-out
+                             hover:border-zinc-600 hover:shadow-lg">
+                  <div className="flex flex-col h-full items-center justify-center">
+                    <h2 className="text-lg sm:text-xl font-semibold mb-2 group-hover:text-indigo-400 transition-colors text-center">
+                      {agent.name}
+                    </h2>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              <Link 
+                href={`/agents/${user?.id}/${agent.id}/edit`}
+                className="absolute top-2 right-2 p-2 bg-zinc-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <EditIcon className="w-4 h-4 text-white"/>
+              </Link>
+            </div>
           ))}
 
           <Link 
