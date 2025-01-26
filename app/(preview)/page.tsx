@@ -1,6 +1,6 @@
 'use client';
 
-import { BotIcon, MessageIcon, SettingsIcon, ChevronRightIcon, BookIcon } from '@/components/icons';
+import { BotIcon, MessageIcon, SettingsIcon, ChevronRightIcon, MarketplaceIcon } from '@/components/icons';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from "sonner";
@@ -21,11 +21,11 @@ export default function HomePage() {
       color: 'text-indigo-500',
     },
     {
-      title: 'Docs',
-      description: 'Read the documentation to learn how to use RHUN and get the most out of your AI agents.',
-      icon: BookIcon,
-      link: 'https://rhun-capital.gitbook.io/',
-      linkText: 'Read the Docs',
+      title: 'Apps',
+      description: 'Access the marketplace to install and manage community tools that extend agent capabilities.',
+      icon: MarketplaceIcon,
+      link: '/marketplace',
+      linkText: 'View Marketplace',
       color: 'text-indigo-500',
     },
     {
