@@ -1,16 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
-import { ToolInvocation } from 'ai';
 import {
   AttachmentIcon,
   BotIcon,
-  UserIcon,
-  SettingsIcon, 
-  MessageIcon,
-  CloseIcon,
-  MenuIcon
+  UserIcon
 } from "@/components/icons";
-import Image from 'next/image';
 import { useRecentChats } from '@/contexts/chat-context';
 import { useChat } from "ai/react";
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -85,6 +78,7 @@ export default function Home() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isNewChat, setIsNewChat] = useState(true);
+  const [isHeadersReady, setIsHeadersReady] = useState(false);
   const chatCreatedRef = useRef(false);  
   const params = useParams();
   const agentId = params.agentId;  
@@ -103,6 +97,7 @@ export default function Home() {
       setHeaders({
         'Authorization': `Bearer ${token}`
       });
+      setIsHeadersReady(true);
     };
     
     setupHeaders();
@@ -156,7 +151,6 @@ export default function Home() {
   
     loadInitialMessages();
   }, [chatId, user?.id, getAccessToken]);
-
 
   const { messages, input, handleSubmit, handleInputChange, addToolResult , isLoading, append } =
     useChat({
@@ -478,6 +472,10 @@ export default function Home() {
     }
   };
 
+  if (!isHeadersReady) {
+    return <LoadingIndicator />;
+  }  
+
   if (!agent) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
@@ -489,23 +487,6 @@ export default function Home() {
   return (
     <div>
     <div className="flex flex-col h-screen bg-white bg-zinc-900">
-      {/* Mobile header */}
-      {/* <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-zinc-900 border-b border-zinc-700 p-4">
-        <div className="flex items-center justify-between">
-          <Link href='/'>
-            <div className="flex items-center">
-              <Image src="/images/rhun-logo.png" alt="Rhun Capital" height={30} width={30} className="pr-2"/>
-              <h1 className="text-lg font-bold text-white">RHUN</h1>
-            </div>
-          </Link>
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 text-zinc-400 hover:text-white"
-          >
-            {sidebarOpen ? <CloseIcon/> : <MenuIcon />}
-          </button>
-        </div>
-      </div> */}
   
       <div className="flex flex-1 pt-16 lg:pt-0">
   
@@ -616,7 +597,7 @@ export default function Home() {
                 <div className={`h-[350px] flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
                 <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
                     <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm text-zinc-400 border-zinc-700">
-                      <p className="flex flex-row justify-center gap-4 items-center text-zinc-900 text-zinc-50">  
+                      <p className="flex flex-row justify-center gap-4 items-center dark:text-zinc-900 dark:text-zinc-50">  
                         <BotIcon />
                         <span>+</span>
                         <AttachmentIcon />
@@ -629,7 +610,7 @@ export default function Home() {
                         {" "}
                         Learn more about how to use{" "}
                         <Link
-                          className="text-indigo-500 dark:text-indigo-400"
+                          className="text-indigo-500 text-indigo-400"
                           href={`/agents/${user?.id}/${agentId}/edit`}
                         >
                           {agent.name + " "}
