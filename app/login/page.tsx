@@ -22,6 +22,7 @@ export default function LoginPage() {
         body: JSON.stringify({ token }),
       })
       if (response.ok) {
+        router.refresh()
         router.push('/')
         setIsLoading(false)
       } else {
