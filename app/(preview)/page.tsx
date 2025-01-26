@@ -66,7 +66,7 @@ export default function HomePage() {
           </p>
           <div className="flex justify-center">
             <Link 
-              href="https://rhun.io"
+              href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
               className="inline-flex items-center gap-2 px-6 py-1 outline outline-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-sm"
             >
