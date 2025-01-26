@@ -6,7 +6,7 @@ const nextConfig = {
             protocol: 'https',
             hostname: 'beta.rhun.io',
             port: '',
-            pathname: ['/images/**', '/images/**/**']
+            pathname: '/images/**/**'
           },
           {
             protocol: 'https',
