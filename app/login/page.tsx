@@ -23,17 +23,16 @@ export default function LoginPage() {
       })
       if (response.ok) {
         router.refresh()
-        router.push('/')
-        setIsLoading(false)
+        router.replace('/')
       } else {
         const data = await response.json()
         setError(data.message || 'Invalid token or this token has already been verified.')
-        setIsLoading(false)
       }
     } catch (error) {
       setError('An error occurred. Please try again.')
-      setIsLoading(false)
-    }
+    } finally {
+        setIsLoading(false)
+      }
   }
 
   return (
