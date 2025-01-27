@@ -208,7 +208,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
   return (
     <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
       <h3 className="text-base sm:text-lg font-semibold mb-2">Search Results</h3>
-      <p className="mb-4">Click on the result to clcik more details</p>
+      <p className="mb-4">Click the token for more details</p>
 
       <div className="space-y-2 sm:space-y-3">
         {error && (
