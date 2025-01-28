@@ -189,12 +189,28 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
         </div>
 
         {onchainAttributes && (
-          <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg col-span-1 sm:col-span-2">
-            <div className="text-xs sm:text-sm text-zinc-400">Contract Address</div>
-            <div className="text-xs sm:text-sm font-semibold text-zinc-300 truncate">
+            <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg col-span-1 sm:col-span-2 flex justify-between items-center">
+            <div>
+              <div className="text-xs sm:text-sm text-zinc-400">Contract Address</div>
+              <div className="text-xs sm:text-sm font-semibold text-zinc-300 truncate">
               {onchainAttributes.address}
+              </div>
             </div>
-          </div>
+            <button
+              onClick={(event) => {
+              navigator.clipboard.writeText(onchainAttributes.address);
+              const button = event.currentTarget;
+              const originalText = button.textContent;
+              button.textContent = 'Copied!';
+              setTimeout(() => {
+                button.textContent = originalText;
+              }, 2000);
+              }}
+              className="text-xs sm:text-xs text-indigo-500 hover:text-indigo-400"
+            >
+              Copy
+            </button>  
+            </div>
         )}
       </div>
 

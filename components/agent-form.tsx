@@ -9,6 +9,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { getAccessToken } from "@privy-io/react-auth";
+import ImageSelect from "./agent-model-select";
 
 interface InitialData {
   id: string;
@@ -41,6 +42,29 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const { user } = usePrivy();
   const params = useParams();
   const router = useRouter();
+  const [selectedModelValue, setSelectedModelValue] = useState('option1');
+  const options = [
+    {
+      value: 'option1',
+      label: 'claude-3-5-sonnet-20240620',
+      imageUrl: '/images/providers/claude.svg'
+    },
+    {
+      value: 'option2',
+      label: 'deepseek-chat',
+      imageUrl: '/images/providers/deepseek.svg'
+    },
+    {
+      value: 'option3',
+      label: 'gpt-4-turbo',
+      imageUrl: '/images/providers/openai-white-logomark.svg'
+    },
+    {
+      value: 'option4',
+      label: 'mistral-large-latest',
+      imageUrl: '/images/providers/mistral.svg'
+    }    
+  ];
 
   type FormDataKeys = keyof typeof defaultFormData;
 
@@ -376,8 +400,22 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
                 </div>
               </div>
             )}
+      
   
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            {/* <div>
+            <label htmlFor="name" className="block text-sm font-medium mb-2">
+                  Agent Model
+                </label>
+            <div>
+                <ImageSelect
+                  options={options}
+                  value={selectedModelValue}
+                  onChange={setSelectedModelValue}
+                />
+              </div>      
+              </div> */}
+
               <div>
                 <label htmlFor="name" className="block text-sm font-medium mb-2">
                   Agent Name
@@ -390,7 +428,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+                  className="w-full px-3 py-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
                 />
               </div>
   

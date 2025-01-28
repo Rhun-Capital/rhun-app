@@ -2,7 +2,9 @@
 import {
   AttachmentIcon,
   BotIcon,
-  UserIcon
+  UserIcon,
+  SettingsIcon,
+  MessageIcon
 } from "@/components/icons";
 import { useRecentChats } from '@/contexts/chat-context';
 import { useChat } from "ai/react";
@@ -673,9 +675,8 @@ export default function Home() {
                 </div>
               )}
 
-              {/* <div >
 
-              <Link href={`/agents/${user?.id}/${agentId}/edit`}>
+              {!messages.length ? <div> <Link href={`/agents/${user?.id}/${agentId}/edit`}>
                 <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
                 <div className="flex items-center"> <SettingsIcon/>&nbsp;Edit Agent</div>
                 </button>
@@ -685,9 +686,9 @@ export default function Home() {
                 className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5"
               >
                 <div className="flex items-center"><MessageIcon/>&nbsp;Describe Tools</div>
-              </button>
+              </button></div> : null}
 
-              </div>               */}
+                       
   
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
@@ -775,21 +776,6 @@ export default function Home() {
         </div>
 
       </div>
-  
-      {/* Tool buttons */}
-      {/* <div className="fixed bottom-24 right-4 z-50 flex flex-col gap-2 lg:hidden">
-        <Link href={`/agents/${user?.id}/${agentId}/edit`}>
-          <button className="p-3 text-white bg-indigo-600 rounded-full hover:bg-indigo-700">
-            <SettingsIcon />
-          </button>
-        </Link>
-        <button 
-          onClick={() => handleToolSelect('What tools do you have access to?')}
-          className="p-3 text-white bg-indigo-600 rounded-full hover:bg-indigo-700"
-        >
-          <MessageIcon/>
-        </button>
-      </div> */}
   
       <Toaster />
     </div>

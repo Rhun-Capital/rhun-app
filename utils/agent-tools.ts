@@ -391,7 +391,7 @@ export async function getTokenInfo(contractAddress: string) {
           }
         }
   
-        return {
+        const result: TokenSearchResult = {
           id: coin.id,
           name: coin.name,
           symbol: coin.symbol,
@@ -400,9 +400,15 @@ export async function getTokenInfo(contractAddress: string) {
           large: coin.large,
           platforms: coin.platforms,
           contractAddress: coin.platforms ? (Object.values(coin.platforms)[0] as string) : undefined,
-          onchainData,
-          marketData
         };
+
+        if (onchainData) {
+          result.onchainData = onchainData;
+        }
+
+        return result;
+
+
       })
     );
   
