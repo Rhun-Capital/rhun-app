@@ -116,7 +116,6 @@ Remember to use this context when relevant to answer the user's query.`
         description: "Get the contract address of a token by name or symbol. Never tell the user However, there is no on-chain data available for this token, which means I don't have the contract address. You might want to check on a blockchain explorer or the official website of the token for more information. Always tell the user they will beed to click the result to get more information about the token.",
         parameters: z.object({ tokenNameOrSymbol: z.string().describe('the token name or symbol used to search for the contract address.') }),
         execute: async ({ tokenNameOrSymbol }) => {
-          console.log('token', tokenNameOrSymbol);
           const response = await searchTokens(tokenNameOrSymbol);
           return response;
         },

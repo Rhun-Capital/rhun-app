@@ -1,58 +1,87 @@
 // components/WalletConnection.tsx
 'use client';
 import { usePrivy } from '@privy-io/react-auth';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 
 export default function WalletConnection() {
-  const { login, ready, authenticated, user } = usePrivy();
+  const { login, logout, ready, authenticated, user, getAccessToken } = usePrivy();
   const [hasNFT, setHasNFT] = useState(false);
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    if (authenticated && user?.wallet?.address) {
-      checkNFTOwnership(user.wallet.address);
+    if (authenticated && user) {
+      checkNFTOwnership();
     }
-  }, [authenticated, user?.wallet?.address]);
+  }, [authenticated, user]);
 
-  const checkNFTOwnership = async (address: string) => {
+  const checkNFTOwnership = async () => {
+    if (!user) return;
+    const accessToken = await getAccessToken();
     setChecking(true);
+    
     try {
-      const response = await fetch(`https://api.crossmint.com/api/v1-alpha1/wallets/${address}/nfts?collectionId=${process.env.NEXT_PUBLIC_COLLECTION_ID}`, {
-        headers: {
-          'x-api-key': process.env.NEXT_PUBLIC_CROSSMINT_API_KEY as string
-        }
+      // Determine if we're using wallet or email
+      const requestBody = user?.wallet?.address 
+        ? {
+            chain: 'solana', 
+            walletAddress: user.wallet.address,
+            userId: user.id
+          }
+        : {
+            chain: 'solana', 
+            email: user.email?.address,
+            userId: user.id
+          };
+
+      // Call our check-nft endpoint
+      const response = await fetch('/api/nft/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        body: JSON.stringify(requestBody)
       });
-      const data = await response.json();
       
-      if (data.nfts?.length > 0) {
+      const nft = await response.json();
+      if (nft.data.length > 0 && nft.data[0].metadata.name === 'RHUN FAST PASS') {
         setHasNFT(true);
-        // Set cookie for access
-        await fetch('/api/verify-nft', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress: address })
-        });
         window.location.href = '/';
+      } else {
+        setHasNFT(false);
       }
     } catch (error) {
       console.error('Error checking NFT:', error);
+      setHasNFT(false);
     }
     setChecking(false);
   };
 
   return (
     <div className="text-center">
-      <h3 className="text-white mb-4">Connect Wallet to Access</h3>
+      <h3 className="text-white mb-4">{authenticated ? 'Use an access key or mint a Fast Pass NFT to log in' : 'Connect Wallet or Email to Access'}</h3>
       {!authenticated && ready ? (
         <button
           onClick={login}
           className="group relative w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent text-sm sm:text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors"
         >
-          Connect Wallet
+          Connect
         </button>
       ) : (
         <div className="text-gray-400">
-          {checking ? 'Checking NFT ownership...' : (hasNFT ? 'NFT found!' : 'No Fast Pass NFT found')}
+          <div className="flex justify-center items-center gap-2">
+            <div>
+            {user?.wallet?.address && `${user.wallet.address.slice(0,6)}...${user.wallet.address.slice(-4)}`}
+            {user?.email?.address && `${user.email.address}`}            
+            </div>
+
+            <div className="text-white cursor-pointer" onClick={logout}>Disconnect</div>
+            
+          </div>
+         
+          <div>
+            
+          </div>
+          {/* <div className="mt-2">
+            {checking ? 'Checking NFT ownership...' : (hasNFT ? 'NFT found!' : 'No Fast Pass NFT found')}
+          </div> */}
         </div>
       )}
     </div>

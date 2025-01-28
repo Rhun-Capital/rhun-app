@@ -89,7 +89,10 @@ export const RecentChatsPage = () => {
         {filteredChats.map((chat) => (
           <button
             key={chat.chatId}
-            onClick={() => router.push(`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`)}
+            onClick={() => {
+              router.push(`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`)
+              router.refresh();
+            }}
             className="w-full flex items-center gap-3 p-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-colors text-left group"
           >
             <div className="text-zinc-400">

@@ -12,7 +12,6 @@ export default function MintPage() {
 
     useEffect(() => {
         if (order && order.phase === "completed") {
-            console.log("Purchase completed!");
             const uid = crypto.randomUUID();
             setUniqueID(uid);
 
@@ -25,7 +24,6 @@ export default function MintPage() {
             })
                 .then((response) => response.json())
                 .then((data) => {
-                    console.log("Successfully posted unique ID:", data);
                     setShowSuccess(true);
                 })
                 .catch((error) => {

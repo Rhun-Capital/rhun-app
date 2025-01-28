@@ -54,7 +54,10 @@ export const RecentChats = ({ maxVisible = 3 }) => {
         {visibleChats.map((chat) => (
           <button
             key={chat.chatId}
-            onClick={() => router.push(`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`)}
+            onClick={() => {
+              router.push(`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`)
+              router.refresh();
+            }}
             className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-800 transition-colors text-left group"
           >
             <MessageSquareIcon />
