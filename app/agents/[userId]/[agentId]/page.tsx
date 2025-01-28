@@ -175,7 +175,6 @@ export default function Home() {
       //   }        
         
       //   // if (toolCall.toolName === 'getTokenInfo') {
-      //   //   console.log('searchTokens toolCall', toolCall);
       //   //   // First, search for the token
       //   //   const searchResults = await fetch(
       //   //     `/api/tools/search-tokens?query=${(toolCall.args as { query: string }).query}`,
@@ -186,7 +185,6 @@ export default function Home() {
       //   //       }
       //   //     }
       //   //   ).then(r => r.json());
-      //   //   console.log(searchResults)
           
           
       //   //   if (!searchResults.coins || searchResults.coins.length === 0) {

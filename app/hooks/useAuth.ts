@@ -11,6 +11,7 @@ export function useAuth() {
   useEffect(() => {
     if (ready && !authenticated) {
       router.push('/'); // Redirect to home if not authenticated
+      router.refresh();
     }
   }, [ready, authenticated, router]);
 

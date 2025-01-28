@@ -92,7 +92,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
        {pathname !== '/login' && <div className="p-4">
           {authenticated ? (
             <button 
-              onClick={logout}
+              onClick={() => logout().then(() => window.location.reload())}
               className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
             >
               Disconnect

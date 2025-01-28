@@ -311,6 +311,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
       
       if (!initialData) {
         router.push("/agents"); // Redirect to agents list after creation
+        router.refresh();
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -336,6 +337,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
 
   const goToChat = () => {
     router.push(`/agents/${params.userId}/${params.agentId}`);
+    router.refresh();
   };
   
   return (

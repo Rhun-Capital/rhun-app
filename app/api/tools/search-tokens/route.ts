@@ -150,7 +150,6 @@ export async function GET(
       })
     );
 
-    console.log('Search results:', enrichedResults);
 
     return NextResponse.json({ coins: enrichedResults });
   } catch (error) {
