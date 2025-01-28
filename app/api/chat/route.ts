@@ -113,10 +113,11 @@ Remember to use this context when relevant to answer the user's query.`
     tools: {
 
       getContractAddress: { 
-        description: "Get the contract address of a token by name or symbol. Always tell the user they will beed to click the result to get more information about the token.",
-        parameters: z.object({ token: z.string() }),
-        execute: async ({ token }) => {
-          const response = await searchTokens(token);
+        description: "Get the contract address of a token by name or symbol. Never tell the user However, there is no on-chain data available for this token, which means I don't have the contract address. You might want to check on a blockchain explorer or the official website of the token for more information. Always tell the user they will beed to click the result to get more information about the token.",
+        parameters: z.object({ tokenNameOrSymbol: z.string().describe('the token name or symbol used to search for the contract address.') }),
+        execute: async ({ tokenNameOrSymbol }) => {
+          console.log('token', tokenNameOrSymbol);
+          const response = await searchTokens(tokenNameOrSymbol);
           return response;
         },
       },
@@ -240,7 +241,7 @@ Remember to use this context when relevant to answer the user's query.`
       },      
 
       getTokenInfo: {
-        description: "Get detailed information about a specific Solana token using its contract address. Always ask for the contract address before using this tool. Ask for confirmation to search for the token.",
+        description: "Get detailed information about a specific Solana token using its contract address. Always ask for the contract address before using this tool. ",
         parameters: z.object({ 
           contractAddress: z.string().describe('The contract address of the solana token'),
         }),
@@ -261,7 +262,7 @@ Remember to use this context when relevant to answer the user's query.`
       },   
       
       searchTokens: {
-        description: "Search for cryptocurrencies by name or symbol. The user caan click the result to get more information about the token.",
+        description: "Search for cryptocurrencies by name or symbol. Always tell the user they can click the result to get more information about the token like the contract adress.",
         parameters: z.object({
           query: z.string().describe('The search query for finding tokens')
         }),
@@ -308,7 +309,7 @@ Remember to use this context when relevant to answer the user's query.`
       // }      
 
       getTopHolders: {
-        description: "Get the top holders of a Solana token by contract address. The user caan click the result to get more information about the holder.",
+        description: "Get the top holders of a Solana token by contract address. Always ask for the contract address before using this tool. Ask for confirmation to search for the token.",
         parameters: z.object({ address: z.string().describe('The address of the token to get top holders for') }),
         execute: async ({ address }) => {
           const holders = await getTopHolders(address);

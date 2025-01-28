@@ -173,8 +173,24 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
                 address && (
                   <div key={platform} className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
                     <div className="text-xs sm:text-sm text-zinc-500 capitalize mb-1">{platform}</div>
+                    <div className="flex items-center gap-2 justify-between">
                     <div className="text-xs sm:text-sm font-mono text-zinc-300 break-all">
                       {address}
+                    </div>
+                    <button
+                      onClick={(event) => {
+                      navigator.clipboard.writeText(address);
+                      const button = event.currentTarget;
+                      const originalText = button.textContent;
+                      button.textContent = 'Copied!';
+                      setTimeout(() => {
+                        button.textContent = originalText;
+                      }, 2000);
+                      }}
+                      className="text-xs sm:text-xs text-indigo-500 hover:text-indigo-400"
+                    >
+                      Copy
+                    </button>                    
                     </div>
                   </div>
                 )
