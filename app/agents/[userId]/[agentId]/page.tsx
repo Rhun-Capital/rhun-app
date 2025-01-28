@@ -574,7 +574,7 @@ export default function Home() {
                       {message.role === "assistant" ? <BotIcon /> : <UserIcon />}
                     </div>
   
-                    <div className={`flex-1 space-y-2 max-w-[75%] ${message.role === "assistant" ? "bg-zinc-800 text-white" : "text-white"} p-4 rounded-lg`}>
+                    <div className={`flex-1 space-y-2 max-w-[75%] text-white`}>
                       <Markdown>{message.content}</Markdown>
                       
                       {/* Tool Invocations */}
