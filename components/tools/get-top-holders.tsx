@@ -476,7 +476,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
   return (
     <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">Top Token Holders</h3>
-      <div className="text-xs text-zinc-400 mb-3">Click to see more details</div>
+      <p className="mb-4">Click the holder to see recent activities like token swaps, staking, and more. </p>
 
       <div className="space-y-3">
         {toolInvocation.result && toolInvocation.result.map((holder, index) => (

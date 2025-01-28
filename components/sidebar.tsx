@@ -49,8 +49,8 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
       `}>
         <div className="p-4 border-b border-zinc-700">
           <Link href='/' onClick={() => setIsOpen(false)}>
-            <div className="flex items-center">
-              <Image src="https://rhun.io/images/rhun-logo.png" alt="Rhun Capital" height={35} width={35} className="pr-2 antialiased"/>
+            <div className="flex items-center ml-2">
+              <Image src="https://rhun.io/images/rhun-logo.png" alt="Rhun Capital" height={25} width={25} className="pr-2 antialiased"/>
               <h1 className="text-xl font-bold text-white">  
                 R&nbsp; H&nbsp; U&nbsp; N
               </h1>
@@ -126,8 +126,8 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
-        <main className="p-6 bg-zinc-900">
+      <div className="flex-1 overflow-auto bg-zinc-900">
+        <main className="p-6">
           {children}
         </main>
       </div>

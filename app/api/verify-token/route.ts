@@ -17,7 +17,7 @@ async function verifyAndUpdateToken(token: string): Promise<boolean> {
         Key: { Access_key: token }
       }).promise();
   
-      if (!result.Item || result.Item.verified) return false;
+      if (!result.Item) return false;
   
       await dynamodb.update({
         TableName: 'EarlyAccess',
