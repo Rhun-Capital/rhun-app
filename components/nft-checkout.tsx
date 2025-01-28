@@ -59,6 +59,7 @@ const NFTCheckoutWrapper = ({ collectionId }: { collectionId: string }) => {
       }}
       payment={{ crypto: { enabled: true }, fiat: { enabled: true } }}
       recipient={createRecipientObject()}
+      
     />
   )
 };
