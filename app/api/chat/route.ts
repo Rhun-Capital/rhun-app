@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { convertToCoreMessages, streamText } from "ai";
+import { convertToCoreMessages, streamText, tool } from "ai";
 import { retrieveContext } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
@@ -59,10 +59,7 @@ If you're asked to do anything with the agents wallet but it is not undefined, p
 When your listing token holdings do not add the token image to the list.
 You only have token data on for the Solana blockchain. If the user asks for token data on another blockchain, let them know that you only have data for Solana tokens.
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
-Use the infirmation in the getTokenInfo response to get things like contract address, symbol, name, price, marketcap, and other information about the token.
-If you can find a token using getTokenInfo try the onchain token info tool to see if you can get more information about the token and do not show the failed to fetch token information error message to the user.
 When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
-When ever you render the searchTokens and getTopHolders tools make sure to let the user know they can click on the token to get more information about the token.
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
@@ -114,6 +111,15 @@ Remember to use this context when relevant to answer the user's query.`
     system: systemPrompt,
     messages: convertToCoreMessages(messages),
     tools: {
+
+      getContractAddress: { 
+        description: "Get the contract address of a token by name or symbol. Always tell the user they will beed to click the result to get more information about the token.",
+        parameters: z.object({ token: z.string() }),
+        execute: async ({ token }) => {
+          const response = await searchTokens(token);
+          return response;
+        },
+      },
 
       getUserSolanaBalance: {
         description: "show the user's solana balance for their connected wallet to the user",
@@ -234,7 +240,7 @@ Remember to use this context when relevant to answer the user's query.`
       },      
 
       getTokenInfo: {
-        description: "Get detailed information about a specific Solana token using its contract address",
+        description: "Get detailed information about a specific Solana token using its contract address. Always ask for the contract address before using this tool. Ask for confirmation to search for the token.",
         parameters: z.object({ 
           contractAddress: z.string().describe('The contract address of the solana token'),
         }),
@@ -255,7 +261,7 @@ Remember to use this context when relevant to answer the user's query.`
       },   
       
       searchTokens: {
-        description: "Search for cryptocurrencies by name or symbol",
+        description: "Search for cryptocurrencies by name or symbol. The user caan click the result to get more information about the token.",
         parameters: z.object({
           query: z.string().describe('The search query for finding tokens')
         }),
@@ -302,7 +308,7 @@ Remember to use this context when relevant to answer the user's query.`
       // }      
 
       getTopHolders: {
-        description: "Get the top holders of a Solana token by contract address",
+        description: "Get the top holders of a Solana token by contract address. The user caan click the result to get more information about the holder.",
         parameters: z.object({ address: z.string().describe('The address of the token to get top holders for') }),
         execute: async ({ address }) => {
           const holders = await getTopHolders(address);

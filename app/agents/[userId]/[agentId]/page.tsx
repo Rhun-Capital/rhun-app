@@ -156,9 +156,53 @@ export default function Home() {
     useChat({
       headers,
       body: { agentId, user },
-      maxSteps: 25,
+      maxSteps: 20,
       initialMessages,
       id: chatId ?? undefined,
+
+      // onToolCall: async ({ toolCall }) => {
+      //   const accessToken = await getAccessToken();
+      //   if (toolCall.toolName === 'provideContractAddress') {
+      //     addToolResult({ toolCallId: toolCall.toolCallId, result: 'You can search for the token first to get the contract address.' });
+      //     // return 'You can search for the token first to get the contract address.';
+      //   }
+
+      //   if (toolCall.toolName === 'searchTokens') {
+      //     addToolResult({ toolCallId: toolCall.toolCallId, result: 'You can click into the result to get the contract address.' });
+      //     // return 'You can click into the result to get the contract address.';
+      //   }        
+        
+      //   // if (toolCall.toolName === 'getTokenInfo') {
+      //   //   console.log('searchTokens toolCall', toolCall);
+      //   //   // First, search for the token
+      //   //   const searchResults = await fetch(
+      //   //     `/api/tools/search-tokens?query=${(toolCall.args as { query: string }).query}`,
+      //   //     {
+      //   //       headers: {
+      //   //         'accept': 'application/json',
+      //   //         'Authorization': `Bearer ${accessToken}`
+      //   //       }
+      //   //     }
+      //   //   ).then(r => r.json());
+      //   //   console.log(searchResults)
+          
+          
+      //   //   if (!searchResults.coins || searchResults.coins.length === 0) {
+      //   //     addToolResult({ toolCallId: toolCall.toolCallId, result: 'Token not found' });
+      //   //     return;
+      //   //   }
+    
+      //   //   // Add the search results 
+      //   //   addToolResult({ toolCallId: toolCall.toolCallId, result: "Choose one of the results above to get more information on the token" });
+      //   //   return
+    
+      //   //   // The AI can now see these results and make the next tool call
+      //   //   // for getTokenInfo with the correct coinId
+      //   // }
+
+      // },
+      
+      
       onError: () => {
         toast.error('Failed to send message. Please try again.')
       },
@@ -525,15 +569,17 @@ export default function Home() {
                     initial={{ y: 5, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                   >
+                    
                     <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
                       {message.role === "assistant" ? <BotIcon /> : <UserIcon />}
                     </div>
   
-                    <div className="flex-1 space-y-2 max-w-[75%]">
+                    <div className={`flex-1 space-y-2 max-w-[75%] ${message.role === "assistant" ? "bg-zinc-800 text-white" : "text-white"} p-4 rounded-lg`}>
                       <Markdown>{message.content}</Markdown>
                       
                       {/* Tool Invocations */}
                       {message.toolInvocations?.map((tool) => {
+
                         switch(tool.toolName) {
                           case 'getUserSolanaBalance':
                             return <SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
@@ -557,6 +603,8 @@ export default function Home() {
                             return <TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'searchTokens':
                             return <SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getContractAddress':
+                            return <SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'getTotalCryptoMarketCap':
                             return <TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'getMarketCategories':
@@ -571,7 +619,7 @@ export default function Home() {
                       })}
   
                       {/* Attachments */}
-                      {(message.experimental_attachments?.length ?? 0) > 0 && (
+                      {/* {(message.experimental_attachments?.length ?? 0) > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {message.experimental_attachments?.map((attachment) =>
                             attachment.contentType?.startsWith("image") ? (
@@ -588,7 +636,7 @@ export default function Home() {
                             ) : null
                           )}
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </motion.div>
                 ))
@@ -643,10 +691,7 @@ export default function Home() {
   
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex gap-3 py-4 w-full">
-                  <div className="w-6 h-6 text-zinc-400">
-                    <BotIcon />
-                  </div>
+                <div className="flex gap-3 py-4 w-full bg-zinc-900">
                   <LoadingIndicator />
                 </div>
               )}
@@ -656,7 +701,7 @@ export default function Home() {
           {/* Input area */}
           <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4">
             {/* File previews */}
-            <AnimatePresence>
+            {/* <AnimatePresence>
               {files && (
                 <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
                   {Array.from(files).map((file) =>
@@ -684,7 +729,7 @@ export default function Home() {
                   )}
                 </div>
               )}
-            </AnimatePresence>
+            </AnimatePresence> */}
   
             {/* Input form */}
             <form onSubmit={handleFormSubmit} className="max-w-4xl mx-auto flex gap-2">
@@ -698,13 +743,13 @@ export default function Home() {
               />
               
               <div className="flex-1 flex items-center bg-zinc-800 rounded-full px-4">
-                <button
+                {/* <button
                   type="button"
                   onClick={handleUploadClick}
                   className="p-2 text-zinc-400 hover:text-white"
                 >
                   <AttachmentIcon />
-                </button>
+                </button> */}
                 
                 <input
                   ref={inputRef}
