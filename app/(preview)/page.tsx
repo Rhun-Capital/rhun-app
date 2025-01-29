@@ -1,6 +1,7 @@
 'use client';
 
 import { BotIcon, BookIcon, SettingsIcon, ChevronRightIcon, MarketplaceIcon } from '@/components/icons';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from "sonner";
@@ -61,11 +62,11 @@ export default function HomePage() {
       <div className="max-w-6xl mx-auto space-y-12">
         {/* Hero Section */}
         <div className="text-center space-y-4 py-12">
-          <h1 className="text-4xl font-bold">Welcome to RHUN</h1>
+          <div className="flex items-center gap-2 justify-center"><h1 className="text-4xl font-bold">Welcome to</h1><Image src="/images/rhun-logo-gradient.svg" alt="Rhun Capital" height={155} width={155} className="mt-1 ml-2"/></div>
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
-            Create, customize, and interact with AI agents tailored to your needs.
+          Build and deploy AI agents that track, analyze, and surface market opportunities for you.
           </p>
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-5">
             <Link 
               href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
