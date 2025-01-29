@@ -1,6 +1,8 @@
+// app/api/agents/route.ts
 import { NextResponse } from 'next/server';
 import { DynamoDB } from 'aws-sdk';
 import { v4 as uuidv4 } from 'uuid';
+import { uploadToS3 } from '@/utils/s3';
 
 const dynamodb = new DynamoDB.DocumentClient({
   region: process.env.AWS_REGION,
@@ -10,21 +12,35 @@ const dynamodb = new DynamoDB.DocumentClient({
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const agentData = {
-      id: uuidv4(),
+    const formData = await request.formData();
+    const image = formData.get('image') as Blob | null;
+    const agentData = JSON.parse(formData.get('data') as string);
+    
+    const agentId = uuidv4();
+    let imageUrl = '';
+
+    if (image) {
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const key = `agents/${agentId}/profile.jpg`;
+      imageUrl = await uploadToS3(buffer, key);
+    }
+
+    const finalAgentData = {
+      id: agentId,
+      imageUrl,
       timestamp: new Date().toISOString(),
-      ...body
+      ...agentData
     };
 
     await dynamodb.put({
       TableName: 'Agents',
-      Item: agentData
+      Item: finalAgentData
     }).promise();
 
     return NextResponse.json({
       message: 'Agent created successfully',
-      agentId: agentData.id
+      agentId: finalAgentData.id,
+      imageUrl: finalAgentData.imageUrl
     }, { status: 201 });
 
   } catch (error) {
@@ -34,5 +50,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-
 }

@@ -21,3 +21,4 @@ const dynamodb = new DynamoDB.DocumentClient({
   
     return result.Items || [];
   }
+

@@ -20,14 +20,14 @@ import {
 
 
 export async function POST(req: Request) {
-  const { messages, user, agentId } = await req.json();
+  const { messages, user, agent } = await req.json();
   // Get the latest user message
   const latestMessage = messages[messages.length - 1];
 
   // Fetch both context and agent configuration in parallel
   const [context, agentConfig] = await Promise.all([
-    retrieveContext(latestMessage.content, agentId),
-    getAgentConfig(user.id, agentId)
+    retrieveContext(latestMessage.content, agent.id),
+    getAgentConfig(agent.userId, agent.id),
   ]);
 
   // Format context for the prompt
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 ## User Information (the user that's interacting with the agent):
 - User's ID: ${user.id}
 - User's Email: ${user.email || 'N/A'}
-- User's Wallet: ${user.wallet.address || 'N/A'}
+- User's Wallet: ${user.wallet?.address || 'N/A'}
 
 ## Agent Information (the agent that's answering the user's query):
 - Agent's ID: ${agentConfig.id}

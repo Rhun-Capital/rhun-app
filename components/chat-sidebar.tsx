@@ -186,7 +186,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       {isOpen && (
         <div className="h-full flex flex-col">
           {/* Tabs */}
-          <div className="flex border-b border-zinc-700 h-15">
+          <div className="flex border-b border-zinc-700 h-[61px]">
             <button
               onClick={() => setActiveTab('wallet')}
               className={`flex-1 p-4 text-sm font-medium transition-colors ${
