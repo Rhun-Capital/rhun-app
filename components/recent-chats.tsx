@@ -95,9 +95,6 @@ export const RecentChatsPage = () => {
             }}
             className="w-full flex items-center gap-3 p-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-colors text-left group"
           >
-            <div className="text-zinc-400">
-              <MessageSquareIcon />
-            </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-zinc-300 mb-1">
                 {chat.agentName}
