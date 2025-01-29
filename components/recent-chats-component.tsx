@@ -60,7 +60,6 @@ export const RecentChats = ({ maxVisible = 3 }) => {
             }}
             className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-800 transition-colors text-left group"
           >
-            <MessageSquareIcon />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-zinc-300 truncate">
                 {chat.agentName}
