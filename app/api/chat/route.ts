@@ -18,7 +18,6 @@ import {
   getTopHolders
  } from '@/utils/agent-tools';
 
-
 export async function POST(req: Request) {
   const { messages, user, agent } = await req.json();
   // Get the latest user message
