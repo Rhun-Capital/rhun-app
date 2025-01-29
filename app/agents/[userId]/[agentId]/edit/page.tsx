@@ -40,7 +40,7 @@ export default function EditAgentPage() {
       try {
         const accessToken = await getAccessToken();
         const response = await fetch(
-          `/api/agents/${params.userId}/${params.agentId}`,
+          `/api/agents/${decodeURIComponent(params.userId as string)}/${params.agentId}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,

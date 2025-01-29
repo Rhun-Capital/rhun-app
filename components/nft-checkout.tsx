@@ -66,7 +66,7 @@ const NFTCheckoutWrapper = ({ collectionId }: { collectionId: string }) => {
         crypto: {
             enabled: true,
             defaultChain: "solana", // Set preferred blockchain
-            // defaultCurrency: "sol", // Set preferred crypto
+            defaultCurrency: "sol", // Set preferred crypto
         },
         // Optional: Set default payment method
         defaultMethod: "crypto", // Options: "fiat" or "crypto"

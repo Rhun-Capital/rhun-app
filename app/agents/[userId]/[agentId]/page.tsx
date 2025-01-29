@@ -112,7 +112,7 @@ export default function Home() {
       try {
         const token = await getAccessToken();
         const response = await fetch(
-          `/api/chat/${chatId}?userId=${params.userId}`,
+          `/api/chat/${chatId}?userId=${decodeURIComponent(params.userId as string)}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -255,7 +255,7 @@ export default function Home() {
 
     if (message.trim() === '') return
   
-    const newChatId = `chat_${params.userId}_${Date.now()}`;
+    const newChatId = `chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`;
     const token = await getAccessToken();
   
     try {
@@ -266,7 +266,7 @@ export default function Home() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          userId: params.userId,
+          userId: decodeURIComponent(params.userId as string),
           agentId,
           agentName: agent?.name,
           lastMessage: message,
@@ -312,7 +312,7 @@ export default function Home() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          userId: params.userId,
+          userId: decodeURIComponent(params.userId as string),
           agentId,
           agentName: agent?.name,
           lastMessage: lastMessage.content,
@@ -330,7 +330,7 @@ export default function Home() {
         body: JSON.stringify({
           chatId: chatIdentifier,
           messageId: lastMessage.id,
-          userId: params.userId,
+          userId: decodeURIComponent(params.userId as string),
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
@@ -365,7 +365,7 @@ export default function Home() {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            userId: params.userId,
+            userId: decodeURIComponent(params.userId as string),
             agentId,
             agentName: agent?.name,
             lastMessage: command,
@@ -410,8 +410,9 @@ export default function Home() {
 
   const getAgent = async () => {
     const accessToken = await getAccessToken();
+    console.log(`/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}`)
     const response = await fetch(
-      `/api/agents/${params.userId}/${agentId}`,
+      `/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -690,7 +691,7 @@ export default function Home() {
                         Learn more about how to use{" "}
                         <Link
                           className="text-indigo-500 text-indigo-400"
-                          href={`/agents/${params.userId}/${agentId}/edit`}
+                          href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}
                         >
                           {agent.name + " "}
                         </Link>
@@ -705,7 +706,7 @@ export default function Home() {
               )}
 
 
-              {!messages.length ? <div> <Link href={`/agents/${params.userId}/${agentId}/edit`}>
+              {!messages.length ? <div> <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
                 <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
                 <div className="flex items-center"> <SettingsIcon/>&nbsp;Edit Agent</div>
                 </button>

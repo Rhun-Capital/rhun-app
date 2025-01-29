@@ -295,7 +295,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
   try {
     const url = initialData
-      ? `/api/agents/${params.userId}/${initialData.id}`
+      ? `/api/agents/${decodeURIComponent(params.userId as string)}/${initialData.id}`
       : "/api/agents";
 
     const accessToken = await getAccessToken();
@@ -346,7 +346,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   ];
 
   const goToChat = () => {
-    router.push(`/agents/${params.userId}/${params.agentId}`);
+    router.push(`/agents/${decodeURIComponent(params.userId as string)}/${params.agentId}`);
     router.refresh();
   };
 

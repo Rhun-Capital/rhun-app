@@ -61,7 +61,7 @@ export default function WalletTab({ agentId }: { agentId: string }) {
     try {
       const accessToken = await getAccessToken();
       const response = await fetch(
-        `/api/agents/${params.userId}/${agentId}`,
+        `/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -83,7 +83,7 @@ export default function WalletTab({ agentId }: { agentId: string }) {
       setWalletAddress(wallet.address);
       const accessToken = await getAccessToken();
       
-      await fetch(`/api/agents/${params.userId}/${agentId}/wallet`, {
+      await fetch(`/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}/wallet`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
