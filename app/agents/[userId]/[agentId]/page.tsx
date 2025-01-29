@@ -107,12 +107,12 @@ export default function Home() {
 
   useEffect(() => {
     const loadInitialMessages = async (): Promise<void> => {
-      if (!chatId || !user?.id) return;
+      if (!chatId || !params.userId) return;
       
       try {
         const token = await getAccessToken();
         const response = await fetch(
-          `/api/chat/${chatId}?userId=${user.id}`,
+          `/api/chat/${chatId}?userId=${params.userId}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -152,12 +152,12 @@ export default function Home() {
     };
   
     loadInitialMessages();
-  }, [chatId, user?.id, getAccessToken]);
+  }, [chatId, params.userId, getAccessToken]);
 
   const { messages, input, handleSubmit, handleInputChange, addToolResult , isLoading, append } =
     useChat({
       headers,
-      body: { agentId, user },
+      body: { agent, user },
       maxSteps: 20,
       initialMessages,
       id: chatId ?? undefined,
@@ -255,7 +255,7 @@ export default function Home() {
 
     if (message.trim() === '') return
   
-    const newChatId = `chat_${user?.id}_${Date.now()}`;
+    const newChatId = `chat_${params.userId}_${Date.now()}`;
     const token = await getAccessToken();
   
     try {
@@ -266,7 +266,7 @@ export default function Home() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          userId: user?.id,
+          userId: params.userId,
           agentId,
           agentName: agent?.name,
           lastMessage: message,
@@ -295,7 +295,7 @@ export default function Home() {
   const updateChatInDB = async (messages: Message[]) => {
     const lastMessage = messages[messages.length - 1];
 
-    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !user?.id) return;  
+    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !params.userId) return;  
     
     const chatIdentifier = await createNewChat(lastMessage.content);
     
@@ -312,7 +312,7 @@ export default function Home() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          userId: user.id,
+          userId: params.userId,
           agentId,
           agentName: agent?.name,
           lastMessage: lastMessage.content,
@@ -330,7 +330,7 @@ export default function Home() {
         body: JSON.stringify({
           chatId: chatIdentifier,
           messageId: lastMessage.id,
-          userId: user.id,
+          userId: params.userId,
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
@@ -365,7 +365,7 @@ export default function Home() {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            userId: user?.id,
+            userId: params.userId,
             agentId,
             agentName: agent?.name,
             lastMessage: command,
@@ -383,7 +383,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error in handleToolSelect:', error);
     }
-  }, [append, user?.id, agentId, agent?.name, getAccessToken, isNewChat]);
+  }, [append, params.userId, agentId, agent?.name, getAccessToken, isNewChat]);
 
   // Make sure your handleFormSubmit function looks like this:
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
@@ -411,7 +411,7 @@ export default function Home() {
   const getAgent = async () => {
     const accessToken = await getAccessToken();
     const response = await fetch(
-      `/api/agents/${user?.id}/${agentId}`,
+      `/api/agents/${params.userId}/${agentId}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -533,6 +533,25 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-white bg-zinc-900">
   
       <div className="flex flex-1 pt-16 lg:pt-0">
+
+      <div className="fixed top-0 left-0 right-0 h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 z-10">
+        <div className="max-w-4xl mx-auto w-full flex items-center gap-3">
+          <div className="lg:ml-0 ml-[55px]">  {/* Add responsive margin here */}
+            {agent.imageUrl ? (
+              <img 
+                src={agent.imageUrl} 
+                alt={agent.name}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                <BotIcon />
+              </div>
+            )}
+          </div>
+          <h1 className="text-lg font-medium text-white">{agent.name}</h1>
+        </div>
+      </div>        
   
         {/* Main chat area */}
         <div className="flex-1 flex flex-col">
@@ -560,7 +579,7 @@ export default function Home() {
             </AnimatePresence>
   
             {/* Messages */}
-            <div className="max-w-4xl mx-auto px-1">
+            <div className="max-w-4xl mx-auto px-1 mt-[7%]">
               {messages.length > 0 ? (
                 messages.map((message, index) => (
                   <motion.div
@@ -571,7 +590,19 @@ export default function Home() {
                   >
                     
                     <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
-                      {message.role === "assistant" ? <BotIcon /> : <UserIcon />}
+                    {message.role === "assistant" ? (
+  agent.imageUrl ? (
+    <img 
+      src={agent.imageUrl} 
+      alt={agent.name}
+      className="w-6 h-6 rounded-full object-cover"
+    />
+  ) : (
+    <BotIcon />
+  )
+) : (
+  <UserIcon />
+)}
                     </div>
   
                     <div className={`flex-1 space-y-2 max-w-[75%] text-white`}>
@@ -659,7 +690,7 @@ export default function Home() {
                         Learn more about how to use{" "}
                         <Link
                           className="text-indigo-500 text-indigo-400"
-                          href={`/agents/${user?.id}/${agentId}/edit`}
+                          href={`/agents/${params.userId}/${agentId}/edit`}
                         >
                           {agent.name + " "}
                         </Link>
@@ -674,7 +705,7 @@ export default function Home() {
               )}
 
 
-              {!messages.length ? <div> <Link href={`/agents/${user?.id}/${agentId}/edit`}>
+              {!messages.length ? <div> <Link href={`/agents/${params.userId}/${agentId}/edit`}>
                 <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
                 <div className="flex items-center"> <SettingsIcon/>&nbsp;Edit Agent</div>
                 </button>

@@ -16,6 +16,13 @@ const nextConfig = {
           },
           {
             protocol: 'https',
+            hostname: 'd1olseq3j3ep4p.cloudfront.net',
+            port: '',
+            pathname: '/agents/**/**'
+
+          },         
+          {
+            protocol: 'https',
             hostname: 'coin-images.coingecko.com',
             port: '',
             pathname: '/coins/images/**/**'

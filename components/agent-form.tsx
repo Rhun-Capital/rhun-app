@@ -10,6 +10,9 @@ import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { getAccessToken } from "@privy-io/react-auth";
 import ImageSelect from "./agent-model-select";
+import ImageUpload from "./image-upload";
+import Accordion from "./accordion";
+import { v4 as uuidv4 } from "uuid";
 
 interface InitialData {
   id: string;
@@ -27,6 +30,7 @@ interface InitialData {
   responsePriorityOrder: string;
   styleGuide: string;
   specialInstructions: string;
+  imageUrl?: string;
 }
 
 interface AgentFormProps {
@@ -38,11 +42,14 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedModelValue, setSelectedModelValue] = useState('option1');
+
   const topRef = useRef<HTMLDivElement>(null);
   const { user } = usePrivy();
   const params = useParams();
   const router = useRouter();
-  const [selectedModelValue, setSelectedModelValue] = useState('option1');
+
   const options = [
     {
       value: 'option1',
@@ -266,67 +273,70 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     topRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess(false);
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
+  setSuccess(false);
 
-    const now = new Date().toISOString();
-    const agentData = {
-      ...formData,
-      ...(initialData
-        ? {
-            updatedAt: now, // Only add updatedAt for existing agents
-          }
-        : {
-            createdAt: now, // Add both for new agents
-            updatedAt: now,
-          }),
-      userId: user?.id,
-    };
-
-    try {
-      const url = initialData
-        ? `/api/agents/${initialData?.userId}/${initialData.id}`
-        : "/api/agents";
-
-      const accessToken = await getAccessToken();
-
-      const response = await fetch(url, {
-        method: initialData ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-
-        },
-        body: JSON.stringify(agentData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${initialData ? "update" : "create"} agent`);
-      }
-
-      setSuccess(true);
-      
-      if (!initialData) {
-        router.push("/agents"); // Redirect to agents list after creation
-        router.refresh();
-      }
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred");
-      }
-    } finally {
-      setLoading(false);
-      if (initialData) {
-        scrollToTop();
-      }
-      // redirect tp newly created agent
-    }
+  const now = new Date().toISOString();
+  const agentData = {
+    ...formData,
+    ...(initialData
+      ? {
+          updatedAt: now,
+        }
+      : {
+          createdAt: now,
+          updatedAt: now,
+        }),
+    userId: user?.id,
   };
+
+  try {
+    const url = initialData
+      ? `/api/agents/${params.userId}/${initialData.id}`
+      : "/api/agents";
+
+    const accessToken = await getAccessToken();
+    
+    const formData = new FormData();
+    formData.append('data', JSON.stringify(agentData));
+    if (selectedImage) {
+      formData.append('image', selectedImage);
+    }
+
+    const response = await fetch(url, {
+      method: initialData ? "PUT" : "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to ${initialData ? "update" : "create"} agent`);
+    }
+
+    setSuccess(true);
+    
+    if (!initialData) {
+      router.push("/agents");
+      router.refresh();
+    }
+  } catch (err) {
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError("An unknown error occurred");
+    }
+  } finally {
+    setLoading(false);
+    if (initialData) {
+      scrollToTop();
+    }
+  }
+};
 
   const tabs = [
     { id: "config", label: "Configuration" },
@@ -339,26 +349,90 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     router.push(`/agents/${params.userId}/${params.agentId}`);
     router.refresh();
   };
+
+  const handleUseTemplate = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess(false);
+  
+    const now = new Date().toISOString();
+    const templateData = {
+      ...formData,
+      id: uuidv4(),
+      name: `${formData.name} Copy`,
+      userId: user?.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+  
+    try {
+      const accessToken = await getAccessToken();
+      
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(templateData));
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+  
+      const response = await fetch("/api/agents", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error("Failed to create agent from template");
+      }
+  
+      setSuccess(true);
+      router.push("/agents");
+      router.refresh();
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };  
   
   return (
     <div className="min-h-screen dark:bg-zinc-900 text-gray-100 p-4 sm:p-6" ref={topRef}>
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">
-            {initialData ? initialData.name || "Edit Agent" : "Create New Agent"}
+            {initialData ? formData.name || "Edit Agent" : "Create New Agent"}
           </h1>
           
-          {params.agentId && (
-            <button
-              onClick={goToChat}
-              className="w-full sm:w-auto px-4 py-2 bg-transparent rounded-lg transition"
-            >
-              <div className="flex justify-center items-center gap-2 outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500">
-                <span>Start Chat</span>
-                <ChatIcon/>
-              </div>
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {params.userId === "template" && (
+              <button
+                onClick={handleUseTemplate}
+                disabled={loading}
+                className="w-full sm:w-auto px-4 py-2 bg-transparent rounded-lg transition"
+              >
+                <div className="flex justify-center items-center gap-2 outline outline-green-400 rounded-lg px-5 py-1 hover:outline-green-500">
+                  <span>{loading ? "Creating..." : "Use Template"}</span>
+                </div>
+              </button>
+            )}
+
+            {params.agentId && (
+              <button
+                onClick={goToChat}
+                className="w-full sm:w-auto px-4 py-2 bg-transparent rounded-lg transition"
+              >
+                <div className="flex justify-center items-center gap-2 outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500">
+                  <span>Start Chat</span>
+                  <ChatIcon/>
+                </div>
+              </button>
+            )}
+          </div>
         </div>
   
         {/* Tabs */}
@@ -404,70 +478,87 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
             )}
       
   
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {/* <div>
-            <label htmlFor="name" className="block text-sm font-medium mb-2">
-                  Agent Model
-                </label>
-            <div>
-                <ImageSelect
-                  options={options}
-                  value={selectedModelValue}
-                  onChange={setSelectedModelValue}
-                />
-              </div>      
-              </div> */}
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+  <div className="mb-6">
+    <ImageUpload
+      onImageChange={setSelectedImage}
+      initialImage={initialData?.imageUrl}
+    />
+  </div>
 
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-2">
-                  Agent Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder='e.g., "Crypto Analyst"'
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-3 py-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
-                />
-              </div>
-  
-              {textAreaFields.map((field) => (
-                <div key={field.name}>
-                  <label htmlFor={field.name} className="block text-sm font-medium mb-2">
-                    {field.label}
-                  </label>
-                  <textarea
-                    required={field.required || false}
-                    id={field.name}
-                    name={field.name}
-                    placeholder={field.placeholder}
-                    value={formData[field.name]}
-                    onChange={handleChange}
-                    rows={field.rows || 10}
-                    className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
-                  />
-                </div>
-              ))}
-  
-              <div className="flex justify-end pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full sm:w-auto h-10 px-6 py-2 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                >
-                  {loading
-                    ? initialData
-                      ? "Updating..."
-                      : "Creating..."
-                    : initialData
-                    ? "Update Agent"
-                    : "Create Agent"}
-                </button>
-              </div>
-            </form>
+  <div>
+    <label htmlFor="name" className="block text-sm font-medium mb-2">
+      Agent Name
+    </label>
+    <input
+      id="name"
+      name="name"
+      type="text"
+      placeholder='e.g., "Crypto Analyst"'
+      required
+      value={formData.name}
+      onChange={handleChange}
+      className="w-full px-3 py-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+    />
+  </div>
+
+  <div>
+    <label htmlFor="description" className="block text-sm font-medium mb-2">
+      Description
+    </label>
+    <textarea
+      id="description"
+      name="description"
+      placeholder='e.g., "A crypto analyst providing insights on market trends"'
+      required
+      value={formData.description}
+      onChange={handleChange}
+      rows={4}
+      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+    />
+  </div>
+
+  <Accordion title="Advanced Options">
+    <div className="space-y-4 sm:space-y-6 pt-4">
+      {textAreaFields
+        .filter(field => field.name !== "description")
+        .map((field) => (
+          <div key={field.name}>
+            <label htmlFor={field.name} className="block text-sm font-medium mb-2">
+              {field.label}
+            </label>
+            <textarea
+              required={field.required || false}
+              id={field.name}
+              name={field.name}
+              placeholder={field.placeholder}
+              value={formData[field.name]}
+              onChange={handleChange}
+              rows={field.rows || 10}
+              className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+            />
+          </div>
+        ))}
+          </div>
+        </Accordion>
+
+        {params.userId !== 'template' && <div className="flex justify-end pt-4">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full sm:w-auto h-10 px-6 py-2 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+          >
+            {loading
+              ? initialData
+                ? "Updating..."
+                : "Creating..."
+              : initialData
+              ? "Update Agent"
+              : "Create Agent"}
+          </button>
+        </div>}
+
+      </form>
           </div>
         )}
   

@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
+import { DynamoDB } from 'aws-sdk';
 import { getAgentConfig } from '@/utils/agent-tools';
+import { uploadToS3, deleteFromS3, getKeyFromUrl } from '@/utils/s3';
+
+const dynamodb = new DynamoDB.DocumentClient({
+  region: process.env.AWS_REGION,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
 
 export async function GET(
   request: Request,
@@ -10,5 +18,92 @@ export async function GET(
     return NextResponse.json(item);
   } catch (error) {
     return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { userId: string; agentId: string } }
+) {
+  try {
+    // First, get the current agent data to check for existing image
+    const currentAgent = await dynamodb.get({
+      TableName: 'Agents',
+      Key: {
+        id: params.agentId,
+        userId: params.userId
+      }
+    }).promise();
+
+    const formData = await request.formData();
+    const image = formData.get('image') as Blob | null;
+    const agentData = JSON.parse(formData.get('data') as string);
+    
+    let imageUrl = agentData.imageUrl || '';
+
+    if (image) {
+      // If there's an existing image, delete it from S3
+      if (currentAgent.Item?.imageUrl) {
+        const oldKey = getKeyFromUrl(currentAgent.Item.imageUrl);
+        try {
+          await deleteFromS3(oldKey);
+        } catch (error) {
+          console.error('Error deleting old image:', error);
+        }
+      }
+
+      // Upload new image with timestamp to prevent caching
+      const buffer = Buffer.from(await image.arrayBuffer());
+      const key = `agents/${params.agentId}/profile-${Date.now()}.jpg`;
+      imageUrl = await uploadToS3(buffer, key);
+    }
+
+    const finalAgentData = {
+      ...agentData,
+      imageUrl,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await dynamodb.update({
+      TableName: 'Agents',
+      Key: {
+        id: params.agentId,
+        userId: params.userId,
+      },
+      UpdateExpression: 'set #n = :name, description = :description, imageUrl = :imageUrl, coreCapabilities = :coreCapabilities, interactionStyle = :interactionStyle, analysisApproach = :analysisApproach, riskCommunication = :riskCommunication, responseFormat = :responseFormat, limitationsDisclaimers = :limitationsDisclaimers, prohibitedBehaviors = :prohibitedBehaviors, knowledgeUpdates = :knowledgeUpdates, responsePriorityOrder = :responsePriorityOrder, styleGuide = :styleGuide, specialInstructions = :specialInstructions, updatedAt = :updatedAt',
+      ExpressionAttributeNames: {
+        '#n': 'name',
+      },
+      ExpressionAttributeValues: {
+        ':name': finalAgentData.name,
+        ':description': finalAgentData.description,
+        ':imageUrl': finalAgentData.imageUrl,
+        ':coreCapabilities': finalAgentData.coreCapabilities,
+        ':interactionStyle': finalAgentData.interactionStyle,
+        ':analysisApproach': finalAgentData.analysisApproach,
+        ':riskCommunication': finalAgentData.riskCommunication,
+        ':responseFormat': finalAgentData.responseFormat,
+        ':limitationsDisclaimers': finalAgentData.limitationsDisclaimers,
+        ':prohibitedBehaviors': finalAgentData.prohibitedBehaviors,
+        ':knowledgeUpdates': finalAgentData.knowledgeUpdates,
+        ':responsePriorityOrder': finalAgentData.responsePriorityOrder,
+        ':styleGuide': finalAgentData.styleGuide,
+        ':specialInstructions': finalAgentData.specialInstructions,
+        ':updatedAt': finalAgentData.updatedAt,
+      },
+      ReturnValues: 'ALL_NEW',
+    }).promise();
+
+    return NextResponse.json({
+      message: 'Agent updated successfully',
+      imageUrl: finalAgentData.imageUrl
+    });
+
+  } catch (error) {
+    console.error('Error updating agent:', error);
+    return NextResponse.json(
+      { error: 'Failed to update agent' },
+      { status: 500 }
+    );
   }
 }
