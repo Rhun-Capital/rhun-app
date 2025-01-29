@@ -113,6 +113,7 @@ export async function middleware(request: NextRequest) {
     try {
       // Check access token first
       const accessToken = request.cookies.get('rhun_early_access_token')?.value;
+      console.log('Access token:', accessToken);  
       const hasValidToken = accessToken ? await verifyAccessToken(accessToken) : false;
 
       // No access token, check NFT ownership via Privy
@@ -123,22 +124,21 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
 
-
       // If they have a valid access token, allow access immediately
       if (hasValidToken) {
         return NextResponse.next();
       }
 
-
       // Verify Privy token and check NFT ownership
       try {
         const user = await privy.verifyAuthToken(privyToken);
         const hasNFT = user?.userId ? await verifyNFTOwnership(user.userId) : false;
+        console.log('hasNFT:', hasNFT);
 
         if (hasNFT) {
           return NextResponse.next();
-        } else {
-          // return NextResponse.redirect(new URL('/login', request.url));
+        } else if (request.nextUrl.pathname !== '/login'){
+          return NextResponse.redirect(new URL('/login', request.url));
         }
       } catch (error) {
         console.error('Error verifying privy token:', error);

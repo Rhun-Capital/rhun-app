@@ -57,8 +57,36 @@ const NFTCheckoutWrapper = ({ collectionId }: { collectionId: string }) => {
         collectionLocator: `crossmint:${collectionId}`,
         callData: { totalPrice: "1", quantity: 1 },
       }}
-      payment={{ crypto: { enabled: true }, fiat: { enabled: true } }}
+      payment={{
+        // Enable/disable payment types
+        fiat: {
+            enabled: true,
+            defaultCurrency: "usd", // Set preferred fiat currency
+        },
+        crypto: {
+            enabled: true,
+            defaultChain: "solana", // Set preferred blockchain
+            // defaultCurrency: "sol", // Set preferred crypto
+        },
+        // Optional: Set default payment method
+        defaultMethod: "crypto", // Options: "fiat" or "crypto"
+    }}
       recipient={createRecipientObject()}
+      appearance={{
+        theme: {
+            button: "dark",
+            checkout: "dark",
+        },
+        variables: {
+            colors: {
+                accent: "#4F46E5",
+            },
+        },
+        display: "popup",
+        overlay: {
+            enabled: true,
+        },
+    }}      
       
     />
   )
