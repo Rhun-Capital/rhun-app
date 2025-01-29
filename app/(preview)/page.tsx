@@ -61,7 +61,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-zinc-900 text-white p-6">
       <div className="max-w-6xl mx-auto space-y-12">
         {/* Hero Section */}
-        <div className="text-center space-y-4 py-12">
+        <div className="text-center space-y-4 py-16">
           <div className="flex items-center gap-2 justify-center"><h1 className="text-4xl font-bold">Welcome to</h1><Image src="/images/rhun-logo-gradient.svg" alt="Rhun Capital" height={155} width={155} className="mt-1 ml-2"/></div>
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
           Build and deploy AI agents that track, analyze, and surface market opportunities for you.
@@ -133,7 +133,7 @@ export default function HomePage() {
         </div>
 
         {/* Start Button */}
-        {!user && ready && <div className="text-center">
+        {user && ready && <div className="text-center">
           <Link 
             href="/agents"
             className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-semibold transition-colors text-lg"
