@@ -173,7 +173,7 @@ export default function Home() {
       onFinish: async (message) => {
         // Move message storage here to ensure we get the complete message
         const currentMessages = [...messages, message];  // Include the final message
-        updateChatInDB(currentMessages);
+        await updateChatInDB(currentMessages);
       },
     });
   
