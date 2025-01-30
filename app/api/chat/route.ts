@@ -122,11 +122,13 @@ Remember to use this context when relevant to answer the user's query.`
 
       getUserSolanaBalance: {
         description: "show the user's solana balance for their connected wallet to the user",
-        parameters: z.object({ user: z.string() }),
-        execute: async ({}: { user: string }) => {
+        parameters: z.object({ user: z.object({ wallet: z.object({ address: z.string() }) }) }),
+        execute: async ({ user }: { user: { wallet: { address: string } } }) => {
           // fetch the balance from the Solana blockchain
+          console.log(user, process.env.HELIUS_API_KEY)
           if (user.wallet.address && process.env.HELIUS_API_KEY) {
             const balance = await getSolanaBalance(user.wallet.address, process.env.HELIUS_API_KEY);
+            console.log({balance, address: user.wallet.address})
             return {balance, address: user.wallet.address};
           } else {
             throw new Error('User wallet address or Helius API key is missing');
@@ -137,7 +139,7 @@ Remember to use this context when relevant to answer the user's query.`
       getAgentSolanaBalance: {
         description: "show the agents's solana balance for their embedded wallet to the user",
         parameters: z.object({ agent: z.string() }),
-        execute: async ({}: { agent: string }) => {
+        execute: async ({agentConfig}: { agentConfig: { wallets: { solana: string } } }) => {
           // fetch the balance from the Solana blockchain
           if (agentConfig.wallets.solana && process.env.HELIUS_API_KEY) {
             const balance = await getSolanaBalance(agentConfig.wallets.solana, process.env.HELIUS_API_KEY);

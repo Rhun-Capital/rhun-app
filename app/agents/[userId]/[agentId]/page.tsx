@@ -112,7 +112,7 @@ export default function Home() {
       try {
         const token = await getAccessToken();
         const response = await fetch(
-          `/api/chat/${chatId}?userId=${decodeURIComponent(params.userId as string)}`,
+          `/api/chat/${chatId}?userId=${encodeURIComponent(params.userId as string)}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -163,45 +163,8 @@ export default function Home() {
       id: chatId ?? undefined,
 
       // onToolCall: async ({ toolCall }) => {
-      //   const accessToken = await getAccessToken();
-      //   if (toolCall.toolName === 'provideContractAddress') {
-      //     addToolResult({ toolCallId: toolCall.toolCallId, result: 'You can search for the token first to get the contract address.' });
-      //     // return 'You can search for the token first to get the contract address.';
-      //   }
-
-      //   if (toolCall.toolName === 'searchTokens') {
-      //     addToolResult({ toolCallId: toolCall.toolCallId, result: 'You can click into the result to get the contract address.' });
-      //     // return 'You can click into the result to get the contract address.';
-      //   }        
-        
-      //   // if (toolCall.toolName === 'getTokenInfo') {
-      //   //   // First, search for the token
-      //   //   const searchResults = await fetch(
-      //   //     `/api/tools/search-tokens?query=${(toolCall.args as { query: string }).query}`,
-      //   //     {
-      //   //       headers: {
-      //   //         'accept': 'application/json',
-      //   //         'Authorization': `Bearer ${accessToken}`
-      //   //       }
-      //   //     }
-      //   //   ).then(r => r.json());
-          
-          
-      //   //   if (!searchResults.coins || searchResults.coins.length === 0) {
-      //   //     addToolResult({ toolCallId: toolCall.toolCallId, result: 'Token not found' });
-      //   //     return;
-      //   //   }
-    
-      //   //   // Add the search results 
-      //   //   addToolResult({ toolCallId: toolCall.toolCallId, result: "Choose one of the results above to get more information on the token" });
-      //   //   return
-    
-      //   //   // The AI can now see these results and make the next tool call
-      //   //   // for getTokenInfo with the correct coinId
-      //   // }
 
       // },
-      
       
       onError: () => {
         toast.error('Failed to send message. Please try again.')
@@ -388,6 +351,19 @@ export default function Home() {
   // Make sure your handleFormSubmit function looks like this:
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
+
+      // Create user message object
+      const userMessage: Message = {
+        id: `msg_user_${Date.now()}`,
+        content: input.trim(),
+        role: 'user',
+        createdAt: new Date()
+      };
+      
+      // Save user message first
+      updateChatInDB([...messages, userMessage]);
+    
+    
       // Only add to history if it's different from the last command
       if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== input.trim()) {
         setCommandHistory(prev => [...prev, input.trim()]);

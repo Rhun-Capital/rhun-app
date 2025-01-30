@@ -19,7 +19,6 @@ export async function GET(
       );
     }
 
-    // Simplify the query to just use the chatId as the primary key
     const queryParams = {
       TableName: 'ChatMessages',
       KeyConditionExpression: 'chatId = :chatId',
