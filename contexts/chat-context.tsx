@@ -37,34 +37,40 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     return data.chats.map((chat: Chat) => ({ ...chat, isTemplate: false }));
   };
 
-  const fetchTemplateChats = async () => {
-    const token = await getAccessToken();
-    const response = await fetch(`/api/chat/recent?userId=template`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+  // const fetchTemplateChats = async () => {
+  //   const token = await getAccessToken();
+  //   const response = await fetch(`/api/chat/recent?userId=template`, {
+  //     headers: {
+  //       'Authorization': `Bearer ${token}`
+  //     }
+  //   });
     
-    if (!response.ok) throw new Error('Failed to fetch template chats');
+  //   if (!response.ok) throw new Error('Failed to fetch template chats');
     
-    const data = await response.json();
-    return data.chats.map((chat: Chat) => ({ ...chat, isTemplate: true }));
-  };
+  //   const data = await response.json();
+  //   return data.chats.map((chat: Chat) => ({ ...chat, isTemplate: true }));
+  // };
 
   const fetchRecentChats = async () => {
     try {
       
       
-      // Fetch both user and template chats in parallel
-      const [userChats, templateChats] = await Promise.all([
-        user && user.id ? fetchUserChats() : Promise.resolve([]),
-        fetchTemplateChats()
-      ]);
+      // // Fetch both user and template chats in parallel
+      // const [userChats, templateChats] = await Promise.all([
+      //   user && user.id ? fetchUserChats() : Promise.resolve([]),
+      //   fetchTemplateChats()
+      // ]);
+
+      const userChats = await fetchUserChats();
 
       // Combine and sort all chats by lastUpdated
-      const allChats = [...userChats, ...templateChats].sort(
+      // const allChats = [...userChats, ...templateChats].sort(
+      //   (a, b) => b.lastUpdated - a.lastUpdated
+      // );
+
+      const allChats = [...userChats].sort(
         (a, b) => b.lastUpdated - a.lastUpdated
-      );
+      );      
 
       setRecentChats(allChats);
     } catch (error) {
