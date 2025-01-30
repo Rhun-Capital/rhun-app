@@ -109,6 +109,8 @@ Remember to use this context when relevant to answer the user's query.`
     model: openai("gpt-4o"),
     system: systemPrompt,
     messages: convertToCoreMessages(messages),
+    // async onFinish({ response }) {
+    // },    
     tools: {
 
       getContractAddress: { 
@@ -125,10 +127,8 @@ Remember to use this context when relevant to answer the user's query.`
         parameters: z.object({ user: z.object({ wallet: z.object({ address: z.string() }) }) }),
         execute: async ({ user }: { user: { wallet: { address: string } } }) => {
           // fetch the balance from the Solana blockchain
-          console.log(user, process.env.HELIUS_API_KEY)
           if (user.wallet.address && process.env.HELIUS_API_KEY) {
             const balance = await getSolanaBalance(user.wallet.address, process.env.HELIUS_API_KEY);
-            console.log({balance, address: user.wallet.address})
             return {balance, address: user.wallet.address};
           } else {
             throw new Error('User wallet address or Helius API key is missing');

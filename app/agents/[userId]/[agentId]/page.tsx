@@ -33,6 +33,7 @@ import TokenHoldings  from "@/components/tools/token-holdings";
 import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import  SwapComponent  from "@/components/tools/swap-component";
+import { debounce, DebouncedFunc } from 'lodash';
 
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
@@ -77,7 +78,7 @@ export default function Home() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [savedInput, setSavedInput] = useState("");
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [newChatId, setNewChatId] = useState<string | null>(`chat_${Date.now()}`);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isNewChat, setIsNewChat] = useState(true);
   const [isHeadersReady, setIsHeadersReady] = useState(false);
@@ -86,6 +87,7 @@ export default function Home() {
   const agentId = params.agentId;  
   const searchParams = useSearchParams(); 
   const chatId = searchParams.get('chatId');  
+
 
   useEffect(() => {
     if (window.innerWidth < 1024) {
@@ -160,6 +162,7 @@ export default function Home() {
       body: { agent, user },
       maxSteps: 20,
       initialMessages,
+      sendExtraMessageFields: true,
       id: chatId ?? undefined,
 
       // onToolCall: async ({ toolCall }) => {
@@ -170,12 +173,28 @@ export default function Home() {
         toast.error('Failed to send message. Please try again.')
       },
       // onToolCall: async ({ toolCall }) => {},
-      onFinish: async (message) => {
-        // Move message storage here to ensure we get the complete message
-        const currentMessages = [...messages, message];  // Include the final message
-        await updateChatInDB(currentMessages);
+      onFinish: async (message) => {   
+        // const currentMessages = [...messages, message];  // Include the final message
+        // await updateChatInDB(currentMessages);
       },
     });
+
+    useEffect(() => {
+      if (messages.length === 0) return;
+      debouncedFetch(messages);
+      // Cleanup function to cancel pending debounced calls
+      return () => {
+        debouncedFetch.cancel();
+      };
+    }, [messages]);
+  
+
+    const debouncedFetch: DebouncedFunc<(messages: Message[]) => Promise<void>> = useCallback(
+      debounce(async (messages) => {
+        updateChatInDB(messages);
+      }, 1000),
+      [messages]
+    );
   
   // Add this handler function
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -211,70 +230,71 @@ export default function Home() {
     }
   };
 
-  const createNewChat = async (message: string) => {
-    if (!isNewChat || chatId || currentChatId || chatCreatedRef.current) {
-      return chatId || currentChatId;
-    }
+  // const createNewChat = async (message: string) => {
+  //   if (!isNewChat || chatId || currentChatId) {
+  //     return chatId || currentChatId;
+  //   }
 
-    if (message.trim() === '') return
+  //   if (message.trim() === '') return
   
-    const newChatId = `chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`;
-    const token = await getAccessToken();
+  //   const newChatId = `chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`;
+  //   const token = await getAccessToken();
   
-    try {
-      const response = await fetch(`/api/chat/${newChatId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          userId: decodeURIComponent(params.userId as string),
-          agentId,
-          agentName: agent?.name,
-          lastMessage: message,
-          lastUpdated: new Date().toISOString()
-        })
-      });
+  //   try {
+  //     const response = await fetch(`/api/chat/${newChatId}`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         'Authorization': `Bearer ${token}`
+  //       },
+  //       body: JSON.stringify({
+  //         userId: decodeURIComponent(params.userId as string),
+  //         agentId,
+  //         agentName: agent?.name,
+  //         lastMessage: message,
+  //         lastUpdated: new Date().toISOString()
+  //       })
+  //     });
   
-      if (!response.ok) {
-        throw new Error('Failed to create chat');
-      }
+  //     if (!response.ok) {
+  //       throw new Error('Failed to create chat');
+  //     }
   
-      setCurrentChatId(newChatId);
-      setIsNewChat(false);
-      chatCreatedRef.current = true;
+  //     setCurrentChatId(newChatId);
+  //     setIsNewChat(false);
+  //     chatCreatedRef.current = true;
       
-      // Refresh the recent chats list
-      await refreshRecentChats();
+  //     // Refresh the recent chats list
+  //     await refreshRecentChats();
 
-      return newChatId;
-    } catch (error) {
-      console.error('Error creating chat:', error);
-      throw error;
-    }
-  };  
+  //     return newChatId;
+  //   } catch (error) {
+  //     console.error('Error creating chat:', error);
+  //     throw error;
+  //   }
+  // };  
 
-  const updateChatInDB = async (messages: Message[]) => {
+  const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
     const lastMessage = messages[messages.length - 1];
 
-    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !params.userId) return;  
+    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !params.userId) return [];  
     
-    const chatIdentifier = await createNewChat(lastMessage.content);
+    // const chatIdentifier = await createNewChat(lastMessage.content);
     
-    if (!chatIdentifier) return;
-  
+    // if (!chatIdentifier) return [];
+
     const token = await getAccessToken();
     
     try {
       // Update chat metadata
-      await fetch(`/api/chat/${chatIdentifier}`, {
+      await fetch(`/api/chat/${chatId ? chatId : newChatId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          chatId: chatId ? chatId : newChatId,
           userId: decodeURIComponent(params.userId as string),
           agentId,
           agentName: agent?.name,
@@ -291,7 +311,7 @@ export default function Home() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          chatId: chatIdentifier,
+          chatId: chatId ? chatId : newChatId,
           messageId: lastMessage.id,
           userId: decodeURIComponent(params.userId as string),
           role: lastMessage.role,
@@ -308,6 +328,10 @@ export default function Home() {
     } catch (error) {
       console.error('Error updating chat:', error);
     }
+    
+    // await refreshRecentChats();
+    
+    return [];
   };
   
   const handleToolSelect = useCallback(async (command: string) => {
@@ -317,25 +341,23 @@ export default function Home() {
 
     const token = await getAccessToken();
     
-    try {
-      const chatIdentifier = await createNewChat(command);
+    try {      
       
-      if (chatIdentifier) {
-        await fetch(`/api/chat/${chatIdentifier}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            userId: decodeURIComponent(params.userId as string),
-            agentId,
-            agentName: agent?.name,
-            lastMessage: command,
-            lastUpdated: new Date().toISOString()
-          })
-        });
-      }
+      await fetch(`/api/chat/${chatId ? chatId : newChatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: decodeURIComponent(params.userId as string),
+          agentId,
+          agentName: agent?.name,
+          lastMessage: command,
+          lastUpdated: new Date().toISOString()
+        })
+      });
+    
   
       append({
         role: 'user',
@@ -351,18 +373,6 @@ export default function Home() {
   // Make sure your handleFormSubmit function looks like this:
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
-
-      // Create user message object
-      const userMessage: Message = {
-        id: `msg_user_${Date.now()}`,
-        content: input.trim(),
-        role: 'user',
-        createdAt: new Date()
-      };
-      
-      // Save user message first
-      updateChatInDB([...messages, userMessage]);
-    
     
       // Only add to history if it's different from the last command
       if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== input.trim()) {
@@ -380,13 +390,13 @@ export default function Home() {
     // get agent and sey agent name
     if (!user) return;
     getAgent().then((agent) => {
+      console.log(agent);
       setAgent(agent);
     });
   }, [user])
 
   const getAgent = async () => {
     const accessToken = await getAccessToken();
-    console.log(`/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}`)
     const response = await fetch(
       `/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}`,
       {

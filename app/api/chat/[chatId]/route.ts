@@ -60,12 +60,9 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: { chatId: string } }
-) {
+export async function POST(request: Request) {
   try {
-    const { userId, agentId, agentName, lastMessage, lastUpdated } = await request.json();
+    const { userId, agentId, agentName, lastMessage, lastUpdated, chatId } = await request.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -77,7 +74,7 @@ export async function POST(
     const chatParams = {
       TableName: 'Chats',
       Item: {
-        chatId: params.chatId,
+        chatId,
         userId,
         agentId,
         agentName,
