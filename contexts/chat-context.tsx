@@ -9,6 +9,7 @@ interface Chat {
   agentName: string;
   lastMessage: string;
   lastUpdated: number;
+  isTemplate?: boolean;
 }
 
 interface ChatContextType {
@@ -22,23 +23,50 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const { user, getAccessToken } = usePrivy();
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
 
-  const fetchRecentChats = async () => {
-    if (!user?.id) {
-      return;
-    }
+  const fetchUserChats = async () => {
+    const token = await getAccessToken();
+    const response = await fetch(`/api/chat/recent?userId=${user?.id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
+    if (!response.ok) throw new Error('Failed to fetch user chats');
+    
+    const data = await response.json();
+    return data.chats.map((chat: Chat) => ({ ...chat, isTemplate: false }));
+  };
+
+  const fetchTemplateChats = async () => {
+    const token = await getAccessToken();
+    const response = await fetch(`/api/chat/recent?userId=template`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) throw new Error('Failed to fetch template chats');
+    
+    const data = await response.json();
+    return data.chats.map((chat: Chat) => ({ ...chat, isTemplate: true }));
+  };
+
+  const fetchRecentChats = async () => {
     try {
-      const token = await getAccessToken();
-      const response = await fetch(`/api/chat/recent?userId=${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
       
-      if (!response.ok) throw new Error('Failed to fetch chats');
       
-      const data = await response.json();
-      setRecentChats(data.chats);
+      // Fetch both user and template chats in parallel
+      const [userChats, templateChats] = await Promise.all([
+        user && user.id ? fetchUserChats() : Promise.resolve([]),
+        fetchTemplateChats()
+      ]);
+
+      // Combine and sort all chats by lastUpdated
+      const allChats = [...userChats, ...templateChats].sort(
+        (a, b) => b.lastUpdated - a.lastUpdated
+      );
+
+      setRecentChats(allChats);
     } catch (error) {
       console.error('Error fetching chats:', error);
     }
@@ -46,13 +74,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchRecentChats();
-  }, [user?.id, getAccessToken]);
+  }, [user?.id]);
 
   const contextValue = {
     recentChats,
     refreshRecentChats: fetchRecentChats
   };
-
 
   return (
     <ChatContext.Provider value={contextValue}>
