@@ -113,7 +113,6 @@ export async function middleware(request: NextRequest) {
     try {
       // Check access token first
       const accessToken = request.cookies.get('rhun_early_access_token')?.value;
-      console.log('Access token:', accessToken);  
       const hasValidToken = accessToken ? await verifyAccessToken(accessToken) : false;
 
       // No access token, check NFT ownership via Privy
@@ -133,7 +132,6 @@ export async function middleware(request: NextRequest) {
       try {
         const user = await privy.verifyAuthToken(privyToken);
         const hasNFT = user?.userId ? await verifyNFTOwnership(user.userId) : false;
-        console.log('hasNFT:', hasNFT);
 
         if (hasNFT) {
           return NextResponse.next();
