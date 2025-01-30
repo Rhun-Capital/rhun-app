@@ -43,7 +43,7 @@ export default function ImageUpload({ onImageChange, initialImage }: ImageUpload
       </div>
       <input
         type="file"
-        accept="image/*"
+        accept="image/png, image/jpeg, image/jpg, image/webp"
         onChange={handleImageChange}
         className="hidden"
         id="agent-image-upload"

@@ -140,11 +140,15 @@ export async function middleware(request: NextRequest) {
         }
       } catch (error) {
         console.error('Error verifying privy token:', error);
-        return NextResponse.redirect(new URL('/login', request.url));
+        if (request.nextUrl.pathname !== '/login') {
+          return NextResponse.redirect(new URL('/login', request.url));
+        }        
       }
     } catch (error) {
       console.error('Page route error:', error);
-      return NextResponse.redirect(new URL('/login', request.url));
+      if (request.nextUrl.pathname !== '/login') {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }   
     }
   }
 
