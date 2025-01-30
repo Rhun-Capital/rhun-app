@@ -50,7 +50,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
         <div className="p-4 border-b border-zinc-700">
           <Link href='/' onClick={() => setIsOpen(false)}>
             <div className="flex items-center ml-2">
-              <Image src="/images/rhun-logo-gradient.svg" alt="Rhun Capital" height={125} width={125} className="pr-2"/>
+              <Image src="https://rhun.io/images/rhun-logo-gradient.svg" alt="Rhun Capital" height={125} width={125} className="pr-2"/>
             </div>
           </Link>
         </div>
