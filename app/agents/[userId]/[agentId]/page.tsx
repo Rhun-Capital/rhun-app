@@ -522,7 +522,7 @@ export default function Home() {
       <div className="flex flex-1 pt-16 lg:pt-0">
 
       <div className="fixed top-0 left-0 right-0 h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 z-10">
-        <div className="max-w-4xl mx-auto w-full flex items-center gap-3">
+        <div className="flex items-center gap-2 relative lg:left-[250px] md:left-[25px] sm:left-[25px]">
           <div className="lg:ml-0 ml-[55px]">  {/* Add responsive margin here */}
             {agent.imageUrl ? (
               <img 
@@ -749,7 +749,7 @@ export default function Home() {
             </AnimatePresence> */}
   
             {/* Input form */}
-            <form onSubmit={handleFormSubmit} className="max-w-4xl mx-auto flex gap-2">
+            <form onSubmit={handleFormSubmit} className="max-w-2xl mx-auto flex gap-2 relative">
               <input
                 type="file"
                 ref={fileInputRef}
