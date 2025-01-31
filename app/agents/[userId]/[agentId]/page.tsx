@@ -38,8 +38,6 @@ import { debounce, DebouncedFunc } from 'lodash';
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
 
-
-
 const getTextFromDataUrl = (dataUrl: string) => {
   const base64 = dataUrl.split(",")[1];
   return window.atob(base64);
@@ -64,6 +62,101 @@ function TextFilePreview({ file }: { file: File }) {
     </div>
   );
 }
+
+interface Attachment {
+  url?: string;
+  name?: string;
+  contentType?: string;
+}
+
+// Utility function to convert base64 to blob
+const base64toBlob = (dataUrl: string): Blob => {
+  const arr = dataUrl.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+};
+
+const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
+  const [displayUrl, setDisplayUrl] = useState<string>('');
+
+  useEffect(() => {
+    const processUrl = async () => {
+      try {
+        if (!attachment.url) return;
+
+        // If it's already a CloudFront or blob URL, use it directly
+        if (attachment.url.startsWith('https://') || attachment.url.startsWith('blob:')) {
+          setDisplayUrl(attachment.url);
+          return;
+        }
+
+        // If it's a data URL, convert it to a blob
+        if (attachment.url.startsWith('data:')) {
+          const blob = base64toBlob(attachment.url);
+          const url = URL.createObjectURL(blob);
+          setDisplayUrl(url);
+          return;
+        }
+
+        // For other URLs, use as is
+        setDisplayUrl(attachment.url);
+      } catch (error) {
+        console.error('Error processing attachment URL:', error);
+        setDisplayUrl(attachment.url || '');
+      }
+    };
+
+    processUrl();
+
+    // Cleanup function
+    return () => {
+      if (displayUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(displayUrl);
+      }
+    };
+  }, [attachment.url]);
+
+  if (!displayUrl) return null;
+
+  if (attachment.contentType?.startsWith("image")) {
+    return (
+      <img
+        src={displayUrl}
+        alt={attachment.name || 'Attached image'}
+        className="rounded-md w-40 h-40 object-cover"
+        onError={(e) => {
+          console.error('Error loading image:', e);
+          e.currentTarget.src = '/placeholder-image.png';
+        }}
+      />
+    );
+  }
+
+  if (attachment.contentType?.startsWith("text")) {
+    return (
+      <div className="text-xs w-40 h-24 overflow-hidden text-zinc-400 border p-2 rounded-md bg-zinc-800 border-zinc-700">
+        {displayUrl && (
+          <TextFilePreview 
+            file={new File(
+              [getTextFromDataUrl(displayUrl)], 
+              attachment.name || 'text-file.txt'
+            )} 
+          />
+        )}
+      </div>
+    );
+  }
+
+  return null;
+}
+
+
 
 export default function Home() {
   const { user, getAccessToken } = usePrivy();
@@ -124,7 +217,8 @@ export default function Home() {
   
         if (!response.ok) throw new Error('Failed to load chat history');
         
-        const data = await response.json();
+        const data = await response.json()
+        console.log(data );
         
         if (data.messages && data.messages.length > 0) {
           // Convert string dates to Date objects and preserve all tool data
@@ -133,6 +227,12 @@ export default function Home() {
             createdAt: new Date(msg.createdAt),
             role: msg.role,
             content: msg.content,
+            // Include attachments in the formatted messages
+            experimental_attachments: msg.attachments?.map((attachment: any) => ({
+              name: attachment.name,
+              url: attachment.url,
+              contentType: attachment.contentType,
+            })),            
             toolInvocations: msg.toolInvocations?.map((tool: any) => ({
               ...tool, // Preserve all tool properties
               toolName: tool.toolName,
@@ -141,6 +241,8 @@ export default function Home() {
               result: tool.result
             }))
           }));
+
+          console.log('formattedMessages:', formattedMessages);
           
           setInitialMessages(formattedMessages);
           setIsNewChat(false); // Mark as existing chat
@@ -188,6 +290,30 @@ export default function Home() {
       };
     }, [messages]);
   
+  // Add this useEffect for cleanup
+  useEffect(() => {
+    const blobUrls: string[] = [];
+    
+    // Collect all blob URLs created
+    messages.forEach(message => {
+      message.experimental_attachments?.forEach(attachment => {
+        if (attachment.url?.startsWith('blob:')) {
+          blobUrls.push(attachment.url);
+        }
+      });
+    });
+    
+    // Cleanup function
+    return () => {
+      blobUrls.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error('Error cleaning up blob URL:', error);
+        }
+      });
+    };
+  }, [messages]);    
 
     const debouncedFetch: DebouncedFunc<(messages: Message[]) => Promise<void>> = useCallback(
       debounce(async (messages) => {
@@ -283,6 +409,8 @@ export default function Home() {
     
     // if (!chatIdentifier) return [];
 
+    console.log(lastMessage)
+
     const token = await getAccessToken();
     
     try {
@@ -302,6 +430,8 @@ export default function Home() {
           lastUpdated: new Date().toISOString()
         })
       });
+
+      console.log('lastMessage:', lastMessage);
   
       // Store the message with tool invocations
       await fetch('/api/chat/messages', {
@@ -317,6 +447,11 @@ export default function Home() {
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
+          attachments: lastMessage.experimental_attachments?.map(attachment => ({
+            name: attachment.name,
+            url: attachment.url,
+            contentType: attachment.contentType,
+          })),          
           toolInvocations: lastMessage.toolInvocations?.map(tool => ({
             toolName: tool.toolName,
             toolCallId: tool.toolCallId,
@@ -390,7 +525,6 @@ export default function Home() {
     // get agent and sey agent name
     if (!user) return;
     getAgent().then((agent) => {
-      console.log(agent);
       setAgent(agent);
     });
   }, [user])
@@ -578,18 +712,18 @@ export default function Home() {
                     
                     <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
                     {message.role === "assistant" ? (
-  agent.imageUrl ? (
-    <img 
-      src={agent.imageUrl} 
-      alt={agent.name}
-      className="w-6 h-6 rounded-full object-cover"
-    />
-  ) : (
-    <BotIcon />
-  )
-) : (
-  <UserIcon />
-)}
+                        agent.imageUrl ? (
+                          <img 
+                            src={agent.imageUrl} 
+                            alt={agent.name}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <BotIcon />
+                        )
+                      ) : (
+                        <UserIcon />
+                      )}
                     </div>
   
                     <div className={`flex-1 space-y-2 max-w-[75%] text-white`}>
@@ -639,20 +773,12 @@ export default function Home() {
                       {/* Attachments */}
                       {(message.experimental_attachments?.length ?? 0) > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {message.experimental_attachments?.map((attachment) =>
-                            attachment.contentType?.startsWith("image") ? (
-                              <img
-                                key={attachment.name}
-                                src={attachment.url}
-                                alt={attachment.name}
-                                className="rounded-md w-40 h-40 object-cover"
-                              />
-                            ) : attachment.contentType?.startsWith("text") ? (
-                              <div key={attachment.name} className="text-xs w-40 h-24 overflow-hidden text-zinc-400 border p-2 rounded-md bg-zinc-800 border-zinc-700">
-                                {attachment.url ? <TextFilePreview file={new File([getTextFromDataUrl(attachment.url ?? '')], attachment.name || '')} /> : null}
-                              </div>
-                            ) : null
-                          )}
+                          {message.experimental_attachments?.map((attachment, idx) => (
+                            <AttachmentDisplay 
+                              key={`${attachment.name || idx}`} 
+                              attachment={attachment}
+                            />
+                          ))}
                         </div>
                       )}
                     </div>

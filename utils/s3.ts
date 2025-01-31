@@ -9,12 +9,12 @@ const s3 = new S3({
 
 const CLOUDFRONT_DOMAIN = process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN;
 
-export async function uploadToS3(file: Buffer, key: string): Promise<string> {
+export async function uploadToS3(file: Buffer, key: string, contentType?: string): Promise<string> {
   const params = {
     Bucket: process.env.S3_BUCKET_NAME!,
     Key: key,
     Body: file,
-    ContentType: 'image/jpeg', // Adjust based on file type
+    ContentType: contentType || 'image/jpeg', // Use provided content type or default to image/jpeg
   };
 
   await s3.upload(params).promise();

@@ -1,4 +1,3 @@
-// app/api/chat/[chatId]/route.ts
 import { NextResponse } from 'next/server';
 import { DynamoDB } from 'aws-sdk';
 
@@ -33,7 +32,7 @@ export async function GET(
       return NextResponse.json({ messages: [] });
     }
 
-    // Sort messages and preserve all tool invocation data
+    // Sort messages and preserve all data including attachments
     const messages = result.Items
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
       .map(item => ({
@@ -41,8 +40,16 @@ export async function GET(
         createdAt: item.createdAt,
         role: item.role,
         content: item.content,
+        // Include attachments if they exist
+        ...(item.attachments && {
+          attachments: item.attachments.map((attachment: any) => ({
+            name: attachment.name,
+            url: attachment.url,
+            contentType: attachment.contentType
+          }))
+        }),
         toolInvocations: item.toolInvocations ? item.toolInvocations.map((tool: any) => ({
-          ...tool,  // Preserve all tool data
+          ...tool,
           toolName: tool.toolName,
           toolCallId: tool.toolCallId,
           args: tool.args,
@@ -62,7 +69,15 @@ export async function GET(
 
 export async function POST(request: Request) {
   try {
-    const { userId, agentId, agentName, lastMessage, lastUpdated, chatId } = await request.json();
+    const { 
+      userId, 
+      agentId, 
+      agentName, 
+      lastMessage, 
+      lastUpdated, 
+      chatId,
+      attachments 
+    } = await request.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -80,7 +95,9 @@ export async function POST(request: Request) {
         agentName,
         lastMessage,
         lastUpdated,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        // Include attachments if they exist
+        ...(attachments && { attachments })
       }
     };
 
