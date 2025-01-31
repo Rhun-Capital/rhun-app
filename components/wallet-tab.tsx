@@ -124,6 +124,14 @@ export default function WalletTab({ agentId }: { agentId: string }) {
     );
   }  
 
+  if (params.userId === 'template') {
+    return (
+      <div className="p-6 bg-zinc-800 rounded-lg text-zinc-400">
+        Use this agent template before creating a wallet.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="border-b border-zinc-700 pb-4">
