@@ -317,8 +317,11 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       throw new Error(`Failed to ${initialData ? "update" : "create"} agent`);
     }
 
+    const responseData = await response.json();
+    console.log('response', responseData);
+
     if (!initialData) {
-      router.push("/agents");
+      router.push(`/agents/${decodeURIComponent(params.userId as string)}/${responseData.agentId}`);
       router.refresh();
     }
 

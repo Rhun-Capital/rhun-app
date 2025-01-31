@@ -16,7 +16,7 @@ export default function WalletConnection() {
       setTimeout(() => {
         router.push('/');
         router.refresh();
-      }, 1000);
+      }, 2000);
     },
     onError: (error) => {
       console.log(error);
