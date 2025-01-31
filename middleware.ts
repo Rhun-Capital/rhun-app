@@ -59,100 +59,68 @@ async function verifyAccessToken(token: string): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Handle API routes
-  if (pathname.startsWith('/api/')) {
-    if (PUBLIC_API_ROUTES.has(pathname)) {
-      return NextResponse.next();
+  // Handle public routes first
+  if (pathname.startsWith('/api/') && PUBLIC_API_ROUTES.has(pathname)) {
+    return NextResponse.next();
+  }
+  if (PUBLIC_PAGE_ROUTES.has(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Unified auth checking function
+  async function checkAuthorization() {
+    // Check early access token first
+    const accessToken = request.cookies.get('rhun_early_access_token')?.value;
+    if (accessToken && await verifyAccessToken(accessToken)) {
+      return true;
     }
 
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'No authorization token provided' },
-        { status: 401 }
-      );
+    // Then check Privy token
+    const privyToken = request.cookies.get('privy-token')?.value;
+    if (!privyToken) {
+      return false;
     }
 
     try {
-      const token = authHeader.split(' ')[1];
-      const user = await privy.verifyAuthToken(token);
-
-      if ((pathname === '/api/nft/order' || pathname === '/api/nft/verify') && user) {
-        const headers = new Headers(request.headers);
-        headers.set('x-user', JSON.stringify(user));
-        return NextResponse.next({
-          headers
-        });
-      }
+      const user = await privy.verifyAuthToken(privyToken);
+      if (!user?.userId) return false;
       
-      const accessToken = request.cookies.get('rhun_early_access_token')?.value;
-      if (!accessToken || !(await verifyAccessToken(accessToken))) {
+      // Check NFT ownership
+      return await verifyNFTOwnership(user.userId);
+    } catch (error) {
+      console.error('Auth verification error:', error);
+      return false;
+    }
+  }
+
+  try {
+    const isAuthorized = await checkAuthorization();
+    
+    if (!isAuthorized) {
+      // For API routes
+      if (pathname.startsWith('/api/')) {
         return NextResponse.json(
-          { error: 'Invalid or missing access token' },
+          { error: 'Unauthorized access' },
           { status: 403 }
         );
       }
-
-      const headers = new Headers(request.headers);
-      headers.set('x-user', JSON.stringify(user));
-
-      return NextResponse.next({
-        headers
-      });
-    } catch (error) {
-      console.error('API route error:', error);
-      return NextResponse.json(
-        { error: 'Invalid authorization token' },
-        { status: 401 }
-      );
+      // For page routes
+      return NextResponse.redirect(new URL('/login', request.url));
     }
-  }
 
-  // Handle page routes
-  if (!PUBLIC_PAGE_ROUTES.has(pathname)) {
-    try {
-      // Check access token first
-      const accessToken = request.cookies.get('rhun_early_access_token')?.value;
-      const hasValidToken = accessToken ? await verifyAccessToken(accessToken) : false;
-
-      // No access token, check NFT ownership via Privy
-      const privyToken = request.cookies.get('privy-token')?.value;
-      
-      // If no Privy token at this point (and no access token), redirect to login
-      if (!privyToken) {
-        return NextResponse.redirect(new URL('/login', request.url));
-      }
-
-      // If they have a valid access token, allow access immediately
-      if (hasValidToken) {
-        return NextResponse.next();
-      }
-
-      // Verify Privy token and check NFT ownership
-      try {
-        const user = await privy.verifyAuthToken(privyToken);
-        const hasNFT = user?.userId ? await verifyNFTOwnership(user.userId) : false;
-
-        if (hasNFT) {
-          return NextResponse.next();
-        } else if (request.nextUrl.pathname !== '/login'){
-          return NextResponse.redirect(new URL('/login', request.url));
-        }
-      } catch (error) {
-        console.error('Error verifying privy token:', error);
-        if (request.nextUrl.pathname !== '/login') {
-          return NextResponse.redirect(new URL('/login', request.url));
-        }        
-      }
-    } catch (error) {
-      console.error('Page route error:', error);
-      if (request.nextUrl.pathname !== '/login') {
-        return NextResponse.redirect(new URL('/login', request.url));
-      }   
+    // if authorized and on /login, redirect to home
+    if (pathname === '/login') {
+      return NextResponse.redirect(new URL('/', request.url));
     }
-  }
 
-  return NextResponse.next();
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Middleware error:', error);
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    }
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 }
 
 export const config = {
