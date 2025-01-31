@@ -26,7 +26,7 @@ export default function MarketplacePage() {
     },
     {
       label: "Coming Soon",
-      value: "Q2 2024",
+      value: "Q3 2025",
       description: "Expected release date"
     }
   ];
