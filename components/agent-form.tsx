@@ -13,6 +13,7 @@ import ImageUpload from "./image-upload";
 import Accordion from "./accordion";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
+import { set } from "lodash";
 
 interface InitialData {
   id: string;
@@ -42,6 +43,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [created, setCreated] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedModelValue, setSelectedModelValue] = useState('option1');
 
@@ -254,6 +256,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
 
   useEffect(() => {
     if (localStorage.getItem('agent_created')) {
+      setCreated(true)
       setSuccess(true)
       localStorage.removeItem('agent_created')
     }
@@ -326,7 +329,6 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     }
 
     const responseData = await response.json();
-    console.log('response', responseData);
 
     if (!initialData) {
       localStorage.setItem('agent_created', 'true')
@@ -346,6 +348,9 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   } finally {
     setLoading(false);
     if (initialData) {
+      setSuccess(true);
+      setCreated(false)
+      toast.success("Agent updated successfully!");
       scrollToTop();
     }
   }
@@ -481,7 +486,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
                 <div className="flex items-center">
                   <p className="text-white flex-1 text-sm sm:text-base">
-                    Agent {initialData ? "updated" : "created"} successfully!
+                    Agent {initialData && !created ? "updated" : "created"} successfully!
                   </p>
                   <button onClick={() => setSuccess(false)}>
                     <CloseIcon />
