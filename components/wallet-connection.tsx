@@ -1,12 +1,28 @@
 // components/WalletConnection.tsx
 'use client';
 import { usePrivy } from '@privy-io/react-auth';
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
+import {useLogin} from '@privy-io/react-auth';
+import {useRouter} from 'next/navigation';
 
 export default function WalletConnection() {
-  const { login, logout, ready, authenticated, user, getAccessToken } = usePrivy();
+  const { logout, ready, authenticated, user, getAccessToken } = usePrivy();
   const [hasNFT, setHasNFT] = useState(false);
   const [checking, setChecking] = useState(false);
+  const router = useRouter();
+
+  const {login} = useLogin({
+    onComplete: ({user, isNewUser, wasAlreadyAuthenticated, loginMethod}) => {
+      setTimeout(() => {
+        router.push('/');
+        router.refresh();
+      }, 1000);
+    },
+    onError: (error) => {
+      console.log(error);
+      alert('Error logging in');
+    },
+  });
 
   useEffect(() => {
     if (authenticated && user) {
