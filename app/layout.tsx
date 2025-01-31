@@ -17,7 +17,10 @@ export default function RootLayout({
           <ChatProvider>
             <Sidebar>
               {children}
-              <Toaster />
+              <Toaster 
+                toastOptions={{
+                  className: 'bg-zinc-800 text-white border border-zinc-700'
+                }}/>
             </Sidebar>
           </ChatProvider>
         </AuthProvider>
