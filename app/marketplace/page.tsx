@@ -16,12 +16,12 @@ export default function MarketplacePage() {
   const stats: MarketplaceStat[] = [
     {
       label: "Total Apps",
-      value: "12",
+      value: "100+",
       description: "Available in marketplace"
     },
     {
       label: "Categories",
-      value: "5",
+      value: "50",
       description: "Different app categories"
     },
     {
