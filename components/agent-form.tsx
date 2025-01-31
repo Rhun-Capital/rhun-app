@@ -318,6 +318,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     }
 
     setSuccess(true);
+    scrollToTop();
     
   } catch (err) {
     if (err instanceof Error) {
