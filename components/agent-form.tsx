@@ -8,7 +8,6 @@ import { AlertCircleIcon, CloseIcon, ChatIcon } from "./icons";
 import { usePrivy } from "@privy-io/react-auth";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { getAccessToken } from "@privy-io/react-auth";
 import ImageSelect from "./agent-model-select";
 import ImageUpload from "./image-upload";
 import Accordion from "./accordion";
@@ -46,7 +45,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [selectedModelValue, setSelectedModelValue] = useState('option1');
 
   const topRef = useRef<HTMLDivElement>(null);
-  const { user } = usePrivy();
+  const { user, getAccessToken } = usePrivy();
   const params = useParams();
   const router = useRouter();
 
