@@ -44,6 +44,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [created, setCreated] = useState(false);
+  const [createdFromTemplate, setCreatedFromTemplate] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedModelValue, setSelectedModelValue] = useState('option1');
 
@@ -260,6 +261,11 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
       setSuccess(true)
       localStorage.removeItem('agent_created')
     }
+    if (localStorage.getItem('agent_created_from_template')) {
+      setCreatedFromTemplate(true)
+      setSuccess(true)
+      localStorage.removeItem('agent_created_from_template')
+    }    
   }, [])  
 
   // Initialize form with existing data if in edit mode
@@ -403,9 +409,12 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       if (!response.ok) {
         throw new Error("Failed to create agent from template");
       }
+
+      const responseData = await response.json();
   
-      setSuccess(true);
-      router.push("/agents");
+      localStorage.setItem('agent_created_from_template', 'true')
+      toast.success("Agent created from template successfully!");
+      router.push(`/agents/${user?.id}/${responseData.agentId}/edit`);
       router.refresh();
     } catch (err) {
       if (err instanceof Error) {
@@ -486,7 +495,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
                 <div className="flex items-center">
                   <p className="text-white flex-1 text-sm sm:text-base">
-                    Agent {initialData && !created ? "updated" : "created"} successfully!
+                    Agent {initialData && !created ? "updated" : "created"} {createdFromTemplate ? 'from template' : ''} successfully!
                   </p>
                   <button onClick={() => setSuccess(false)}>
                     <CloseIcon />
@@ -514,6 +523,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       type="text"
       placeholder='e.g., "Crypto Analyst"'
       required
+      disabled={params.userId === 'template'}
       value={formData.name}
       onChange={handleChange}
       className="w-full px-3 py-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
@@ -529,6 +539,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       name="description"
       placeholder='e.g., "A crypto analyst providing insights on market trends"'
       required
+      disabled={params.userId === 'template'}
       value={formData.description}
       onChange={handleChange}
       rows={4}
@@ -549,6 +560,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               required={field.required || false}
               id={field.name}
               name={field.name}
+              disabled={params.userId === 'template'}
               placeholder={field.placeholder}
               value={formData[field.name]}
               onChange={handleChange}
