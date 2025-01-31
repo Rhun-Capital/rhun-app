@@ -495,7 +495,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
                 <div className="flex items-center">
                   <p className="text-white flex-1 text-sm sm:text-base">
-                    Agent {initialData && !created ? "updated" : "created"} {createdFromTemplate ? 'from template' : ''} successfully!
+                    Agent {initialData && !created && !createdFromTemplate ? "updated" : "created"} {createdFromTemplate ? 'from template' : ''} successfully!
                   </p>
                   <button onClick={() => setSuccess(false)}>
                     <CloseIcon />
