@@ -151,49 +151,49 @@ export default function AgentsPage() {
         {loading ? <LoadingIndicator/> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {user && activeFilter !== 'templates' && (
-              <Link 
-                href="/agents/create"
-                className="group h-36 sm:h-48"
-              >
-                <div className="h-full p-4 sm:p-6 bg-zinc-800 rounded-lg border border-zinc-700 border-dashed
-                             transition-all duration-200 ease-in-out
-                             hover:border-indigo-500 hover:border-solid
-                             flex flex-col items-center justify-center gap-3 sm:gap-4 text-zinc-400
-                             hover:text-indigo-400">
-                  <PlusIcon />
-                  <span className="text-xs sm:text-sm font-medium text-center">Create New Agent</span>
-                </div>
-              </Link>
+            <Link 
+            href="/agents/create"
+            className="group block"
+          >
+            <div className="h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-zinc-700 border-dashed
+                          transition-all duration-200 ease-in-out
+                          hover:border-indigo-500 hover:border-solid
+                          flex flex-col items-center justify-center gap-3 sm:gap-4 text-zinc-400
+                          hover:text-indigo-400">
+              <PlusIcon />
+              <span className="text-xs sm:text-sm font-medium text-center">Create New Agent</span>
+            </div>
+          </Link>
             )}
                 
             {filteredAgents.map((agent) => (
               <div key={agent.id} className="group relative">
                 <Link href={user && !agent.isTemplate ? `/agents/${user.id}/${agent.id}` : `/agents/template/${agent.id}`}>
-                  <div className={`h-36 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-transparent transition-all duration-200 ease-in-out hover:shadow-lg hover:border-indigo-400`}>
-                    <div className="flex flex-col h-full items-center justify-center">
-                      {agent.imageUrl ? (
-                        <img 
-                          src={agent.imageUrl} 
-                          alt={agent.name}
-                          className="w-16 h-16 rounded-full object-cover mb-3"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-zinc-700 flex items-center justify-center mb-3">
-                          <span className="text-2xl text-zinc-400">
-                            {agent.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <h2 className="text-lg sm:text-xl font-semibold group-hover:text-indigo-400 transition-colors text-center">
-                        {agent.name}
-                      </h2>
-                      {agent.isTemplate && (
-                        <span className="mt-2 px-2 py-1 bg-indigo-900 rounded text-xs text-indigo-200">
-                          Template
-                        </span>
-                      )}
+                <div className={`h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-transparent transition-all duration-200 ease-in-out hover:shadow-lg hover:border-indigo-400`}>
+                <div className="flex flex-col h-full items-center justify-center">
+                  {agent.imageUrl ? (
+                    <img 
+                      src={agent.imageUrl} 
+                      alt={agent.name}
+                      className="w-16 h-16 rounded-full object-cover mb-3"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-zinc-700 flex items-center justify-center mb-3">
+                      <span className="text-2xl text-zinc-400">
+                        {agent.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
-                  </div>
+                  )}
+                  <h2 className="text-lg sm:text-xl font-semibold group-hover:text-indigo-400 transition-colors text-center">
+                    {agent.name}
+                  </h2>
+                  {agent.isTemplate && (
+                    <span className="mt-2 px-2 py-1 bg-indigo-900 rounded text-xs text-indigo-200">
+                      Template
+                    </span>
+                  )}
+                </div>
+              </div>
                 </Link>
                 {user && (
                   <Link 

@@ -84,32 +84,34 @@ const copyToClipboard = (text: string) => {
 
           {/* Connected Wallets */}
           <section>
-            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Connected Wallets</h2>
-            <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">
-              {user?.wallet?.address ? (
-                <div>
-                  <label className="block text-xs sm:text-sm text-zinc-400 mb-1 sm:mb-2">Primary Wallet</label>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <pre className="text-xs sm:text-sm break-all">{user.wallet.address}</pre>
-                    <button
-                      className="text-xs sm:text-sm text-indigo-400 hover:text-indigo-300 whitespace-nowrap"
-                      onClick={() => {
-                        if (user?.wallet?.address) {
-                          copyToClipboard(user.wallet.address);
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        }
-                      }}
-                    >
-                      {copied ? "Copied!" : "Copy"}
-                    </button>
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Connected Wallets</h2>
+          <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">
+            {user?.wallet?.address ? (
+              <div>
+                <label className="block text-xs sm:text-sm text-zinc-400 mb-1 sm:mb-2">Primary Wallet</label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <pre className="text-xs sm:text-sm break-all overflow-x-auto">{user.wallet.address}</pre>
                   </div>
+                  <button
+                    className="text-xs sm:text-sm text-indigo-400 hover:text-indigo-300 shrink-0"
+                    onClick={() => {
+                      if (user?.wallet?.address) {
+                        copyToClipboard(user.wallet.address);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                  >
+                    {copied ? "Copied!" : "Copy"}
+                  </button>
                 </div>
-              ) : (
-                <p className="text-sm sm:text-base text-zinc-400">No wallets connected</p>
-              )}
-            </div>
-          </section>
+              </div>
+            ) : (
+              <p className="text-sm sm:text-base text-zinc-400">No wallets connected</p>
+            )}
+          </div>
+        </section>
 
           {/* Security Settings */}
           <section>
