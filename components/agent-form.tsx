@@ -12,6 +12,7 @@ import ImageSelect from "./agent-model-select";
 import ImageUpload from "./image-upload";
 import Accordion from "./accordion";
 import { v4 as uuidv4 } from "uuid";
+import { toast } from "sonner";
 
 interface InitialData {
   id: string;
@@ -251,6 +252,13 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
 
   const [formData, setFormData] = useState(defaultFormData);
 
+  useEffect(() => {
+    if (localStorage.getItem('agent_created')) {
+      setSuccess(true)
+      localStorage.removeItem('agent_created')
+    }
+  }, [])  
+
   // Initialize form with existing data if in edit mode
   useEffect(() => {
     if (initialData) {
@@ -321,13 +329,16 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     console.log('response', responseData);
 
     if (!initialData) {
-      router.push(`/agents`);
+      localStorage.setItem('agent_created', 'true')
+      toast.success("Agent created successfully!");
+      router.push(`/agents/${user?.id}/${responseData.agentId}/edit`);
       router.refresh();
     }
 
     
   } catch (err) {
     if (err instanceof Error) {
+      toast.error(err.message);
       setError(err.message);
     } else {
       setError("An unknown error occurred");
@@ -470,10 +481,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
                 <div className="flex items-center">
                   <p className="text-white flex-1 text-sm sm:text-base">
-                    Agent {initialData ? "updated" : "created"} successfully! &nbsp;<span className="cursor-pointer text-green-400" onClick={() => {
-                      router.push("/agents");
-                      router.refresh();
-                    }}>View Agents &#8594;</span>
+                    Agent {initialData ? "updated" : "created"} successfully!
                   </p>
                   <button onClick={() => setSuccess(false)}>
                     <CloseIcon />
@@ -584,6 +592,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           />
         )}
       </div>
+
     </div>
   );
 }

@@ -2,6 +2,7 @@ import './globals.css';
 import AuthProvider from '@/components/auth-provider';
 import { Sidebar } from '@/components/sidebar';
 import { ChatProvider } from '@/contexts/chat-context';
+import { Toaster } from 'sonner';
 
 export default function RootLayout({
   children,
@@ -14,7 +15,10 @@ export default function RootLayout({
         
         <AuthProvider>
           <ChatProvider>
-            <Sidebar>{children}</Sidebar>
+            <Sidebar>
+              {children}
+              <Toaster />
+            </Sidebar>
           </ChatProvider>
         </AuthProvider>
         
