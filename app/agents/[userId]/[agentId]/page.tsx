@@ -637,7 +637,7 @@ export default function Home() {
                       })}
   
                       {/* Attachments */}
-                      {/* {(message.experimental_attachments?.length ?? 0) > 0 && (
+                      {(message.experimental_attachments?.length ?? 0) > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {message.experimental_attachments?.map((attachment) =>
                             attachment.contentType?.startsWith("image") ? (
@@ -654,7 +654,7 @@ export default function Home() {
                             ) : null
                           )}
                         </div>
-                      )} */}
+                      )}
                     </div>
                   </motion.div>
                 ))
@@ -692,14 +692,14 @@ export default function Home() {
               )}
 
 
-              {!messages.length ? <div> <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
+              {!messages.length ? <div className="mt-4 sm:mt-0"> <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
                 <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
                 <div className="flex items-center"> <SettingsIcon/>&nbsp;Edit Agent</div>
                 </button>
               </Link>
               <button 
                 onClick={() => handleToolSelect('What tools do you have access to?')}
-                className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5"
+                className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5 mt-4 sm:mt-0"
               >
                 <div className="flex items-center"><MessageIcon/>&nbsp;Describe Tools</div>
               </button></div> : null}
@@ -718,9 +718,9 @@ export default function Home() {
           {/* Input area */}
           <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4">
             {/* File previews */}
-            {/* <AnimatePresence>
+            <AnimatePresence>
               {files && (
-                <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2 sm:relative sm:left-[250px] sm:ml-0">
                   {Array.from(files).map((file) =>
                     file.type.startsWith("image") ? (
                       <motion.img
@@ -746,10 +746,14 @@ export default function Home() {
                   )}
                 </div>
               )}
-            </AnimatePresence> */}
+            </AnimatePresence>
   
             {/* Input form */}
-            <form onSubmit={handleFormSubmit} className="max-w-2xl mx-auto flex gap-2 relative">
+            <form onSubmit={(event) => {
+            const options = files ? { experimental_attachments: files } : {};
+              handleFormSubmit(event, options);
+              setFiles(null);
+            }} className="max-w-2xl mx-auto flex gap-2 relative">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -760,13 +764,13 @@ export default function Home() {
               />
               
               <div className="flex-1 flex items-center bg-zinc-800 rounded-full px-4">
-                {/* <button
+                <button
                   type="button"
                   onClick={handleUploadClick}
                   className="p-2 text-zinc-400 hover:text-white"
                 >
                   <AttachmentIcon />
-                </button> */}
+                </button>
                 
                 <input
                   ref={inputRef}
