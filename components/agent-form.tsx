@@ -319,10 +319,6 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
     setSuccess(true);
     
-    if (!initialData) {
-      router.push("/agents");
-      router.refresh();
-    }
   } catch (err) {
     if (err instanceof Error) {
       setError(err.message);
@@ -467,7 +463,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
                 <div className="flex items-center">
                   <p className="text-white flex-1 text-sm sm:text-base">
-                    Agent {initialData ? "updated" : "created"} successfully!
+                    Agent {initialData ? "updated" : "created"} successfully! &nbsp;<span className="cursor-pointer text-green-400" onClick={() => {
+                      router.push("/agents");
+                      router.refresh();
+                    }}>View Agents &#8594;</span>
                   </p>
                   <button onClick={() => setSuccess(false)}>
                     <CloseIcon />
