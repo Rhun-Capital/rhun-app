@@ -317,8 +317,11 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       throw new Error(`Failed to ${initialData ? "update" : "create"} agent`);
     }
 
-    setSuccess(true);
-    scrollToTop();
+    if (!initialData) {
+      router.push("/agents");
+      router.refresh();
+    }
+
     
   } catch (err) {
     if (err instanceof Error) {

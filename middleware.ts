@@ -77,6 +77,7 @@ export async function middleware(request: NextRequest) {
 
     // Then check Privy token
     const privyToken = request.cookies.get('privy-token')?.value;
+    console.log(privyToken)
     if (!privyToken) {
       return false;
     }
