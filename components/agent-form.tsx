@@ -321,7 +321,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     console.log('response', responseData);
 
     if (!initialData) {
-      router.push(`/agents/${decodeURIComponent(params.userId as string)}/${responseData.agentId}`);
+      router.push(`/agents`);
       router.refresh();
     }
 
