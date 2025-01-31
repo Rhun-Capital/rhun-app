@@ -11,7 +11,6 @@ import { useChat } from "ai/react";
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
-import { Toaster } from 'sonner';
 import Link from "next/link";
 import { Markdown } from "@/components/markdown";
 import { useParams, useSearchParams } from 'next/navigation';
@@ -923,7 +922,7 @@ export default function Home() {
 
       </div>
   
-      <Toaster />
+    
     </div>
           {/* Sidebar container */}
           <ChatSidebar 

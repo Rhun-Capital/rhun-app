@@ -20,7 +20,6 @@ export default function WalletConnection() {
     },
     onError: (error) => {
       console.log(error);
-      alert('Error logging in');
     },
   });
 
