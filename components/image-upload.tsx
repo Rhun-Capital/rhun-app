@@ -1,6 +1,8 @@
 // components/ImageUpload.tsx
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { useParams } from "next/navigation";
+
 
 interface ImageUploadProps {
   onImageChange: (file: File | null) => void;
@@ -9,6 +11,8 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ onImageChange, initialImage }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(initialImage || null);
+  const params = useParams();
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,7 +45,7 @@ export default function ImageUpload({ onImageChange, initialImage }: ImageUpload
           </div>
         )}
       </div>
-      <input
+      {params.userId !== 'template' && <div><input
         type="file"
         accept="image/png, image/jpeg, image/jpg, image/webp"
         onChange={handleImageChange}
@@ -53,7 +57,7 @@ export default function ImageUpload({ onImageChange, initialImage }: ImageUpload
         className="px-4 py-2 bg-zinc-700 rounded-lg cursor-pointer hover:bg-zinc-600 transition"
       >
         {preview ? 'Change Image' : 'Upload Image'}
-      </label>
+      </label></div>}
     </div>
   );
 }
