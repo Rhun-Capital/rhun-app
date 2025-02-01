@@ -16,6 +16,8 @@ async function verifyAndUpdateToken(token: string): Promise<boolean> {
         TableName: 'EarlyAccess',
         Key: { Access_key: token }
       }).promise();
+
+      console.log(result.Item)
   
       if (!result.Item) return false;
   
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
        secure: process.env.NODE_ENV === 'production',
        sameSite: 'lax',
      });
-     return NextResponse.json({ message: 'Token verified' });
+     return NextResponse.json({ message: 'Token verified' }, { status: 200 });
    }
 
    return NextResponse.json({ message: 'Invalid token or this token has already been used.' }, { status: 401 });

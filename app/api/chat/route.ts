@@ -17,6 +17,7 @@ import {
   getDerivativesExchanges,
   getTopHolders
  } from '@/utils/agent-tools';
+import { getAccountDetails } from '@/utils/solscan';
 
 export async function POST(req: Request) {
   const { messages, user, agent } = await req.json();
@@ -121,6 +122,17 @@ Remember to use this context when relevant to answer the user's query.`
           return response;
         },
       },
+
+      getAccountDetails: {
+        description: "Get detailed information and activity about a Solana account (wallet) using its address",
+        parameters: z.object({ 
+          address: z.string().describe('The Solana account address to look up')
+        }),
+        execute: async ({ address }) => {
+          const response = await getAccountDetails(address);
+          return response;
+        },
+      },      
 
       getUserSolanaBalance: {
         description: "show the user's solana balance for their connected wallet to the user",

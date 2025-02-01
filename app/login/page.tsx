@@ -12,7 +12,7 @@ export default function LoginPage() {
  const [token, setToken] = useState('')
  const [error, setError] = useState('')
  const [isLoading, setIsLoading] = useState(false)
- const { user, ready } = usePrivy()
+ const { user, ready, getAccessToken } = usePrivy()
  const router = useRouter()
  const collectionId = process.env.NEXT_PUBLIC_COLLECTION_ID as string
 
@@ -21,9 +21,10 @@ export default function LoginPage() {
    setError('')
    setIsLoading(true)
    try {
-     const response = await fetch('/api/verify-token', {
+      const accessToken = await getAccessToken()
+     const response = await fetch('/api/auth/token', {
        method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
        body: JSON.stringify({ token }),
      })
      if (response.ok) {
@@ -34,7 +35,6 @@ export default function LoginPage() {
      }
    } catch (error) {
      setError('An error occurred. Please try again.')
-   } finally {
      setIsLoading(false)
    }
  }

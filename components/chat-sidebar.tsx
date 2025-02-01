@@ -67,6 +67,11 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       command: 'Show me information about the token'
     },
     { 
+      name: 'Get Wallet Info', 
+      description: 'View information about a wallet',
+      command: 'Show me information about the solana account'
+    },    
+    { 
       name: 'Get Market Movers', 
       description: 'View top gainers and losers',
       command: 'Show me the top market movers today'

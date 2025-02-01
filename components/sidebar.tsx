@@ -1,22 +1,25 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SettingsIcon, BarChartIcon, BotIcon, HomeIcon, MarketplaceIcon, MenuIcon, CloseIcon} from './icons';
+import { SettingsIcon, BarChartIcon, BotIcon, HomeIcon, MarketplaceIcon, MenuIcon, CloseIcon, SearchIcon} from './icons';
 import Link from 'next/link';
 import { getAccessToken, usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
 import { RecentChats } from './recent-chats-component';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const { login, logout, authenticated, user, getAccessToken } = usePrivy();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const navigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
     ...(authenticated ? [
       { name: 'Agents', href: '/agents', icon: BotIcon },
+      { name: 'Watchers', href: '/watchers', icon: SearchIcon },
       { name: 'Portfolio', href: '/portfolio', icon: BarChartIcon },
       { name: 'Apps', href: '/marketplace', icon: MarketplaceIcon },
       { name: 'Settings', href: '/settings', icon: SettingsIcon },
@@ -71,11 +74,11 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
                   <div className="text-zinc-400"> 
                     <item.icon />
                   </div>
-                  <span className={`ml-3 ${ 
+                  <span className={`${ 
                     pathname === item.href
                       ? 'text-white'
                       : 'text-white hover:text-white'
-                  }`}>
+                  } ${item.name === 'Watchers' ? ' ml-2' : ' ml-3'}`}>
                     {item.name}
                   </span>
                 </Link>
@@ -89,7 +92,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
        {pathname !== '/login' && <div className="p-4">
           {authenticated ? (
             <button 
-              onClick={() => logout().then(() => window.location.reload())}
+              onClick={() => logout().then(() => router.push('/login'))}
               className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
             >
               Disconnect

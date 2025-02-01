@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     if (paramConfig.token) apiParams.append('token', paramConfig.token);
 
     const response = await fetch(
-      `https://pro-api.solscan.io/v2.0/account/defi/activities?${apiParams.toString()}`,
+      `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`,
       {
         headers: {
           'token': process.env.SOLSCAN_API_KEY || '',

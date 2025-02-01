@@ -13,7 +13,7 @@ import ImageUpload from "./image-upload";
 import Accordion from "./accordion";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-import { set } from "lodash";
+import DeleteConfirmationModal from './delete-confirmation-modal';
 
 interface InitialData {
   id: string;
@@ -47,6 +47,8 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [createdFromTemplate, setCreatedFromTemplate] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [selectedModelValue, setSelectedModelValue] = useState('option1');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const topRef = useRef<HTMLDivElement>(null);
   const { user, getAccessToken } = usePrivy();
@@ -289,6 +291,35 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     topRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const accessToken = await getAccessToken();
+      const response = await fetch(
+        `/api/agents/${decodeURIComponent(params.userId as string)}/${params.agentId}`, 
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+  
+      if (!response.ok) {
+        throw new Error('Failed to delete agent');
+      }
+  
+      toast.success('Agent deleted successfully');
+      router.push(`/agents/`);
+    } catch (error) {
+      toast.error('Failed to delete agent');
+      console.error('Error deleting agent:', error);
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };  
+
 const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   setLoading(true);
@@ -435,7 +466,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             {initialData ? formData.name || "Edit Agent" : "Create New Agent"}
           </h1>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center w-full sm:w-auto flex-col sm:flex-row">
             {params.userId === "template" && (
               <button
                 onClick={handleUseTemplate}
@@ -572,11 +603,20 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           </div>
         </Accordion>
 
-        {params.userId !== 'template' && <div className="flex justify-end pt-4">
+        {params.userId !== 'template' && <div className="flex justify-end pt-4 gap-4">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setIsDeleteModalOpen(true)
+            }}
+            className="w-full sm:w-auto h-10 px-6 py-2 outline outline-red-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+          >
+            Delete Agent
+          </button>
           <button
             type="submit"
             disabled={loading}
-            className="w-full sm:w-auto h-10 px-6 py-2 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="w-full sm:w-auto h-10 px-6 py-2 outline outline-indigo-500 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             {loading
               ? initialData
@@ -609,6 +649,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           />
         )}
       </div>
+
+      <DeleteConfirmationModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        loading={isDeleting}
+      />      
 
     </div>
   );

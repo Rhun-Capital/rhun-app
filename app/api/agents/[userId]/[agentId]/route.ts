@@ -107,3 +107,60 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { userId: string; agentId: string } }
+) {
+  try {
+    // First, get the agent to check for image
+    const currentAgent = await dynamodb.get({
+      TableName: 'Agents',
+      Key: {
+        id: params.agentId,
+        userId: params.userId
+      }
+    }).promise();
+
+    if (!currentAgent.Item) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
+    // Delete the agent's image from S3 if it exists
+    if (currentAgent.Item.imageUrl) {
+      const imageKey = getKeyFromUrl(currentAgent.Item.imageUrl);
+      try {
+        await deleteFromS3(imageKey);
+      } catch (error) {
+        console.error('Error deleting agent image:', error);
+        // Continue with agent deletion even if image deletion fails
+      }
+    }
+
+    // Delete the agent from DynamoDB
+    await dynamodb.delete({
+      TableName: 'Agents',
+      Key: {
+        id: params.agentId,
+        userId: params.userId
+      },
+      ConditionExpression: 'attribute_exists(id)'
+    }).promise();
+
+    return NextResponse.json({ message: 'Agent deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting agent:', error);
+
+    if ((error as any).code === 'ConditionalCheckFailedException') {
+      return NextResponse.json(
+        { error: 'Agent not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to delete agent' },
+      { status: 500 }
+    );
+  }
+}
