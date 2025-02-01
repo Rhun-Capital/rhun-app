@@ -774,17 +774,24 @@ export default function Home() {
               )}
 
 
-              {!messages.length ? <div className={`ml-[8%] mt-4 sm:mt-0 ${ sidebarOpen ? '' : 'ml-0  flex items-center justify-center'}`}> <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
-                <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
-                <div className="flex items-center"> <SettingsIcon/>&nbsp;Edit Agent</div>
+              {!messages.length ? 
+              <div className={`mt-10 sm:mt-0 flex flex-col sm:flex-row items-center justify-start w-full ${ sidebarOpen ? ' ml-0' : ' justify-center'}`}> 
+                <div className="w-full sm:w-auto">
+                  <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
+                  <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5 mt-4 w-[90%] text-center sm:w-auto">
+                    <div>Edit Agent</div>
+                  </button>
+                </Link>
+                </div>
+
+                <div className="w-full sm:w-auto">
+                <button 
+                  onClick={() => handleToolSelect('What tools do you have access to?')}
+                  className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5 mt-4 w-[90%] text-center sm:w-auto">
+                  <div>Describe Tools</div>
                 </button>
-              </Link>
-              <button 
-                onClick={() => handleToolSelect('What tools do you have access to?')}
-                className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5 mt-4 sm:mt-0"
-              >
-                <div className="flex items-center"><MessageIcon/>&nbsp;Describe Tools</div>
-              </button></div> : null}
+                </div>
+              </div> : null}
 
                        
   
