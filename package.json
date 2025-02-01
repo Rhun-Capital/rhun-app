@@ -11,6 +11,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^0.0.40",
     "@aws-sdk/client-dynamodb": "^3.734.0",
+    "@aws-sdk/client-eventbridge": "^3.740.0",
+    "@aws-sdk/client-lambda": "^3.738.0",
     "@aws-sdk/lib-dynamodb": "^3.734.0",
     "@crossmint/client-sdk-react-ui": "^1.13.3",
     "@pinecone-database/pinecone": "^4.1.0",
@@ -50,6 +52,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@aws-sdk/types": "^3.734.0",
+    "@types/aws-lambda": "^8.10.147",
     "@types/lodash": "^4.17.14",
     "@types/node": "^20.17.16",
     "@types/pdf-parse": "^1.1.4",

@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useState, useEffect } from 'react';
 import {useLogin} from '@privy-io/react-auth';
 import {useRouter} from 'next/navigation';
+import LoadingIndicator from './loading-indicator';
 
 export default function WalletConnection() {
   const { logout, ready, authenticated, user, getAccessToken } = usePrivy();
@@ -23,51 +24,51 @@ export default function WalletConnection() {
     },
   });
 
-  useEffect(() => {
-    if (authenticated && user) {
-      checkNFTOwnership();
-    }
-  }, [authenticated, user]);
+  // useEffect(() => {
+  //   if (authenticated && user) {
+  //     checkNFTOwnership();
+  //   }
+  // }, [authenticated, user]);
 
-  const checkNFTOwnership = async () => {
-    if (!user) return;
-    const accessToken = await getAccessToken();
-    setChecking(true);
+  // const checkNFTOwnership = async () => {
+  //   if (!user) return;
+  //   const accessToken = await getAccessToken();
+  //   setChecking(true);
     
-    try {
-      // Determine if we're using wallet or email
-      const requestBody = user?.wallet?.address 
-        ? {
-            chain: 'solana', 
-            walletAddress: user.wallet.address,
-            userId: user.id
-          }
-        : {
-            chain: 'solana', 
-            email: user.email?.address,
-            userId: user.id
-          };
+  //   try {
+  //     // Determine if we're using wallet or email
+  //     const requestBody = user?.wallet?.address 
+  //       ? {
+  //           chain: 'solana', 
+  //           walletAddress: user.wallet.address,
+  //           userId: user.id
+  //         }
+  //       : {
+  //           chain: 'solana', 
+  //           email: user.email?.address,
+  //           userId: user.id
+  //         };
 
-      // Call our check-nft endpoint
-      const response = await fetch('/api/nft/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-        body: JSON.stringify(requestBody)
-      });
+  //     // Call our check-nft endpoint
+  //     const response = await fetch('/api/nft/verify', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+  //       body: JSON.stringify(requestBody)
+  //     });
       
-      const nft = await response.json();
-      if (nft.data.length > 0 && nft.data[0].metadata.name === 'RHUN FAST PASS') {
-        setHasNFT(true);
-        window.location.href = '/';
-      } else {
-        setHasNFT(false);
-      }
-    } catch (error) {
-      console.error('Error checking NFT:', error);
-      setHasNFT(false);
-    }
-    setChecking(false);
-  };
+  //     const nft = await response.json();
+  //     if (nft.data.length > 0 && nft.data[0].metadata.name === 'RHUN FAST PASS') {
+  //       setHasNFT(true);
+  //       window.location.href = '/';
+  //     } else {
+  //       setHasNFT(false);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error checking NFT:', error);
+  //     setHasNFT(false);
+  //   }
+  //   setChecking(false);
+  // };
 
   return (
     <div className="text-center">
@@ -95,7 +96,7 @@ export default function WalletConnection() {
             
           </div>
           {/* <div className="mt-2">
-            {checking ? 'Checking NFT ownership...' : (hasNFT ? 'NFT found!' : 'No Fast Pass NFT found')}
+             {checking && ready && user ? <div className="flex items-center gap-2 justify-center"><LoadingIndicator/> Checking NFT ownership...</div> : ''}
           </div> */}
         </div>
       )}

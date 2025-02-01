@@ -115,7 +115,7 @@ export default function AgentsPage() {
         </div>
 
         {/* Filter Controls */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 flex-col sm:flex-row">
           <button
             onClick={() => setActiveFilter('all')}
             className={`px-4 py-2 rounded-lg text-sm transition ${
@@ -198,7 +198,7 @@ export default function AgentsPage() {
                 {user && (
                   <Link 
                     href={`/agents/${agent.isTemplate ? 'template' : user.id}/${agent.id}/edit`}
-                    className="absolute top-2 right-2 p-2 bg-zinc-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-2 bg-zinc-700 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-indigo-400"
                   >
                     <EditIcon className="w-4 h-4 text-white"/>
                   </Link>

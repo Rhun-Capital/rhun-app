@@ -31,6 +31,7 @@ import PortfolioValue  from "@/components/tools/portfolio-value";
 import TokenHoldings  from "@/components/tools/token-holdings";
 import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
+import AccountInfo from "@/components/tools/account-info";
 import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
 
@@ -158,6 +159,11 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
 
 
 export default function Home() {
+  const params = useParams();
+  const agentId = params.agentId;  
+  const searchParams = useSearchParams(); 
+  const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
+
   const { user, getAccessToken } = usePrivy();
   const { refreshRecentChats } = useRecentChats();
   const [agent, setAgent] = useState<any>();
@@ -170,15 +176,9 @@ export default function Home() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [savedInput, setSavedInput] = useState("");
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
-  const [newChatId, setNewChatId] = useState<string | null>(`chat_${Date.now()}`);
+  const [newChatId] = useState<string>(`chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isNewChat, setIsNewChat] = useState(true);
   const [isHeadersReady, setIsHeadersReady] = useState(false);
-  const chatCreatedRef = useRef(false);  
-  const params = useParams();
-  const agentId = params.agentId;  
-  const searchParams = useSearchParams(); 
-  const chatId = searchParams.get('chatId');  
 
 
   useEffect(() => {
@@ -240,12 +240,8 @@ export default function Home() {
               result: tool.result
             }))
           }));
-
-          console.log('formattedMessages:', formattedMessages);
           
           setInitialMessages(formattedMessages);
-          setIsNewChat(false); // Mark as existing chat
-          chatCreatedRef.current = true; // Prevent new chat creation
 
         }
       } catch (error) {
@@ -257,14 +253,14 @@ export default function Home() {
     loadInitialMessages();
   }, [chatId, params.userId, getAccessToken]);
 
-  const { messages, input, handleSubmit, handleInputChange, addToolResult , isLoading, append } =
+  const { messages, input, handleSubmit, handleInputChange, isLoading, append } =
     useChat({
       headers,
       body: { agent, user },
       maxSteps: 20,
       initialMessages,
       sendExtraMessageFields: true,
-      id: chatId ?? undefined,
+      id: chatId || newChatId,
 
       // onToolCall: async ({ toolCall }) => {
 
@@ -281,13 +277,23 @@ export default function Home() {
     });
 
     useEffect(() => {
+      if (!agent) return;
       if (messages.length === 0) return;
-      debouncedFetch(messages);
-      // Cleanup function to cancel pending debounced calls
+      
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage) return;
+      
+      // Create a new debounced function for each message
+      const debouncedSave = debounce(async () => {
+        await updateChatInDB(messages);
+      }, 1000);
+    
+      debouncedSave();
+    
       return () => {
-        debouncedFetch.cancel();
+        debouncedSave.cancel();
       };
-    }, [messages]);
+    }, [messages, agent]);
   
   // Add this useEffect for cleanup
   useEffect(() => {
@@ -355,84 +361,37 @@ export default function Home() {
     }
   };
 
-  // const createNewChat = async (message: string) => {
-  //   if (!isNewChat || chatId || currentChatId) {
-  //     return chatId || currentChatId;
-  //   }
-
-  //   if (message.trim() === '') return
-  
-  //   const newChatId = `chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`;
-  //   const token = await getAccessToken();
-  
-  //   try {
-  //     const response = await fetch(`/api/chat/${newChatId}`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         'Authorization': `Bearer ${token}`
-  //       },
-  //       body: JSON.stringify({
-  //         userId: decodeURIComponent(params.userId as string),
-  //         agentId,
-  //         agentName: agent?.name,
-  //         lastMessage: message,
-  //         lastUpdated: new Date().toISOString()
-  //       })
-  //     });
-  
-  //     if (!response.ok) {
-  //       throw new Error('Failed to create chat');
-  //     }
-  
-  //     setCurrentChatId(newChatId);
-  //     setIsNewChat(false);
-  //     chatCreatedRef.current = true;
-      
-  //     // Refresh the recent chats list
-  //     await refreshRecentChats();
-
-  //     return newChatId;
-  //   } catch (error) {
-  //     console.error('Error creating chat:', error);
-  //     throw error;
-  //   }
-  // };  
-
   const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
     const lastMessage = messages[messages.length - 1];
-
-    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !params.userId) return [];  
-    
-    // const chatIdentifier = await createNewChat(lastMessage.content);
-    
-    // if (!chatIdentifier) return [];
-
-    console.log(lastMessage)
-
+  
+    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !params.userId) {
+      return [];
+    }
+  
     const token = await getAccessToken();
+    const currentChatId = chatId || newChatId;
+
+    console.log(agent, "agent")
     
     try {
       // Update chat metadata
-      await fetch(`/api/chat/${chatId ? chatId : newChatId}`, {
+      await fetch(`/api/chat/${currentChatId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          chatId: chatId ? chatId : newChatId,
-          userId: decodeURIComponent(params.userId as string),
+          chatId: currentChatId,
+          userId: decodeURIComponent(Array.isArray(params.userId) ? params.userId[0] : params.userId),
           agentId,
           agentName: agent?.name,
           lastMessage: lastMessage.content,
           lastUpdated: new Date().toISOString()
         })
       });
-
-      console.log('lastMessage:', lastMessage);
   
-      // Store the message with tool invocations
+      // Store the message
       await fetch('/api/chat/messages', {
         method: 'POST',
         headers: {
@@ -440,9 +399,9 @@ export default function Home() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          chatId: chatId ? chatId : newChatId,
+          chatId: currentChatId,
           messageId: lastMessage.id,
-          userId: decodeURIComponent(params.userId as string),
+          userId: decodeURIComponent(Array.isArray(params.userId) ? params.userId[0] : params.userId),
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
@@ -450,7 +409,7 @@ export default function Home() {
             name: attachment.name,
             url: attachment.url,
             contentType: attachment.contentType,
-          })),          
+          })),
           toolInvocations: lastMessage.toolInvocations?.map(tool => ({
             toolName: tool.toolName,
             toolCallId: tool.toolCallId,
@@ -459,11 +418,12 @@ export default function Home() {
           }))
         })
       });
+  
+      await refreshRecentChats();
     } catch (error) {
       console.error('Error updating chat:', error);
+      toast.error('Failed to save chat message');
     }
-    
-    // await refreshRecentChats();
     
     return [];
   };
@@ -484,6 +444,7 @@ export default function Home() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          chatId: chatId ? chatId : newChatId,
           userId: decodeURIComponent(params.userId as string),
           agentId,
           agentName: agent?.name,
@@ -502,7 +463,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error in handleToolSelect:', error);
     }
-  }, [append, params.userId, agentId, agent?.name, getAccessToken, isNewChat]);
+  }, [append, params.userId, agentId, agent?.name, getAccessToken]);
 
   // Make sure your handleFormSubmit function looks like this:
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
@@ -601,16 +562,6 @@ export default function Home() {
     }
     setIsDragging(false);
   };
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // const scrollToBottom = () => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  // };
-
-  // useEffect(() => {
-  //   scrollToBottom();
-  // }, [messages]);
 
   // Function to handle file selection via the upload button
   const handleUploadClick = () => {
@@ -726,7 +677,6 @@ export default function Home() {
                     </div>
   
                     <div className={`flex-1 space-y-2 max-w-[75%] text-white`}>
-                      <Markdown>{message.content}</Markdown>
                       
                       {/* Tool Invocations */}
                       {message.toolInvocations?.map((tool) => {
@@ -764,10 +714,14 @@ export default function Home() {
                             return <DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'getTopHolders':
                             return <TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getAccountDetails':
+                            return <AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           default:
                             return null;
                         }
                       })}
+
+                    
   
                       {/* Attachments */}
                       {(message.experimental_attachments?.length ?? 0) > 0 && (
@@ -780,6 +734,9 @@ export default function Home() {
                           ))}
                         </div>
                       )}
+                      
+                      <Markdown>{message.content}</Markdown>
+
                     </div>
                   </motion.div>
                 ))
@@ -817,7 +774,7 @@ export default function Home() {
               )}
 
 
-              {!messages.length ? <div className="mt-4 sm:mt-0"> <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
+              {!messages.length ? <div className={`ml-[8%] mt-4 sm:mt-0 ${ sidebarOpen ? '' : 'ml-0  flex items-center justify-center'}`}> <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
                 <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5">
                 <div className="flex items-center"> <SettingsIcon/>&nbsp;Edit Agent</div>
                 </button>

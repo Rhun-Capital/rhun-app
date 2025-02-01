@@ -20,10 +20,10 @@ const client = new DynamoDBClient({
 const dynamodb = DynamoDBDocumentClient.from(client);
 
 const PUBLIC_API_ROUTES = new Set([
-  '/api/verify-token',
   '/api/auth/callback',
   '/api/webhooks',
-  '/api/clear-access'
+  '/api/clear-access',
+  '/api/auth/token',
 ]);
 
 const PUBLIC_PAGE_ROUTES = new Set([
@@ -69,16 +69,17 @@ export async function middleware(request: NextRequest) {
 
   // Unified auth checking function
   async function checkAuthorization() {
-    // Check early access token first
-    const accessToken = request.cookies.get('rhun_early_access_token')?.value;
-    if (accessToken && await verifyAccessToken(accessToken)) {
-      return true;
-    }
 
     // Then check Privy token
     const privyToken = request.cookies.get('privy-token')?.value;
     if (!privyToken) {
       return false;
+    }    
+
+    // Check early access token first
+    const accessToken = request.cookies.get('rhun_early_access_token')?.value;
+    if (accessToken && await verifyAccessToken(accessToken)) {
+      return true;
     }
 
     try {
