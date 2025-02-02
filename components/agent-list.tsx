@@ -168,7 +168,7 @@ export default function AgentsPage() {
                 
             {filteredAgents.map((agent) => (
               <div key={agent.id} className="group relative">
-                <Link href={user && !agent.isTemplate ? `/agents/${user.id}/${agent.id}` : `/agents/template/${agent.id}`}>
+                <Link href={user && !agent.isTemplate ? `/agents/${user.id}/${agent.id}` : `/agents/template/${agent.id}`} passHref={true}>
                 <div className={`h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-transparent transition-all duration-200 ease-in-out hover:shadow-lg hover:border-indigo-400`}>
                 <div className="flex flex-col h-full items-center justify-center">
                   {agent.imageUrl ? (
