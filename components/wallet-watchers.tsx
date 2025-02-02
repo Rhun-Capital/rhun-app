@@ -256,8 +256,8 @@ const WalletWatchers = () => {
 
   if (error) {
     return (
-      <div className="p-4 bg-zinc-800 rounded-lg">
-        <div className="text-zinc-400 flex items-center gap-2">
+      <div className="p-4 bg-zinc-800 rounded-lg mt-4">
+        <div className="text-zinc-400 flex items-center gap-2 justify-center">
           <AlertCircleIcon />
           {error}
         </div>
@@ -269,10 +269,9 @@ const WalletWatchers = () => {
     return (
       <div className="p-6">
         <Header />
-        <div className="p-4 bg-zinc-800 rounded-lg">
+        <div className="p-4 bg-zinc-800 rounded-lg mt-4">
           <div className="text-zinc-400 flex items-center gap-2">
-            <AlertCircleIcon />
-            No watchers found
+            <span>No watchers found. Create a new watcher to get started.</span>
           </div>
         </div>
           <AddWatcherModal
