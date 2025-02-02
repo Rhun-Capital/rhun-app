@@ -192,7 +192,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
             <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg col-span-1 sm:col-span-2 flex justify-between items-center">
             <div>
               <div className="text-xs sm:text-sm text-zinc-400">Contract Address</div>
-              <div className="text-xs sm:text-sm font-semibold text-zinc-300 truncate">
+              <div className="text-xs sm:text-sm font-semibold text-zinc-300 break-all truncate">
               {onchainAttributes.address}
               </div>
             </div>

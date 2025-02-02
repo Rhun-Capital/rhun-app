@@ -108,8 +108,8 @@ export default function AgentsPage() {
               href="/agents/create"
               className="flex items-center gap-2 px-4 py-2 bg-indigo-500 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start"
             >
-              <PlusIcon />
               <span className="whitespace-nowrap">Create New Agent</span>
+              <PlusIcon />
             </Link>
           )}
         </div>
@@ -160,8 +160,8 @@ export default function AgentsPage() {
                           hover:border-indigo-500 hover:border-solid
                           flex flex-col items-center justify-center gap-3 sm:gap-4 text-zinc-400
                           hover:text-indigo-400">
-              <PlusIcon />
-              <span className="text-xs sm:text-sm font-medium text-center">Create New Agent</span>
+              <span className="text-xs sm:text-sm font-medium text-center">Create Agent</span>
+              <PlusIcon />              
             </div>
           </Link>
             )}

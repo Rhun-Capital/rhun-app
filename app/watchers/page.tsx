@@ -1,4 +1,4 @@
-import WalletWatchers  from '@/components/tools/wallet-watchers';
+import WalletWatchers  from '@/components/wallet-watchers';
 
 export default async function WatchersPage() {
   return (

@@ -676,7 +676,7 @@ export default function Home() {
                       )}
                     </div>
   
-                    <div className={`flex-1 space-y-2 max-w-[75%] text-white`}>
+                    <div className="flex-1 space-y-2 max-w-[95%] sm:max-w-[75%] text-white">
                       
                       {/* Tool Invocations */}
                       {message.toolInvocations?.map((tool) => {

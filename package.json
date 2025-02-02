@@ -13,7 +13,7 @@
     "@aws-sdk/client-dynamodb": "^3.734.0",
     "@aws-sdk/client-eventbridge": "^3.740.0",
     "@aws-sdk/client-lambda": "^3.738.0",
-    "@aws-sdk/lib-dynamodb": "^3.734.0",
+    "@aws-sdk/lib-dynamodb": "^3.738.0",
     "@crossmint/client-sdk-react-ui": "^1.13.3",
     "@pinecone-database/pinecone": "^4.1.0",
     "@privy-io/react-auth": "^2.0.8",
@@ -47,7 +47,7 @@
     "react-markdown": "^9.0.3",
     "recharts": "^2.15.0",
     "remark-gfm": "^4.0.0",
-    "sonner": "^1.7.2",
+    "sonner": "^1.7.4",
     "uuid": "^11.0.5",
     "zod": "^3.24.1"
   },
