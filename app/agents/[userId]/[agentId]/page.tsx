@@ -180,6 +180,14 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHeadersReady, setIsHeadersReady] = useState(false);
 
+  useEffect(() => {
+    if (newChatId && !chatId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('chatId', newChatId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [newChatId, chatId]);
+
 
   useEffect(() => {
     if (window.innerWidth < 1024) {
