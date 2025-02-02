@@ -3,6 +3,23 @@ import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import { AlertCircleIcon } from '@/components/icons';
 import LoadingIndicator from '@/components/loading-indicator';
+import { toast } from 'sonner';
+
+interface TrackingFilters {
+  minAmount?: number;
+  specificToken?: string;
+  platform?: string[];
+  activityTypes?: string[];
+  sort_by?: string;
+  sort_order?: string;
+}
+
+// Add these interfaces to your existing ones
+interface TrackingOptions {
+  filters: TrackingFilters;
+  showFilters: boolean;
+}
+
 
 interface AccountData {
   account: string;
@@ -65,6 +82,28 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
   const [isTracked, setIsTracked] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [trackingOptions, setTrackingOptions] = useState<TrackingOptions>({
+    filters: {
+      activityTypes: ['ACTIVITY_TOKEN_SWAP', 'ACTIVITY_AGG_TOKEN_SWAP'],
+      minAmount: 0,
+      platform: [],
+      specificToken: '',
+      sort_by: 'block_time',
+      sort_order: 'desc'
+    },
+    showFilters: false
+  });  
+
+  const handleFilterChange = (key: keyof TrackingFilters, value: any) => {
+    setTrackingOptions(prev => ({
+      ...prev,
+      filters: {
+        ...prev.filters,
+        [key]: value
+      }
+    }));
+  };  
+
   // Handle NaN values and convert to SOL with proper formatting
   const formatSolBalance = (lamports: number): string => {
     const solBalance = (lamports || 0) / 1e9;
@@ -110,8 +149,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
           console.error('Error response:', errorText);
           throw new Error(`Failed to fetch activities: ${response.status}`);
         }
-
         const data = await response.json();
+        console.log(data);
         if (mounted) {
           setActivities(data);
         }
@@ -135,6 +174,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
   }, [accountData?.account, currentPage, getAccessToken]);
 
 
+
   const trackWallet = async (accountData: AccountData) => {
     setIsTrackLoading(true);
     try {
@@ -147,19 +187,20 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
         },
         body: JSON.stringify({
           walletAddress: accountData.account,
-          userId: user?.id
+          userId: user?.id,
+          filters: trackingOptions.filters
         })
       });
       
       if (!response.ok) throw new Error('Failed to start tracking');
-      // You might want to show a success message here
+      setIsTracked(true);
     } catch (error) {
       console.error('Error tracking wallet:', error);
-      // You might want to show an error message here
+      setError('Failed to start tracking wallet');
     }
-    setIsTracked(true);    
     setIsTrackLoading(false);
-  }
+    toast.success('Wallet tracking started successfully');
+  };
 
 
   // Handle error cases in render
@@ -181,22 +222,90 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
     <div className="w-full max-w-4xl bg-zinc-800 rounded-lg overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-zinc-700 flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-white">Account Details</h2>
-        {accountData && !isTracked  && (
-          <button
-            disabled={isTrackLoading}
-            onClick={() => accountData && trackWallet(accountData)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-          >
-            <div>{isTrackLoading ? 'Tracking Wallet...' : 'Track Wallet'}</div>
-          </button>
-        )}
-        {isTracked && (
-          <div className="px-4 py-2 bg-zinc-700 text-green-400 rounded-lg text-sm">
-            <div>Wallet Tracked</div>
-          </div>
-        )}
+        <h2 className="text-lg font-semibold text-white">Wallet Details</h2>
+        <div className="flex items-center gap-4">
+          {accountData && (
+            <>
+              <button
+                onClick={() => setTrackingOptions(prev => ({ ...prev, showFilters: !prev.showFilters }))}
+                className="px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
+              >
+                {trackingOptions.showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+              <button
+                disabled={isTrackLoading}
+                onClick={() => accountData && trackWallet(accountData)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTrackLoading ? 'Tracking Wallet...' : 'Track Wallet'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+ {/* Tracking Filters */}
+ {trackingOptions.showFilters && !isTracked && (
+        <div className="p-6 border border-zinc-700 bg-zinc-900">
+          <h3 className="text-sm font-medium text-white mb-4">Tracking Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Minimum Amount Filter */}
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-400">Minimum Amount (USD)</label>
+              <input
+                type="number"
+                min="0"
+                value={trackingOptions.filters.minAmount}
+                onChange={(e) => handleFilterChange('minAmount', parseFloat(e.target.value))}
+                className="w-full px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 text-white"
+              />
+            </div>
+
+            {/* Specific Token Filter */}
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-400">Specific Token Address (Optional)</label>
+              <input
+                type="text"
+                value={trackingOptions.filters.specificToken}
+                onChange={(e) => handleFilterChange('specificToken', e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 text-white"
+                placeholder="Enter token address"
+              />
+            </div>
+
+            {/* Activity Types Filter */}
+            <div className="space-y-2 col-span-full">
+              <label className="text-sm text-zinc-400">Activity Types</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  'ACTIVITY_TOKEN_SWAP',
+                  'ACTIVITY_AGG_TOKEN_SWAP',
+                  'ACTIVITY_TOKEN_ADD_LIQ',
+                  'ACTIVITY_TOKEN_REMOVE_LIQ'
+                ].map((type) => (
+                  <label key={type} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={trackingOptions.filters.activityTypes?.includes(type)}
+                      onChange={(e) => {
+                        const types = e.target.checked
+                          ? [...(trackingOptions.filters.activityTypes || []), type]
+                          : (trackingOptions.filters.activityTypes || []).filter(t => t !== type);
+                        handleFilterChange('activityTypes', types);
+                      }}
+                      className="form-checkbox text-indigo-600"
+                    />
+                    <span className="text-sm text-zinc-400">
+                      {type.replace('ACTIVITY_', '')}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}      
+
 
       {/* Account Info Content */}
       <div className="p-6 space-y-4">

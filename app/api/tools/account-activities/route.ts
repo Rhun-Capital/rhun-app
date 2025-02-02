@@ -1,3 +1,4 @@
+import { sortBy } from 'lodash';
 import { NextResponse, NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
       address: params.get('address'),
       page: parseInt(params.get('page') || '1'),
       pageSize: parseInt(params.get('page_size') || '10'),
+      sortBy: params.get('sort_by'),
+      sortOrder: params.get('sort_order'),
       blockTimes: params.getAll('block_time[]'),
       activityTypes: params.getAll('activity_type[]'),
       from: params.get('from'),
@@ -29,6 +32,8 @@ export async function GET(request: NextRequest) {
     apiParams.append('address', paramConfig.address);
     apiParams.append('page', paramConfig.page.toString());
     apiParams.append('page_size', paramConfig.pageSize.toString());
+    apiParams.append('sort_by', paramConfig.sortBy || 'block_time');
+    apiParams.append('sort_order', paramConfig.sortOrder || 'desc');
 
     if (paramConfig.blockTimes.length === 2) {
       paramConfig.blockTimes.forEach(time => {
@@ -44,7 +49,6 @@ export async function GET(request: NextRequest) {
     paramConfig.platforms.forEach(p => apiParams.append('platform[]', p));
     paramConfig.sources.forEach(s => apiParams.append('source[]', s));
     if (paramConfig.token) apiParams.append('token', paramConfig.token);
-
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`,
       {
@@ -60,6 +64,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+    console.log('Account activities:', `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`,  data);
     return NextResponse.json(data);
 
   } catch (error: any) {

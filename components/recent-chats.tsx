@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
-import { MessageSquareIcon } from '@/components/icons';
 import LoadingIndicator from './loading-indicator';
+import { Markdown } from "@/components/markdown";
 
 interface Chat {
   chatId: string;
@@ -100,7 +100,7 @@ export const RecentChatsPage = () => {
                 {chat.agentName}
               </div>
               <div className="text-sm text-zinc-500 line-clamp-2">
-                {chat.lastMessage}
+              <Markdown>{chat.lastMessage}</Markdown>
               </div>
             </div>
             <div className="text-xs text-zinc-600 whitespace-nowrap">

@@ -463,7 +463,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">
-            {initialData ? formData.name || "Edit Agent" : "Create New Agent"}
+            {initialData ? formData.name || "Edit Agent" : "Create Agent"}
           </h1>
           
           <div className="flex items-center w-full sm:w-auto flex-col sm:flex-row">
