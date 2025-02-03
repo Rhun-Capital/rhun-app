@@ -3,15 +3,15 @@ import { getSolanaBalance } from '@/utils/solana';
 
 export async function GET(
   request: Request,
-  { params }: { params: { walletId: string } }
+  { params }: { params: { address: string } }
 ) {
   try {
-    const { walletId } = params;
+    const { address } = params;
     const heliusApiKey = process.env.HELIUS_API_KEY;
     if (!heliusApiKey) {
       throw new Error('HELIUS_API_KEY is not defined');
     }
-    const balance = await getSolanaBalance(walletId, heliusApiKey);
+    const balance = await getSolanaBalance(address, heliusApiKey);
     const data = { balance };
     return NextResponse.json(data);
   } catch (error) {

@@ -3,8 +3,9 @@
 
 import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { AlertCircleIcon, WalletIcon, MegaphoneIcon, LockIcon, GlobeIcon, CopyIcon } from "@/components/icons";
+import { AlertCircleIcon } from "@/components/icons";
 import {useMfaEnrollment} from '@privy-io/react-auth';
+import CopyButton from "@/components/copy-button";
 
 export default function SettingsPage() {
   const { user, logout, authenticated } = usePrivy();
@@ -90,21 +91,10 @@ const copyToClipboard = (text: string) => {
               <div>
                 <label className="block text-xs sm:text-sm text-zinc-400 mb-1 sm:mb-2">Primary Wallet</label>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0">
                     <pre className="text-xs sm:text-sm break-all overflow-x-auto">{user.wallet.address}</pre>
                   </div>
-                  <button
-                    className="text-xs sm:text-sm text-indigo-400 hover:text-indigo-300 shrink-0"
-                    onClick={() => {
-                      if (user?.wallet?.address) {
-                        copyToClipboard(user.wallet.address);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      }
-                    }}
-                  >
-                    {copied ? "Copied!" : "Copy"}
-                  </button>
+                  <CopyButton text={user.wallet.address}/>
                 </div>
               </div>
             ) : (

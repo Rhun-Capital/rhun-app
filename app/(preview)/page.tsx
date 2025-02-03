@@ -71,10 +71,10 @@ export default function HomePage() {
           Build and deploy AI agents that track, analyze, and surface market opportunities for you.
           </p>
           <div className="flex justify-center pt-5 flex-col sm:flex-row gap-4 items-center">
-          <div  className="w-full sm:w-auto">
+          <div className="w-full sm:w-auto">
           <Link 
               href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
-              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px] gap-2 px-6 py-2 bg-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-sm"
+              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px] gap-2 px-6 py-5 sm:py-2 bg-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-sm"
             >
               <span>Start Chating</span>
               <MessageSquare className="w-5 h-5"/>
@@ -85,7 +85,7 @@ export default function HomePage() {
             <Link 
               href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
-              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px]  gap-2 px-6 py-2 bg-zinc-700 text-white rounded-full font-semibold transition-colors text-sm"
+              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px]  gap-2 px-6 py-5 sm:py-2 bg-zinc-700 text-white rounded-full font-semibold transition-colors text-sm"
             >
               <span>Read Docs</span>
               <BookOpenIcon className="w-5 h-5"/>

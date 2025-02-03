@@ -225,7 +225,6 @@ export default function Home() {
         if (!response.ok) throw new Error('Failed to load chat history');
         
         const data = await response.json()
-        console.log(data );
         
         if (data.messages && data.messages.length > 0) {
           // Convert string dates to Date objects and preserve all tool data
@@ -328,13 +327,7 @@ export default function Home() {
     };
   }, [messages]);    
 
-    const debouncedFetch: DebouncedFunc<(messages: Message[]) => Promise<void>> = useCallback(
-      debounce(async (messages) => {
-        updateChatInDB(messages);
-      }, 1000),
-      [messages]
-    );
-  
+
   // Add this handler function
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
@@ -378,8 +371,6 @@ export default function Home() {
   
     const token = await getAccessToken();
     const currentChatId = chatId || newChatId;
-
-    console.log(agent, "agent")
     
     try {
       // Update chat metadata
@@ -628,7 +619,9 @@ export default function Home() {
               </div>
             )}
           </div>
-          <h1 className="text-lg font-medium text-white">{agent.name}</h1>
+          <Link className="text-indigo-500 text-indigo-400" href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>          
+              <h1 className="text-lg font-medium text-white">{agent.name}</h1>
+          </Link>
         </div>
       </div>        
   
@@ -771,7 +764,7 @@ export default function Home() {
                         >
                           {agent.name + " "}
                         </Link>
-                        in the docs. You can edit the agent details by clicking the button below.
+                        in the <Link className="text-indigo-500" href="https://rhun-capital.gitbook.io/" target="_blank">docs</Link>. You can edit the agent details by clicking the button below.
                       </p>
                     </div>
                   </motion.div>

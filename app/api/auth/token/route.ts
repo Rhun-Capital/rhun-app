@@ -16,8 +16,6 @@ async function verifyAndUpdateToken(token: string): Promise<boolean> {
         TableName: 'EarlyAccess',
         Key: { Access_key: token }
       }).promise();
-
-      console.log(result.Item)
   
       if (!result.Item) return false;
   

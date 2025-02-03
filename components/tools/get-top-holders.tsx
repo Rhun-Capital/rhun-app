@@ -5,7 +5,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import _ from 'lodash';
 import { AlertCircleIcon } from '@/components/icons';
 import LoadingIndicator from '@/components/loading-indicator';
-
+import CopyButton from '@/components/copy-button';
 
 interface TokenHolder {
   owner: string;
@@ -390,9 +390,12 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="text-xl font-bold">Wallet Activities</h2>
-            <p className="text-zinc-400 font-mono">
-              {selectedHolder.slice(0, 4)}...{selectedHolder.slice(-4)}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-zinc-400 font-mono">
+                {selectedHolder.slice(0, 4)}...{selectedHolder.slice(-4)}
+              </p>
+              <CopyButton text={selectedHolder}/>
+            </div>
           </div>
         </div>
 

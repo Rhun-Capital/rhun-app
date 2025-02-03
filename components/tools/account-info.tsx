@@ -150,7 +150,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
           throw new Error(`Failed to fetch activities: ${response.status}`);
         }
         const data = await response.json();
-        console.log(data);
         if (mounted) {
           setActivities(data);
         }

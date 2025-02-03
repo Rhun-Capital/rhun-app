@@ -2,6 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AlertCircleIcon, GlobeIcon } from '@/components/icons';
+import CopyButton from '@/components/copy-button';
 
 interface OnChainData {
     id: string;
@@ -196,20 +197,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
               {onchainAttributes.address}
               </div>
             </div>
-            <button
-              onClick={(event) => {
-              navigator.clipboard.writeText(onchainAttributes.address);
-              const button = event.currentTarget;
-              const originalText = button.textContent;
-              button.textContent = 'Copied!';
-              setTimeout(() => {
-                button.textContent = originalText;
-              }, 2000);
-              }}
-              className="text-xs sm:text-xs text-indigo-500 hover:text-indigo-400"
-            >
-              Copy
-            </button>  
+            <CopyButton text={onchainAttributes.address}/>
             </div>
         )}
       </div>

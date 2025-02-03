@@ -604,7 +604,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         </Accordion>
 
         {params.userId !== 'template' && <div className="flex justify-end pt-4 gap-4">
-          <button
+          {initialData && <button
             onClick={(e) => {
               e.preventDefault();
               setIsDeleteModalOpen(true)
@@ -612,7 +612,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             className="w-full sm:w-auto h-10 px-6 py-2 outline outline-red-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
           >
             Delete Agent
-          </button>
+          </button>}
           <button
             type="submit"
             disabled={loading}

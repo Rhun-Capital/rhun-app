@@ -185,8 +185,7 @@ export async function getPortfolioValue(walletAddress: string) {
         volume24h: priceData[mintAddress]?.volume24h || 0
       };
     })
-  ].filter(holding => holding.usdValue > 0).sort((a, b) => b.usdValue - a.usdValue);
-
+  ]
   return { holdings };
 }
 
