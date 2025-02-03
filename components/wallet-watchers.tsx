@@ -84,11 +84,6 @@ const WalletWatchers = () => {
       .filter(filterWatchers)
       .sort(sortWatchers);
     
-    console.log('Sorted result:', sorted.map(w => ({
-      address: w.walletAddress,
-      lastChecked: w.lastChecked
-    })));
-    
     return sorted;
   }, [watchers, searchQuery, sortDirection]);
   

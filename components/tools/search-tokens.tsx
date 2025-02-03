@@ -3,6 +3,7 @@ import { ChevronLeftIcon, AlertCircleIcon, GlobeIcon } from '@/components/icons'
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
+import CopyButton from '@/components/copy-button';
 
 interface Coin {
   id: string;
@@ -177,20 +178,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
                     <div className="text-xs sm:text-sm font-mono text-zinc-300 break-all">
                       {address}
                     </div>
-                    <button
-                      onClick={(event) => {
-                      navigator.clipboard.writeText(address);
-                      const button = event.currentTarget;
-                      const originalText = button.textContent;
-                      button.textContent = 'Copied!';
-                      setTimeout(() => {
-                        button.textContent = originalText;
-                      }, 2000);
-                      }}
-                      className="text-xs sm:text-xs text-indigo-500 hover:text-indigo-400"
-                    >
-                      Copy
-                    </button>                    
+                    <CopyButton text={address}/>
                     </div>
                   </div>
                 )

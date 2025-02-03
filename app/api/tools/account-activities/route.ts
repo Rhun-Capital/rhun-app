@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('Account activities:', `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`,  data);
     return NextResponse.json(data);
 
   } catch (error: any) {

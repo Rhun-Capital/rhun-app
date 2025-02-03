@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
 import { usePrivy } from '@privy-io/react-auth';
-
+import CopyButton from '@/components/copy-button';
 
 export default function WalletTab({ agentId }: { agentId: string }) {
   const { createWallet, exportWallet, wallets } = useSolanaWallets();
@@ -160,6 +160,7 @@ export default function WalletTab({ agentId }: { agentId: string }) {
             <div>
               <h3 className="text-sm font-medium text-zinc-400 mb-1">Wallet Address</h3>
               <code className="text-sm text-zinc-300 break-all">{walletAddress}</code>
+              <CopyButton text={walletAddress} />
             </div>
             
             {/* Balance Display */}

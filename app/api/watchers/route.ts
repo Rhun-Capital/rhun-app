@@ -39,7 +39,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    console.log('Fetching watchers for userId:', userId);
     
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -57,7 +56,6 @@ export async function GET(request: NextRequest) {
     
     const watchersResult = await dynamoDb.send(watchersCommand);
     const watchers = watchersResult.Items || [];
-    console.log('Found watchers:', watchers.length);
     
     const watchersWithData = await Promise.all(watchers.map(async (watcher) => {
       // Fetch latest balance data point
@@ -89,7 +87,6 @@ export async function GET(request: NextRequest) {
       
       const activityResult = await dynamoDb.send(latestActivityCommand);
       const activities = activityResult.Items || [];
-      console.log(`Found ${activities.length} activities for wallet ${watcher.walletAddress}`);
 
       // Create a properly structured lastActivity wrapper
       const lastActivity = activities.length > 0 ? [{
@@ -151,12 +148,11 @@ export async function GET(request: NextRequest) {
       };
     }));
     
-    console.log('Returning watchers with data:', 
       watchersWithData.map(w => ({
         address: w.walletAddress,
         activityCount: w.lastActivity?.[0]?.latestActivity?.length || 0
       }))
-    );
+    
 
     return NextResponse.json({ watchers: watchersWithData });
   } catch (error) {

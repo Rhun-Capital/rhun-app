@@ -82,7 +82,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
   const formatTokenDetails = (activity: any) => {
     if (!activity.routers) return null;
     
-    const router = activity.routers.child_routers?.[0] || activity.routers;
+    const router = activity.routers;
     return {
       token1: {
         amount: router.amount1,
@@ -222,7 +222,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
             {activities.map((activity) => {
                 // Add null checks
                 if (!activity) return null;
-                
+                console.log(activity)
                 const tokenDetails = formatTokenDetails(activity);
                 if (!tokenDetails) return null;
 
