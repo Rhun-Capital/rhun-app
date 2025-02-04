@@ -1,11 +1,15 @@
 interface Token {
-    mint: string;
-    logoURI: string;
-    symbol: string;
-    name: string;
-    amount: number;
-    usdValue: number;
-    priceChange24h: number;
+    token_account: string,
+    token_address: string,
+    amount: number,
+    token_decimals: number,
+    owner: string,
+    formatted_amount: number,
+    token_name: string,
+    token_symbol: string,
+    token_icon: string,
+    usd_price: number
+    usd_value: number
   }
   
   interface TokenHoldingsProps {
@@ -13,20 +17,24 @@ interface Token {
     toolInvocation: {
       toolName: string;
       args: { message: string };
-      result?: Token[];
+      result?: {data: Token[]};
     };
   }
   
   const TokenHoldings: React.FC<TokenHoldingsProps> = ({ toolCallId, toolInvocation }) => {
     if (!['getUserTokenHoldings', 'getAgentTokenHoldings'].includes(toolInvocation.toolName)) return null;
+
+    const formatTokenAmount = (amount: number, decimals: number) => {
+      return amount / (10 ** decimals);
+    }
   
     const TokenCard = ({ token }: { token: Token }) => (
       <div className="flex justify-between items-center p-3 sm:p-4 bg-zinc-800 rounded-lg mb-2">
         <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-          {token.logoURI ? (
+          {token.token_icon ? (
             <img 
-              src={token.logoURI} 
-              alt={token.symbol}
+              src={token.token_icon} 
+              alt={token.token_symbol}
               className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex-shrink-0"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -42,23 +50,18 @@ interface Token {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-sm sm:text-base truncate">{token.name}</p>
+            <p className="font-medium text-sm sm:text-base truncate">{token.token_name}</p>
             <p className="text-xs sm:text-sm text-zinc-400 truncate">
-              {token.amount.toLocaleString(undefined, { maximumFractionDigits: 4 })} {token.symbol}
+              {formatTokenAmount(token.amount, token.token_decimals)} {token.token_symbol}
             </p>
           </div>
         </div>
         <div className="text-right flex-shrink-0">
           <p className="font-medium text-sm sm:text-base">
-            ${token.usdValue.toLocaleString(undefined, { 
+            ${token.usd_value.toLocaleString(undefined, { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2 
             })}
-          </p>
-          <p className={`text-xs sm:text-sm ${
-            token.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'
-          }`}>
-            {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(2)}%
           </p>
         </div>
       </div>
@@ -70,8 +73,8 @@ interface Token {
           {toolInvocation.args.message}
         </div>
         <div className="space-y-2">
-          {"result" in toolInvocation && toolInvocation.result?.map(token => (
-            <TokenCard key={token.mint} token={token} />
+          {toolInvocation.result && toolInvocation.result.data.map(token => (
+            <TokenCard key={token.token_address} token={token} />
           ))}
         </div>
       </div>

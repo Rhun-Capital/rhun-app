@@ -15,7 +15,8 @@ import {
   getTotalCryptoMarketCap,
   getMarketCategories,
   getDerivativesExchanges,
-  getTopHolders
+  getTopHolders,
+  getTokenHoldings
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
 
@@ -209,15 +210,11 @@ Remember to use this context when relevant to answer the user's query.`
       },
       
       getUserTokenHoldings: {
-        description: "show the user's token holdings for their connected wallet to the user",
+        description: "show the user's token holdings for their connected wallet",
         parameters: z.object({ userDetails: z.string() }),
         execute: async ({}: { userDetails: string }) => {
-          const data = await getPortfolioValue(user.wallet.address);
-          if (typeof data === 'object' && 'holdings' in data) {
-            return data.holdings;
-          } else {
-            throw new Error("No holdings data available");
-          }
+          const data = await getTokenHoldings(user.wallet.address);
+          return data;
         }
       },
 
@@ -225,12 +222,8 @@ Remember to use this context when relevant to answer the user's query.`
         description: "show the agents token holdings for their embedded wallet to the user",
         parameters: z.object({ agentDetails: z.string() }),
         execute: async ({}: { agentDetails: string }) => {
-          const data = await getPortfolioValue(agentConfig.wallets.solana);
-          if (typeof data === 'object' && 'holdings' in data) {
-            return data.holdings;
-          } else {
-            throw new Error("No holdings data available");
-          }
+          const data = await getTokenHoldings(agentConfig.wallets.solana);
+          return data;
         }
       },
       
@@ -253,7 +246,7 @@ Remember to use this context when relevant to answer the user's query.`
       },      
 
       getTokenInfo: {
-        description: "Get detailed information about a specific Solana token using its contract address. Always ask for the contract address before using this tool. ",
+        description: "Get detailed information about a specific Solana token using its contract address.",
         parameters: z.object({ 
           contractAddress: z.string().describe('The contract address of the solana token'),
         }),
