@@ -441,7 +441,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                             </div>
                           </div>
                           
-                          <div className="text-sm text-zinc-400">${token.usd_value.toFixed(2)}</div>
+                          <div className="text-sm text-zinc-400">{token.usd_value && token.usd_value > 0.009 ? '$'+token.usd_value.toFixed(2) : '-'}</div>
                         </div>
                       </div>
                     ))
