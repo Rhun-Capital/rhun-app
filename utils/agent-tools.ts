@@ -8,6 +8,16 @@ import { getTransactionCount, getTransactionVolume } from '@/utils/network-activ
 const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
 const COINGECKO_BASE_URL = process.env.COINGECKO_BASE_URL;
 const JUPITER_API_URL = process.env.NEXT_PUBLIC_JUPITER_API_URL;
+const JUPITER_PRICE_API_URL = 'https://api.jup.ag/price/v2'
+const SOLSCAN_API_URL = process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL;
+
+// List of known stablecoin addresses
+const STABLECOIN_ADDRESSES = new Set([
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
+  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', // USDT
+  'USDH1SM1ojwWUga67PGrgFWUHibbjqMvuMaDkRJTgkX',  // USDH
+  // Add more stablecoins as needed
+])
 
 
 const dynamodb = new DynamoDB.DocumentClient({
@@ -88,6 +98,115 @@ interface TokenHolder {
     timestamp: string;
   }
 
+  interface TokenAccount {
+    token_account: string
+    token_address: string
+    amount: number
+    token_decimals: number
+    owner: string
+  }
+  
+  interface TokenMetadata {
+    token_address: string
+    token_name: string
+    token_symbol: string
+    token_icon: string
+  }
+  
+  interface SolscanResponse {
+    success: boolean
+    data: TokenAccount[]
+    metadata: {
+      tokens: {
+        [key: string]: TokenMetadata
+      }
+    }
+  }
+  
+  interface JupiterPriceResponse {
+    data: {
+      [mintAddress: string]: {
+        id: string
+        mintSymbol: string
+        vsToken: string
+        vsTokenSymbol: string
+        price: number
+      }
+    }
+  }
+
+  function formatTokenBalance(amount: number, decimals: number): number {
+    return amount / Math.pow(10, decimals)
+  }
+  
+  async function getTokenPrices(tokenAddresses: string[]): Promise<{ [key: string]: number }> {
+    try {
+      // Filter out stablecoins as they're always $1
+      const nonStableTokens = tokenAddresses.filter(addr => !STABLECOIN_ADDRESSES.has(addr))
+      
+      if (nonStableTokens.length === 0) {
+        return {}
+      }
+  
+      const queryParams = new URLSearchParams()
+      nonStableTokens.forEach(addr => queryParams.append('ids', addr))
+  
+      const response = await fetch(`${JUPITER_PRICE_API_URL}?${queryParams.toString()}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch token prices')
+      }
+  
+      const priceData: JupiterPriceResponse = await response.json()
+      
+      // Create a price map including both Jupiter prices and stablecoin prices
+      const priceMap: { [key: string]: number } = {}
+      
+      // Add Jupiter prices
+      Object.entries(priceData.data).forEach(([mintAddress, data]) => {
+        priceMap[mintAddress] = data.price
+      })
+      
+      // Add stablecoin prices
+      tokenAddresses.forEach(addr => {
+        if (STABLECOIN_ADDRESSES.has(addr)) {
+          priceMap[addr] = 1 // Stablecoins are always $1
+        }
+      })
+  
+      return priceMap
+    } catch (error) {
+      console.error('Error fetching token prices:', error)
+      return {}
+    }
+  }
+  
+  async function enrichTokenData(
+    data: TokenAccount[], 
+    metadata: { tokens: { [key: string]: TokenMetadata } }
+  ) {
+    // Get all unique token addresses
+    const tokenAddresses = [...new Set(data.map(token => token.token_address))]
+    
+    // Fetch prices for all tokens
+    const priceMap = await getTokenPrices(tokenAddresses)
+  
+    return data.map(token => {
+      const tokenMetadata = metadata.tokens[token.token_address]
+      const formattedAmount = formatTokenBalance(token.amount, token.token_decimals)
+      const price = priceMap[token.token_address] || 0
+      
+      return {
+        ...token,
+        formatted_amount: formattedAmount,
+        token_name: tokenMetadata?.token_name || 'Unknown Token',
+        token_symbol: tokenMetadata?.token_symbol || '???',
+        token_icon: tokenMetadata?.token_icon || null,
+        usd_price: price,
+        usd_value: formattedAmount * price
+      }
+    })
+  }
+
   export async function getAgentConfig(userId: string, agentId: string) {
     const result = await dynamodb.get({
       TableName: 'Agents',
@@ -97,6 +216,50 @@ interface TokenHolder {
     if (!result.Item) throw new Error('Agent not found');
     return result.Item;
   }  
+
+  export async function getTokenHoldings(address: string) {
+    const queryParams = new URLSearchParams({
+        address,
+        type: 'token',
+        page: '1',
+        page_size: '10',
+        hide_zero: 'true'
+      })
+
+      console.log("HEEEEERE")
+
+      const response = await fetch(
+        `${SOLSCAN_API_URL}/account/token-accounts?${queryParams.toString()}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'token': process.env.SOLSCAN_API_KEY || ''
+          },
+          next: { revalidate: 60 }
+        }
+      )
+
+      console.log("response", response)
+
+      if (!response.ok) {
+        throw new Error(`Solscan API error: ${response.status}`)
+      }
+
+      const rawData: SolscanResponse = await response.json()
+
+      if (!rawData.success) {
+        throw new Error('Failed to fetch token data from Solscan')
+      }
+
+      const data = await enrichTokenData(rawData.data, rawData.metadata)
+
+      // Calculate total portfolio value
+      const totalUsdValue = data.reduce((sum, token) => sum + (token.usd_value || 0), 0)
+
+      console.log(data, totalUsdValue)
+
+      return { data, totalUsdValue }
+  }
   
   export async function getFearGreedIndex(): Promise<FearGreedData> {
     try {
@@ -250,9 +413,9 @@ export async function getTokenInfo(contractAddress: string) {
       console.error('Error fetching token info:', error);
       return { error: 'Failed to fetch token information' };
     }
-  }
+}
 
-  export async function getMarketMovers() {
+export async function getMarketMovers() {
     try {
       const moversResponse = await fetch(`${COINGECKO_BASE_URL}/coins/top_gainers_losers?vs_currency=usd`, {
         headers: {
