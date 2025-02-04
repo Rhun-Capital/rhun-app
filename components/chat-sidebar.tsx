@@ -343,13 +343,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
             {activeTab === 'wallet' ? (
               <div className="p-4 space-y-2">
 
-                {/* if no agent wallet  */}
-                {!agent.wallets?.solana && <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
-                  <div className="text-sm text-zinc-500">
-                    Configure wallet to view address
-                  </div>
-                  </div>}
-
                 {/* Wallet Address */}
                 <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
                   <div className="text-sm text-zinc-400">Wallet Address</div>
