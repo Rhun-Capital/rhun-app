@@ -223,7 +223,7 @@ interface TokenHolder {
         address,
         type: 'token',
         page: '1',
-        page_size: '10',
+        page_size: '40',
         hide_zero: 'true'
       })
 
