@@ -62,10 +62,9 @@ async function getTokenPrices(tokenAddresses: string[]): Promise<{ [key: string]
       return {}
     }
 
-    const queryParams = new URLSearchParams()
-    nonStableTokens.forEach(addr => queryParams.append('ids', addr))
+    const queryParams = nonStableTokens.map(String).join(',');
 
-    const response = await fetch(`${JUPITER_PRICE_API_URL}?${queryParams.toString()}`)
+    const response = await fetch(`${JUPITER_PRICE_API_URL}?${queryParams}`)
     if (!response.ok) {
       throw new Error('Failed to fetch token prices')
     }
@@ -77,7 +76,8 @@ async function getTokenPrices(tokenAddresses: string[]): Promise<{ [key: string]
     
     // Add Jupiter prices
     Object.entries(priceData.data).forEach(([mintAddress, data]) => {
-      priceMap[mintAddress] = data.price
+      if (data)
+        priceMap[mintAddress] = data.price
     })
     
     // Add stablecoin prices

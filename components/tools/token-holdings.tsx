@@ -58,10 +58,10 @@ interface Token {
         </div>
         <div className="text-right flex-shrink-0">
           <p className="font-medium text-sm sm:text-base">
-            ${token.usd_value.toLocaleString(undefined, { 
+            {token.usd_value && token.usd_value > 0.009 ? '$'+token.usd_value.toLocaleString(undefined, { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2 
-            })}
+            }) : '-'}
           </p>
         </div>
       </div>
