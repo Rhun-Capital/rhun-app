@@ -3,6 +3,7 @@ import AuthProvider from '@/components/auth-provider';
 import { Sidebar } from '@/components/sidebar';
 import { ChatProvider } from '@/contexts/chat-context';
 import { Toaster } from 'sonner';
+import { Analytics } from "@vercel/analytics/react"
 
 export default function RootLayout({
   children,
@@ -24,7 +25,7 @@ export default function RootLayout({
             </Sidebar>
           </ChatProvider>
         </AuthProvider>
-        
+        <Analytics/>
       </body>
     </html>
   );
