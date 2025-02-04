@@ -148,22 +148,23 @@ interface TokenHolder {
         return {}
       }
   
-      const queryParams = new URLSearchParams()
-      nonStableTokens.forEach(addr => queryParams.append('ids', addr))
-  
-      const response = await fetch(`${JUPITER_PRICE_API_URL}?${queryParams.toString()}`)
+      const queryParams = nonStableTokens.map(String).join(',');
+      
+      const response = await fetch(`${JUPITER_PRICE_API_URL}?ids=${queryParams}`)
       if (!response.ok) {
         throw new Error('Failed to fetch token prices')
       }
   
       const priceData: JupiterPriceResponse = await response.json()
+      console.log(priceData)
       
       // Create a price map including both Jupiter prices and stablecoin prices
       const priceMap: { [key: string]: number } = {}
       
       // Add Jupiter prices
       Object.entries(priceData.data).forEach(([mintAddress, data]) => {
-        priceMap[mintAddress] = data.price
+        if (data)
+          priceMap[mintAddress] = data.price
       })
       
       // Add stablecoin prices
@@ -226,8 +227,6 @@ interface TokenHolder {
         hide_zero: 'true'
       })
 
-      console.log("HEEEEERE")
-
       const response = await fetch(
         `${SOLSCAN_API_URL}/account/token-accounts?${queryParams.toString()}`,
         {
@@ -238,8 +237,6 @@ interface TokenHolder {
           next: { revalidate: 60 }
         }
       )
-
-      console.log("response", response)
 
       if (!response.ok) {
         throw new Error(`Solscan API error: ${response.status}`)
@@ -255,8 +252,6 @@ interface TokenHolder {
 
       // Calculate total portfolio value
       const totalUsdValue = data.reduce((sum, token) => sum + (token.usd_value || 0), 0)
-
-      console.log(data, totalUsdValue)
 
       return { data, totalUsdValue }
   }
