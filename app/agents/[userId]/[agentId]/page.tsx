@@ -2,9 +2,7 @@
 import {
   AttachmentIcon,
   BotIcon,
-  UserIcon,
-  SettingsIcon,
-  MessageIcon
+  UserIcon
 } from "@/components/icons";
 import { useRecentChats } from '@/contexts/chat-context';
 import { useChat } from "ai/react";
@@ -744,7 +742,7 @@ export default function Home() {
               ) : (
                 <div>
                 <div className={`h-[350px] flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
-                <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-20">
+                <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-0 sm:pt-20">
                     <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 border-zinc-700">
                       <p className="flex flex-row justify-center gap-4 items-center dark:text-white dark:text-zinc-50">  
                         <BotIcon />
@@ -776,7 +774,7 @@ export default function Home() {
 
 
               {!messages.length ? 
-              <div className={`mt-10 sm:mt-0 flex flex-col sm:flex-row items-center justify-start w-full ${ sidebarOpen ? ' ml-0' : ' justify-center'}`}> 
+              <div className={`mt-0 flex flex-col sm:flex-row items-center justify-start w-full ${ sidebarOpen ? ' ml-0' : ' justify-center'}`}> 
                 <div className="w-full sm:w-auto">
                   <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
                   <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5 mt-4 w-[90%] text-center sm:w-auto">
