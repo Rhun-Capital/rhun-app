@@ -10,7 +10,6 @@ const TOKENS_PER_PAGE = 50;
 const JUPITER_TOKEN_LIST_URL = 'https://token.jup.ag/strict';  // Using strict list for better performance
 const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
 
-
 interface PaginatedTokens {
   tokens: JupiterToken[];
   currentPage: number;
