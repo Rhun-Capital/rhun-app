@@ -1,0 +1,60 @@
+// app/api/solana/rpc/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+const HELIUS_RPC = `${process.env.HELIUS_RPC_URL}/?api-key=${process.env.HELIUS_API_KEY}`;
+
+export async function POST(request: NextRequest) {
+    try {
+      const body = await request.json();
+      
+      // Log the incoming request for debugging
+      console.log('RPC request:', {
+        method: body.method,
+        paramsLength: body.params?.length
+      });
+  
+      const response = await fetch(HELIUS_RPC, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: body.id || 1,
+          method: body.method,
+          params: body.params || []
+        })
+      });
+  
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('RPC error response:', error);
+        return NextResponse.json(
+          { error: { message: `RPC request failed: ${response.status} ${response.statusText}` } },
+          { status: response.status }
+        );
+      }
+  
+      const data = await response.json();
+      
+      // Log the response for debugging
+      if (data.error) {
+        console.error('RPC response error:', data.error);
+      }
+  
+      return NextResponse.json(data);
+    } catch (error: any) {
+      console.error('RPC proxy error:', error);
+      return NextResponse.json(
+        { 
+          error: {
+            message: error.message || 'Internal server error',
+            details: error.stack
+          }
+        }, 
+        { status: 500 }
+      );
+    }
+  }
+  
+  export const runtime = 'edge';

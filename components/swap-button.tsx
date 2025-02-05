@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePrivy, useSolanaWallets } from '@privy-io/react-auth';
-import { PublicKey, Connection, Transaction, VersionedTransaction, AddressLookupTableAccount } from '@solana/web3.js';
+import { usePrivy, useSolanaWallets, getAccessToken } from '@privy-io/react-auth';
+import { PublicKey, Connection, Commitment, GetLatestBlockhashConfig, SendOptions, Transaction, VersionedTransaction, AddressLookupTableAccount } from '@solana/web3.js';
 import base58 from 'bs58';
 
 import Image from 'next/image';
@@ -56,11 +56,109 @@ interface PaginatedTokens {
 
 type SelectionType = 'from' | 'to' | null;
 
+
+
+class ProxyConnection extends Connection {
+  constructor(config?: { commitment?: Commitment }) {
+    super('https://api.mainnet-beta.solana.com', config);
+  }
+
+  private async customRpcRequest(method: string, params: any[]) {
+    try {
+      const response = await fetch('/api/solana/rpc', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method,
+          params,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      return data.result;
+    } catch (error) {
+      console.error('RPC request failed:', error);
+      throw error;
+    }
+  }
+
+  async _rpcRequest(method: string, params: any[]) {
+    const result = await this.customRpcRequest(method, params);
+    return {
+      result,
+      id: 1,
+      jsonrpc: '2.0'
+    };
+  }
+
+  async getLatestBlockhash(
+    commitmentOrConfig?: Commitment | GetLatestBlockhashConfig
+  ): Promise<Readonly<{
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }>> {
+    const config = typeof commitmentOrConfig === 'string' 
+      ? { commitment: commitmentOrConfig }
+      : commitmentOrConfig;
+
+    const params = config ? [config] : [];
+    const result = await this.customRpcRequest('getLatestBlockhash', params);
+    
+    return {
+      blockhash: result.value.blockhash,
+      lastValidBlockHeight: result.value.lastValidBlockHeight,
+    };
+  }
+
+  async sendRawTransaction(
+    rawTransaction: Buffer | Uint8Array | Array<number>,
+    options?: SendOptions
+  ): Promise<string> {
+    const buffer = Buffer.from(rawTransaction);
+    
+    // Send base64 encoded transaction
+    const params = [
+      buffer.toString('base64'),
+      {
+        encoding: 'base64',
+        ...options
+      }
+    ];
+
+    try {
+      const signature = await this.customRpcRequest('sendTransaction', params);
+      return signature;
+    } catch (error) {
+      console.error('Send transaction error:', error);
+      throw error;
+    }
+  }
+}
+
+
+  
+
 const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
   const { wallets: solanaWallets } = useSolanaWallets();
   const activeWallet = solanaWallets.find(
     wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
   );
+
+  console.log(solanaWallets)
+
+  console.log('activeWallet', activeWallet);
 
   const [selecting, setSelecting] = useState<SelectionType>(null);
   const [fromToken, setFromToken] = useState<Token | null>(null);
@@ -73,9 +171,11 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
   const [searchTerm, setSearchTerm] = useState('');
   const [slippage, setSlippage] = useState<string>('1.0');
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
-  
+  const [pendingSignature, setPendingSignature] = useState<string | null>(null);
+  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'confirmed' | 'failed' | null>(null);
 
-  const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+
+  // const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
 
   const [paginatedTokens, setPaginatedTokens] = useState<PaginatedTokens>({
     tokens: [],
@@ -129,89 +229,316 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
+  
+  // const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  
+  const executeSwap = async () => {
+    const connection = new ProxyConnection({ commitment: 'confirmed' });
+    try {
+      if (!activeWallet || !activeWallet.address) {
+        throw new Error('Wallet not connected');
+      }
+  
+      // Log wallet state
+      console.log('Wallet state:', {
+        address: activeWallet.address,
+        type: activeWallet.walletClientType,
+        hasSignTransaction: !!activeWallet.signTransaction,
+        hasSendTransaction: !!activeWallet.sendTransaction
+      });
+  
+      const inputMint = fromToken?.token_address === 'SOL' 
+        ? 'So11111111111111111111111111111111111111112' 
+        : fromToken?.token_address;
+      
+      const outputMint = toToken?.token_address === 'SOL'
+        ? 'So11111111111111111111111111111111111111112'
+        : toToken?.token_address;
+  
+      // Calculate decimals amount here
+      const amountInDecimals = Math.floor(
+        parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
+      );
+
+      console.log(amountInDecimals)
+  
+      const slippageBps = Math.floor(parseFloat(slippage) * 100);
+  
+      // Log swap parameters
+      console.log('Swap parameters:', {
+        inputMint,
+        outputMint,
+        amount,
+        amountInDecimals,
+        slippageBps,
+        userAddress: activeWallet.address
+      });
+  
+      // Get quote with specific options
+      console.log('Fetching quote...');
+      const quoteResponse = await fetch(
+        `${JUPITER_V6_QUOTE_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountInDecimals}&slippageBps=${slippageBps}&asLegacyTransaction=true`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+  
+      if (!quoteResponse.ok) {
+        const errorText = await quoteResponse.text();
+        console.error('Quote error:', errorText);
+        throw new Error(`Failed to get quote: ${errorText}`);
+      }
+  
+      const quoteData = await quoteResponse.json();
+      console.log('Quote received:', {
+        routes: quoteData.routesInfos?.length,
+        inAmount: quoteData.inputAmount,
+        outAmount: quoteData.outputAmount
+      });
+  
+      // Get fresh blockhash
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      console.log('Got blockhash:', { blockhash, lastValidBlockHeight });
+  
+      // Now get the swap transaction
+      console.log('Requesting swap transaction...');
+      const swapRequest = {
+        quoteResponse: quoteData,
+        userPublicKey: activeWallet.address,
+        asLegacyTransaction: true,
+        computeUnitPriceMicroLamports: 1000,
+        useTokenLedger: false
+      };
+  
+      const swapResponse = await fetch(`${JUPITER_V6_QUOTE_API}/swap`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(swapRequest)
+      });
+  
+      if (!swapResponse.ok) {
+        const errorText = await swapResponse.text();
+        console.error('Swap preparation error:', errorText);
+        throw new Error(`Failed to prepare swap: ${errorText}`);
+      }
+  
+      const responseData = await swapResponse.json();
+      if (!responseData.swapTransaction) {
+        console.error('No swap transaction in response:', responseData);
+        throw new Error('No swap transaction received from API');
+      }
+  
+      // Log transaction data
+      console.log('Got swap transaction data');
+  
+      // Decode transaction
+      console.log('Decoding transaction...');
+      const serializedTransaction = Buffer.from(responseData.swapTransaction, 'base64');
+      const transaction = Transaction.from(serializedTransaction);
+  
+      // Set transaction parameters
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = new PublicKey(activeWallet.address);
+  
+      // Log transaction details
+      console.log('Transaction prepared:', {
+        numInstructions: transaction.instructions.length,
+        recentBlockhash: transaction.recentBlockhash,
+        feePayer: transaction.feePayer.toBase58(),
+        signers: transaction.signatures.length
+      });
+  
+      // Try sending transaction
+      console.log('Sending transaction to wallet for approval...');
+      const signature = await activeWallet.sendTransaction(
+        transaction,
+        connection,
+        {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+          maxRetries: 3
+        }
+      );
+  
+      console.log('Transaction submitted with signature:', signature);
+  
+      // Try to get immediate status
+      try {
+        const status = await connection.getSignatureStatus(signature);
+        console.log('Immediate transaction status:', status);
+      } catch (statusError) {
+        console.error('Error getting immediate status:', statusError);
+      }
+  
+      return signature;
+  
+    } catch (error) {
+      // Log any errors in detail
+      console.error('Swap execution error:', {
+        error,
+        message: (error as Error).message,
+        stack: (error as Error).stack,
+        name: (error as Error).name
+      });
+      throw error;
+    }
+  };
+
+  const checkTransactionStatus = async (signature: string) => {
+    let retries = 0;
+    const maxRetries = 45; // 90 seconds total (45 * 2 second intervals)
+    
+    const checkStatus = async () => {
+      const connection = new ProxyConnection({ commitment: 'confirmed' });
+      try {
+        const status = await connection.getSignatureStatus(signature);
+        console.log('Transaction status:', status?.value);
+
+        if (status?.value?.err) {
+          setTransactionStatus('failed');
+          setError(`Transaction failed: ${JSON.stringify(status.value.err)}`);
+          return false;
+        }
+
+        if (status?.value?.confirmationStatus === 'confirmed' || 
+            status?.value?.confirmationStatus === 'finalized') {
+          setTransactionStatus('confirmed');
+          setSuccess(signature);
+          return true;
+        }
+
+        return null;
+      } catch (error) {
+        console.error('Status check error:', error);
+        return null;
+      }
+    };
+
+    // Initial check
+    const initialStatus = await checkStatus();
+    if (initialStatus !== null) return;
+
+    // Start polling
+    const intervalId = setInterval(async () => {
+      retries++;
+      const status = await checkStatus();
+      
+      if (status !== null || retries >= maxRetries) {
+        clearInterval(intervalId);
+        if (status === null && retries >= maxRetries) {
+          // Don't mark as failed, just note it's taking longer
+          setError(`Transaction confirmation is taking longer than expected. Please check the transaction status on Solscan.`);
+        }
+      }
+    }, 2000);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
+  };  
+
   const handleSwap = async () => {
-    if (!activeWallet || !quote || !fromToken || !toToken) return;
+    console.log("Starting handleSwap function");
+    console.log("Token balances:", {
+      fromToken: {
+        symbol: fromToken?.token_symbol,
+        balance: fromToken?.formatted_amount,
+        decimals: fromToken?.token_decimals
+      },
+      swapAmount: amount,
+      hasEnoughBalance: fromToken ? parseFloat(amount) <= fromToken.formatted_amount : false
+    });
+  
+    // Check balance before proceeding
+    if (fromToken && parseFloat(amount) > fromToken.formatted_amount) {
+      setError(`Insufficient ${fromToken.token_symbol} balance. You have ${fromToken.formatted_amount} but trying to swap ${amount}`);
+      return;
+    }
+  
+    if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0) {
+      console.log("Validation failed:", { fromToken, toToken, amount });
+      setError('Invalid swap parameters');
+      return;
+    }
   
     try {
       setLoading(true);
       setError('');
-  
-      const connection = new Connection(
-        'https://api.devnet.solana.com',
-        'confirmed'
-      );
-  
-      // Get swap transaction in smaller chunks
-      const swapResponse = await fetch(`${JUPITER_V6_QUOTE_API}/swap-instructions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteResponse: quote,
-          userPublicKey: activeWallet.address,
-          wrapUnwrapSOL: true,
-          asLegacyTransaction: true,
-          // Request computeUnit instructions
-          computeUnitPriceMicroLamports: 50
-        })
-      });
-  
-      if (!swapResponse.ok) {
-        const errorData = await swapResponse.json();
-        console.error('Swap API Error:', errorData);
-        throw new Error(errorData.message || 'Failed to prepare swap');
-      }
-  
-      const { swapTransaction, setupTransaction, cleanupTransaction, signers } = await swapResponse.json();
-  
-      // Function to process a single transaction
-      const processTransaction = async (encodedTx: string | null) => {
-        if (!encodedTx) return null;
-        
-        const serializedTransaction = Buffer.from(encodedTx, 'base64');
-        const transaction = Transaction.from(serializedTransaction);
-        
-        console.log('Processing transaction');
-        const signature = await activeWallet.sendTransaction(transaction, connection);
-        await connection.confirmTransaction(signature);
-        return signature;
-      };
-  
-      // Execute transactions in sequence
-      let signatures = [];
-  
-      if (setupTransaction) {
-        console.log('Processing setup transaction');
-        const setupSignature = await processTransaction(setupTransaction);
-        if (setupSignature) signatures.push(setupSignature);
-      }
-  
-      console.log('Processing main swap transaction');
-      const swapSignature = await processTransaction(swapTransaction);
-      if (swapSignature) signatures.push(swapSignature);
-  
-      if (cleanupTransaction) {
-        console.log('Processing cleanup transaction');
-        const cleanupSignature = await processTransaction(cleanupTransaction);
-        if (cleanupSignature) signatures.push(cleanupSignature);
-      }
-  
-      console.log('All transactions completed:', signatures);
-  
-      setSuccess(signatures.join(', '));
-      setFromToken(null);
-      setToToken(null);
-      setAmount('');
-      setQuote(null);
-  
-    } catch (err: any) {
-      console.error('Swap error:', err);
-      if (err.message?.includes('slippage tolerance exceeded')) {
-        setError('Price moved too much during swap. Please try again.');
-      } else {
-        setError(err.message || 'Failed to complete swap');
-      }
+      console.log("Proceeding with swap...");
+      const signature = await executeSwap();
+      setTransactionStatus('pending');
+      setPendingSignature(signature);
+      checkTransactionStatus(signature);
+    } catch (error: any) {
+      console.error('Swap error:', error);
+      setTransactionStatus('failed');
+      setError(error.message || 'Failed to complete swap');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getQuote = async () => {
+    if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0) {
+      setQuote(null);
+      return;
+    }
+  
+    try {
+      const inputMint = fromToken.token_address === 'SOL' 
+        ? 'So11111111111111111111111111111111111111112' 
+        : fromToken.token_address;
+      
+      const outputMint = toToken.token_address === 'SOL'
+        ? 'So11111111111111111111111111111111111111112'
+        : toToken.token_address;
+  
+      const amountInDecimals = Math.floor(
+        parseFloat(amount) * Math.pow(10, fromToken.token_decimals)
+      );
+  
+      const slippageBps = Math.floor(parseFloat(slippage) * 100);
+  
+      console.log('Getting quote for:', {
+        inputMint,
+        outputMint,
+        amount: amountInDecimals,
+        slippageBps
+      });
+  
+      const queryParams = new URLSearchParams({
+        inputMint,
+        outputMint,
+        amount: amountInDecimals.toString(),
+        slippageBps: slippageBps.toString(),
+        asLegacyTransaction: 'true'
+      });
+  
+      const response = await fetch(
+        `${JUPITER_V6_QUOTE_API}/quote?${queryParams.toString()}`
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to get quote');
+      }
+  
+      const quoteData = await response.json();
+      console.log('Received quote:', quoteData);
+  
+      if (!quoteData) {
+        throw new Error('No quote data received');
+      }
+  
+      setQuote(quoteData);
+      setError('');
+    } catch (err: any) {
+      console.error('Error getting quote:', err);
+      setError(err.message || 'Failed to get quote');
+      setQuote(null);
     }
   };
 
@@ -227,70 +554,67 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
   };  
 
   const renderSuccessState = () => {
-    if (!success) return null;
+    if (!pendingSignature && !success) return null;
   
+    const signature = success || pendingSignature;
+    const isPending = transactionStatus === 'pending';
+    
     return (
-      <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center rounded-lg px-6">
-        {/* Success Icon */}
-        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
-          <svg 
-            className="w-8 h-8 text-green-500" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M5 13l4 4L19 7" 
-            />
-          </svg>
-        </div>
+      <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center rounded-lg px-6 h-[400px]">
+        {/* Status Icon */}
+        {transactionStatus === 'confirmed' ? (
+          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        ) : (
+          <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-yellow-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        )}
   
-        {/* Success Text */}
+        {/* Status Text */}
         <h3 className="text-xl font-bold text-white mb-2">
-          Transaction Successful
+          {isPending ? 'Transaction Pending' : 'Transaction Successful'}
         </h3>
         
-        {/* Amount and Token Info */}
         <p className="text-zinc-400 text-center mb-4">
-          Your swap has been processed
+          {isPending ? 'Please wait while your transaction is being confirmed...' : 'Your swap has been processed'}
         </p>
   
         {/* Transaction Link */}
         <a
-          href={`https://solscan.io/tx/${success}`}
+          href={`https://solscan.io/tx/${signature}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors"
         >
           View on Solscan
-          <svg 
-            className="w-4 h-4" 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" 
-            />
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         </a>
   
-        {/* New Swap Button */}
-        <button
-          onClick={() => setSuccess('')}
-          className="mt-6 px-6 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
-        >
-          Make Another Swap
-        </button>
+        {/* New Swap Button (only show if confirmed) */}
+        {transactionStatus === 'confirmed' && (
+          <button
+            onClick={() => {
+              setSuccess('');
+              setPendingSignature(null);
+              setTransactionStatus(null);
+              setError('');
+            }}
+            className="mt-6 px-6 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
+          >
+            Make Another Swap
+          </button>
+        )}
       </div>
     );
-  };  
+  };
 
   // Modified renderTokenList function
   const renderTokenList = () => {
@@ -453,43 +777,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
   };  
 
 
-  const getQuote = async () => {
-    if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0) {
-      setQuote(null);
-      return;
-    }
-
-    try {
-      const inputMint = fromToken.token_address === 'SOL' 
-        ? 'So11111111111111111111111111111111111111112' 
-        : fromToken.token_address;
-      
-      const outputMint = toToken.token_address === 'SOL'
-        ? 'So11111111111111111111111111111111111111112'
-        : toToken.token_address;
-
-      const amountInDecimals = Math.floor(
-        parseFloat(amount) * Math.pow(10, fromToken.token_decimals)
-      );
-
-      // Convert slippage percentage to basis points (1% = 100 basis points)
-      const slippageBps = Math.floor(parseFloat(slippage) * 100);
-
-      const response = await fetch(
-        `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountInDecimals}&slippageBps=${slippageBps}`
-      );
-
-      if (!response.ok) throw new Error('Failed to get quote');
-
-      const quoteData = await response.json();
-      setQuote(quoteData);
-      setError('');
-    } catch (err) {
-      console.error('Error getting quote:', err);
-      setError('Failed to get quote');
-      setQuote(null);
-    }
-  };
 
     // Add slippage settings UI component
     const renderSlippageSettings = () => {
@@ -673,12 +960,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
         {error && (
           <div className="mt-4 bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mt-4 bg-green-500/20 text-green-200 p-4 rounded-md border border-green-500/40">
-            {success}
           </div>
         )}
 
