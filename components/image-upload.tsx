@@ -28,6 +28,7 @@ export default function ImageUpload({ onImageChange, initialImage }: ImageUpload
       setPreview(null);
     }
   };
+  
 
   return (
     <div className="flex flex-col items-center gap-4">
