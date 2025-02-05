@@ -366,7 +366,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                     </div>
                 </div> : null}
                 
-                {/* <div className="flex gap-2">
+                <div className="flex gap-2 mt-2">
 
                 <ReceiveButton 
                       tokens={tokens.data}
@@ -402,7 +402,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                     />
 
 
-                  </div> */}
+                  </div>
 
                 </div>
 
