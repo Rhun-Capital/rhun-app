@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SettingsIcon, BarChartIcon, BotIcon, HomeIcon, MarketplaceIcon, MenuIcon, CloseIcon, SearchIcon} from './icons';
+import {    MarketplaceIcon, MenuIcon, CloseIcon} from './icons';
+import {HomeIcon, EyeIcon, SettingsIcon, ChartArea, BotIcon, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { getAccessToken, usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
@@ -19,9 +20,9 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
     { name: 'Home', href: '/', icon: HomeIcon },
     ...(authenticated ? [
       { name: 'Agents', href: '/agents', icon: BotIcon },
-      { name: 'Watchers', href: '/watchers', icon: SearchIcon },
-      { name: 'Portfolio', href: '/portfolio', icon: BarChartIcon },
-      { name: 'Apps', href: '/marketplace', icon: MarketplaceIcon },
+      { name: 'Watchers', href: '/watchers', icon: EyeIcon },
+      { name: 'Portfolio', href: '/portfolio', icon: ChartArea },
+      { name: 'Apps', href: '/marketplace', icon: LayoutGrid },
       { name: 'Settings', href: '/settings', icon: SettingsIcon },
     ] : []),
   ];
@@ -72,13 +73,13 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
                   }`}
                 >
                   <div className="text-zinc-400"> 
-                    <item.icon />
+                    <item.icon className="h-5 w-5"/>
                   </div>
                   <span className={`${ 
                     pathname === item.href
                       ? 'text-white'
                       : 'text-white hover:text-white'
-                  } ${item.name === 'Watchers' ? ' ml-2' : ' ml-3'}`}>
+                  } ml-3`}>
                     {item.name}
                   </span>
                 </Link>
