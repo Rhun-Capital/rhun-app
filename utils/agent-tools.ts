@@ -445,6 +445,7 @@ export async function getMarketMovers() {
   
       return {
         top_gainers: moversData.top_gainers.map((coin: any) => ({
+          id: coin.id,
           name: coin.name,
           symbol: coin.symbol,
           image: coin.image,
@@ -452,6 +453,7 @@ export async function getMarketMovers() {
           priceChange24h: (detailsMap.get(coin.id) as any)?.price_change_percentage_24h,
         })),
         top_losers: moversData.top_losers.map((coin: any) => ({
+          id: coin.id,
           name: coin.name,
           symbol: coin.symbol,
           image: coin.image,

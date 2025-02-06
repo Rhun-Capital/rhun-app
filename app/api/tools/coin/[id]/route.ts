@@ -1,4 +1,4 @@
-// app/api/tools/coin/[id]/route.ts
+// app/api/coins/[id]/route.ts
 import { NextResponse } from 'next/server';
 
 const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
@@ -23,6 +23,7 @@ export async function GET(
           'accept': 'application/json',
           'x-cg-pro-api-key': COINGECKO_API_KEY!
         },
+        next: { revalidate: 60 }
       }
     );
 
@@ -32,15 +33,15 @@ export async function GET(
 
     const data = await response.json();
 
-    // Format the response to include only the data we need
     const formattedData = {
       id: data.id,
       name: data.name,
       symbol: data.symbol,
-      platforms: data.platforms,
       description: {
         en: data.description?.en
       },
+      platforms: data.platforms || {},
+      contracts: data.detail_platforms || {},
       market_data: {
         current_price: {
           usd: data.market_data?.current_price?.usd
@@ -64,7 +65,6 @@ export async function GET(
         homepage: data.links?.homepage,
         twitter_screen_name: data.links?.twitter_screen_name
       },
-      market_cap_rank: data.market_cap_rank,
       last_updated: data.last_updated
     };
 
