@@ -262,7 +262,7 @@ export default function Home() {
     useChat({
       headers,
       body: { agent, user },
-      maxSteps: 21,
+      maxSteps: 20,
       initialMessages,
       sendExtraMessageFields: true,
       id: chatId || newChatId,

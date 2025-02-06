@@ -314,7 +314,7 @@ Remember to use this context when relevant to answer the user's query.`
       // }      
 
       getTopHolders: {
-        description: "Get the top holders of a Solana token by contract address. Always ask for the contract address before using this tool. Ask for confirmation to search for the token.",
+        description: "Get the top holders of a Solana token by contract address.",
         parameters: z.object({ address: z.string().describe('The address of the token to get top holders for') }),
         execute: async ({ address }) => {
           const holders = await getTopHolders(address);
