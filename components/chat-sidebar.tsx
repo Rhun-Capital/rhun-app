@@ -142,92 +142,82 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   
   const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
 
-  const tools: Tool[] = [
-    // { 
-    //   name: 'Get My Balance', 
-    //   description: 'Check my wallet balance',
-    //   command: 'What is my current wallet balance?'
-    // },
-    // { 
-    //   name: "Get Agent's Balance", 
-    //   description: "Check the agent's wallet balance",
-    //   command: "What is your current wallet balance?"
-    // },   
+  const tools: Tool[] = [ 
     { 
       name: 'Get My Portfolio Value', 
-      description: 'View your portfolio value',
+      description: 'View the current value of your connected wallet portfolio. Track your total assets and monitor performance over time.',
       command: 'Show me my portfolio value'
-    },
-    { 
+  },
+  { 
       name: "Get Agent's Portfolio Value", 
-      description: "View the agent's portfolio value",
+      description: "View the current value of the agent's embedded wallet portfolio. Track the agent's total assets and monitor performance over time.",
       command: "Show me your portfolio value"
-    },
-    { 
+  },
+  { 
       name: 'Get My Token Holdings', 
-      description: 'View your token holdings',
+      description: 'See a detailed breakdown of all tokens in your connected wallet. View balances, values, and distribution of your holdings.',
       command: 'Show me my token holdings'
-    },
-    { 
+  },
+  { 
       name: "Get Agent's Token Holdings", 
-      description: "View the agent's token holdings",
+      description: "See a detailed breakdown of all tokens in the agent's embedded wallet. View balances, values, and distribution of the holdings.",
       command: "Show me your token holdings"
-    },
-    { 
+  },
+  { 
       name: 'Get Solana Transaction Volume', 
-      description: 'View the transaction volume on Solana',
+      description: 'Check the current transaction volume across the Solana network. Monitor network activity and trading patterns in real-time.',
       command: 'Show me the transaction volume on Solana'
-    },
-    { 
+  },
+  { 
       name: 'Get Token Info', 
-      description: 'View information about a token',
+      description: 'Access comprehensive information about any specific token on. View price, market cap, volume, and other key metrics.',
       command: 'Show me information about the token'
-    },
-    { 
+  },
+  { 
       name: 'Get Wallet Info', 
-      description: 'View information about a wallet',
+      description: 'Examine detailed information about any Solana wallet address. View transaction history, token balances, and account activity.',
       command: 'Show me information about a solana account'
-    },    
-    { 
-      name: 'Get Market Movers', 
-      description: 'View top gainers and losers',
-      command: 'Show me the top market movers today'
-    },
-    { 
+  },    
+  { 
+      name: 'Search Latest Tokens', 
+      description: 'Discover newly launched tokens on the network. Filter results by category, market cap, and other important metrics.',
+      command: 'Search for tokens the recently launched tokens'
+  },
+  { 
       name: 'Search Tokens', 
-      description: 'Search for tokens',
+      description: 'Search through the complete database of tokens. Find specific tokens and view their detailed information.',
       command: 'Search for tokens'
-    },
-    { 
+  },
+  { 
       name: 'Get Top Token Holders', 
-      description: 'View top token holders and activity',
+      description: 'Identify the largest holders of any specific token on Solana. Analyze wallet distributions and holder concentrations.',
       command: 'Show me the top token holders'
-    },
-    { 
+  },
+  { 
+      name: 'Get Market Movers', 
+      description: 'Track the biggest price movers in the market over the last 24 hours. Monitor top gainers and losers across all tokens.',
+      command: 'Show me the top market movers today'
+  },    
+  { 
       name: 'Get Total Crypto Market Cap', 
-      description: 'View the total crypto market cap',
+      description: 'View the total market capitalization of all cryptocurrencies. Track the overall size and growth of the crypto market.',
       command: 'Show me the total crypto market cap'
-    },
-    { 
+  },
+  { 
       name: 'Get Market Categories', 
-      description: 'View market categories',
+      description: 'Explore different categories of tokens and their market performance. Compare trends and activity across various token sectors.',
       command: 'Show me the market categories'
-    },
-    { 
+  },
+  { 
       name: 'Get Derivatives Exchanges', 
-      description: 'View derivatives exchanges',
+      description: 'View comprehensive data about cryptocurrency derivatives exchanges. Compare trading volumes, open interest, and exchange metrics.',
       command: 'Show me derivatives exchanges'
-    },
-    // { 
-    //   name: 'Market Data Summary', 
-    //   description: 'View a summary of the market.',
-    //   command: 'Give a summary of the market.'
-    // },
-    { 
+  },
+  { 
       name: 'Fear & Greed Index', 
-      description: 'Check market sentiment',
+      description: 'Check the current market sentiment using the Fear and Greed Index. Understand market psychology and investor emotions.',
       command: 'What is the current fear and greed index?'
-    }
+  }
   ];
 
   const handleToolClick = (tool: Tool) => {

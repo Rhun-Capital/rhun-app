@@ -20,6 +20,7 @@ import SearchTokens from "@/components/tools/search-tokens";
 import TotalCryptoMarketCap from "@/components/tools/total-crypto-marketcap";
 import MarketCategories from "@/components/tools/market-categories";
 import DerivativesExchanges from "@/components/tools/derivatives-exchanges";
+import RecentCoinsResults from "@/components/tools/recent-coins";
 // import AnalyzeSolanaTokenHolders from "@/components/analyze-solana-token-holders";
 import TopHoldersDisplay from "@/components/tools/get-top-holders";
 import { Message } from 'ai'; // Use the AI SDK Message type
@@ -699,6 +700,8 @@ export default function Home() {
                             return <TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
                           case 'getMarketMovers':
                             return <MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                          case 'getRecentlyLaunchedCoins':
+                            return <RecentCoinsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'getTokenInfo':
                             return <TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'searchTokens':
