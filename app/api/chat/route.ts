@@ -57,6 +57,8 @@ ${agentConfig.wallets?.solana || 'N/A'}
 If you're asked to do anything with the agents wallet but it is not undefined, please let the user know that the agent's wallet is not created and they should created it to proceed. They can create one for the agent in the wallet tab of the agent settings.
 
 ## Chatbot Tool Special Instructions:
+Dont add links to markdown. 
+If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 When your listing token holdings do not add the token image to the list.
 You only have token data on for the Solana blockchain. If the user asks for token data on another blockchain, let them know that you only have data for Solana tokens.
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
@@ -115,34 +117,7 @@ Remember to use this context when relevant to answer the user's query.`
     // },    
     tools: { 
 
-      // getUserSolanaBalance: {
-      //   description: "show the user's solana balance for their connected wallet to the user",
-      //   parameters: z.object({ user: z.object({ wallet: z.object({ address: z.string() }) }) }),
-      //   execute: async ({ user }: { user: { wallet: { address: string } } }) => {
-      //     // fetch the balance from the Solana blockchain
-      //     if (user.wallet.address && process.env.HELIUS_API_KEY) {
-      //       const balance = await getSolanaBalance(user.wallet.address);
-      //       return {balance, address: user.wallet.address};
-      //     } else {
-      //       throw new Error('User wallet address or Helius API key is missing');
-      //     }
-      //   },
-      // },
 
-      // getAgentSolanaBalance: {
-      //   description: "show the agents's solana balance for their embedded wallet to the user",
-      //   parameters: z.object({ agent: z.string() }),
-      //   execute: async ({agentConfig}: { agentConfig: { wallets: { solana: string } } }) => {
-      //     // fetch the balance from the Solana blockchain
-      //     if (agentConfig.wallets.solana && process.env.HELIUS_API_KEY) {
-      //       const balance = await getSolanaBalance(agentConfig.wallets.solana);
-      //       return {balance, address: agentConfig.wallets.solana};
-      //     } else {
-      //       throw new Error('Agent wallet address or Helius API key is missing');
-      //     }
-          
-      //   },
-      // },
 
       getUserPortfolioValue: {
         description: "show the user's portfolio value for their connected wallet to the user",
