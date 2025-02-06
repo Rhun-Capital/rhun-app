@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.40",
+    "@ai-sdk/ui-utils": "^1.1.10",
     "@aws-sdk/client-dynamodb": "^3.734.0",
     "@aws-sdk/client-eventbridge": "^3.740.0",
     "@aws-sdk/client-lambda": "^3.738.0",
