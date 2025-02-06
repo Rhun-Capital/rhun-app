@@ -366,10 +366,10 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                     </div>
                 </div> : null}
                 
-                <div className="flex gap-2 mt-2">
+                
 
-                {agent.wallets ?  (
-                  <div>
+                {/* {agent.wallets ?  (
+                  <div className="flex gap-2 mt-2">
                   <ReceiveButton 
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
@@ -403,10 +403,10 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       agent={agent}
                     /> 
                     </div>
-                    ) : null}
+                    ) : null} */}
 
 
-                  </div>
+            
 
                 </div>
 
