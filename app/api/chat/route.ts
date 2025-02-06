@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText, tool } from "ai";
-import { retrieveContext } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
@@ -25,10 +25,11 @@ export async function POST(req: Request) {
   // Get the latest user message
   const latestMessage = messages[messages.length - 1];
 
-  // Fetch both context and agent configuration in parallel
-  const [context, agentConfig] = await Promise.all([
+  // Fetch context, agent configuration, and coin data in parallel
+  const [context, agentConfig, coins] = await Promise.all([
     retrieveContext(latestMessage.content, agent.id),
     getAgentConfig(agent.userId, agent.id),
+    retrieveCoins(latestMessage.content) // Add semantic search based on user's message
   ]);
 
   // Format context for the prompt
@@ -36,6 +37,16 @@ export async function POST(req: Request) {
     .map(item => `Relevant context from ${item.source}:\n${item.text}`)
     .join('\n\n');   
 
+  // Format coin data for the prompt
+  const coinContext = coins.length > 0 ? `
+    ## Recent Cryptocurrency Data:
+    ${coins.slice(0, 5).map(coin => `
+    - Name: ${coin.name} (${coin.symbol})
+      Price: $${coin.current_price_usd?.toFixed(2) || 'N/A'}
+      Market Cap: $${coin.market_cap_usd?.toLocaleString() || 'N/A'}
+      Categories: ${coin.categories?.join(', ') || 'N/A'}
+    `).join('\n')}
+    ` : '';    
 
   const systemPrompt = `
 
@@ -57,7 +68,6 @@ ${agentConfig.wallets?.solana || 'N/A'}
 If you're asked to do anything with the agents wallet but it is not available, please let the user know that the agent's wallet is not created and they should created it to proceed. They can create one for the agent in the wallet tab of the agent settings.
 
 ## Chatbot Tool Special Instructions:
-When asked about solana tokens or coins and what's hot or interesting investments, always provide the user with the top gaining and losing cryptocurrencies in the last 24 hours.
 Dont add links to markdown. 
 If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 When your listing token holdings do not add the token image to the list.
@@ -107,7 +117,10 @@ ${agentConfig.styleGuide}
 # Relevant Context for This Query:
 ${contextText}
 
-Remember to use this context when relevant to answer the user's query.`
+${coinContext}
+
+
+Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
 
 
   const result = await streamText({
@@ -222,6 +235,33 @@ Remember to use this context when relevant to answer the user's query.`
         },
       },   
       
+
+      getRecentlyLaunchedCoins: {
+        description: "Search and retrieve information about recent cryptocurrencies. Use marketCap.min for minimum market cap (e.g., 1000000 for $1M) and marketCap.max for maximum.",
+        parameters: z.object({ 
+          query: z.string().describe('Search query for finding recent cryptocurrencies'),
+          filters: z.object({
+            minPrice: z.number().optional(),
+            maxPrice: z.number().optional(),
+            categories: z.array(z.string()).optional(),
+            nameContains: z.string().optional(),
+            marketCap: z.object({
+              min: z.number().optional(),
+              max: z.number().optional()
+            }).optional()
+          }).optional()
+        }),
+        execute: async ({ query, filters }) => {
+          console.log('Executing with filters:', filters); // Better logging
+          if (filters) {
+            const results = await retrieveCoinsWithFilters(filters);
+            return results;
+          }
+          const results = await retrieveCoins(query);
+          return results;
+        }
+      },
+
       searchTokens: {
         description: "Search for cryptocurrencies by name or symbol. Always tell the user they can click the result to get more information about the token like the contract adress.",
         parameters: z.object({
