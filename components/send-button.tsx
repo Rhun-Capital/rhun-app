@@ -43,7 +43,7 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
   const { wallets } = useSolanaWallets();
   const solanaWallet = wallets.find(w => w.address === agent.wallets.solana);
   
-  const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+  const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
   
   const [step, setStep] = useState<'select-token' | 'transfer'>('select-token');
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);

@@ -7,11 +7,7 @@ export async function GET(
 ) {
   try {
     const { address } = params;
-    const heliusApiKey = process.env.HELIUS_API_KEY;
-    if (!heliusApiKey) {
-      throw new Error('HELIUS_API_KEY is not defined');
-    }
-    const balance = await getSolanaBalance(address, heliusApiKey);
+    const balance = await getSolanaBalance(address);
     const data = { balance };
     return NextResponse.json(data);
   } catch (error) {

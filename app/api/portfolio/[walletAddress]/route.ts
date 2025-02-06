@@ -9,6 +9,7 @@ export async function GET(
     const data = await getPortfolioValue(params.walletAddress);
     return NextResponse.json(data);
   } catch (error) {
+    console.log(error)
     return NextResponse.json({ error: 'Failed to fetch portfolio data' }, { status: 500 });
   }
 }

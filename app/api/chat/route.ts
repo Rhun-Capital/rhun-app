@@ -141,7 +141,7 @@ Remember to use this context when relevant to answer the user's query.`
         execute: async ({ user }: { user: { wallet: { address: string } } }) => {
           // fetch the balance from the Solana blockchain
           if (user.wallet.address && process.env.HELIUS_API_KEY) {
-            const balance = await getSolanaBalance(user.wallet.address, process.env.HELIUS_API_KEY);
+            const balance = await getSolanaBalance(user.wallet.address);
             return {balance, address: user.wallet.address};
           } else {
             throw new Error('User wallet address or Helius API key is missing');
@@ -155,7 +155,7 @@ Remember to use this context when relevant to answer the user's query.`
         execute: async ({agentConfig}: { agentConfig: { wallets: { solana: string } } }) => {
           // fetch the balance from the Solana blockchain
           if (agentConfig.wallets.solana && process.env.HELIUS_API_KEY) {
-            const balance = await getSolanaBalance(agentConfig.wallets.solana, process.env.HELIUS_API_KEY);
+            const balance = await getSolanaBalance(agentConfig.wallets.solana);
             return {balance, address: agentConfig.wallets.solana};
           } else {
             throw new Error('Agent wallet address or Helius API key is missing');
@@ -314,7 +314,7 @@ Remember to use this context when relevant to answer the user's query.`
       // }      
 
       getTopHolders: {
-        description: "Get the top holders of a Solana token by contract address. Always ask for the contract address before using this tool. Ask for confirmation to search for the token.",
+        description: "Get the top holders of a Solana token by contract address.",
         parameters: z.object({ address: z.string().describe('The address of the token to get top holders for') }),
         execute: async ({ address }) => {
           const holders = await getTopHolders(address);
