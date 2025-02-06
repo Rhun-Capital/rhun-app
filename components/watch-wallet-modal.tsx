@@ -222,7 +222,6 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
             {activities.map((activity) => {
                 // Add null checks
                 if (!activity) return null;
-                console.log(activity)
                 const tokenDetails = formatTokenDetails(activity);
                 if (!tokenDetails) return null;
 

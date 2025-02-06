@@ -15,6 +15,7 @@ import {
   getMint
 } from '@solana/spl-token';
 import Image from 'next/image'
+import { resourceUsage } from 'process';
 
 interface Token {
   token_address: string;
@@ -41,7 +42,7 @@ interface TransferModalProps {
 const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: TransferModalProps) => {
   const { authenticated } = usePrivy();
   const { wallets } = useSolanaWallets();
-  const solanaWallet = wallets.find(w => w.address === agent.wallets.solana);
+  const solanaWallet = agent.wallets ? wallets.find(w => w.address === agent.wallets.solana) : null;
   
   const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
   
@@ -201,6 +202,9 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
     }
   };
   if (!isOpen) return null;
+
+  if (!solanaWallet)
+    return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">

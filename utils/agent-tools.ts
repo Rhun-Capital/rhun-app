@@ -156,7 +156,6 @@ interface TokenHolder {
       }
   
       const priceData: JupiterPriceResponse = await response.json()
-      console.log(priceData)
       
       // Create a price map including both Jupiter prices and stablecoin prices
       const priceMap: { [key: string]: number } = {}
@@ -296,7 +295,7 @@ export async function getPortfolioValue(walletAddress: string) {
     return "I don't have a wallet configured yet, you can create by visiting the wallet tab in the agent settings.";
   }
   
-  const connection = getSolanaConnection(process.env.HELIUS_API_KEY!);
+  const connection = getSolanaConnection();
   const pubKey = new PublicKey(walletAddress);
 
   const solBalance = await connection.getBalance(pubKey);

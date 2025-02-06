@@ -152,13 +152,10 @@ class ProxyConnection extends Connection {
 
 const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
   const { wallets: solanaWallets } = useSolanaWallets();
-  const activeWallet = solanaWallets.find(
+
+  const activeWallet = agent.wallets ? solanaWallets.find(
     wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
-  );
-
-  console.log(solanaWallets)
-
-  console.log('activeWallet', activeWallet);
+  ) : null;
 
   const [selecting, setSelecting] = useState<SelectionType>(null);
   const [fromToken, setFromToken] = useState<Token | null>(null);
@@ -822,6 +819,9 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       };
 
   if (!isOpen) return null;
+
+  if (!activeWallet)
+    return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">

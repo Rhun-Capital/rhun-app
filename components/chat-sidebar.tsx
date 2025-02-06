@@ -143,16 +143,16 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
 
   const tools: Tool[] = [
-    { 
-      name: 'Get My Balance', 
-      description: 'Check my wallet balance',
-      command: 'What is my current wallet balance?'
-    },
-    { 
-      name: "Get Agent's Balance", 
-      description: "Check the agent's wallet balance",
-      command: "What is your current wallet balance?"
-    },   
+    // { 
+    //   name: 'Get My Balance', 
+    //   description: 'Check my wallet balance',
+    //   command: 'What is my current wallet balance?'
+    // },
+    // { 
+    //   name: "Get Agent's Balance", 
+    //   description: "Check the agent's wallet balance",
+    //   command: "What is your current wallet balance?"
+    // },   
     { 
       name: 'Get My Portfolio Value', 
       description: 'View your portfolio value',
@@ -368,7 +368,9 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 
                 <div className="flex gap-2 mt-2">
 
-                <ReceiveButton 
+                {agent.wallets ?  (
+                  <div>
+                  <ReceiveButton 
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
                       agent={agent}
@@ -399,7 +401,9 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                         logoURI: portfolio.holdings[0].logoURI
                       } : undefined}
                       agent={agent}
-                    />
+                    /> 
+                    </div>
+                    ) : null}
 
 
                   </div>

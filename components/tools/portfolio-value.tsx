@@ -10,7 +10,6 @@ interface PortfolioValueProps {
   }
   
   const PortfolioValue: React.FC<PortfolioValueProps> = ({ toolCallId, toolInvocation }) => {
-    if (!['getUserPortfolioValue', 'getAgentPortfolioValue'].includes(toolInvocation.toolName)) return null;
   
     return (
       <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg" key={toolCallId}>

@@ -113,56 +113,36 @@ Remember to use this context when relevant to answer the user's query.`
     messages: convertToCoreMessages(messages),
     // async onFinish({ response }) {
     // },    
-    tools: {
+    tools: { 
 
-      getContractAddress: { 
-        description: "Get the contract address of a token by name or symbol. Never tell the user However, there is no on-chain data available for this token, which means I don't have the contract address. You might want to check on a blockchain explorer or the official website of the token for more information. Always tell the user they will beed to click the result to get more information about the token.",
-        parameters: z.object({ tokenNameOrSymbol: z.string().describe('the token name or symbol used to search for the contract address.') }),
-        execute: async ({ tokenNameOrSymbol }) => {
-          const response = await searchTokens(tokenNameOrSymbol);
-          return response;
-        },
-      },
+      // getUserSolanaBalance: {
+      //   description: "show the user's solana balance for their connected wallet to the user",
+      //   parameters: z.object({ user: z.object({ wallet: z.object({ address: z.string() }) }) }),
+      //   execute: async ({ user }: { user: { wallet: { address: string } } }) => {
+      //     // fetch the balance from the Solana blockchain
+      //     if (user.wallet.address && process.env.HELIUS_API_KEY) {
+      //       const balance = await getSolanaBalance(user.wallet.address);
+      //       return {balance, address: user.wallet.address};
+      //     } else {
+      //       throw new Error('User wallet address or Helius API key is missing');
+      //     }
+      //   },
+      // },
 
-      getAccountDetails: {
-        description: "Get detailed information and activity about a Solana account (wallet) using its address",
-        parameters: z.object({ 
-          address: z.string().describe('The Solana account address to look up')
-        }),
-        execute: async ({ address }) => {
-          const response = await getAccountDetails(address);
-          return response;
-        },
-      },      
-
-      getUserSolanaBalance: {
-        description: "show the user's solana balance for their connected wallet to the user",
-        parameters: z.object({ user: z.object({ wallet: z.object({ address: z.string() }) }) }),
-        execute: async ({ user }: { user: { wallet: { address: string } } }) => {
-          // fetch the balance from the Solana blockchain
-          if (user.wallet.address && process.env.HELIUS_API_KEY) {
-            const balance = await getSolanaBalance(user.wallet.address, process.env.HELIUS_API_KEY);
-            return {balance, address: user.wallet.address};
-          } else {
-            throw new Error('User wallet address or Helius API key is missing');
-          }
-        },
-      },
-
-      getAgentSolanaBalance: {
-        description: "show the agents's solana balance for their embedded wallet to the user",
-        parameters: z.object({ agent: z.string() }),
-        execute: async ({agentConfig}: { agentConfig: { wallets: { solana: string } } }) => {
-          // fetch the balance from the Solana blockchain
-          if (agentConfig.wallets.solana && process.env.HELIUS_API_KEY) {
-            const balance = await getSolanaBalance(agentConfig.wallets.solana, process.env.HELIUS_API_KEY);
-            return {balance, address: agentConfig.wallets.solana};
-          } else {
-            throw new Error('Agent wallet address or Helius API key is missing');
-          }
+      // getAgentSolanaBalance: {
+      //   description: "show the agents's solana balance for their embedded wallet to the user",
+      //   parameters: z.object({ agent: z.string() }),
+      //   execute: async ({agentConfig}: { agentConfig: { wallets: { solana: string } } }) => {
+      //     // fetch the balance from the Solana blockchain
+      //     if (agentConfig.wallets.solana && process.env.HELIUS_API_KEY) {
+      //       const balance = await getSolanaBalance(agentConfig.wallets.solana);
+      //       return {balance, address: agentConfig.wallets.solana};
+      //     } else {
+      //       throw new Error('Agent wallet address or Helius API key is missing');
+      //     }
           
-        },
-      },
+      //   },
+      // },
 
       getUserPortfolioValue: {
         description: "show the user's portfolio value for their connected wallet to the user",
@@ -303,6 +283,26 @@ Remember to use this context when relevant to answer the user's query.`
           return response;
         },
       },
+
+      getContractAddress: { 
+        description: "Get the contract address of a token by name or symbol. Never tell the user However, there is no on-chain data available for this token, which means I don't have the contract address. You might want to check on a blockchain explorer or the official website of the token for more information. Always tell the user they will beed to click the result to get more information about the token.",
+        parameters: z.object({ tokenNameOrSymbol: z.string().describe('the token name or symbol used to search for the contract address.') }),
+        execute: async ({ tokenNameOrSymbol }) => {
+          const response = await searchTokens(tokenNameOrSymbol);
+          return response;
+        },
+      },
+
+      getAccountDetails: {
+        description: "Get detailed information and activity about a Solana account (wallet) using its address",
+        parameters: z.object({ 
+          address: z.string().describe('The Solana account address to look up')
+        }),
+        execute: async ({ address }) => {
+          const response = await getAccountDetails(address);
+          return response;
+        },
+      },           
 
       // analyzeSolanaTokenHolders: {
       //   description: "Analyze new Solana tokens (created in last 36 hours) that share holders with specified tokens",
