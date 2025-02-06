@@ -54,9 +54,10 @@ export async function POST(req: Request) {
 ${agentConfig.wallets?.solana || 'N/A'}
 
 ## Agent's Solana Wallet Address Exception Handling:
-If you're asked to do anything with the agents wallet but it is not undefined, please let the user know that the agent's wallet is not created and they should created it to proceed. They can create one for the agent in the wallet tab of the agent settings.
+If you're asked to do anything with the agents wallet but it is not available, please let the user know that the agent's wallet is not created and they should created it to proceed. They can create one for the agent in the wallet tab of the agent settings.
 
 ## Chatbot Tool Special Instructions:
+When asked about solana tokens or coins and what's hot or interesting investments, always provide the user with the top gaining and losing cryptocurrencies in the last 24 hours.
 Dont add links to markdown. 
 If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 When your listing token holdings do not add the token image to the list.
