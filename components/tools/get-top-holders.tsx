@@ -425,22 +425,34 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
-                        <img 
-                          src={token1?.token_icon} 
-                          alt={token1?.token_symbol} 
-                          className="w-5 h-5 rounded-full"
-                        />
+                      {token1?.token_icon ? (
+                          <img 
+                            src={token1.token_icon} 
+                            alt={token1.token_symbol} 
+                            className="w-5 h-5 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
+                            ?
+                          </div>
+                        )}
                         <span className="text-sm">
                           {formatAmount(activity.routers.amount1, activity.routers.token1_decimals)} {token1?.token_symbol}
                         </span>
                       </div>
                       <span className="text-zinc-500">→</span>
                       <div className="flex items-center gap-2">
-                        <img 
-                          src={token2?.token_icon} 
-                          alt={token2?.token_symbol} 
-                          className="w-5 h-5 rounded-full"
-                        />
+                      {token2?.token_icon ? (
+                          <img 
+                            src={token2.token_icon} 
+                            alt={token2.token_symbol} 
+                            className="w-5 h-5 rounded-full"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
+                            ?
+                          </div>
+                        )}
                         <span className="text-sm">
                           {formatAmount(activity.routers.amount2, activity.routers.token2_decimals)} {token2?.token_symbol}
                         </span>

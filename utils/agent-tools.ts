@@ -290,6 +290,56 @@ interface TokenHolder {
   }
 
 
+  export async function getCoinById(coinId: string) {
+    try {
+      const response = await fetch(
+        `${COINGECKO_BASE_URL}/coins/${coinId}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false`,
+        {
+          headers: {
+            'accept': 'application/json',
+            'x-cg-pro-api-key': COINGECKO_API_KEY!
+          },
+        }
+      );
+  
+      if (!response.ok) throw new Error('Failed to fetch coin data');
+      const data = await response.json();
+  
+      return {
+        id: data.id,
+        name: data.name,
+        symbol: data.symbol,
+        description: { en: data.description?.en },
+        platforms: data.platforms,
+        market_data: {
+          current_price: data.market_data?.current_price,
+          price_change_percentage_24h: data.market_data?.price_change_percentage_24h,
+          price_change_percentage_7d: data.market_data?.price_change_percentage_7d,
+          price_change_percentage_30d: data.market_data?.price_change_percentage_30d,
+          market_cap: data.market_data?.market_cap,
+          total_volume: data.market_data?.total_volume,
+          circulating_supply: data.market_data?.circulating_supply,
+          total_supply: data.market_data?.total_supply
+        },
+        image: {
+          large: data.image?.large,
+          small: data.image?.small,
+          thumb: data.image?.thumb
+        },
+        links: {
+          homepage: data.links?.homepage,
+          twitter_screen_name: data.links?.twitter_screen_name
+        },
+        market_cap_rank: data.market_cap_rank,
+        last_updated: data.last_updated
+      };
+    } catch (error) {
+      console.error('Error fetching coin data:', error);
+      throw new Error('Failed to fetch coin data');
+    }
+  } 
+
+
 export async function getPortfolioValue(walletAddress: string) {
   if (!walletAddress) {
     return "I don't have a wallet configured yet, you can create by visiting the wallet tab in the agent settings.";

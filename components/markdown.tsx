@@ -1,6 +1,7 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import CopyButton from "@/components/copy-button";
 
 export const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   const components = {
@@ -43,6 +44,18 @@ export const NonMemoizedMarkdown = ({ children }: { children: string }) => {
         </ul>
       );
     },
+    a: ({ node, children, ...props }: any) => {
+      return (
+        <a
+          className="text-indigo-400 hover:underline"
+          target="_blank"
+          rel="noreferrer"
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    }
   };
 
   return (
