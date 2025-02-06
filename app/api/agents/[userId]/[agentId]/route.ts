@@ -26,15 +26,6 @@ export async function PUT(
   { params }: { params: { userId: string; agentId: string } }
 ) {
   try {
-    // First, get the current agent data to check for existing image
-    const currentAgent = await dynamodb.get({
-      TableName: 'Agents',
-      Key: {
-        id: params.agentId,
-        userId: params.userId
-      }
-    }).promise();
-
     const formData = await request.formData();
     const image = formData.get('image') as Blob | null;
     const agentData = JSON.parse(formData.get('data') as string);
@@ -42,19 +33,9 @@ export async function PUT(
     let imageUrl = agentData.imageUrl || '';
 
     if (image) {
-      // If there's an existing image, delete it from S3
-      if (currentAgent.Item?.imageUrl) {
-        const oldKey = getKeyFromUrl(currentAgent.Item.imageUrl);
-        try {
-          await deleteFromS3(oldKey);
-        } catch (error) {
-          console.error('Error deleting old image:', error);
-        }
-      }
-
       // Upload new image with timestamp to prevent caching
       const buffer = Buffer.from(await image.arrayBuffer());
-      const key = `agents/${params.agentId}/profile-${Date.now()}.jpg`;
+      const key = `agents/${params.agentId}/profile.jpg`;
       imageUrl = await uploadToS3(buffer, key);
     }
 
@@ -124,17 +105,6 @@ export async function DELETE(
 
     if (!currentAgent.Item) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
-    }
-
-    // Delete the agent's image from S3 if it exists
-    if (currentAgent.Item.imageUrl) {
-      const imageKey = getKeyFromUrl(currentAgent.Item.imageUrl);
-      try {
-        await deleteFromS3(imageKey);
-      } catch (error) {
-        console.error('Error deleting agent image:', error);
-        // Continue with agent deletion even if image deletion fails
-      }
     }
 
     // Delete the agent from DynamoDB
