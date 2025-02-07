@@ -717,7 +717,7 @@ export default function Home() {
         {/* Main chat area */}
         <div className="flex-1 flex flex-col">
           <div 
-            className="flex-1 overflow-y-auto pt-20 pb-32"
+            className={`flex-1 overflow-y-auto ${messages.length < 0 ? 'pt-15' : 'pt-20'} pb-32`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -766,7 +766,7 @@ export default function Home() {
                       )}
                     </div>
   
-                    <div className="flex-1 space-y-2 max-w-[95%] sm:max-w-[75%] text-white">
+                    <div className="flex-1 space-y-2 max-w-[95%] text-white">
                       
                       {/* Tool Invocations */}
                       {message.toolInvocations?.map((tool) => {
@@ -827,7 +827,9 @@ export default function Home() {
                         </div>
                       )}
                       
-                      <Markdown>{message.content}</Markdown>
+                      <div className="max-w-[95%] sm:max-w-[75%]">
+                        <Markdown>{message.content}</Markdown>
+                      </div>
 
                     </div>
                   </motion.div>
