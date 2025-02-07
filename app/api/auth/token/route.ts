@@ -35,29 +35,24 @@ async function verifyAndUpdateToken(token: string): Promise<boolean> {
     }
   }
 
-export async function POST(request: Request) {
- try {
-   const { token } = await request.json();
-
-   if (!token) {
-     return NextResponse.json({ message: 'Token is required' }, { status: 400 });
-   }
-
-   const isValid = await verifyAndUpdateToken(token);
-
-   if (isValid) {
-     cookies().set('rhun_early_access_token', token, {
-       maxAge: 30 * 24 * 60 * 60,
-       path: '/',
-       secure: process.env.NODE_ENV === 'production',
-       sameSite: 'lax',
-     });
-     return NextResponse.json({ message: 'Token verified' }, { status: 200 });
-   }
-
-   return NextResponse.json({ message: 'Invalid token or this token has already been used.' }, { status: 401 });
- } catch (error) {
-   console.error('Token verification error:', error);
-   return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
- }
-}
+  export async function POST(request: Request) {
+    try {
+      const { token } = await request.json();
+      const result = await verifyAndUpdateToken(token);
+  
+      if (result) {
+        cookies().set('rhun_early_access_token', token, {
+          maxAge: 30 * 24 * 60 * 60,
+          path: '/',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+        });
+        return NextResponse.json({ message: 'Token verified' });
+      }
+  
+      return NextResponse.json({ message: 'Invalid token or already used' }, { status: 401 });
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return NextResponse.json({ message: 'Server error' }, { status: 500 });
+    }
+  }

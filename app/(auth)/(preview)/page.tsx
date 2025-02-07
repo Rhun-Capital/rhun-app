@@ -1,6 +1,6 @@
 'use client';
 
-import { BotIcon, SettingsIcon, ChevronRightIcon, MarketplaceIcon } from '@/components/icons';
+import { BotIcon, SettingsIcon, MarketplaceIcon } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';

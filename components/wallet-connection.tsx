@@ -70,6 +70,17 @@ export default function WalletConnection() {
   //   setChecking(false);
   // };
 
+  const clearCookies = async () => {
+    const accessToken = await getAccessToken();
+    await fetch('/api/auth/clear-access', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` } });
+  }  
+
+  const handleLogout = async () => {
+    await clearCookies(); // Clear access tokens
+    await logout(); // Clear Privy state
+    router.push('/login');
+  }  
+
   return (
     <div className="text-center">
       <h3 className="text-white mb-4">{authenticated ? 'Use an access key or mint a Fast Pass NFT to log in' : 'Connect Wallet or Email to Access'}</h3>
@@ -88,7 +99,7 @@ export default function WalletConnection() {
             {user?.email?.address && `${user.email.address}`}            
             </div>
 
-            <div className="text-white cursor-pointer" onClick={logout}>Disconnect</div>
+            <div className="text-white cursor-pointer" onClick={handleLogout}>Disconnect</div>
             
           </div>
          
