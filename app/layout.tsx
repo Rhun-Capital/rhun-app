@@ -1,7 +1,6 @@
 import './globals.css';
-import AuthProvider from '@/components/auth-provider';
-import { Sidebar } from '@/components/sidebar';
-import { ChatProvider } from '@/contexts/chat-context';
+import { AuthWrapper } from '@/components/auth-wrapper'
+import PrivyWrapper from '@/components/privy-provider';
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
 
@@ -13,18 +12,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body>
-        
-        <AuthProvider>
-          <ChatProvider>
-            <Sidebar>
-              {children}
-              <Toaster 
-                toastOptions={{
-                  className: 'bg-zinc-800 text-white border border-zinc-700'
-                }}/>
-            </Sidebar>
-          </ChatProvider>
-        </AuthProvider>
+        <PrivyWrapper>
+          <AuthWrapper>
+            {children}
+            <Toaster />
+          </AuthWrapper>
+        </PrivyWrapper>
         <Analytics/>
       </body>
     </html>

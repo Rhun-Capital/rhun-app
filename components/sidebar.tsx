@@ -31,7 +31,13 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
   const clearCookies = async () => {
     const accessToken = await getAccessToken();
-    await fetch('/api/clear-access', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` } });
+    await fetch('/api/auth/clear-access', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` } });
+  }
+
+  const handleLogout = async () => {
+    await clearCookies(); // Clear access tokens
+    await logout(); // Clear Privy state
+    window.location.href = '/login';
   }
 
   return (
@@ -89,11 +95,11 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
           {authenticated && <RecentChats />}
         </nav>
-          {}
+          
        {pathname !== '/login' && <div className="p-4">
           {authenticated ? (
             <button 
-              onClick={() => logout().then(() => router.push('/login'))}
+              onClick={handleLogout}
               className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
             >
               Disconnect

@@ -10,7 +10,7 @@ const solanaConnectors = toSolanaWalletConnectors({
     shouldAutoConnect: true,
 });
 
-export default function AuthProvider({
+export default function PrivyWrapper({
   children,
 }: {
   children: React.ReactNode;
