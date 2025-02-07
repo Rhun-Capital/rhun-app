@@ -72,7 +72,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="text-center">
+          <div className="text-center flex justify-center">
             <NFTCheckout collectionId={collectionId} />
           </div> 
         </div>
