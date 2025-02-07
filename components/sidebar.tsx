@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {    MarketplaceIcon, MenuIcon, CloseIcon} from './icons';
+import { MenuIcon, CloseIcon} from './icons';
 import {HomeIcon, EyeIcon, SettingsIcon, ChartArea, BotIcon, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { getAccessToken, usePrivy } from '@privy-io/react-auth';
