@@ -3,7 +3,7 @@ import {
   AttachmentIcon,
   UserIcon
 } from "@/components/icons";
-import {RobotIcon} from "lucide-react";
+import {BotIcon} from "lucide-react";
 import { useRecentChats } from '@/contexts/chat-context';
 import { useChat } from "ai/react";
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -639,13 +639,13 @@ export default function Home() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <RobotIcon className="w-8 h-8 sm:w-12 sm:h-12 text-zinc-400" />
+              <BotIcon className="w-8 h-8 sm:w-12 sm:h-12 text-zinc-400" />
             )}
           </div>
   
           {/* Agent Name - responsive font size */}
           <h2 className="text-xl sm:text-2xl font-semibold text-white text-center">
-            Hello, I'm {agent.name}
+            Hello, I&apos;m {agent.name}
           </h2>
   
           {/* Welcome Message - responsive text and spacing */}
@@ -704,7 +704,7 @@ export default function Home() {
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
-                <RobotIcon />
+                <BotIcon />
               </div>
             )}
           </div>
