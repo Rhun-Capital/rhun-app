@@ -717,7 +717,7 @@ export default function Home() {
         {/* Main chat area */}
         <div className="flex-1 flex flex-col">
           <div 
-            className="flex-1 overflow-y-auto pb-32"
+            className="flex-1 overflow-y-auto pt-20 pb-32"
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
