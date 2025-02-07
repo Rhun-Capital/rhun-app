@@ -62,7 +62,7 @@ export async function retrieveContext(
 
 export async function retrieveCoins(
   query?: string,
-  maxResults: number = 100
+  maxResults: number = 200
 ): Promise<CoinData[]> {
   try {
     // Initialize Pinecone
@@ -128,7 +128,7 @@ export async function retrieveCoinsWithFilters(
       days?: number;
     };
   },
-  maxResults: number = 10
+  maxResults: number = 200
 ): Promise<CoinData[]> {
   try {
     const pinecone = initPinecone();
