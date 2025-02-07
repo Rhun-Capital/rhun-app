@@ -1,9 +1,9 @@
 "use client";
 import {
   AttachmentIcon,
-  BotIcon,
   UserIcon
 } from "@/components/icons";
+import {RobotIcon} from "lucide-react";
 import { useRecentChats } from '@/contexts/chat-context';
 import { useChat } from "ai/react";
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
@@ -159,7 +159,7 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
 
 export default function Home() {
   const params = useParams();
-  const agentId = params.agentId;  
+  const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;  
   const searchParams = useSearchParams(); 
   const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
 
@@ -597,6 +597,96 @@ export default function Home() {
     );
   }
 
+  interface EmptyStateProps {
+    agent: any;
+    userId: string;
+    agentId: string;
+    onDescribeTools: () => void;
+  }
+
+  const CollapsibleDescription = ({ text }: { text: string }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const maxLength = 100; // Adjust this value to change initial visible length
+    const needsShowMore = text.length > maxLength;
+  
+    return (
+      <div className="relative">
+        <p className="text-base sm:text-lg">
+          {isExpanded ? text : `${text.slice(0, maxLength)}${needsShowMore ? '...' : ''}`}
+        </p>
+        {needsShowMore && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm mt-2"
+          >
+            {isExpanded ? 'Show Less' : 'Read More'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const EmptyState = ({ agent, userId, agentId, onDescribeTools }: EmptyStateProps) => {
+    return (
+      <div className="mx-auto w-full max-w-md px-4 px-0">
+        <div className="border rounded-xl p-4 sm:p-8 flex flex-col items-center gap-4 sm:gap-6 text-zinc-400 border-zinc-700 bg-zinc-800/30">
+          {/* Agent Image/Icon with responsive sizing */}
+          <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-zinc-700 flex items-center justify-center">
+            {agent.imageUrl ? (
+              <img 
+                src={agent.imageUrl} 
+                alt={agent.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <RobotIcon className="w-8 h-8 sm:w-12 sm:h-12 text-zinc-400" />
+            )}
+          </div>
+  
+          {/* Agent Name - responsive font size */}
+          <h2 className="text-xl sm:text-2xl font-semibold text-white text-center">
+            Hello, I'm {agent.name}
+          </h2>
+  
+          {/* Welcome Message - responsive text and spacing */}
+          <div className="text-center space-y-3 sm:space-y-4 px-2 sm:px-4">
+            <CollapsibleDescription text={agent.description} />
+            <p className="text-xs text-zinc-400">
+            You can also drag and drop files here to send them as attachments. You can
+            send images and text files. Learn more about my capabilities in the{' '}
+              <Link
+                className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                href="https://rhun-capital.gitbook.io/"
+                target="_blank"
+              >
+                documentation
+              </Link>
+              .
+            </p>
+          </div>
+  
+          {/* Action Buttons - Stack on mobile, side by side on desktop */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto mt-2">
+            <Link 
+              href={`/agents/${encodeURIComponent(userId)}/${agentId}/edit`}
+              className="w-full sm:w-auto"
+            >
+              <button className="w-full px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors text-sm sm:text-base">
+                Edit Agent
+              </button>
+            </Link>
+            <button
+              onClick={onDescribeTools}
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base"
+            >
+              View Available Tools
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
     <div className="flex flex-col h-screen bg-white bg-zinc-900">
@@ -614,7 +704,7 @@ export default function Home() {
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
-                <BotIcon />
+                <RobotIcon />
               </div>
             )}
           </div>
@@ -650,7 +740,7 @@ export default function Home() {
             </AnimatePresence>
   
             {/* Messages */}
-            <div className="max-w-4xl mx-auto px-1 mt-[7%]">
+            <div className="max-w-4xl mx-auto">
               {messages.length > 0 ? (
                 messages.map((message, index) => (
                   <motion.div
@@ -744,58 +834,20 @@ export default function Home() {
                 ))
               ) : (
                 <div>
-                <div className={`h-[350px] flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
-                <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-0 sm:pt-20">
-                    <div className="border rounded-lg p-6 flex flex-col gap-4 text-zinc-500 text-sm dark:text-zinc-400 border-zinc-700">
-                      <p className="flex flex-row justify-center gap-4 items-center dark:text-white dark:text-zinc-50">  
-                        <BotIcon />
-                        <span>+</span>
-                        <AttachmentIcon />
-                      </p>
-                      <p>
-                        You can ask the agent any technical question you&apos;d like. You can also drag and drop files here to send them as attachments. You can
-                        send images and text files.
-                      </p>
-                      <p className="mb-2">
-                        {" "}
-                        Learn more about how to use{" "}
-                        <Link
-                          className="text-indigo-500 text-indigo-400"
-                          href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}
-                        >
-                          {agent.name + " "}
-                        </Link>
-                        in the <Link className="text-indigo-500" href="https://rhun-capital.gitbook.io/" target="_blank">docs</Link>. You can edit the agent details by clicking the button below.
-                      </p>
-                    </div>
+                <div className={`flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
+                <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-0 sm:pt-40 ">
+                  <EmptyState 
+                    agent={agent}
+                    userId={decodeURIComponent(params.userId as string)}
+                    agentId={agentId}
+                    onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
+                  />
                   </motion.div>
 
                 </div>
 
                 </div>
-              )}
-
-
-              {!messages.length ? 
-              <div className={`mt-0 flex flex-col sm:flex-row items-center justify-start w-full ${ sidebarOpen ? ' ml-0' : ' justify-center'}`}> 
-                <div className="w-full sm:w-auto">
-                  <Link href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>
-                  <button className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5 mt-4 w-[90%] text-center sm:w-auto">
-                    <div>Edit Agent</div>
-                  </button>
-                </Link>
-                </div>
-
-                <div className="w-full sm:w-auto">
-                <button 
-                  onClick={() => handleToolSelect('What tools do you have access to?')}
-                  className="py-1 px-4 text-white outline outline-indigo-600 rounded-lg hover:bg-indigo-600 ml-5 mt-4 w-[90%] text-center sm:w-auto">
-                  <div>Describe Tools</div>
-                </button>
-                </div>
-              </div> : null}
-
-                       
+              )}                       
   
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
