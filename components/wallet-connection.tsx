@@ -94,7 +94,7 @@ export default function WalletConnection() {
       ) : (
         <div className="text-gray-400">
           <div className="flex justify-center items-center gap-2">
-            <div>
+            <div className="max-w-[130px] truncate">
             {user?.wallet?.address && `${user.wallet.address.slice(0,6)}...${user.wallet.address.slice(-4)}`}
             {user?.email?.address && `${user.email.address}`}            
             </div>
