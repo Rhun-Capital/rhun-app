@@ -237,7 +237,7 @@ Remember to use both the general context and cryptocurrency data when relevant t
       
 
       getRecentlyLaunchedCoins: {
-        description: "Search and retrieve information about recent cryptocurrencies. Use marketCap.min for minimum market cap (e.g., 1000000 for $1M) and marketCap.max for maximum.",
+        description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, and more.",
         parameters: z.object({ 
           query: z.string().describe('Search query for finding recent cryptocurrencies'),
           filters: z.object({
@@ -248,11 +248,15 @@ Remember to use both the general context and cryptocurrency data when relevant t
             marketCap: z.object({
               min: z.number().optional(),
               max: z.number().optional()
+            }).optional(),
+            timeRange: z.object({
+              hours: z.number().optional(),
+              days: z.number().optional()
             }).optional()
           }).optional()
         }),
         execute: async ({ query, filters }) => {
-          console.log('Executing with filters:', filters); // Better logging
+          console.log('Executing with filters:', filters);
           if (filters) {
             const results = await retrieveCoinsWithFilters(filters);
             return results;

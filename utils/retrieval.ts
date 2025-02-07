@@ -94,6 +94,10 @@ export async function retrieveCoins(
       total_volume_usd: match.metadata?.total_volume_usd as number,
       categories: match.metadata?.categories as string[],
       last_updated: match.metadata?.last_updated as string,
+      activated_at: match.metadata?.activated_at as number,
+      contract_address: match.metadata?.contract_address as string,
+      twitter: match.metadata?.twitter as string,
+      homepage: match.metadata?.homepage as string,      
       score: match.score ?? 0,
       thumb: match.metadata?.thumb as string,
       small: match.metadata?.small as string,
@@ -119,6 +123,10 @@ export async function retrieveCoinsWithFilters(
       min?: number;
       max?: number;
     };
+    timeRange?: {
+      hours?: number;
+      days?: number;
+    };
   },
   maxResults: number = 10
 ): Promise<CoinData[]> {
@@ -131,12 +139,26 @@ export async function retrieveCoinsWithFilters(
       { globalData: { $eq: true } }
     ];
 
-    // Add market cap filters if provided
+    // Add market cap filters
     if (filters.marketCap?.min !== undefined) {
       filterConditions.push({ market_cap_usd: { $gte: filters.marketCap.min } });
     }
     if (filters.marketCap?.max !== undefined) {
       filterConditions.push({ market_cap_usd: { $lte: filters.marketCap.max } });
+    }
+
+    // Add time range filter
+    if (filters.timeRange) {
+      const now = Math.floor(Date.now() / 1000); // Current time in seconds
+      let timeThreshold = now;
+
+      if (filters.timeRange.hours) {
+        timeThreshold = now - (filters.timeRange.hours * 3600);
+      } else if (filters.timeRange.days) {
+        timeThreshold = now - (filters.timeRange.days * 86400);
+      }
+
+      filterConditions.push({ activated_at: { $gte: timeThreshold } });
     }
 
     // Existing filters...
@@ -173,7 +195,11 @@ export async function retrieveCoinsWithFilters(
       market_cap_usd: match.metadata?.market_cap_usd as number,
       total_volume_usd: match.metadata?.total_volume_usd as number,
       categories: match.metadata?.categories as string[],
+      contract_address: match.metadata?.contract_address as string,
       last_updated: match.metadata?.last_updated as string,
+      activated_at: match.metadata?.activated_at as number,
+      twitter: match.metadata?.twitter as string,
+      homepage: match.metadata?.homepage as string,
       score: match.score ?? 0,
       thumb: match.metadata?.thumb as string,
       small: match.metadata?.small as string,
