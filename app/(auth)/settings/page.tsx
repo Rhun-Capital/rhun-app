@@ -6,6 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { AlertCircleIcon } from "@/components/icons";
 import {useMfaEnrollment} from '@privy-io/react-auth';
 import CopyButton from "@/components/copy-button";
+import { CheckoutButton } from "@/components/checkout-button";
 
 export default function SettingsPage() {
   const { user, logout, authenticated } = usePrivy();
@@ -82,6 +83,14 @@ const copyToClipboard = (text: string) => {
               </button>
             </div>
           </section>
+
+          {/* Subscriptions */}
+          {/* <section>
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Subscriptions</h2>
+            <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">
+              <CheckoutButton />
+            </div>
+          </section> */}
 
           {/* Connected Wallets */}
           <section>

@@ -23,6 +23,7 @@ const PUBLIC_API_ROUTES = new Set([
   '/api/clear-access',
   '/api/auth/verify',
   '/api/auth/token',
+  '/api/auth/webhooks'
 ]);
 
 const PUBLIC_PAGE_ROUTES = new Set([
@@ -126,6 +127,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/api/:path*',
+    '/(api(?!/auth/webhooks).*)',
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };
