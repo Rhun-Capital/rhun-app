@@ -395,6 +395,7 @@ const RecentCoinsResults: React.FC<{
       </div>
 
     {/* Pagination (shared between views) */}
+    {(sortedData.length > 10) &&
     <div className="mt-4 flex items-center justify-between px-4">
         <div className="text-sm text-zinc-400">
           Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, sortedData.length)} of {sortedData.length}
@@ -415,7 +416,7 @@ const RecentCoinsResults: React.FC<{
             <ChevronRight className="h-5 w-5" />
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 };

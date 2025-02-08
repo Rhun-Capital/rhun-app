@@ -1,13 +1,11 @@
 'use client';
 
-import { BotIcon, SettingsIcon, MarketplaceIcon } from '@/components/icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from "sonner";
-import { Toaster } from 'sonner';
 import {useRouter} from 'next/navigation';
-import { MessageSquare, BookOpenIcon } from 'lucide-react';
+import { MessageSquare, BookOpenIcon, BotIcon, LayoutGrid, SettingsIcon } from 'lucide-react';
 
 export default function HomePage() {
   const { user, ready } = usePrivy();
@@ -25,7 +23,7 @@ export default function HomePage() {
     {
       title: 'Apps',
       description: 'Access the marketplace to install and manage community tools that extend agent capabilities.',
-      icon: MarketplaceIcon,
+      icon: LayoutGrid,
       link: '/marketplace',
       linkText: 'View Marketplace',
       color: 'text-indigo-500',
@@ -105,7 +103,7 @@ export default function HomePage() {
           <div className="p-6 bg-zinc-800 rounded-lg border border-zinc-700 h-full cursor-pointer
                         transition-all duration-200 ease-in-out
                         hover:border-zinc-600 hover:shadow-lg hover:-translate-y-1">
-            <div className="mb-4"><feature.icon /></div>
+            <div className="mb-4 text-zinc-400"><feature.icon /></div>
             <h2 className="text-xl font-semibold mb-2 group-hover:text-indigo-400 transition-colors">
               {feature.title}
             </h2>
@@ -165,7 +163,6 @@ export default function HomePage() {
           </Link>
         </div> }
       </div>
-      <Toaster />
     </div>
   );
 }

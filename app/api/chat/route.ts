@@ -68,6 +68,7 @@ ${agentConfig.wallets?.solana || 'N/A'}
 If you're asked to do anything with the agents wallet but it is not available, please let the user know that the agent's wallet is not created and they should created it to proceed. They can create one for the agent in the wallet tab of the agent settings.
 
 ## Chatbot Tool Special Instructions:
+When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
 Dont add links to markdown. 
 If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 When your listing token holdings do not add the token image to the list.
@@ -256,7 +257,6 @@ Remember to use both the general context and cryptocurrency data when relevant t
           }).optional()
         }),
         execute: async ({ query, filters }) => {
-          console.log('Executing with filters:', filters);
           if (filters) {
             const results = await retrieveCoinsWithFilters(filters);
             return results;

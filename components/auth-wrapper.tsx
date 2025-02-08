@@ -16,7 +16,6 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
 
   useEffect(() => {
     async function checkAuthorization() {
-      console.log('Auth state:', { ready, authenticated, pathname });
       
       if (!ready || !authenticated) {
         setIsAuthorized(false);
@@ -25,7 +24,6 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
       
       try {
         const response = await fetch('/api/auth/verify')
-        console.log('Verify response:', response);
         
         if (response.ok) {
           setIsAuthorized(true)

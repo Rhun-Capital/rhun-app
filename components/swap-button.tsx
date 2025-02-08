@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { usePrivy, useSolanaWallets, getAccessToken } from '@privy-io/react-auth';
-import { PublicKey, Connection, Commitment, GetLatestBlockhashConfig, SendOptions, Transaction, VersionedTransaction, AddressLookupTableAccount } from '@solana/web3.js';
+import { PublicKey, Connection, Commitment, GetLatestBlockhashConfig, SendOptions, Transaction, VersionedTransaction, AddressLookupTableAccount, RpcResponseAndContext, SignatureStatus } from '@solana/web3.js';
 import base58 from 'bs58';
 
 import Image from 'next/image';
 const TOKENS_PER_PAGE = 50;
 const JUPITER_TOKEN_LIST_URL = 'https://token.jup.ag/strict';  // Using strict list for better performance
 const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
-
 
 interface PaginatedTokens {
   tokens: JupiterToken[];
@@ -60,7 +59,8 @@ type SelectionType = 'from' | 'to' | null;
 
 class ProxyConnection extends Connection {
   constructor(config?: { commitment?: Commitment }) {
-    super('https://api.mainnet-beta.solana.com', config);
+    // Use a dummy URL since we'll override all RPC calls
+    super('http://localhost', config);
   }
 
   private async customRpcRequest(method: string, params: any[]) {
@@ -128,7 +128,6 @@ class ProxyConnection extends Connection {
   ): Promise<string> {
     const buffer = Buffer.from(rawTransaction);
     
-    // Send base64 encoded transaction
     const params = [
       buffer.toString('base64'),
       {
@@ -145,17 +144,39 @@ class ProxyConnection extends Connection {
       throw error;
     }
   }
+
+  async getSignatureStatus(
+    signature: string,
+    config?: any
+  ): Promise<RpcResponseAndContext<SignatureStatus | null>> {
+    const params = [signature];
+    if (config) {
+      params.push(config);
+    }
+    
+    try {
+      const response = await this.customRpcRequest('getSignatureStatuses', [params]);
+      console.log(response.value)
+      if (!response.value[0]) {
+        throw new Error('No status returned for signature');
+      }
+      return { context: { slot: 0 }, value: response.value }; // Matching Connection class response format
+    } catch (error) {
+      console.error('Get signature status error:', error);
+      throw error;
+    }
+  }
 }
-
-
-  
 
 const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
   const { wallets: solanaWallets } = useSolanaWallets();
-
-  const activeWallet = agent.wallets ? solanaWallets.find(
+  const activeWallet = solanaWallets.find(
     wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
-  ) : null;
+  );
+
+  console.log(solanaWallets)
+
+  console.log('activeWallet', activeWallet);
 
   const [selecting, setSelecting] = useState<SelectionType>(null);
   const [fromToken, setFromToken] = useState<Token | null>(null);
@@ -170,9 +191,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
   const [transactionStatus, setTransactionStatus] = useState<'pending' | 'confirmed' | 'failed' | null>(null);
-
-
-  // const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+  const connection = new ProxyConnection({ commitment: 'confirmed' });
 
   const [paginatedTokens, setPaginatedTokens] = useState<PaginatedTokens>({
     tokens: [],
@@ -230,7 +249,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
   // const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
   
   const executeSwap = async () => {
-    const connection = new ProxyConnection({ commitment: 'confirmed' });
     try {
       if (!activeWallet || !activeWallet.address) {
         throw new Error('Wallet not connected');
@@ -350,16 +368,29 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       });
   
       // Try sending transaction
-      console.log('Sending transaction to wallet for approval...');
-      const signature = await activeWallet.sendTransaction(
-        transaction,
-        connection,
+      // console.log('Sending transaction to wallet for approval...');
+      // const signature = await activeWallet.sendTransaction(
+      //   transaction,
+      //   connection,
+      //   {
+      //     skipPreflight: false,
+      //     preflightCommitment: 'confirmed',
+      //     maxRetries: 3
+      //   }
+      // );
+
+      const signedTx = await activeWallet.signTransaction(transaction);
+      
+      // Send raw transaction through our proxy connection
+      console.log('Sending signed transaction through proxy...');
+      const signature = await connection.sendRawTransaction(
+        signedTx.serialize(),
         {
           skipPreflight: false,
           preflightCommitment: 'confirmed',
           maxRetries: 3
         }
-      );
+      );      
   
       console.log('Transaction submitted with signature:', signature);
   
@@ -367,6 +398,10 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       try {
         const status = await connection.getSignatureStatus(signature);
         console.log('Immediate transaction status:', status);
+        if (status.value?.confirmationStatus === 'finalized') {
+          setTransactionStatus('confirmed');
+          setSuccess(signature);
+        }
       } catch (statusError) {
         console.error('Error getting immediate status:', statusError);
       }
@@ -390,10 +425,14 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
     const maxRetries = 45; // 90 seconds total (45 * 2 second intervals)
     
     const checkStatus = async () => {
-      const connection = new ProxyConnection({ commitment: 'confirmed' });
+      
       try {
         const status = await connection.getSignatureStatus(signature);
         console.log('Transaction status:', status?.value);
+        if (status.value?.confirmationStatus === 'finalized') {
+          setTransactionStatus('confirmed');
+          setSuccess(signature);
+        }        
 
         if (status?.value?.err) {
           setTransactionStatus('failed');
@@ -431,7 +470,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
           setError(`Transaction confirmation is taking longer than expected. Please check the transaction status on Solscan.`);
         }
       }
-    }, 2000);
+    }, 20000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
@@ -819,9 +858,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       };
 
   if (!isOpen) return null;
-
-  if (!activeWallet)
-    return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">

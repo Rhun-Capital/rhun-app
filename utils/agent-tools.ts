@@ -19,12 +19,68 @@ const STABLECOIN_ADDRESSES = new Set([
   // Add more stablecoins as needed
 ])
 
-
 const dynamodb = new DynamoDB.DocumentClient({
   region: process.env.AWS_REGION,
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
+
+interface ActivityParams {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: string;
+  blockTimes?: string[];
+  activityTypes?: string[];
+  address?: string;
+  from?: string;
+  platforms?: string[];
+  sources?: string[];
+  token?: string;
+}
+
+interface Router {
+  amount1: number;
+  amount2: number;
+  child_routers: Router[];
+  token1: string;
+  token1_decimals: number;
+  token2: string;
+  token2_decimals: number;
+}
+
+interface Activity {
+  block_time: number;
+  activity_type: string;
+  tx_address: string;
+  value: number;
+  from_address: string;
+  status: string;
+  block_number: number;
+  routers: Router;
+  time: string;
+}
+
+interface ActivityResponse {
+  data: Activity[];
+  total_count: number; // Add this line
+  metadata: {
+    tokens: {
+      [key: string]: {
+        token_address: string;
+        token_name: string;
+        token_symbol: string;
+        token_icon: string;
+      }
+    }
+  };
+  pagination?: {
+    current_page: number;
+    total_pages: number;
+    total_items: number;
+  };
+}
+
 
 interface OnChainData {
     name: string;
@@ -755,3 +811,93 @@ export async function swapTokens(inputMint: string, outputMint: string, amount: 
   
     return { volume, count };
   }
+
+
+export async function getAccountActivities(params: ActivityParams): Promise<ActivityResponse> {
+  try {
+    // Set default values
+    const config = {
+      page: params.page || 1,
+      pageSize: params.pageSize || 10,
+      sortBy: params.sortBy || 'block_time',
+      sortOrder: params.sortOrder || 'desc',
+      blockTimes: params.blockTimes || [],
+      activityTypes: params.activityTypes || [],
+      platforms: params.platforms?.slice(0, 5) || [],
+      sources: params.sources?.slice(0, 5) || [],
+    };
+
+    // Validate required parameters
+    if (!params.address) {
+      throw new Error('Account address is required');
+    }
+
+    // Construct API parameters
+    const apiParams = new URLSearchParams();
+    apiParams.append('address', params.address);
+    apiParams.append('page', config.page.toString());
+    apiParams.append('page_size', config.pageSize.toString());
+    apiParams.append('sort_by', config.sortBy);
+    apiParams.append('sort_order', config.sortOrder);
+
+    // Add optional parameters
+    if (config.blockTimes.length === 2) {
+      config.blockTimes.forEach(time => {
+        apiParams.append('block_time[]', time);
+      });
+    }
+
+    config.activityTypes.forEach(type => {
+      apiParams.append('activity_type[]', type);
+    });
+
+    if (params.from) apiParams.append('from', params.from);
+    config.platforms.forEach(p => apiParams.append('platform[]', p));
+    config.sources.forEach(s => apiParams.append('source[]', s));
+    if (params.token) apiParams.append('token', params.token);
+
+    // Fetch activities from Solscan API
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`,
+      {
+        headers: {
+          'token': process.env.SOLSCAN_API_KEY || '',
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Solscan API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+
+  } catch (error: any) {
+    console.error('Error fetching account activities:', error);
+    throw error; // Re-throw to allow caller to handle
+  }
+}
+
+// Example usage in a tool or component
+export async function fetchAccountActivitiesInTool(address: string) {
+  try {
+    const activities = await getAccountActivities({
+      address,
+      page: 1,
+      pageSize: 10,
+      activityTypes: ['ACTIVITY_TOKEN_SWAP', 'ACTIVITY_AGG_TOKEN_SWAP']
+    });
+    
+    return {
+      success: true,
+      activities
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}

@@ -15,7 +15,6 @@ export default function RootLayout({
         <PrivyWrapper>
           <AuthWrapper>
             {children}
-            <Toaster />
           </AuthWrapper>
         </PrivyWrapper>
         <Analytics/>
