@@ -2,35 +2,30 @@
 
 import { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import {createCheckoutLink} from "@/utils/subscriptions";
+import {createCheckoutSession} from "@/utils/subscriptions";
 
 interface CheckoutButtonProps {
   className?: string;
 }
 
 export function CheckoutButton({ 
-  className = "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+  className = "px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
 }: CheckoutButtonProps) {
   const { authenticated, login, user } = usePrivy();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCheckout = async () => {
-    if (!authenticated) {
-      login();
-      return;
-    }
-
     try {
-      setIsLoading(true);
-      const { url } = await createCheckoutLink(user!.id);
+      const { url } = await createCheckoutSession(user?.id!);
+      // Redirect to Stripe Checkout
       if (url) {
         window.location.href = url;
+      } else {
+        console.error('Checkout URL is null');
       }
     } catch (error) {
-      console.error('Checkout error:', error);
-      // You might want to add error handling UI here
-    } finally {
-      setIsLoading(false);
+      // Handle error
+      console.error('Checkout failed', error);
     }
   };
 

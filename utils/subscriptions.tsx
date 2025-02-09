@@ -42,27 +42,47 @@ export async function updateSubscription(userId: string, data: any) {
   return docClient.send(command);
 }
 
-export async function createCheckoutLink(userId: string) {
+export async function createCheckoutSession(userId: string) {
+  console.log(userId)
   try {
-    const checkoutLink = await stripe.paymentLinks.create({
+    const session = await stripe.checkout.sessions.create({
+      client_reference_id: userId,
       line_items: [
         {
           price: process.env.STRIPE_MONTHLY_PRICE_ID || '',
           quantity: 1,
         },
       ],
+      mode: 'subscription', // Use 'subscription' for recurring payments
+      subscription_data: {
+        metadata: {
+          userId: userId,
+        },
+      },      
       metadata: {
-        userId: userId,
+        userId: userId, // Add userId to metadata
       },
-      after_completion: { 
-        type: 'redirect',
-        redirect: { url: `${process.env.NEXT_PUBLIC_URL}/` }
-      }
+      success_url: `${process.env.NEXT_PUBLIC_URL}/settings`,
+      // cancel_url: `${process.env.NEXT_PUBLIC_URL}`,
     });
 
-    return { url: checkoutLink.url };
+    return { url: session.url };
   } catch (error) {
-    console.error('Checkout link creation error:', error);
-    throw new Error('Failed to create checkout link');
+    console.error('Checkout session creation error:', error);
+    throw new Error('Failed to create checkout session');
+  }
+}
+
+export async function createCustomerPortalSession(customerId: string) {
+  try {
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${process.env.NEXT_PUBLIC_URL}/settings`
+    });
+
+    return { url: portalSession.url };
+  } catch (error) {
+    console.error('Error creating customer portal session:', error);
+    throw error;
   }
 }
