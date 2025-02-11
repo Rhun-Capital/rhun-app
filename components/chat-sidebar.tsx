@@ -188,7 +188,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const params = useParams();
 
   const { isSubscribed } = useSubscription();
-  console.log(isSubscribed)
 
   
   interface Token {

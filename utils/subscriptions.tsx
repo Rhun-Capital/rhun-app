@@ -39,6 +39,7 @@ interface SubscriptionDetails {
     status: string;
     currentPeriodEnd?: string;
     cancelAtPeriodEnd?: boolean;
+    amount: number;
     plan?: {
       name: string;
       id: string;
@@ -85,15 +86,15 @@ export async function getSubscription(userId: string): Promise<SubscriptionDetai
     // Determine combined status
     const isStripeActive = stripeSubscription?.status === 'active' && !stripeSubscription?.cancelAtPeriodEnd;
     const isTokenActive = tokenSubscription ? isTokenSubscriptionActive(tokenSubscription as TokenSubscription) : false;
-
     return {
       stripe: stripeSubscription ? {
-        customerId: stripeSubscription.customerId,
-        subscriptionId: stripeSubscription.subscriptionId,
+        customerId: stripeSubscription.stripeCustomerId,
+        subscriptionId: stripeSubscription.stripeSubscriptionId,
         status: stripeSubscription.status,
         currentPeriodEnd: stripeSubscription.currentPeriodEnd,
         cancelAtPeriodEnd: stripeSubscription.cancelAtPeriodEnd,
-        plan: stripeSubscription.plan
+        amount: stripeSubscription.amount,
+        plan: stripeSubscription.planId
       } : undefined,
       token: tokenSubscription as TokenSubscription | undefined,
       combinedStatus: (isStripeActive || isTokenActive) ? 'active' : 'inactive'
@@ -175,7 +176,7 @@ export async function createCheckoutSession(userId: string) {
       metadata: {
         userId: userId,
       },
-      success_url: `${process.env.NEXT_PUBLIC_URL}/settings`,
+      success_url: 'https://beta.rhun.io/account',
     });
 
     return { url: session.url };
@@ -190,7 +191,7 @@ export async function createCustomerPortalSession(customerId: string) {
   try {
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${process.env.NEXT_PUBLIC_URL}/settings`
+      return_url: 'https://beta.rhun.io/account'
     });
 
     return { url: portalSession.url };

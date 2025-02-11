@@ -109,7 +109,7 @@ export default function SettingsPage() {
           <section>
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Subscription</h2>
             <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">            
-              <SubscriptionManagement userId={user?.id || ''}/>
+              <SubscriptionManagement wallet={user?.wallet?.address || ''} userId={user?.id || ''}/>
             </div>
           </section>
 
