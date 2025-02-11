@@ -21,15 +21,25 @@ interface SubscriptionStatus {
   error: string | null;
   subscriptionType: 'none' | 'stripe' | 'token' | 'both';
   subscriptionDetails: {
-    stripe: {
+    stripe?: {
       active: boolean;
-      expiresAt: string | null;
+      currentPeriodEnd: string | null;
       plan?: string;
+      subscriptionId?: string;
+      stripeCustomerId?: string;
+      amount?: number;
+      cancelAtPeriodEnd?: boolean;
     };
-    token: {
+    token?: {
       active: boolean;
       expiresAt: string | null;
-      subscription?: TokenSubscription;
+      subscription?: {
+        txHash: string;
+        slot: number;
+        fee: number;
+        blockTime: number;
+        calculatedTokenAmount: number;
+      };
     };
   };
 }
@@ -44,7 +54,7 @@ export function useSubscription(): SubscriptionStatus {
     subscriptionDetails: {
       stripe: {
         active: false,
-        expiresAt: null,
+        currentPeriodEnd: null,
       },
       token: {
         active: false,
@@ -81,13 +91,20 @@ export function useSubscription(): SubscriptionStatus {
         let stripeActive = false;
         let stripeExpiresAt: string | null = null;
         let stripePlan: string | undefined;
+        let stripeCustomerId: string | undefined;
+        let stripeAmount: number | undefined;
+        let stripeCancelAtPeriodEnd: boolean | undefined;
+
         
         if (stripeResponse.ok) {
           const stripeData = await stripeResponse.json();
-          if (stripeData.status === 'active' && !stripeData.cancelAtPeriodEnd) {
+          if (stripeData.stripe.status === 'active') {
             stripeActive = true;
-            stripeExpiresAt = stripeData.currentPeriodEnd;
-            stripePlan = stripeData.plan?.name;
+            stripeExpiresAt = stripeData.stripe.currentPeriodEnd;
+            stripePlan = stripeData.stripe.plan?.name;
+            stripeCustomerId = stripeData.stripe.customerId;
+            stripeAmount = stripeData.stripe.amount;
+            stripeCancelAtPeriodEnd = stripeData.stripe.cancelAtPeriodEnd;
           }
         }
 
@@ -122,8 +139,12 @@ export function useSubscription(): SubscriptionStatus {
           subscriptionDetails: {
             stripe: {
               active: stripeActive,
-              expiresAt: stripeExpiresAt,
-              plan: stripePlan
+              currentPeriodEnd: stripeExpiresAt,
+              plan: stripePlan,
+              stripeCustomerId,
+              amount: stripeAmount,
+              cancelAtPeriodEnd: stripeCancelAtPeriodEnd
+              
             },
             token: {
               active: tokenActive,
@@ -183,50 +204,4 @@ export function ProtectedContent({
   }
 
   return <>{children}</>;
-}
-
-// Utility function to check if a specific feature is available
-interface FeatureAvailability {
-  isAvailable: boolean;
-  requiresUpgrade: boolean;
-  subscriptionRequired: 'stripe' | 'token' | 'any';
-}
-
-export function checkFeatureAvailability(
-  feature: string,
-  subscriptionStatus: SubscriptionStatus
-): FeatureAvailability {
-  // Define feature requirements
-  const featureRequirements: Record<string, {
-    subscriptionRequired: 'stripe' | 'token' | 'any',
-    minimumPlan?: string
-  }> = {
-    // Example feature definitions
-    'portfolio-analysis': { subscriptionRequired: 'any' },
-    'advanced-trading': { subscriptionRequired: 'stripe', minimumPlan: 'pro' },
-    'token-tools': { subscriptionRequired: 'token' }
-  };
-
-  const requirement = featureRequirements[feature];
-  if (!requirement) {
-    return {
-      isAvailable: false,
-      requiresUpgrade: true,
-      subscriptionRequired: 'any'
-    };
-  }
-
-  const { subscriptionType, subscriptionDetails } = subscriptionStatus;
-
-  return {
-    isAvailable: 
-      requirement.subscriptionRequired === 'any' ? subscriptionStatus.isSubscribed :
-      requirement.subscriptionRequired === 'stripe' ? 
-        ['stripe', 'both'].includes(subscriptionType) &&
-        (!requirement.minimumPlan || subscriptionDetails.stripe.plan === requirement.minimumPlan) :
-      requirement.subscriptionRequired === 'token' ? 
-        ['token', 'both'].includes(subscriptionType) : false,
-    requiresUpgrade: !subscriptionStatus.isSubscribed,
-    subscriptionRequired: requirement.subscriptionRequired
-  };
 }
