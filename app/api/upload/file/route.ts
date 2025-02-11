@@ -1,31 +1,15 @@
+// app/api/upload/file/route.ts
 import { NextResponse, NextRequest } from 'next/server';
-import { initPinecone, createEmbedding, chunkText } from '@/utils/embeddings';
-import mammoth from 'mammoth';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { sendToFileQueue } from '@/utils/sqs';
 
-async function extractPDFText(buffer: Buffer): Promise<string> {
-  try {
-    const PDFParser = (await import('pdf2json')).default;
-    const pdfParser = new PDFParser();
-
-    return new Promise((resolve, reject) => {
-      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
-        const text = decodeURIComponent(pdfData.Pages.map((page: any) => 
-          page.Texts.map((text: any) => text.R[0].T).join(' ')
-        ).join('\n'));
-        resolve(text);
-      });
-
-      pdfParser.on("pdfParser_dataError", (errData: any) => {
-        reject(new Error(errData.parserError));
-      });
-
-      pdfParser.parseBuffer(buffer);
-    });
-  } catch (error) {
-    console.error('Text Extraction Error:', error);
-    throw error;
+const s3 = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   }
-}
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,64 +21,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Convert File to Buffer
+    // Generate a unique file key
+    const fileKey = `knowledge/${agentId}/${file.name}`;
+    
+    // Upload to S3
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME!,
+      Key: fileKey,
+      Body: buffer,
+      ContentType: file.type,
+    }));
 
-    // Extract text based on file type
-    let text = '';
-    if (file.name.endsWith('.pdf')) {
-      text = await extractPDFText(buffer);
-    } else if (file.name.endsWith('.docx')) {
-      const result = await mammoth.extractRawText({ buffer });  // Note: changed to use buffer directly
-      text = result.value;
-    } else if (file.name.endsWith('.txt')) {
-      text = buffer.toString('utf8');
-    } else {
-      return NextResponse.json(
-        { error: 'Unsupported file format' },
-        { status: 400 }
-      );
-    }
+    // Get S3 URL
+    const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
-    // Initialize Pinecone
-    const pinecone = await initPinecone();
-    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-
-    // Split text into chunks
-    const chunks = chunkText(text);
-
-    // Create embeddings for each chunk
-    const vectors = await Promise.all(
-      chunks.map(async (chunk, i) => {
-        const embedding = await createEmbedding(chunk);
-        return {
-          id: `${Date.now()}-${i}`,
-          values: embedding,
-          metadata: {
-            text: chunk,
-            source: file.name,
-            type: 'document',
-            timestamp: new Date().toISOString(),
-            agentId,
-          },
-        };
-      })
-    );
-
-    // Upload to Pinecone
-    await index.upsert(vectors);
+    // Queue processing
+    await sendToFileQueue({
+      fileUrl,
+      fileName: file.name,
+      agentId,
+      metadata: {
+        type: file.name.endsWith('.csv') ? 'csv' : 'document',
+        timestamp: new Date().toISOString(),
+      }
+    });
+    
 
     return NextResponse.json({
-      message: 'File processed successfully',
-      chunks: chunks.length,
+      message: 'File uploaded and queued for processing',
+      status: 'processing',
+      fileUrl
     });
 
   } catch (error: any) {
-    console.error('Error processing file:', error);
-    return NextResponse.json(
-      { error: error.message || 'Error processing file' },
-      { status: 500 }
+    console.error('Error uploading file:', error);
+    return new NextResponse(
+      JSON.stringify({ error: error.message || 'Error uploading file' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }

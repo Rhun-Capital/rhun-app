@@ -34,7 +34,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     if (!response.ok) throw new Error('Failed to fetch user chats');
     
     const data = await response.json();
-    return data.chats.map((chat: Chat) => ({ ...chat, isTemplate: false }));
+    return data.chats.map((chat: Chat) => ({ ...chat }));
   };
 
   // const fetchTemplateChats = async () => {

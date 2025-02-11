@@ -111,7 +111,6 @@ class ProxyConnection extends Connection {
 
     try {
       const response = await this.customRpcRequest('getSignatureStatuses', [params]);
-      console.log('Raw signature status:', response.value);
       if (!response.value[0]) {
         throw new Error('No status returned for signature');
       }
@@ -148,7 +147,6 @@ const Home = () => {
   // Use Privy's hooks to access wallet methods
   const { wallets: solanaWallets } = useSolanaWallets();
   const activeWallet = solanaWallets[0];
-  console.log(activeWallet);
 
   // State to track transaction progress
   const [transactionStatus, setTransactionStatus] = useState('');
@@ -284,7 +282,6 @@ const Home = () => {
   
       // Send the transaction via your active wallet (Privy)
       const txSignature = await activeWallet.sendTransaction(transaction, connection);
-      console.log('Transaction sent with signature:', txSignature);
       setTransactionStatus('Transaction sent. Awaiting confirmation...');
       setSignature(txSignature);
   
@@ -293,6 +290,7 @@ const Home = () => {
         senderPublicKey,
         txSignature
       );
+      confirmedTx.calculatedTokenAmount = calculatedTokenAmount;
       if (confirmedTx) {
         const accessToken = await getAccessToken();
         const storeRes = await fetch(`/api/subscriptions/${user?.id}/token-subscription`, {
@@ -356,7 +354,7 @@ const Home = () => {
       }
       {transactionStatus && (
         <>
-          <p className="mt-4 text-white max-width-100 truncate">{transactionStatus}</p>
+          <p className="mt-4 text-white max-w-[270px] truncate">{transactionStatus}</p>
           {signature && (
             <a
               className="text-indigo-400"

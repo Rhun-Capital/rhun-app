@@ -15,28 +15,28 @@ export default function LoginPage() {
  const { user, ready, getAccessToken } = usePrivy()
  const collectionId = process.env.NEXT_PUBLIC_COLLECTION_ID as string
 
- const handleSubmit = async (e: React.FormEvent) => {
-   e.preventDefault()
-   setError('')
-   setIsLoading(true)
-   try {
-      const accessToken = await getAccessToken()
-     const response = await fetch('/api/auth/token', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-       body: JSON.stringify({ token }),
-     })
-     if (response.ok) {
-       window.location.href = '/'
-     } else {
-       const data = await response.json()
-       setError(data.message || 'Invalid token or this token has already been verified.')
-     }
-   } catch (error) {
-     setError('An error occurred. Please try again.')
-     setIsLoading(false)
-   }
- }
+//  const handleSubmit = async (e: React.FormEvent) => {
+//    e.preventDefault()
+//    setError('')
+//    setIsLoading(true)
+//    try {
+//       const accessToken = await getAccessToken()
+//      const response = await fetch('/api/auth/token', {
+//        method: 'POST',
+//        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+//        body: JSON.stringify({ token }),
+//      })
+//      if (response.ok) {
+//        window.location.href = '/'
+//      } else {
+//        const data = await response.json()
+//        setError(data.message || 'Invalid token or this token has already been verified.')
+//      }
+//    } catch (error) {
+//      setError('An error occurred. Please try again.')
+//      setIsLoading(false)
+//    }
+//  }
 
  return (
   <div className="min-h-screen flex items-center bg-zinc-900 justify-center p-4">
@@ -53,7 +53,7 @@ export default function LoginPage() {
   
       <WalletConnection />
 
-      {user && ready && (
+      {/* {user && ready && (
         <div className="space-y-6">
           <LoginForm 
             token={token}
@@ -76,7 +76,7 @@ export default function LoginPage() {
             <NFTCheckout collectionId={collectionId} />
           </div> 
         </div>
-      )}
+      )} */}
     </div>
   </div>
 )

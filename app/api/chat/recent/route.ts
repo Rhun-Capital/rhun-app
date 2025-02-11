@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
       chatId: item.chatId,
       agentId: item.agentId,
       agentName: item.agentName,
+      isTemplate: item.isTemplate,
       lastMessage: item.lastMessage,
       lastUpdated: new Date(item.lastUpdated).getTime()
     }));

@@ -12,6 +12,15 @@ export default function WalletConnection() {
   const [checking, setChecking] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    if (authenticated && user) {
+      setTimeout(() => {
+        router.push('/');
+        router.refresh();
+      }, 2000);
+    }
+  }, [authenticated, user]);
+
   const {login} = useLogin({
     onComplete: ({user, isNewUser, wasAlreadyAuthenticated, loginMethod}) => {
       setTimeout(() => {

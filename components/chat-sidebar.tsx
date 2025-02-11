@@ -1,18 +1,23 @@
 // components/chat-sidebar.tsx
 import React, { useState, useEffect } from 'react';
 import { WalletIcon, ToolsIcon } from '@/components/icons';
-import { SendIcon, QrCode, Repeat2 } from 'lucide-react';
+import { SendIcon, QrCode, Repeat2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import LoadingIndicator from './loading-indicator';
 import CopyButton from './copy-button';
 import dynamic from 'next/dynamic';
+import { useSubscription } from '@/hooks/use-subscription';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 
 interface Tool {
   name: string;
   description: string;
   command: string;
+  isPro?: boolean;
 }
+
 
 interface SidebarProps {
   agent: any;
@@ -125,11 +130,66 @@ const TransferButton = ({ tokens, solanaBalance, agent }: TransferButtonProps & 
 };
 
 
+const ToolCard: React.FC<{
+  tool: Tool;
+  isSubscribed: boolean;
+  onClick: () => void;
+}> = ({ tool, isSubscribed, onClick }) => {
+  const canUse = !tool.isPro || isSubscribed;
+
+  return (
+    <div 
+      className={`relative group ${
+        canUse 
+          ? 'cursor-pointer hover:bg-zinc-700' 
+          : 'cursor-not-allowed opacity-75'
+      } bg-zinc-800 p-3 rounded-lg border transition-all duration-200 ${
+        tool.isPro 
+          ? 'border-indigo-500/50 hover:border-indigo-500' 
+          : 'border-zinc-700'
+      }`}
+      onClick={() => canUse && onClick()}
+    >
+      <div className="flex justify-between items-start mb-1">
+        <div className="font-medium text-white group-hover:text-white/90">
+          {tool.name}
+        </div>
+        {tool.isPro && (
+          <div className="flex items-center gap-1 bg-indigo-500/10 px-2 py-0.5 rounded text-indigo-400 text-xs">
+            <Sparkles className="w-3 h-3" />
+            PRO
+          </div>
+        )}
+      </div>
+      <div className="text-sm text-zinc-400 group-hover:text-zinc-300">
+        {tool.description}
+      </div>
+      
+      {/* Upgrade overlay for pro features */}
+      {tool.isPro && !isSubscribed && (
+        <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <a 
+            href="/account" 
+            className="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-600 transition-colors"
+          >
+            Upgrade to Pro
+          </a>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect }) => {
   const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('wallet');
   const { user, getAccessToken } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
   const [totalValue, setTotalValue] = useState<number | null>(null);
+  const params = useParams();
+
+  const { isSubscribed } = useSubscription();
+  console.log(isSubscribed)
+
   
   interface Token {
     token_address: string;
@@ -142,83 +202,101 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   
   const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
 
+
+  // Define tools with pro status
   const tools: Tool[] = [ 
     { 
       name: 'Get My Portfolio Value', 
-      description: 'View the current value of your connected wallet portfolio. Track your total assets and monitor performance over time.',
-      command: 'Show me my portfolio value'
-  },
-  { 
+      description: 'View the current value of your connected wallet portfolio.',
+      command: 'Show me my portfolio value',
+      isPro: false
+    },
+    { 
       name: "Get Agent's Portfolio Value", 
-      description: "View the current value of the agent's embedded wallet portfolio. Track the agent's total assets and monitor performance over time.",
-      command: "Show me your portfolio value"
-  },
-  { 
+      description: "View the current value of the agent's embedded wallet portfolio.",
+      command: "Show me your portfolio value",
+      isPro: true // Pro feature
+    },
+    { 
       name: 'Get My Token Holdings', 
-      description: 'See a detailed breakdown of all tokens in your connected wallet. View balances, values, and distribution of your holdings.',
-      command: 'Show me my token holdings'
-  },
-  { 
+      description: 'See a detailed breakdown of all tokens in your connected wallet.',
+      command: 'Show me my token holdings',
+      isPro: false
+    },
+    { 
       name: "Get Agent's Token Holdings", 
-      description: "See a detailed breakdown of all tokens in the agent's embedded wallet. View balances, values, and distribution of the holdings.",
-      command: "Show me your token holdings"
-  },
-  { 
+      description: "See a detailed breakdown of all tokens in the agent's wallet.",
+      command: "Show me your token holdings",
+      isPro: true // Pro feature
+    },
+    { 
       name: 'Get Solana Transaction Volume', 
-      description: 'Check the current transaction volume across the Solana network. Monitor network activity and trading patterns in real-time.',
-      command: 'Show me the transaction volume on Solana'
-  },
-  { 
+      description: 'Check the current transaction volume across the Solana network.',
+      command: 'Show me the transaction volume on Solana',
+      isPro: false
+    },
+    { 
       name: 'Get Token Info', 
-      description: 'Access comprehensive information about any specific token on. View price, market cap, volume, and other key metrics.',
-      command: 'Show me information about the token'
-  },
-  { 
+      description: 'Access comprehensive information about any specific token.',
+      command: 'Show me information about the token',
+      isPro: false
+    },
+    { 
       name: 'Get Wallet Info', 
-      description: 'Examine detailed information about any Solana wallet address. View transaction history, token balances, and account activity.',
-      command: 'Show me information about a solana account'
-  },    
-  { 
+      description: 'Examine detailed information about any Solana wallet address.',
+      command: 'Show me information about a solana account',
+      isPro: false
+    },    
+    { 
       name: 'Search Latest Tokens', 
-      description: 'Discover newly launched tokens on the network. Filter results by category, market cap, and other important metrics.',
-      command: 'Search for tokens the recently launched tokens'
-  },
-  { 
+      description: 'Discover newly launched tokens on the network.',
+      command: 'Search for tokens the recently launched tokens',
+      isPro: true // Pro feature
+    },
+    { 
       name: 'Search Tokens', 
-      description: 'Search through the complete database of tokens. Find specific tokens and view their detailed information.',
-      command: 'Search for tokens'
-  },
-  { 
+      description: 'Search through the complete database of tokens.',
+      command: 'Search for tokens',
+      isPro: false
+    },
+    { 
       name: 'Get Top Token Holders', 
-      description: 'Identify the largest holders of any specific token on Solana. Analyze wallet distributions and holder concentrations.',
-      command: 'Show me the top token holders'
-  },
-  { 
+      description: 'Identify the largest holders of any specific token.',
+      command: 'Show me the top token holders',
+      isPro: false
+    },
+    { 
       name: 'Get Market Movers', 
-      description: 'Track the biggest price movers in the market over the last 24 hours. Monitor top gainers and losers across all tokens.',
-      command: 'Show me the top market movers today'
-  },    
-  { 
+      description: 'Track the biggest price movers in the market.',
+      command: 'Show me the top market movers today',
+      isPro: false
+    },    
+    { 
       name: 'Get Total Crypto Market Cap', 
-      description: 'View the total market capitalization of all cryptocurrencies. Track the overall size and growth of the crypto market.',
-      command: 'Show me the total crypto market cap'
-  },
-  { 
+      description: 'View the total market capitalization of all cryptocurrencies.',
+      command: 'Show me the total crypto market cap',
+      isPro: false
+    },
+    { 
       name: 'Get Market Categories', 
-      description: 'Explore different categories of tokens and their market performance. Compare trends and activity across various token sectors.',
-      command: 'Show me the market categories'
-  },
-  { 
+      description: 'Explore different categories of tokens and their performance.',
+      command: 'Show me the market categories',
+      isPro: false
+    },
+    { 
       name: 'Get Derivatives Exchanges', 
-      description: 'View comprehensive data about cryptocurrency derivatives exchanges. Compare trading volumes, open interest, and exchange metrics.',
-      command: 'Show me derivatives exchanges'
-  },
-  { 
+      description: 'View comprehensive data about cryptocurrency derivatives exchanges.',
+      command: 'Show me derivatives exchanges',
+      isPro: false
+    },
+    { 
       name: 'Fear & Greed Index', 
-      description: 'Check the current market sentiment using the Fear and Greed Index. Understand market psychology and investor emotions.',
-      command: 'What is the current fear and greed index?'
-  }
+      description: 'Check the current market sentiment using the Fear and Greed Index.',
+      command: 'What is the current fear and greed index?',
+      isPro: false
+    }
   ];
+  
 
   const handleToolClick = (tool: Tool) => {
     onToolSelect(tool.command);
@@ -276,7 +354,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
           // sum the total value of all tokens usdValue
           const tv = portfolio.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
           setTotalValue(tv)
-          console.log("here", portfolio)
           setPortfolio(portfolio);
         })
         .catch((error) => console.error('Error fetching portfolio:', error));
@@ -339,8 +416,11 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="text-sm text-white truncate">
                       {agent.wallets?.solana || 
-                                            <div className="text-sm text-zinc-500">
-                                            Configure wallet to view address
+                                            <div className="text-sm text-zinc-500 mt-2">
+                                              <div>
+                                            <div>No agent wallet found</div>
+                                            <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create agent wallet</Link>
+                                            </div>
                                           </div>
                       }
                     </div>
@@ -439,26 +519,18 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                         </div>
                       </div>
                     ))
-                  ) : (
-                    <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700">
-                      <div className="text-sm text-zinc-500">
-                        Configure wallet to view tokens
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             ) : (
               <div className="p-4 space-y-2">
                 {tools.map((tool) => (
-                  <div 
+                  <ToolCard
                     key={tool.name}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
                     onClick={() => handleToolClick(tool)}
-                    className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer group"
-                  >
-                    <div className="font-medium text-white group-hover:text-white/90">{tool.name}</div>
-                    <div className="text-sm text-zinc-400 group-hover:text-zinc-300">{tool.description}</div>
-                  </div>
+                  />
                 ))}
               </div>
             )}

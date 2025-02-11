@@ -12,54 +12,85 @@ export default function DocumentUpload() {
 
   const handleTextSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!text.trim()) return;
+
+    const preview = text.length > 150 
+      ? `${text.slice(0, 150).trim()}...` 
+      : text.trim();    
+  
+    setLoading2(true);
     try {
       const accessToken = await getAccessToken();
       const response = await fetch('/api/upload', {
-        method: 'POST',
+        method: 'POST',      
         headers: { 
-          'Content-Type': 'application/json' ,
+          'Content-Type': 'application/json', 
           'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           text,
           type: 'text',
-          source: 'manual-input'
+          source: `text-input | ${preview}`,
+          agentId: agentId || params?.agentId,
         }),
       });
-
+  
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       
-      setMessage(`Success! Processed ${data.chunks} chunks of text.`);
-      setText('');
+      setMessage('Text content queued for processing. This may take a few minutes.');
+      toast.success('Text added to processing queue');
+      setText(''); // Clear the input on success
+      refreshKnowledge(); // Refresh the knowledge list
     } catch (error: any) {
+      console.error('Text processing error:', error);
       setMessage(`Error: ${error.message}`);
+      toast.error('Failed to process text');
     } finally {
-      setLoading(false);
+      setLoading2(false);
+      scrollToTop();
     }
   };
 
   const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!url.trim()) return;
+  
+    setLoading3(true);
     try {
       const accessToken = await getAccessToken();
       const response = await fetch('/api/scrape', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
-        body: JSON.stringify({ url }),
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${accessToken}` 
+        },
+        body: JSON.stringify({ 
+          url,
+          agentId: agentId || params?.agentId,
+          metadata: {
+            type: 'url',
+            timestamp: new Date().toISOString(),
+            source: url
+          }
+        }),
       });
-
+  
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       
-      setMessage('URL processed successfully');
-      setUrl('');
+      setMessage('URL queued for processing. This may take a few minutes.');
+      toast.success('URL added to processing queue');
+      setUrl(''); // Clear the input on success
+      refreshKnowledge(); // Refresh the knowledge list
+      
     } catch (error: any) {
+      console.error('URL processing error:', error);
       setMessage(`Error: ${error.message}`);
+      toast.error('Failed to process URL');
     } finally {
-      setLoading(false);
+      scrollToTop();
+      setLoading3(false);
     }
   };
 

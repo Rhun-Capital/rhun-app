@@ -1,17 +1,19 @@
 // app/settings/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { AlertCircleIcon } from "@/components/icons";
-import {useMfaEnrollment} from '@privy-io/react-auth';
+import { useMfaEnrollment } from '@privy-io/react-auth';
 import CopyButton from "@/components/copy-button";
-import SubscriptionManagement  from "@/components/manage-subscription";
+import SubscriptionManagement from "@/components/manage-subscription";
+import { useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
   const { user, logout, authenticated } = usePrivy();
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
+  const searchParams = useSearchParams();
 
   // Theme preference (you can expand this)
   const [darkMode, setDarkMode] = useState(true);
@@ -23,14 +25,24 @@ export default function SettingsPage() {
     marketing: false
   });
 
+  useEffect(() => {
+    // Check for requiresSub query parameter
+    const requiresSub = searchParams.get('requiresSub');
+    
+    if (requiresSub === 'true') {
+      setShowSubscriptionBanner(true);
+      
+      // Remove the query parameter from the URL
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('requiresSub');
+      window.history.replaceState({}, '', currentUrl.toString());
+    }
+  }, [searchParams]);
+
   function MfaEnrollmentButton() {
     const {showMfaEnrollmentModal} = useMfaEnrollment();
     return <button className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition" onClick={showMfaEnrollmentModal}>Enroll in MFA</button>;
   }  
-
-const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-};
 
   const handleLogout = async () => {
     setLoading(true);
@@ -59,7 +71,16 @@ const copyToClipboard = (text: string) => {
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Settings</h1>
+        {showSubscriptionBanner && (
+          <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg mb-6">
+            <div className="flex items-center gap-2">
+              <AlertCircleIcon />
+              <p>A subscription is required to access this feature. Start your subscription below.</p>
+            </div>
+          </div>
+        )}
+
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Account</h1>
 
         <div className="space-y-6 sm:space-y-8">
           {/* Profile Section */}
@@ -86,31 +107,31 @@ const copyToClipboard = (text: string) => {
 
           {/* Subscriptions */}
           <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Subscription</h2>
-          <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">            
-            <SubscriptionManagement  userId={user?.id || ''}/>
-          </div>
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Subscription</h2>
+            <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">            
+              <SubscriptionManagement userId={user?.id || ''}/>
+            </div>
           </section>
 
           {/* Connected Wallets */}
           <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Connected Wallets</h2>
-          <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">
-            {user?.wallet?.address ? (
-              <div>
-                <label className="block text-xs sm:text-sm text-zinc-400 mb-1 sm:mb-2">Primary Wallet</label>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <div className="min-w-0">
-                    <pre className="text-xs sm:text-sm break-all overflow-x-auto">{user.wallet.address}</pre>
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Connected Wallets</h2>
+            <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">
+              {user?.wallet?.address ? (
+                <div>
+                  <label className="block text-xs sm:text-sm text-zinc-400 mb-1 sm:mb-2">Primary Wallet</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="min-w-0">
+                      <pre className="text-xs sm:text-sm break-all overflow-x-auto">{user.wallet.address}</pre>
+                    </div>
+                    <CopyButton text={user.wallet.address}/>
                   </div>
-                  <CopyButton text={user.wallet.address}/>
                 </div>
-              </div>
-            ) : (
-              <p className="text-sm sm:text-base text-zinc-400">No wallets connected</p>
-            )}
-          </div>
-        </section>
+              ) : (
+                <p className="text-sm sm:text-base text-zinc-400">No wallets connected</p>
+              )}
+            </div>
+          </section>
 
           {/* Security Settings */}
           <section>

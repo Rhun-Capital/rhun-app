@@ -1,6 +1,7 @@
+// app/api/upload/route.ts
 import { NextResponse } from "next/server";
-import { initPinecone, createEmbedding, chunkText } from "@/utils/embeddings";
 import { isRateLimited } from '@/utils/rate-limiter';
+import { sendToTextQueue } from '@/utils/sqs';
 
 export async function POST(req: Request) {
   try {
@@ -22,38 +23,24 @@ export async function POST(req: Request) {
       );
     }
 
-    // Initialize Pinecone
-    const pinecone = initPinecone();
-    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-
-    // Split text into chunks
-    const chunks = chunkText(text);
-
-    // Create embeddings for each chunk
-    const vectors = await Promise.all(
-      chunks.map(async (chunk, i) => {
-        const embedding = await createEmbedding(chunk);
-        return {
-          id: `${Date.now()}-${i}`,
-          values: embedding,
-          metadata: {
-            text: chunk,
-            source: source || "unknown",
-            type: type || "text",
-            timestamp: new Date().toISOString(),
-            agentId
-          },
-        };
-      })
-    );
-
-    // Upload to Pinecone
-    await index.upsert(vectors);
+    // Queue text for processing
+    await sendToTextQueue({
+      text,
+      source: source || "unknown",
+      type: type || "text",
+      agentId,
+      metadata: {
+        type: type || "text",
+        timestamp: new Date().toISOString(),
+        source: source || "unknown"
+      }
+    });
 
     return NextResponse.json({
-      message: "Content processed and stored successfully",
-      chunks: chunks.length,
+      message: "Text content queued for processing",
+      status: "processing"
     });
+
   } catch (error: any) {
     console.error("Error processing content:", error);
     return NextResponse.json(

@@ -20,42 +20,42 @@ const client = new DynamoDBClient({
 
 const dynamodb = DynamoDBDocumentClient.from(client);
 
-async function verifyNFTOwnership(userId: string): Promise<boolean> {
-  try {
-    const result = await dynamodb.send(new GetCommand({
-      TableName: 'NFTOrders',
-      Key: { userId }
-    }));
-    return !!result.Item?.isVerified;
-  } catch (error) {
-    console.error('DynamoDB error:', error);
-    return false;
-  }
-}
+// async function verifyNFTOwnership(userId: string): Promise<boolean> {
+//   try {
+//     const result = await dynamodb.send(new GetCommand({
+//       TableName: 'NFTOrders',
+//       Key: { userId }
+//     }));
+//     return !!result.Item?.isVerified;
+//   } catch (error) {
+//     console.error('DynamoDB error:', error);
+//     return false;
+//   }
+// }
 
-async function verifyAccessToken(token: string): Promise<boolean> {
-  try {
-    const result = await dynamodb.send(new GetCommand({
-      TableName: 'EarlyAccess',
-      Key: { Access_key: token }
-    }));
-    return !!result.Item;
-  } catch (error) {
-    console.error('DynamoDB error:', error);
-    return false;
-  }
-}
+// async function verifyAccessToken(token: string): Promise<boolean> {
+//   try {
+//     const result = await dynamodb.send(new GetCommand({
+//       TableName: 'EarlyAccess',
+//       Key: { Access_key: token }
+//     }));
+//     return !!result.Item;
+//   } catch (error) {
+//     console.error('DynamoDB error:', error);
+//     return false;
+//   }
+// }
 
 export async function GET(request: Request) {
   try {
     const cookieStore = cookies();
     const privyToken = cookieStore.get('privy-token')?.value;
-    const accessToken = cookieStore.get('rhun_early_access_token')?.value;
+    // const accessToken = cookieStore.get('rhun_early_access_token')?.value;
 
     // Check early access token first
-    if (accessToken && await verifyAccessToken(accessToken)) {
-      return NextResponse.json({ authorized: true });
-    }
+    // if (accessToken && await verifyAccessToken(accessToken)) {
+    //   return NextResponse.json({ authorized: true });
+    // }
 
     // Verify Privy token and NFT ownership
     if (!privyToken) {
@@ -67,10 +67,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const hasNFT = await verifyNFTOwnership(user.userId);
-    if (!hasNFT) {
-      return NextResponse.json({ error: 'No NFT ownership' }, { status: 403 });
-    }
+    // const hasNFT = await verifyNFTOwnership(user.userId);
+    // if (!hasNFT) {
+    //   return NextResponse.json({ error: 'No NFT ownership' }, { status: 403 });
+    // }
 
     return NextResponse.json({ authorized: true });
   } catch (error) {

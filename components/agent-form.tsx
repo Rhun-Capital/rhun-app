@@ -5,6 +5,8 @@ import KnowledgeTab from "./knowledge-tab";
 import WalletTab from "./wallet-tab";
 import AppMarketplaceTab from "./app-marketplace-tab";
 import { AlertCircleIcon, CloseIcon, ChatIcon } from "./icons";
+import { AlertCircle } from 'lucide-react';
+
 import { usePrivy } from "@privy-io/react-auth";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -14,6 +16,8 @@ import Accordion from "./accordion";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import DeleteConfirmationModal from './delete-confirmation-modal';
+import { useSubscription } from '@/hooks/use-subscription';
+
 
 interface InitialData {
   id: string;
@@ -49,6 +53,8 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [selectedModelValue, setSelectedModelValue] = useState('option1');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
+
 
   const topRef = useRef<HTMLDivElement>(null);
   const { user, getAccessToken } = usePrivy();
@@ -406,6 +412,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   };
 
   const handleUseTemplate = async () => {
+
+    if (!isSubscribed) {
+      router.push('/account?requiresSub=true');
+      return;
+    }
+    
+    
     setLoading(true);
     setError("");
     setSuccess(false);
@@ -492,6 +505,24 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             )}
           </div>
         </div>
+
+        {!isSubscribed && !subscriptionLoading && !initialData && (
+          <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-zinc-300">
+              You need an active subscription to create custom agents. You can still view and edit template agents.
+            </p>
+          </div>
+        )}
+
+        {!isSubscribed && !subscriptionLoading && params.userId === "template" && (
+          <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-zinc-300">
+              You need an active subscription to chat with this agent or use it as a template.
+            </p>
+          </div>
+        )}        
   
         {/* Tabs */}
         <div className="mb-6 overflow-x-auto">
@@ -518,14 +549,14 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             {error && (
               <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2 text-sm sm:text-base">
                 <AlertCircleIcon />
-                <p className="text-red-500">{error}</p>
+                <p className="text-sm text-red-500">{error}</p>
               </div>
             )}
   
             {success && (
               <div className="mb-6 p-4 bg-green-900/50 border border-green-500 rounded-lg">
                 <div className="flex items-center">
-                  <p className="text-white flex-1 text-sm sm:text-base">
+                  <p className="text-sm text-white flex-1 text-sm sm:text-base">
                     Agent {initialData && !created && !createdFromTemplate ? "updated" : "created"} {createdFromTemplate ? 'from template' : ''} successfully!
                   </p>
                   <button onClick={() => setSuccess(false)}>

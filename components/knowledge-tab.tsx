@@ -2,9 +2,11 @@
 
 import { useState, useRef } from 'react';
 import { KnowledgeList } from './knowledge-list';
-import { AlertCircleIcon, CloseIcon } from './icons';
+import { CloseIcon } from './icons';
+import { AlertCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
+import { toast } from "sonner";
 
 export default function KnowledgeTab({ agentId }: { agentId: string }) {
   const { getAccessToken } = usePrivy();
@@ -30,28 +32,46 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     e.preventDefault();
     if (!text.trim()) return;
 
+    const preview = text.length > 150 
+      ? `${text.slice(0, 150).trim()}...` 
+      : text.trim();    
+  
     setLoading2(true);
     try {
+      toast.promise(
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+        {
+          loading: 'Processing text',
+          success: 'Text added to processing queue',
+          error: 'Failed to process text',
+        }
+      );
       const accessToken = await getAccessToken();
       const response = await fetch('/api/upload', {
         method: 'POST',      
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}`},
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${accessToken}`
+        },
         body: JSON.stringify({
           text,
           type: 'text',
-          source: 'manual-input',
+          source: `text-input | ${preview}`,
           agentId: agentId || params?.agentId,
         }),
       });
-
+  
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       
-      setMessage(`Success! Added to agent's knowledge base.`);
+      setMessage('Text content queued for processing. This may take up to 15 minutes.');
+      toast.success('Text added to processing queue');
       setText(''); // Clear the input on success
       refreshKnowledge(); // Refresh the knowledge list
     } catch (error: any) {
+      console.error('Text processing error:', error);
       setMessage(`Error: ${error.message}`);
+      toast.error('Failed to process text');
     } finally {
       setLoading2(false);
       scrollToTop();
@@ -61,33 +81,57 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
   const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
-
+  
     setLoading3(true);
     try {
+      toast.promise(
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+        {
+          loading: 'Processing URL',
+          success: 'URL added to processing queue',
+          error: 'Failed to process URL',
+        }
+      );
       const accessToken = await getAccessToken();
       const response = await fetch('/api/scrape', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${accessToken}` 
+        },
         body: JSON.stringify({ 
           url,
+          agentId: agentId || params?.agentId,
           metadata: {
-            agentId: agentId || params?.agentId,
-            type: 'url'
+            type: 'url',
+            timestamp: new Date().toISOString(),
+            source: url
           }
         }),
       });
-
+  
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       
-      setMessage('URL processed and added to knowledge base');
+      setMessage('URL queued for processing. This may take up to 15 minutes.');
+      toast.success('URL added to processing queue');
       setUrl(''); // Clear the input on success
       refreshKnowledge(); // Refresh the knowledge list
+      
     } catch (error: any) {
+      console.error('URL processing error:', error);
       setMessage(`Error: ${error.message}`);
+      toast.error('Failed to process URL');
     } finally {
       scrollToTop();
-      setLoading3(false);
+      toast.promise(
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+        {
+          loading: 'File uploading',
+          success: 'File uploaded starting queue processing',
+          error: 'Failed to upload file',
+        }
+      );
     }
   };
 
@@ -99,8 +143,16 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('agentId', agentId);
-
+  
     try {
+      toast.promise(
+        new Promise((resolve) => setTimeout(resolve, 4000)),
+        {
+          loading: 'File uploading',
+          success: 'File uploaded and queued for processing',
+          error: 'Failed to upload file',
+        }
+      );
       const accessToken = await getAccessToken()
       const response = await fetch('/api/upload/file', {
         headers: { 'Authorization': `Bearer ${accessToken}` },
@@ -109,17 +161,15 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       });
   
       const data = await response.json();
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error('Error response body:', errorBody);
-        throw new Error(data.error || 'Upload failed');
-      }
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
       
-      setMessage(`File "${file.name}" processed and added to knowledge base`);
-      refreshKnowledge(); // Refresh the knowledge list
+      setMessage(`File "${file.name}" uploaded and queued for processing. This may take up to 15 minutes.`);
+      toast.success('File uploaded and queued for processing');
+      refreshKnowledge();
+      
     } catch (error: any) {
-      console.error('Full error:', error);
-      setMessage(`Error: ${error.message}`);
+      console.error('Upload error:', error);
+      setMessage(`Error: ${error.message || 'Failed to upload file'}`);
     } finally {
       setLoading(false);
       e.target.value = '';
@@ -153,8 +203,8 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
         }`}>
           <div className="flex-1">
             <div className="flex align-center gap-2">
-              {message.includes('Error') && <div className="mt-1"><AlertCircleIcon  /></div>}
-              <p className="text-white">
+              {message.includes('Error') && <div className="mt-1"><AlertCircle  /></div>}
+              <p className="text-white text-sm ">
                 {message}
               </p>
             </div>
@@ -175,7 +225,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
           <input
             type="file"
             onChange={handleFileUpload}
-            accept=".pdf,.doc,.docx,.txt"
+            accept=".pdf,.doc,.docx,.txt,.csv"
             disabled={loading}
             className="block w-full text-sm text-zinc-400
               file:mr-4 file:py-2 file:px-4
@@ -186,7 +236,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
               disabled:opacity-50"
           />
           <p className="text-xs text-zinc-500">
-            Supported formats: PDF, Word documents, Text files
+            Supported formats: PDF, CSV, Word documents, Text files
           </p>
         </div>
       </div>
