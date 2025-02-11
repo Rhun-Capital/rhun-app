@@ -4,7 +4,7 @@ import { CheckoutButton } from "@/components/checkout-button";
 import {createCustomerPortalSession} from "@/utils/subscriptions";
 import LoadingIndicator from "@/components/loading-indicator";
 import RhunCheckout from "@/components/rhun-checkout";
-import { CreditCard, Coins } from 'lucide-react';
+import { CreditCard, Coins, Clock, ArrowLeftRight, DollarSign } from 'lucide-react';
 
 
 // Subscription type based on previous DynamoDB schema
@@ -24,12 +24,27 @@ interface Subscription {
   intervalCount?: number;
 }
 
+interface TokenSubscription {
+  userId: string;
+  blockTime: number;
+  fee: number;
+  parsedInstructions: string;
+  programIds: string;
+  signer: string;
+  slot: number;
+  status: string;
+  time: string;
+  txHash: string;
+  calculatedTokenAmount: number;
+}
+
 interface SubscriptionManagementProps {
   userId: string;
 }
 
 export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ userId }) => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [tokenSubscription, setTokenSubscription] = useState<TokenSubscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -37,25 +52,35 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
 
   // Fetch subscription details
   useEffect(() => {
-    const fetchSubscription = async () => {
+    const fetchSubscriptions = async () => {
       try {
         setIsLoading(true);
         const accessToken = await getAccessToken();
-        const response = await fetch(`/api/subscriptions/${userId}`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`
-            }
-        });
-
-        console.log(response)
         
-        if (!response.ok) {
-            setSubscription(null);
-            return
+        // Fetch Stripe subscription
+        const stripeResponse = await fetch(`/api/subscriptions/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+        
+        if (stripeResponse.ok) {
+          const stripeData = await stripeResponse.json();
+          setSubscription(stripeData);
         }
         
-        const data = await response.json();
-        setSubscription(data);
+        // Fetch Token subscription
+        const tokenResponse = await fetch(`/api/subscriptions/${userId}/token-subscription`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        });
+        
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          console.log('Token subscription:', tokenData);
+          setTokenSubscription(tokenData);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
@@ -63,7 +88,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
       }
     };
 
-    fetchSubscription();
+    fetchSubscriptions();
   }, [userId]);
 
   const handleManageSubscription = async () => {
@@ -100,6 +125,17 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
       day: 'numeric'
     });
   };
+
+  const formatEndDate = (time: string) => {
+    // ends one year from transaction time
+    const endDate = new Date(time);
+    endDate.setFullYear(endDate.getFullYear() + 1);
+    return endDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
 
   const formatPlan = (planId: string) => {
     const planMap: { [key: string]: string } = {
@@ -167,67 +203,154 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
   }
 
   // Render no subscription state
-  if (!subscription) {
+  if (!subscription && !tokenSubscription) {
     return (
         CheckoutOptions()
     );
   }
 
   return (
-    <div className="w-full p-4 bg-zinc-800 rounded-lg space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl">Your Subscription</h2>
-        <span 
-          className={`px-4 py-1 rounded-full text-sm font-medium ${
-            subscription.status === 'active' ? 'bg-green-100 text-green-800' :
-            'bg-zinc-100 text-zinc-800'
-          }`}
-        >
-          {subscription.status.toUpperCase()}
-        </span>
-      </div>
-
-      <div className="border-t border-zinc-200 pt-4">
-        <div className="flex justify-between mb-2">
-          <span className="text-zinc-400">Plan</span>
-          <span className="font-medium">{subscription.planId ? formatPlan(subscription.planId) : 'N/A'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-zinc-400">Amount</span>
-          <span className="font-medium">
-            {formatCurrency(subscription.amount, subscription.currency)}{' '}
-            {subscription.interval && `/ ${subscription.interval}`}
+    <div>
+       {/* Stripe Subscription Section */}
+      {subscription && <div className="w-full p-4 bg-zinc-800 rounded-lg space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl">Your Subscription</h2>
+          <span 
+            className={`px-4 py-1 rounded-full text-sm font-medium ${
+              subscription.status === 'active' ? 'bg-green-100 text-green-800' :
+              'bg-zinc-100 text-zinc-800'
+            }`}
+          >
+            {subscription.status.toUpperCase()}
           </span>
         </div>
-      </div>
 
-      <div className="border-t border-gray-200 pt-4">
-        <div className="flex justify-between mb-2">
-          <span className="text-zinc-400">Current Period Starts</span>
-          <span className="font-medium">{formatDate(subscription.currentPeriodStart)}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-zinc-400">Current Period Ends</span>
-          <span className="font-medium">{formatDate(subscription.currentPeriodEnd)}</span>
+        <div className="border-t border-zinc-200 pt-4">
+          <div className="flex justify-between mb-2">
+            <span className="text-zinc-400">Plan</span>
+            <span className="font-medium">{subscription.planId ? formatPlan(subscription.planId) : 'N/A'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-400">Amount</span>
+            <span className="font-medium">
+              {formatCurrency(subscription.amount, subscription.currency)}{' '}
+              {subscription.interval && `/ ${subscription.interval}`}
+            </span>
+          </div>
         </div>
 
-        {subscription.cancelAtPeriodEnd && (
-            <div className="mt-2 text-red-400 text-sm">
-                Your subscription will be canceled at the end of the current period.
+        <div className="border-t border-gray-200 pt-4">
+          <div className="flex justify-between mb-2">
+            <span className="text-zinc-400">Current Period Starts</span>
+            <span className="font-medium">{formatDate(subscription.currentPeriodStart)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-400">Current Period Ends</span>
+            <span className="font-medium">{formatDate(subscription.currentPeriodEnd)}</span>
+          </div>
+
+          {subscription.cancelAtPeriodEnd && (
+              <div className="mt-2 text-red-400 text-sm">
+                  Your subscription will be canceled at the end of the current period.
+              </div>
+          )}
+        </div>
+
+        <div className="border-t text-zinc-400 pt-4 flex justify-between items-center">
+          <span className="text-zinc-400">Manage Subscription</span>
+          <button 
+            onClick={handleManageSubscription}
+            disabled={isProcessing}
+            className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50"
+          >
+            {isProcessing ? 'Loading...' : 'Manage Subscription'}
+          </button>
+        </div>
+
+      </div>}
+
+      {/* Token Subscription Section */}
+      {tokenSubscription && (
+        <div className="w-full p-4 bg-zinc-800 rounded-lg space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl">Rhun Token Subscription</h2>
+            <span 
+              className={`px-4 py-1 rounded-full text-sm font-medium ${
+                tokenSubscription.status === 'Success' ? 'bg-green-100 text-green-800' :
+                'bg-zinc-100 text-zinc-800'
+              }`}
+            >
+              {tokenSubscription.status}
+            </span>
+          </div>
+
+          <div className="border-t border-zinc-200 pt-4">
+            <div className="flex justify-between mb-2">
+              <span className="text-zinc-400 flex items-center">
+                <ArrowLeftRight className="w-4 h-4 mr-2 text-zinc-400" />
+                Transaction Hash
+              </span>
+              <span className="font-medium text-sm truncate max-w-[200px]">
+                <a className="text-indigo-400" href={`https://explorer.solana.com/tx/${tokenSubscription.txHash}`} target="_blank">{tokenSubscription.txHash}</a>
+              </span>
             </div>
-        )}
-      </div>
+            <div className="flex justify-between mb-2">
+              <span className="text-zinc-400 flex items-center">
+                <Clock className="w-4 h-4 mr-2 text-zinc-400" />
+                Subscription Starts
+              </span>
+              <span className="font-medium">
+                {formatDate(tokenSubscription.time)}
+              </span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span className="text-zinc-400 flex items-center">
+                <Clock className="w-4 h-4 mr-2 text-zinc-400" />
+                Subscription Ends
+              </span>
+              <span className="font-medium">
+                {formatEndDate(tokenSubscription.time)}
+              </span>
+            </div>            
+            <div className="flex justify-between mb-2">
+              <span className="text-zinc-400 flex items-center">
+                <Coins className="w-4 h-4 mr-2 text-zinc-400" />
+                Amount Paid
+              </span>
+              <span className="font-medium">
+                {(tokenSubscription.calculatedTokenAmount / Math.pow(10, 6)).toFixed(2)} RHUN
+              </span>
+            </div>            
+            <div className="flex justify-between">
+              <span className="text-zinc-400 flex items-center">
+                <DollarSign className="w-4 h-4 mr-2 text-zinc-400" />
+                Fee Paid
+              </span>
+              <span className="font-medium">
+                {(tokenSubscription.fee / 1000000).toFixed(2)} USDC
+              </span>
+            </div>
+          </div>
 
-      <div className="border-t text-zinc-400 pt-4 flex justify-between items-center">
-        <span className="text-zinc-400">Manage Subscription</span>
-        <button 
-          onClick={handleManageSubscription}
-          disabled={isProcessing}
-          className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50"
-        >
-          {isProcessing ? 'Loading...' : 'Manage Subscription'}
-        </button>
-      </div>
+          <div className="border-t border-zinc-200 pt-4">
+            <div className="flex justify-between mb-2">
+              <span className="text-zinc-400 flex items-center">
+                Slot
+              </span>
+              <span className="font-medium">{tokenSubscription.slot}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-400 flex items-center">
+                Block Time
+              </span>
+              <span className="font-medium">
+                {new Date(tokenSubscription.blockTime * 1000).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      
 
     </div>
   );

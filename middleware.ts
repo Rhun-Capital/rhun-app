@@ -19,99 +19,183 @@ const client = new DynamoDBClient({
 
 const dynamodb = DynamoDBDocumentClient.from(client);
 
-const PUBLIC_API_ROUTES = new Set([
-  '/api/clear-access',
+// Define public routes that don't require subscription
+const PUBLIC_ROUTES = new Set([
+  '/',
+  '/login',
+  '/account',
   '/api/auth/verify',
   '/api/auth/token',
-  '/api/auth/webhooks'
+  '/api/auth/webhooks',
+  '/api/subscriptions/create-checkout',
+  '/api/subscriptions/create-portal',
 ]);
 
-const PUBLIC_PAGE_ROUTES = new Set([
-  '/login'
+// Define routes that require active subscription
+const SUBSCRIPTION_REQUIRED_ROUTES = new Set([
+  '/watchers',
 ]);
 
-async function verifyNFTOwnership(userId: string): Promise<boolean> {
+// Default template agent that's accessible without subscription
+const DEFAULT_TEMPLATE_AGENT = 'cc425065-b039-48b0-be14-f8afa0704357';
+
+interface StripeSubscription {
+  status: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+}
+
+interface TokenSubscription {
+  blockTime: number;
+  status: string;
+  time: string;
+}
+
+async function checkStripeSubscription(userId: string): Promise<boolean> {
   try {
     const result = await dynamodb.send(new GetCommand({
-      TableName: 'NFTOrders',
+      TableName: 'Subscriptions',
       Key: { userId }
     }));
-    return !!result.Item && !!result.Item.isVerified;
+
+    if (!result.Item) return false;
+
+    const subscription = result.Item as StripeSubscription;
+    
+    // Check if subscription is active and not expired
+    const isActive = subscription.status === 'active';
+    const isExpired = new Date(subscription.currentPeriodEnd) < new Date();
+    const willCancel = subscription.cancelAtPeriodEnd;
+
+    return isActive && !isExpired && !willCancel;
   } catch (error) {
-    console.error('DynamoDB error:', error);
+    console.error('DynamoDB Stripe subscription error:', error);
     return false;
   }
 }
 
-async function verifyAccessToken(token: string): Promise<boolean> {
+async function checkTokenSubscription(userId: string): Promise<boolean> {
   try {
     const result = await dynamodb.send(new GetCommand({
-      TableName: 'EarlyAccess',
-      Key: { Access_key: token }
+      TableName: 'TokenSubscriptions',
+      Key: { userId }
     }));
-    return !!result.Item;
+
+    if (!result.Item) return false;
+
+    const subscription = result.Item as TokenSubscription;
+    
+    // Check if transaction was successful
+    if (subscription.status !== 'Success') return false;
+
+    // Calculate if the subscription is still valid (1 year from purchase)
+    const purchaseDate = new Date(subscription.blockTime * 1000); // Convert Unix timestamp to milliseconds
+    const expirationDate = new Date(purchaseDate.setFullYear(purchaseDate.getFullYear() + 1));
+    const isExpired = expirationDate < new Date();
+
+    return !isExpired;
   } catch (error) {
-    console.error('DynamoDB error:', error);
+    console.error('DynamoDB Token subscription error:', error);
     return false;
   }
+}
+
+async function hasActiveSubscription(userId: string): Promise<boolean> {
+  // Check both subscription types
+  const [hasStripeSubscription, hasTokenSubscription] = await Promise.all([
+    checkStripeSubscription(userId),
+    checkTokenSubscription(userId)
+  ]);
+
+  // Return true if either subscription is active
+  return hasStripeSubscription || hasTokenSubscription;
+}
+
+function isAgentRoute(pathname: string): boolean {
+  return pathname.startsWith('/agents/');
+}
+
+function parseAgentPath(pathname: string): { 
+  isTemplateAgent: boolean; 
+  agentId: string | null;
+  isEditPage: boolean;
+} {
+  const parts = pathname.split('/');
+  
+  // Handle template agent paths: /agents/template/<agentId>
+  if (parts[2] === 'template' && parts[3]) {
+    return {
+      isTemplateAgent: true,
+      agentId: parts[3],
+      isEditPage: parts[4] === 'edit'
+    };
+  }
+  
+  // Handle user agent paths: /agents/<userId>/<agentId>
+  if (parts[2] && parts[3]) {
+    return {
+      isTemplateAgent: false,
+      agentId: parts[3],
+      isEditPage: parts[4] === 'edit'
+    };
+  }
+
+  return {
+    isTemplateAgent: false,
+    agentId: null,
+    isEditPage: false
+  };
 }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Handle public routes first
-  if (pathname.startsWith('/api/') && PUBLIC_API_ROUTES.has(pathname)) {
-    return NextResponse.next();
-  }
-  if (PUBLIC_PAGE_ROUTES.has(pathname)) {
+  // Allow public routes
+  if (PUBLIC_ROUTES.has(pathname)) {
     return NextResponse.next();
   }
 
-  // Unified auth checking function
-  async function checkAuthorization() {
-
-    // Then check Privy token
-    const privyToken = request.cookies.get('privy-token')?.value;
-    if (!privyToken) {
-      return false;
-    }    
-
-    // Check early access token first
-    const accessToken = request.cookies.get('rhun_early_access_token')?.value;
-    if (accessToken && await verifyAccessToken(accessToken)) {
-      return true;
-    }
-
-    try {
-      const user = await privy.verifyAuthToken(privyToken);
-      if (!user?.userId) return false;
-      
-      // Check NFT ownership
-      return await verifyNFTOwnership(user.userId);
-    } catch (error) {
-      console.error('Auth verification error:', error);
-      return false;
-    }
+  // Verify Privy authentication
+  const privyToken = request.cookies.get('privy-token')?.value;
+  if (!privyToken) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
   try {
-    const isAuthorized = await checkAuthorization();
-    
-    if (!isAuthorized) {
-      // For API routes
-      if (pathname.startsWith('/api/')) {
-        return NextResponse.json(
-          { error: 'Unauthorized access' },
-          { status: 403 }
-        );
-      }
-      // For page routes
+    const user = await privy.verifyAuthToken(privyToken);
+    if (!user?.userId) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // if authorized and on /login, redirect to home
-    if (pathname === '/login') {
-      return NextResponse.redirect(new URL('/', request.url));
+    // Check if subscription is required
+    let requiresSubscription = SUBSCRIPTION_REQUIRED_ROUTES.has(pathname);
+
+    // Special handling for agent routes
+    if (isAgentRoute(pathname)) {
+      const { isTemplateAgent, agentId, isEditPage } = parseAgentPath(pathname);
+      
+      // Require subscription for:
+      // 1. Chatting with any template agent except the default one
+      // 2. All non-template agents
+      requiresSubscription = (!isEditPage && isTemplateAgent && agentId !== DEFAULT_TEMPLATE_AGENT) || 
+        (!isTemplateAgent);
+    }
+
+    // Check subscription if required
+    if (requiresSubscription) {
+      const isSubscribed = await hasActiveSubscription(user.userId);
+      
+      if (!isSubscribed) {
+        // For API routes
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json(
+            { error: 'Active subscription required' },
+            { status: 403 }
+          );
+        }
+        // For page routes, redirect to pricing
+        return NextResponse.redirect(new URL('/account?requiresSub=true', request.url));
+      }
     }
 
     return NextResponse.next();
@@ -127,7 +211,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/api/:path*',
-    '/(api(?!/auth/webhooks).*)',
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

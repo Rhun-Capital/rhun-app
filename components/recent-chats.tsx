@@ -10,6 +10,7 @@ interface Chat {
   agentName: string;
   lastMessage: string;
   lastUpdated: number;
+  isTemplate: boolean;
 }
 
 const formatTimeAgo = (timestamp: number) => {
@@ -90,7 +91,7 @@ export const RecentChatsPage = () => {
           <button
             key={chat.chatId}
             onClick={() => {
-              router.push(`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`)
+              router.push(`/agents/${chat.isTemplate ? 'template' : user?.id}/${chat.agentId}?chatId=${chat.chatId}`)
               router.refresh();
             }}
             className="w-full flex items-center gap-3 p-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-colors text-left group"

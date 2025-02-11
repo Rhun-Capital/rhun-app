@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { useSubscription } from '@/hooks/use-subscription';
 import { getAgents } from '@/utils/actions';
 import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
-import { EditIcon, FilterIcon } from 'lucide-react';
+import { EditIcon, FilterIcon, AlertCircle } from 'lucide-react';
 import LoadingIndicator from '@/components/loading-indicator';
 
 type AttributeMap = {
@@ -18,9 +19,62 @@ type AttributeMap = {
 
 type FilterType = 'all' | 'templates' | 'custom';
 
+function CreateAgentButton({ isSubscribed }: { isSubscribed: boolean }) {
+  if (!isSubscribed) {
+    return (
+      <Link 
+        href="/account?requiresSub=true"
+        className="flex items-center gap-2 px-4 py-2 bg-zinc-700 text-zinc-300 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start group hover:bg-zinc-600"
+      >
+        <span className="whitespace-nowrap">Create New Agent</span>
+        <AlertCircle className="w-4 h-4 text-zinc-400 group-hover:text-zinc-300" />
+      </Link>
+    );
+  }
+
+  return (
+    <Link 
+      href="/agents/create"
+      className="flex items-center gap-2 px-4 py-2 bg-indigo-500 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start hover:bg-indigo-600"
+    >
+      <span className="whitespace-nowrap">Create New Agent</span>
+      <PlusIcon />
+    </Link>
+  );
+}
+
+function CreateAgentCard({ isSubscribed }: { isSubscribed: boolean }) {
+  const cardContent = (
+    <div className="h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-zinc-700 border-dashed
+                  transition-all duration-200 ease-in-out
+                  flex flex-col items-center justify-center gap-3 sm:gap-4 text-zinc-400">
+      <span className="text-xs sm:text-sm font-medium text-center">Create Agent</span>
+      <PlusIcon />
+    </div>
+  );
+
+  if (!isSubscribed) {
+    return (
+      <Link href="/account?requiresSub=true" className="group block">
+        <div className="hover:opacity-80 transition-opacity">
+          {cardContent}
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <Link href="/agents/create" className="group block">
+      <div className="hover:border-indigo-500 hover:border-solid hover:text-indigo-400">
+        {cardContent}
+      </div>
+    </Link>
+  );
+}
 
 export default function AgentsPage() {
   const { user, getAccessToken } = usePrivy();
+  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
   const [agents, setAgents] = useState<AttributeMap[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -54,8 +108,6 @@ export default function AgentsPage() {
 
         // Combine and sort agents
         const allAgents = [...formattedTemplateData, ...userAgents].sort((a, b) => {
-          
-          // Sort by updatedAt (most recent first)
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
         });
 
@@ -103,18 +155,18 @@ export default function AgentsPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold">My Agents</h1>
-          {user && (
-            <Link 
-              href="/agents/create"
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-500 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start"
-            >
-              <span className="whitespace-nowrap">Create New Agent</span>
-              <PlusIcon />
-            </Link>
-          )}
+          {user && <CreateAgentButton isSubscribed={isSubscribed} />}
         </div>
 
-        {/* Filter Controls */}
+        {!isSubscribed && !subscriptionLoading && (
+          <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-zinc-300">
+              You need an active subscription to create custom agents. You can still use the Rhun Capital agent view template agents.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-4 mb-6 flex-col sm:flex-row">
           <button
             onClick={() => setActiveFilter('all')}
@@ -151,49 +203,37 @@ export default function AgentsPage() {
         {loading ? <LoadingIndicator/> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {user && activeFilter !== 'templates' && (
-            <Link 
-            href="/agents/create"
-            className="group block"
-          >
-            <div className="h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-zinc-700 border-dashed
-                          transition-all duration-200 ease-in-out
-                          hover:border-indigo-500 hover:border-solid
-                          flex flex-col items-center justify-center gap-3 sm:gap-4 text-zinc-400
-                          hover:text-indigo-400">
-              <span className="text-xs sm:text-sm font-medium text-center">Create Agent</span>
-              <PlusIcon />              
-            </div>
-          </Link>
+              <CreateAgentCard isSubscribed={isSubscribed} />
             )}
                 
             {filteredAgents.map((agent) => (
               <div key={agent.id} className="group relative">
                 <Link href={user && !agent.isTemplate ? `/agents/${user.id}/${agent.id}` : `/agents/template/${agent.id}`} passHref={true}>
-                <div className={`h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-transparent transition-all duration-200 ease-in-out sm:hover:shadow-lg sm:hover:border-indigo-400`}>
-                <div className="flex flex-col h-full items-center justify-center">
-                  {agent.imageUrl ? (
-                    <img 
-                      src={agent.imageUrl} 
-                      alt={agent.name}
-                      className="w-16 h-16 rounded-full object-cover mb-3"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-zinc-700 flex items-center justify-center mb-3">
-                      <span className="text-2xl text-zinc-400">
-                        {agent.name.charAt(0).toUpperCase()}
-                      </span>
+                  <div className={`h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-transparent transition-all duration-200 ease-in-out sm:hover:shadow-lg sm:hover:border-indigo-400`}>
+                    <div className="flex flex-col h-full items-center justify-center">
+                      {agent.imageUrl ? (
+                        <img 
+                          src={agent.imageUrl} 
+                          alt={agent.name}
+                          className="w-16 h-16 rounded-full object-cover mb-3"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-zinc-700 flex items-center justify-center mb-3">
+                          <span className="text-2xl text-zinc-400">
+                            {agent.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <h2 className="text-lg sm:text-xl font-semibold group-hover:text-indigo-400 transition-colors text-center">
+                        {agent.name}
+                      </h2>
+                      {agent.isTemplate && (
+                        <span className="mt-2 px-2 py-1 bg-indigo-900 rounded text-xs text-indigo-200">
+                          Template
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <h2 className="text-lg sm:text-xl font-semibold group-hover:text-indigo-400 transition-colors text-center">
-                    {agent.name}
-                  </h2>
-                  {agent.isTemplate && (
-                    <span className="mt-2 px-2 py-1 bg-indigo-900 rounded text-xs text-indigo-200">
-                      Template
-                    </span>
-                  )}
-                </div>
-              </div>
+                  </div>
                 </Link>
                 {user && (
                   <Link 

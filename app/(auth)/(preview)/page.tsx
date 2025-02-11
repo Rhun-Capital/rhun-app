@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from "sonner";
 import {useRouter} from 'next/navigation';
-import { MessageSquare, BookOpenIcon, BotIcon, LayoutGrid, SettingsIcon } from 'lucide-react';
+import { MessageSquare, BookOpenIcon, BotIcon, LayoutGrid, CircleUser } from 'lucide-react';
 
 export default function HomePage() {
   const { user, ready } = usePrivy();
@@ -29,11 +29,11 @@ export default function HomePage() {
       color: 'text-indigo-500',
     },
     {
-      title: 'Settings',
-      description: 'Configure your account settings and manage your preferences.',
-      icon: SettingsIcon,
-      link: '/settings',
-      linkText: 'View Settings',
+      title: 'Account',
+      description: 'Configure your account settings and manage your billing.',
+      icon: CircleUser,
+      link: '/account',
+      linkText: 'View Account',
       color: 'text-purple-500',
     },
   ];

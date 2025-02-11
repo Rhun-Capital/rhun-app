@@ -1,6 +1,7 @@
-// app/api/token-subscription/route.ts
+// app/api/subscription/token-subscription/route.ts
 import { NextResponse } from 'next/server';
-import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, PutItemCommand, QueryCommand, QueryCommandInput } from '@aws-sdk/client-dynamodb';
+import { unmarshall } from '@aws-sdk/util-dynamodb';
 
 // Create a DynamoDB client.
 // Ensure your AWS_REGION and credentials are configured in your environment.
@@ -22,6 +23,52 @@ interface ConfirmedTx {
   parsed_instructions: any[];
   program_ids: string[];
   time: string; // ISO string (or any string representation of the time)
+  calculatedTokenAmount: number;
+}
+
+export async function GET(request: Request, { params }: { params: { userId: string } }) {
+  try {
+    const { userId } = params;
+
+    // Prepare the DynamoDB query parameters
+    const queryParams: QueryCommandInput = {
+      TableName: 'TokenSubscriptions',
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': { S: userId }
+      },
+      // Optional: limit to the most recent subscription if needed
+      Limit: 1,
+      // Sort in descending order to get the most recent subscription first
+      ScanIndexForward: false
+    };
+
+    // Execute the query
+    const command = new QueryCommand(queryParams);
+    const response = await client.send(command);
+
+    // If no items found, return null
+    if (!response.Items || response.Items.length === 0) {
+      return NextResponse.json(null);
+    }
+
+    // Unmarshall the DynamoDB item to a more readable format
+    const tokenSubscription = unmarshall(response.Items[0]);
+
+    // Parse stringified JSON fields
+    return NextResponse.json({
+      ...tokenSubscription,
+      signer: JSON.parse(tokenSubscription.signer),
+      parsedInstructions: JSON.parse(tokenSubscription.parsedInstructions),
+      programIds: JSON.parse(tokenSubscription.programIds)
+    });
+  } catch (error: any) {
+    console.error('Error retrieving token subscription:', error);
+    return NextResponse.json(
+      { error: error.message || 'Internal Server Error' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request, { params }: { params: { userId: string } }) {
@@ -51,6 +98,7 @@ export async function POST(request: Request, { params }: { params: { userId: str
         parsedInstructions: { S: JSON.stringify(confirmedTx.parsed_instructions) },
         programIds: { S: JSON.stringify(confirmedTx.program_ids) },
         time: { S: confirmedTx.time },
+        calculatedTokenAmount: { N: confirmedTx.calculatedTokenAmount.toString() }
       },
     };
 
@@ -66,3 +114,4 @@ export async function POST(request: Request, { params }: { params: { userId: str
     );
   }
 }
+

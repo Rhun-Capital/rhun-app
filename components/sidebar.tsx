@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { MenuIcon, CloseIcon} from './icons';
-import {HomeIcon, EyeIcon, SettingsIcon, ChartArea, BotIcon, LayoutGrid } from 'lucide-react';
+import {HomeIcon, EyeIcon, CircleUser, ChartArea, BotIcon, LayoutGrid, BookIcon } from 'lucide-react';
 import Link from 'next/link';
 import { getAccessToken, usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
@@ -21,9 +21,9 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
     ...(authenticated ? [
       { name: 'Agents', href: '/agents', icon: BotIcon },
       { name: 'Watchers', href: '/watchers', icon: EyeIcon },
-      { name: 'Portfolio', href: '/portfolio', icon: ChartArea },
+      // { name: 'Portfolio', href: '/portfolio', icon: ChartArea },
       { name: 'Apps', href: '/marketplace', icon: LayoutGrid },
-      { name: 'Settings', href: '/settings', icon: SettingsIcon },
+      { name: 'Account', href: '/account', icon: CircleUser },
     ] : []),
   ];
 
@@ -95,7 +95,24 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
 
           {authenticated && <RecentChats />}
         </nav>
-          
+
+        <div className="ml-4 w-[89%]">
+            <Link 
+              href="https://rhun-capital.gitbook.io/"
+              target="_blank"
+              className='flex items-center p-2 rounded transition-colors hover:bg-zinc-800'
+            >
+              <div className="flex gap-3 items-center">
+              <div className="text-zinc-400"> 
+                <BookIcon className="h-5 w-5"/>
+              </div>                  
+              <div className="text-white">Documentation</div>
+              </div>
+              
+              </Link>
+          </div>
+
+
        {pathname !== '/login' && <div className="p-4">
           {authenticated ? (
             <button 
@@ -114,14 +131,8 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
           )}
         </div> }
 
-        {/* {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
-        <button onClick={() => clearCookies()}>
-          Clear Cookies
-        </button>
-      )} */}
 
       </div>
-
 
 
       {/* Overlay */}

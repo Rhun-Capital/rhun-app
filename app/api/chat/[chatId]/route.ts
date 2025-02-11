@@ -76,7 +76,8 @@ export async function POST(request: Request) {
       lastMessage, 
       lastUpdated, 
       chatId,
-      attachments 
+      attachments,
+      isTemplate
     } = await request.json();
 
     if (!userId) {
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
         userId,
         agentId,
         agentName,
+        isTemplate,
         lastMessage,
         lastUpdated,
         createdAt: new Date().toISOString(),

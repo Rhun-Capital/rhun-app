@@ -27,7 +27,8 @@ export async function POST(request: Request) {
       content, 
       createdAt,
       toolInvocations,
-      attachments
+      attachments,
+      isTemplate
     } = body;
 
     // Process attachments if they exist
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
         role,
         content,
         createdAt,
+        isTemplate,
         toolInvocations: toolInvocations || [],
         ...(processedAttachments && { attachments: processedAttachments })
       }

@@ -213,7 +213,7 @@ export default function Home() {
       try {
         const token = await getAccessToken();
         const response = await fetch(
-          `/api/chat/${chatId}?userId=${encodeURIComponent(params.userId as string)}`,
+          `/api/chat/${chatId}?userId=${encodeURIComponent(user?.id as string)}`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -381,11 +381,12 @@ export default function Home() {
         },
         body: JSON.stringify({
           chatId: currentChatId,
-          userId: decodeURIComponent(Array.isArray(params.userId) ? params.userId[0] : params.userId),
+          userId: user?.id,
           agentId,
           agentName: agent?.name,
           lastMessage: lastMessage.content,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
+          isTemplate: params.userId === 'template'
         })
       });
   
@@ -399,7 +400,8 @@ export default function Home() {
         body: JSON.stringify({
           chatId: currentChatId,
           messageId: lastMessage.id,
-          userId: decodeURIComponent(Array.isArray(params.userId) ? params.userId[0] : params.userId),
+          userId: user?.id,
+          isTemplate: params.userId === 'template',
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
@@ -443,7 +445,8 @@ export default function Home() {
         },
         body: JSON.stringify({
           chatId: chatId ? chatId : newChatId,
-          userId: decodeURIComponent(params.userId as string),
+          userId: user?.id,
+          isTemplate: params.userId === 'template',
           agentId,
           agentName: agent?.name,
           lastMessage: command,
