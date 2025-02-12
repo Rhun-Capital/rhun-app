@@ -98,7 +98,7 @@ export function useSubscription(): SubscriptionStatus {
         
         if (stripeResponse.ok) {
           const stripeData = await stripeResponse.json();
-          if (stripeData.stripe?.status === 'active') {
+          if (stripeData.stripe?.status === 'active' || stripeData.stripe?.status === 'trialing') {
             stripeActive = true;
             stripeExpiresAt = stripeData.stripe.currentPeriodEnd;
             stripePlan = stripeData.stripe.plan?.name;
