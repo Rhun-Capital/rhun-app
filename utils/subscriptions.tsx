@@ -84,7 +84,7 @@ export async function getSubscription(userId: string): Promise<SubscriptionDetai
     }
 
     // Determine combined status
-    const isStripeActive = stripeSubscription?.status === 'active' && !stripeSubscription?.cancelAtPeriodEnd;
+    const isStripeActive = (stripeSubscription?.status === 'active' || stripeSubscription?.status === 'trialing')
     const isTokenActive = tokenSubscription ? isTokenSubscriptionActive(tokenSubscription as TokenSubscription) : false;
     return {
       stripe: stripeSubscription ? {
@@ -219,7 +219,7 @@ export async function checkSubscriptionStatus(userId: string): Promise<{
     };
   }
 
-  const isStripeActive = subscription.stripe?.status === 'active' && !subscription.stripe?.cancelAtPeriodEnd;
+  const isStripeActive = (subscription.stripe?.status === 'active' || subscription.stripe?.status === 'trialing')
   const isTokenActive = subscription.token ? isTokenSubscriptionActive(subscription.token) : false;
 
   let subscriptionType: 'none' | 'stripe' | 'token' = 'none';
