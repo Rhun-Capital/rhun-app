@@ -46,7 +46,7 @@ interface SubscriptionDetails {
     };
   };
   token?: TokenSubscription;
-  combinedStatus?: 'active' | 'inactive';
+  combinedStatus?: 'active' | 'trialing' | 'inactive';
 }
 
 // Get both Stripe and Token subscriptions
@@ -218,8 +218,9 @@ export async function checkSubscriptionStatus(userId: string): Promise<{
       details: {}
     };
   }
-
+  console.log(subscription.stripe?.status)
   const isStripeActive = (subscription.stripe?.status === 'active' || subscription.stripe?.status === 'trialing')
+  console.log(isStripeActive)
   const isTokenActive = subscription.token ? isTokenSubscriptionActive(subscription.token) : false;
 
   let subscriptionType: 'none' | 'stripe' | 'token' = 'none';

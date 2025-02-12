@@ -63,7 +63,7 @@ async function checkStripeSubscription(userId: string): Promise<boolean> {
     const subscription = result.Item as StripeSubscription;
     
     // Check if subscription is active and not expired
-    const isActive = subscription.status === 'active';
+    const isActive = subscription.status === 'active' || subscription.status === 'trialing';
     // const isExpired = new Date(subscription.currentPeriodEnd) < new Date();
     // const willCancel = subscription.cancelAtPeriodEnd;
 
