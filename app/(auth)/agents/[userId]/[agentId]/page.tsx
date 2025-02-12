@@ -31,6 +31,7 @@ import TokenHoldings  from "@/components/tools/token-holdings";
 import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import AccountInfo from "@/components/tools/account-info";
+import TrendingCoins from "@/components/tools/trending-searches";
 import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
 
@@ -38,8 +39,37 @@ import { debounce, DebouncedFunc } from 'lodash';
 // import { PieChart } from "@/components/pie-chart";
 
 const getTextFromDataUrl = (dataUrl: string) => {
-  const base64 = dataUrl.split(",")[1];
-  return window.atob(base64);
+  try {
+    // Check if it's a valid data URL
+    if (!dataUrl.startsWith('data:')) {
+      return '';
+    }
+
+    // Split the data URL to get the base64 part
+    const parts = dataUrl.split(',');
+    if (parts.length !== 2) {
+      return '';
+    }
+
+    // Get the base64 string
+    const base64 = parts[1];
+    
+    // Add padding if needed
+    const paddedBase64 = base64.replace(/=+$/, '');
+    const padding = '='.repeat((4 - (paddedBase64.length % 4)) % 4);
+    const finalBase64 = paddedBase64 + padding;
+
+    // Decode the base64 string
+    try {
+      return window.atob(finalBase64);
+    } catch (e) {
+      console.error('Failed to decode base64:', e);
+      return '';
+    }
+  } catch (error) {
+    console.error('Error processing data URL:', error);
+    return '';
+  }
 };
 
 function TextFilePreview({ file }: { file: File }) {
@@ -48,8 +78,17 @@ function TextFilePreview({ file }: { file: File }) {
   useEffect(() => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result;
-      setContent(typeof text === "string" ? text.slice(0, 100) : "");
+      try {
+        const text = e.target?.result;
+        setContent(typeof text === "string" ? text.slice(0, 100) : "");
+      } catch (error) {
+        console.error('Error reading file:', error);
+        setContent("");
+      }
+    };
+    reader.onerror = (error) => {
+      console.error('Error reading file:', error);
+      setContent("");
     };
     reader.readAsText(file);
   }, [file]);
@@ -97,9 +136,14 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
 
         // If it's a data URL, convert it to a blob
         if (attachment.url.startsWith('data:')) {
-          const blob = base64toBlob(attachment.url);
-          const url = URL.createObjectURL(blob);
-          setDisplayUrl(url);
+          try {
+            const blob = base64toBlob(attachment.url);
+            const url = URL.createObjectURL(blob);
+            setDisplayUrl(url);
+          } catch (error) {
+            console.error('Error converting data URL to blob:', error);
+            setDisplayUrl('');
+          }
           return;
         }
 
@@ -107,7 +151,7 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
         setDisplayUrl(attachment.url);
       } catch (error) {
         console.error('Error processing attachment URL:', error);
-        setDisplayUrl(attachment.url || '');
+        setDisplayUrl('');
       }
     };
 
@@ -143,8 +187,9 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
         {displayUrl && (
           <TextFilePreview 
             file={new File(
-              [getTextFromDataUrl(displayUrl)], 
-              attachment.name || 'text-file.txt'
+              [displayUrl.startsWith('data:') ? getTextFromDataUrl(displayUrl) : displayUrl], 
+              attachment.name || 'text-file.txt',
+              { type: attachment.contentType }
             )} 
           />
         )}
@@ -153,7 +198,7 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
   }
 
   return null;
-}
+};
 
 
 
@@ -563,6 +608,7 @@ export default function Home() {
     }
     setIsDragging(false);
   };
+  
 
   // Function to handle file selection via the upload button
   const handleUploadClick = () => {
@@ -675,7 +721,7 @@ export default function Home() {
               className="w-full sm:w-auto"
             >
               <button className="w-full px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors text-sm sm:text-base">
-                Edit Agent
+                {params.userId === 'template' ? 'View Agent' : 'Edit Agent'}
               </button>
             </Link>
             <button
@@ -811,6 +857,8 @@ export default function Home() {
                             return <div className="max-w-[95%] sm:max-w-[75%]"><TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getAccountDetails':
                             return <div className="max-w-[95%] sm:max-w-[75%]"><AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                          case 'getTrendingCoins':
+                            return <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
                           default:
                             return null;
                         }

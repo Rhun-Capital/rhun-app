@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText, tool } from "ai";
-import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
@@ -141,8 +141,16 @@ export async function POST(req: Request) {
   
       },
     },   
+
+    getTrendingCoins: {
+      description: "Get the current trending cryptocurrencies across all chains. Shows price in BTC, market cap rank, and other relevant metrics.",
+      parameters: z.object({}), // No parameters needed
+      execute: async () => {
+        const trendingCoins = await retrieveTrendingCoins();
+        return trendingCoins;
+      },
+    },
     
-  
     getRecentlyLaunchedCoins: {
       description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, and more.",
       parameters: z.object({ 
@@ -266,8 +274,6 @@ export async function POST(req: Request) {
           
     //   },
     // },
-  
-  
     
   }
 
@@ -280,13 +286,14 @@ export async function POST(req: Request) {
     getDerivativesExchanges: allTools.getDerivativesExchanges,
     getTopHolders: allTools.getTopHolders,
     getAccountDetails: allTools.getAccountDetails,
-    // getContractAddress: allTools.getContractAddress,
+    getTrendingCoins: allTools.getTrendingCoins,
     getTokenInfo: allTools.getTokenInfo,
     getMarketMovers: allTools.getMarketMovers,
     searchTokens: allTools.searchTokens,
     getTotalCryptoMarketCap: allTools.getTotalCryptoMarketCap,
     getMarketCategories: allTools.getMarketCategories,
     getFearAndGreedIndex: allTools.getFearAndGreedIndex,
+    getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
   };
 
   const proTools = {
@@ -294,7 +301,6 @@ export async function POST(req: Request) {
     ...freeTools,
     getAgentPortfolioValue: allTools.getAgentPortfolioValue,
     getAgentTokenHoldings: allTools.getAgentTokenHoldings,
-    getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
   };
 
 

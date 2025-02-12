@@ -96,7 +96,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
           {authenticated && <RecentChats />}
         </nav>
 
-        <div className="ml-4 w-[89%]">
+        <div className="ml-4 w-[89%] hidden sm:block">
             <Link 
               href="https://rhun-capital.gitbook.io/"
               target="_blank"

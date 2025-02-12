@@ -172,10 +172,12 @@ export async function createCheckoutSession(userId: string) {
         metadata: {
           userId: userId,
         },
+        trial_period_days: 14,
       },      
       metadata: {
         userId: userId,
       },
+      allow_promotion_codes: true,
       success_url: 'https://beta.rhun.io/account',
     });
 
