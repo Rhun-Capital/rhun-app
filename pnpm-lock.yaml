@@ -29,6 +29,9 @@ dependencies:
   '@aws-sdk/lib-dynamodb':
     specifier: ^3.738.0
     version: 3.738.0(@aws-sdk/client-dynamodb@3.734.0)
+  '@aws-sdk/util-dynamodb':
+    specifier: ^3.744.0
+    version: 3.744.0(@aws-sdk/client-dynamodb@3.734.0)
   '@crossmint/client-sdk-react-ui':
     specifier: ^1.13.3
     version: 1.13.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react-dom@18.3.5)(@types/react@18.3.18)(@vercel/kv@2.0.0)(react-dom@18.3.1)(react-native@0.77.0)(react@18.3.1)(typescript@5.7.3)
@@ -1432,6 +1435,16 @@ packages:
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@aws-sdk/client-dynamodb': ^3.738.0
+    dependencies:
+      '@aws-sdk/client-dynamodb': 3.734.0
+      tslib: 2.8.1
+    dev: false
+
+  /@aws-sdk/util-dynamodb@3.744.0(@aws-sdk/client-dynamodb@3.734.0):
+    resolution: {integrity: sha512-cJXZorexgIDW6GAxp2q5ivXGTR1LjaQ4VWHL7/FsfsQJtjQcRnI3/Yycx9X8RuU0JL0++ggzgh1lx8Y17jVPuA==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@aws-sdk/client-dynamodb': ^3.744.0
     dependencies:
       '@aws-sdk/client-dynamodb': 3.734.0
       tslib: 2.8.1
