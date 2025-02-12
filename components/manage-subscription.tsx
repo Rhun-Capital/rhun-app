@@ -95,7 +95,6 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
       </div>
     );
   }
-  console.log(subscriptionType)
   if (subscriptionType === 'none') {
     return <CheckoutOptions />;
   }
@@ -107,7 +106,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
         <div className="flex justify-between items-center">
           <h2 className="text-xl">Your Subscription</h2>
           <span className="px-4 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-            ACTIVE
+            {subscriptionDetails.stripe.status === 'trialing' ? 'TRIALING' : 'ACTIVE'}
           </span>
         </div>
 
