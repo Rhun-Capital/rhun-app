@@ -25,6 +25,7 @@ interface SubscriptionStatus {
       active: boolean;
       currentPeriodEnd: string | null;
       plan?: string;
+      status?: string;
       subscriptionId?: string;
       stripeCustomerId?: string;
       amount?: number;
@@ -94,6 +95,7 @@ export function useSubscription(): SubscriptionStatus {
         let stripeCustomerId: string | undefined;
         let stripeAmount: number | undefined;
         let stripeCancelAtPeriodEnd: boolean | undefined;
+        let stripeSubscriptionStatus: string | undefined;
 
         
         if (stripeResponse.ok) {
@@ -105,6 +107,7 @@ export function useSubscription(): SubscriptionStatus {
             stripeCustomerId = stripeData.stripe.customerId;
             stripeAmount = stripeData.stripe.amount;
             stripeCancelAtPeriodEnd = stripeData.stripe.cancelAtPeriodEnd;
+            stripeSubscriptionStatus = stripeData.stripe.status;
           }
         }
 
@@ -143,7 +146,8 @@ export function useSubscription(): SubscriptionStatus {
               plan: stripePlan,
               stripeCustomerId,
               amount: stripeAmount,
-              cancelAtPeriodEnd: stripeCancelAtPeriodEnd
+              cancelAtPeriodEnd: stripeCancelAtPeriodEnd,
+              status: stripeSubscriptionStatus
               
             },
             token: {
