@@ -74,7 +74,7 @@ export default function HomePage() {
               href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
               className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px] gap-2 px-6 py-5 sm:py-2 bg-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-sm"
             >
-              <span>Start Chating</span>
+              <span>Start Chatting</span>
               <MessageSquare className="w-5 h-5"/>
             </Link>
             </div>
