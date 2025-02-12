@@ -247,11 +247,23 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isPro: false
     },    
     { 
-      name: 'Search Latest Tokens', 
-      description: 'Discover newly launched tokens on the network.',
-      command: 'Search for tokens the recently launched tokens',
+      name: 'Track Wallet Activity', 
+      description: 'Track wallet activity for any Solana wallet address',
+      command: 'Show me information about a solana account and track activity',
       isPro: true // Pro feature
+    },     
+    { 
+      name: 'Get Latest Tokens', 
+      description: 'Discover newly listed tokens on CoinGecko.',
+      command: 'Search for tokens the recently listed tokens',
+      isPro: false
     },
+    { 
+      name: 'Get Trending Tokens', 
+      description: 'Discover trending tokens.',
+      command: 'Search for trending tokens',
+      isPro: false
+    },    
     { 
       name: 'Search Tokens', 
       description: 'Search through the complete database of tokens.',
@@ -413,14 +425,11 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
                   <div className="text-sm text-zinc-400">Wallet Address</div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="text-sm text-white truncate">
-                      {agent.wallets?.solana || 
-                                            <div className="text-sm text-zinc-500 mt-2">
-                                              <div>
-                                            <div>No agent wallet found</div>
-                                            <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create agent wallet</Link>
-                                            </div>
-                                          </div>
+                    <div className="text-sm text-white">
+                      {(agent.wallets?.solana && params.userId !== 'template') ?
+                        <div className="text-sm text-zinc-500 mt-2">
+                          {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
+                      </div> : <div className="text-sm text-zinc-500 mt-2">Template agents do no have access to wallets. </div>
                       }
                     </div>
                     {agent.wallets?.solana && (

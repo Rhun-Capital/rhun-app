@@ -64,10 +64,10 @@ async function checkStripeSubscription(userId: string): Promise<boolean> {
     
     // Check if subscription is active and not expired
     const isActive = subscription.status === 'active';
-    const isExpired = new Date(subscription.currentPeriodEnd) < new Date();
-    const willCancel = subscription.cancelAtPeriodEnd;
+    // const isExpired = new Date(subscription.currentPeriodEnd) < new Date();
+    // const willCancel = subscription.cancelAtPeriodEnd;
 
-    return isActive && !isExpired && !willCancel;
+    return isActive // && !isExpired && !willCancel;
   } catch (error) {
     console.error('DynamoDB Stripe subscription error:', error);
     return false;

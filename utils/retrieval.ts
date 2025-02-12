@@ -1,19 +1,39 @@
 import { createEmbedding, initPinecone } from './embeddings';
 
-export interface CoinData {
+// Base interface for common coin data
+interface BaseCoinData {
   id: string;
   name: string;
   symbol: string;
-  description: string;
+  description?: string;
+  thumb?: string;
+  small?: string;
+  large?: string;
+  categories?: string[];
+  last_updated: string;
+  score: number;
+}
+
+// Interface for regular coin data
+export interface CoinData extends BaseCoinData {
   current_price_usd: number;
   market_cap_usd: number;
   total_volume_usd: number;
-  categories: string[];
-  last_updated: string;
-  score: number;
-  thumb?: string;    // Add these
-  small?: string;    // image
-  large?: string;    // fields
+  activated_at?: number;
+  contract_address?: string;
+  twitter?: string;
+  homepage?: string;
+}
+
+// Interface specifically for trending coins
+export interface TrendingCoinData extends BaseCoinData {
+  price_usd: number;
+  market_cap: string;
+  total_volume: string;
+  price_change_percentage_24h: number;
+  market_cap_rank: number;
+  sparkline?: string;
+  content_description?: string;
 }
 
 export interface RetrievedContext {
@@ -28,14 +48,10 @@ export async function retrieveContext(
   maxResults: number = 5
 ): Promise<RetrievedContext[]> {
   try {
-    // Create embedding for the query
     const queryEmbedding = await createEmbedding(query);
-    
-    // Initialize Pinecone
     const pinecone = initPinecone();
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
 
-    // Query Pinecone
     const queryResponse = await index.query({
       vector: queryEmbedding,
       filter: { agentId: { $eq: agentId } },
@@ -43,7 +59,6 @@ export async function retrieveContext(
       includeMetadata: true,
     });
 
-    // Format results
     const results = queryResponse.matches?.map(match => ({
       text: match.metadata?.text as string,
       source: match.metadata?.source as string,
@@ -51,28 +66,21 @@ export async function retrieveContext(
     })) || [];
 
     return results;
-    
   } catch (error) {
     console.error('Error retrieving context:', error);
     return [];
   }
 }
 
-
-
 export async function retrieveCoins(
   query?: string,
   maxResults: number = 200
 ): Promise<CoinData[]> {
   try {
-    // Initialize Pinecone
     const pinecone = initPinecone();
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
 
-    // Create a dummy vector if no query is provided
     const defaultVector = Array(1536).fill(0.1);
-
-    // Prepare query parameters
     const queryParams = {
       vector: query ? await createEmbedding(query) : defaultVector,
       filter: { globalData: { $eq: true } },
@@ -80,10 +88,8 @@ export async function retrieveCoins(
       includeMetadata: true,
     };
 
-    // Query Pinecone
     const queryResponse = await index.query(queryParams);
 
-    // Format results
     const results = queryResponse.matches?.map(match => ({
       id: match.metadata?.id as string,
       name: match.metadata?.name as string,
@@ -97,7 +103,7 @@ export async function retrieveCoins(
       activated_at: match.metadata?.activated_at as number,
       contract_address: match.metadata?.contract_address as string,
       twitter: match.metadata?.twitter as string,
-      homepage: match.metadata?.homepage as string,      
+      homepage: match.metadata?.homepage as string,
       score: match.score ?? 0,
       thumb: match.metadata?.thumb as string,
       small: match.metadata?.small as string,
@@ -105,14 +111,51 @@ export async function retrieveCoins(
     })) || [];
 
     return results;
-    
   } catch (error) {
     console.error('Error retrieving coins:', error);
     return [];
   }
 }
 
-// For filtered queries without semantic search
+export async function retrieveTrendingCoins(
+  maxResults: number = 28
+): Promise<TrendingCoinData[]> {
+  try {
+    const pinecone = initPinecone();
+    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+
+    const queryResponse = await index.query({
+      vector: Array(1536).fill(0.1),
+      filter: { isTrending: { $eq: true } },
+      topK: maxResults,
+      includeMetadata: true,
+    });
+
+    const results = queryResponse.matches?.map(match => ({
+      id: match.metadata?.id as string,
+      name: match.metadata?.name as string,
+      symbol: match.metadata?.symbol as string,
+      price_usd: match.metadata?.price_usd as number,
+      market_cap: match.metadata?.market_cap as string,
+      total_volume: match.metadata?.total_volume as string,
+      last_updated: match.metadata?.last_updated as string,
+      score: match.score ?? 0,
+      thumb: match.metadata?.thumb as string,
+      small: match.metadata?.small as string,
+      large: match.metadata?.large as string,
+      market_cap_rank: match.metadata?.market_cap_rank as number,
+      price_change_percentage_24h: match.metadata?.price_change_percentage_24h as number,
+      sparkline: match.metadata?.sparkline as string,
+      content_description: match.metadata?.content_description as string
+    })) || [];
+
+    return results.sort((a, b) => (a.market_cap_rank || Infinity) - (b.market_cap_rank || Infinity));
+  } catch (error) {
+    console.error('Error retrieving trending coins:', error);
+    return [];
+  }
+}
+
 export async function retrieveCoinsWithFilters(
   filters: {
     minPrice?: number;
@@ -134,12 +177,10 @@ export async function retrieveCoinsWithFilters(
     const pinecone = initPinecone();
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
 
-    // Build filter conditions
     const filterConditions: any[] = [
       { globalData: { $eq: true } }
     ];
 
-    // Add market cap filters
     if (filters.marketCap?.min !== undefined) {
       filterConditions.push({ market_cap_usd: { $gte: filters.marketCap.min } });
     }
@@ -147,9 +188,8 @@ export async function retrieveCoinsWithFilters(
       filterConditions.push({ market_cap_usd: { $lte: filters.marketCap.max } });
     }
 
-    // Add time range filter
     if (filters.timeRange) {
-      const now = Math.floor(Date.now() / 1000); // Current time in seconds
+      const now = Math.floor(Date.now() / 1000);
       let timeThreshold = now;
 
       if (filters.timeRange.hours) {
@@ -161,7 +201,6 @@ export async function retrieveCoinsWithFilters(
       filterConditions.push({ activated_at: { $gte: timeThreshold } });
     }
 
-    // Existing filters...
     if (filters.minPrice !== undefined) {
       filterConditions.push({ current_price_usd: { $gte: filters.minPrice } });
     }
@@ -175,17 +214,13 @@ export async function retrieveCoinsWithFilters(
       filterConditions.push({ name: { $contains: filters.nameContains } });
     }
 
-    const defaultVector = Array(1536).fill(0.1);
-
-    // Query Pinecone
     const queryResponse = await index.query({
-      vector: defaultVector,
+      vector: Array(1536).fill(0.1),
       filter: { $and: filterConditions },
       topK: maxResults,
       includeMetadata: true,
     });
 
-    // Format results
     const results = queryResponse.matches?.map(match => ({
       id: match.metadata?.id as string,
       name: match.metadata?.name as string,
@@ -195,9 +230,9 @@ export async function retrieveCoinsWithFilters(
       market_cap_usd: match.metadata?.market_cap_usd as number,
       total_volume_usd: match.metadata?.total_volume_usd as number,
       categories: match.metadata?.categories as string[],
-      contract_address: match.metadata?.contract_address as string,
       last_updated: match.metadata?.last_updated as string,
       activated_at: match.metadata?.activated_at as number,
+      contract_address: match.metadata?.contract_address as string,
       twitter: match.metadata?.twitter as string,
       homepage: match.metadata?.homepage as string,
       score: match.score ?? 0,
@@ -207,7 +242,6 @@ export async function retrieveCoinsWithFilters(
     })) || [];
 
     return results;
-    
   } catch (error) {
     console.error('Error retrieving filtered coins:', error);
     return [];

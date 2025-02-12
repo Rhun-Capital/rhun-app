@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import DeleteConfirmationModal from './delete-confirmation-modal';
 import { useSubscription } from '@/hooks/use-subscription';
+import Link from 'next/link';
 
 
 interface InitialData {
@@ -42,6 +43,11 @@ interface AgentFormProps {
   initialData?: InitialData | null;
 }
 
+interface ImageState {
+  file: File | null;
+  preview: string | null;
+}
+
 export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [activeTab, setActiveTab] = useState("config");
   const [loading, setLoading] = useState(false);
@@ -49,7 +55,10 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   const [success, setSuccess] = useState(false);
   const [created, setCreated] = useState(false);
   const [createdFromTemplate, setCreatedFromTemplate] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imageState, setImageState] = useState<ImageState>({
+    file: null,
+    preview: initialData?.imageUrl || null
+  });  
   const [selectedModelValue, setSelectedModelValue] = useState('option1');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -263,6 +272,16 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
 
   const [formData, setFormData] = useState(defaultFormData);
 
+  // Add cleanup effect for the preview URL
+  useEffect(() => {
+    // Cleanup the preview URL when component unmounts or when image changes
+    return () => {
+      if (imageState.preview && !imageState.preview.startsWith('http')) {
+        URL.revokeObjectURL(imageState.preview);
+      }
+    };
+  }, [imageState.preview]);  
+
   useEffect(() => {
     if (localStorage.getItem('agent_created')) {
       setCreated(true)
@@ -292,6 +311,19 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
       [name]: value,
     }));
   };
+
+  const handleImageChange = (file: File | null) => {
+    // Cleanup old preview if it exists and is not an HTTP URL
+    if (imageState.preview && !imageState.preview.startsWith('http')) {
+      URL.revokeObjectURL(imageState.preview);
+    }
+
+    setImageState({
+      file,
+      preview: file ? URL.createObjectURL(file) : null
+    });
+  };
+
 
   const scrollToTop = () => {
     topRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -355,8 +387,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     
     const formData = new FormData();
     formData.append('data', JSON.stringify(agentData));
-    if (selectedImage) {
-      formData.append('image', selectedImage);
+    if (imageState.file) {
+      formData.append('image', imageState.file);
     }
 
     const response = await fetch(url, {
@@ -438,8 +470,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       
       const formData = new FormData();
       formData.append('data', JSON.stringify(templateData));
-      if (selectedImage) {
-        formData.append('image', selectedImage);
+      if (imageState.file) {
+        formData.append('image', imageState.file);
       }
   
       const response = await fetch("/api/agents", {
@@ -510,19 +542,28 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-zinc-300">
-              You need an active subscription to create custom agents. You can still view and edit template agents.
+              You need an active subscription to create custom agents.&nbsp;<Link href="/account" className="text-indigo-400">Subscribe now.</Link>&nbsp;You can still view and edit template agents.
             </p>
           </div>
         )}
 
-        {!isSubscribed && !subscriptionLoading && params.userId === "template" && (
+        {!isSubscribed && !subscriptionLoading && params.userId === "template" && params.agentId !== 'cc425065-b039-48b0-be14-f8afa0704357' && (
           <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-zinc-300">
-              You need an active subscription to chat with this agent or use it as a template.
+              You need an active subscription to chat with this agent or use it as a template.&nbsp;<Link href="/account" className="text-indigo-400">Subscribe now.</Link>
             </p>
           </div>
         )}        
+
+      {!isSubscribed && !subscriptionLoading && params.userId === "template" && params.agentId === 'cc425065-b039-48b0-be14-f8afa0704357' && (
+          <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-zinc-300">
+              You need an active subscription to use this agent template.&nbsp;<Link href="/account" className="text-indigo-400">Subscribe now.</Link>&nbsp; You can still chat with Rhun Capital.
+            </p>
+          </div>
+        )}               
   
         {/* Tabs */}
         <div className="mb-6 overflow-x-auto">
@@ -569,9 +610,9 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
   <div className="mb-6">
-    <ImageUpload
-      onImageChange={setSelectedImage}
-      initialImage={initialData?.imageUrl}
+  <ImageUpload
+      onImageChange={handleImageChange}
+      initialImage={imageState.preview || undefined}
     />
   </div>
 

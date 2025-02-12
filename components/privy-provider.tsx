@@ -27,14 +27,11 @@ export default function PrivyWrapper({
           walletChainType: "solana-only",   
           showWalletLoginFirst: true,       
         },
-
         externalWallets: {
           solana: {
               connectors: solanaConnectors,
           },
-        },
-      
-      
+        }
       }}
     >
       {children}

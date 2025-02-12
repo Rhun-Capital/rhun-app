@@ -162,7 +162,9 @@ export default function AgentsPage() {
           <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-zinc-300">
-              You need an active subscription to create custom agents. You can still use the Rhun Capital agent view template agents.
+              You need an active subscription to create custom agents.&nbsp;
+              <Link href="/account" className="text-indigo-400">Subscribe now.</Link>
+              &nbsp;You can still use the Rhun Capital agent view template agents.
             </p>
           </div>
         )}

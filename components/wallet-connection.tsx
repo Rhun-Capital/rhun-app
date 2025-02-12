@@ -92,7 +92,7 @@ export default function WalletConnection() {
 
   return (
     <div className="text-center">
-      <h3 className="text-white mb-4">{authenticated ? 'Use an access key or mint a Fast Pass NFT to log in' : 'Connect Wallet or Email to Access'}</h3>
+      <h3 className="text-white mb-4">{authenticated ? 'You are currently signed in' : 'Connect Wallet or Email to Access'}</h3>
       {!authenticated && ready ? (
         <button
           onClick={login}

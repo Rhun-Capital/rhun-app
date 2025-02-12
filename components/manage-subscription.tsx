@@ -15,7 +15,6 @@ interface SubscriptionManagementProps {
 export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ userId, wallet }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { getAccessToken } = usePrivy();
   
   const { 
     isLoading, 
@@ -25,7 +24,6 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
   } = useSubscription();
 
   const handleManageSubscription = async () => {
-    console.log(subscriptionDetails)
     const stripeCustomerId = subscriptionDetails?.stripe?.stripeCustomerId;
     if (!stripeCustomerId) {
       setError('No valid subscription found');
@@ -41,7 +39,10 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setIsProcessing(false);
     }
+
   };
 
   const CheckoutOptions = () => (
@@ -81,7 +82,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
   if (isLoading) {
     return (
       <div className="w-full p-4 bg-zinc-800 rounded-lg">
-        <h2 className="text-xl text-white mb-4"><LoadingIndicator/></h2>
+        <h2 className="text-xl text-white"><LoadingIndicator/></h2>
       </div>
     );
   }
@@ -94,7 +95,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
       </div>
     );
   }
-
+  console.log(subscriptionType)
   if (subscriptionType === 'none') {
     return <CheckoutOptions />;
   }
@@ -104,7 +105,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
     return (
       <div className="w-full p-4 bg-zinc-800 rounded-lg space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl">Credit Card Subscription</h2>
+          <h2 className="text-xl">Your Subscription</h2>
           <span className="px-4 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
             ACTIVE
           </span>

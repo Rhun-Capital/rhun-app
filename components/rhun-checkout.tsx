@@ -128,7 +128,7 @@ const Home = () => {
   const TOKEN_MINT_ADDRESS = 'Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump'; // Custom SPL token mint
 
   // The USD amount to send
-  const USD_AMOUNT = 1;
+  const USD_AMOUNT = 360;
   // Define your token's decimals (for example, 6)
   const TOKEN_DECIMALS = 6;
 
@@ -338,7 +338,7 @@ const Home = () => {
             <span>
               {calculatedTokenAmount
                 ? (calculatedTokenAmount / Math.pow(10, TOKEN_DECIMALS)).toFixed(2)
-                : '0.00'}{' '}
+                : 'Pay With '}{' '}
               RHUN
             </span>
           </div>

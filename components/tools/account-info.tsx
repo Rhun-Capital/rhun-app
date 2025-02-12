@@ -4,6 +4,8 @@ import { usePrivy } from '@privy-io/react-auth';
 import { AlertCircleIcon } from '@/components/icons';
 import LoadingIndicator from '@/components/loading-indicator';
 import { toast } from 'sonner';
+import { useSubscription } from '@/hooks/use-subscription';
+import CopyButton from '@/components/copy-button';
 
 interface TrackingFilters {
   minAmount?: number;
@@ -81,6 +83,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
   const [error, setError] = useState<string | null>(null);
   const [isTracked, setIsTracked] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
 
   const [trackingOptions, setTrackingOptions] = useState<TrackingOptions>({
     filters: {
@@ -223,7 +226,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
       <div className="p-6 border-b border-zinc-700 flex justify-between items-center">
         <h2 className="text-lg font-semibold text-white">Wallet Details</h2>
         <div className="flex items-center gap-4">
-          {accountData && (
+          {(accountData && isSubscribed) ? (
             <>
               <button
                 onClick={() => setTrackingOptions(prev => ({ ...prev, showFilters: !prev.showFilters }))}
@@ -239,8 +242,20 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
                 {isTrackLoading ? 'Tracking Wallet...' : 'Track Wallet'}
               </button>
             </>
+          ) : (
+            <button
+              onClick={() => toast.error('You need an active subscription to track wallets')}
+              className=" px-3 py-1 text-zinc-300 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start group hover:bg-zinc-600"
+            >
+              Track Wallet (Subscription Required) 
+            </button>
           )}
         </div>
+
+        {/* if you're not subscripted show warning banner here */}
+
+
+
       </div>
 
  {/* Tracking Filters */}
@@ -312,8 +327,11 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
           {/* Account Address */}
           <div className="bg-zinc-900 p-4 rounded-lg">
             <div className="text-sm text-zinc-400">Account Address</div>
-            <div className="text-sm font-semibold text-white break-all">
+            <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-white break-all truncate max-w-[180px]">
               {accountData ? accountData.account : 'N/A'}
+            </div>
+            <CopyButton text={accountData?.account || ''}/>
             </div>
           </div>
 

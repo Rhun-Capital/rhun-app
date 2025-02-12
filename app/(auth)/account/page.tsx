@@ -3,33 +3,38 @@
 
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { AlertCircleIcon } from "@/components/icons";
+import {useSolanaWallets} from '@privy-io/react-auth/solana';
+import { AlertCircleIcon, ChevronUpIcon, ChevronDownIcon } from "@/components/icons";
 import { useMfaEnrollment } from '@privy-io/react-auth';
 import CopyButton from "@/components/copy-button";
 import SubscriptionManagement from "@/components/manage-subscription";
 import { useSearchParams } from 'next/navigation';
+import {useRouter} from 'next/navigation';
 
 export default function SettingsPage() {
-  const { user, logout, authenticated } = usePrivy();
+  const { user, logout, authenticated, getAccessToken } = usePrivy();
+  const { exportWallet, createWallet } = useSolanaWallets();
   const [loading, setLoading] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(false);
   const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
   const searchParams = useSearchParams();
+  const [exportLoading, setExportLoading] = useState(false);
+  const [isAdvancedOptionsOpen, setIsAdvancedOptionsOpen] = useState(false);  
+  const router = useRouter();
 
-  // Theme preference (you can expand this)
-  const [darkMode, setDarkMode] = useState(true);
-
-  // Notification preferences
-  const [notifications, setNotifications] = useState<{ [key: string]: boolean }>({
-    portfolio: true,
-    security: true,
-    marketing: false
-  });
+  //   looks for wallet creation on the user
+  useEffect(() => {
+    if (user?.wallet?.address) {
+      setWalletLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Check for requiresSub query parameter
     const requiresSub = searchParams.get('requiresSub');
     
     if (requiresSub === 'true') {
+      scrollTo(0, 0);
       setShowSubscriptionBanner(true);
       
       // Remove the query parameter from the URL
@@ -44,16 +49,46 @@ export default function SettingsPage() {
     return <button className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition" onClick={showMfaEnrollmentModal}>Enroll in MFA</button>;
   }  
 
+  const clearCookies = async () => {
+    const accessToken = await getAccessToken();
+    await fetch('/api/auth/clear-access', { method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` } });
+  }  
+
   const handleLogout = async () => {
     setLoading(true);
+    await clearCookies(); // Clear access tokens
+    await logout(); // Clear Privy state
+    router.push('/login');
+  }  
+  
+  const handleCreateWallet = async () => {
     try {
-      await logout();
+      setWalletLoading(true);
+      const wallet = await createWallet({walletIndex: 0});
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error('Error creating wallet:', error);
     } finally {
-      setLoading(false);
+      setWalletLoading(false);
     }
-  };
+  };  
+
+  const toggleAdvancedOptions = () => {
+    setIsAdvancedOptionsOpen(!isAdvancedOptionsOpen);
+  }  
+
+  const handleExportWallet = async () => {
+    setExportLoading(true);
+    try {
+      const wallet = user?.wallet;
+      if (wallet) {
+        await exportWallet(wallet);
+      }
+    } catch (error) {
+      console.error('Error exporting wallet:', error);
+    } finally {
+      setExportLoading(false);
+    }
+  }  
 
   if (!authenticated) {
     return (
@@ -128,8 +163,48 @@ export default function SettingsPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm sm:text-base text-zinc-400">No wallets connected</p>
+                <div>
+                  <p className="text-sm sm:text-base text-zinc-400">No wallets connected</p>
+                  <div className="p-6 bg-zinc-800 rounded-lg">
+                  <button
+                    onClick={handleCreateWallet}
+                    disabled={walletLoading}
+                    className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition disabled:opacity-50"
+                  >
+                    {walletLoading ? 'Creating Wallet...' : 'Create Wallet'}
+                  </button>
+                </div>                  
+                </div>
               )}
+
+              <div className="pt-4 border-t border-zinc-700">
+                  <button 
+                    onClick={toggleAdvancedOptions}
+                    className="w-full flex justify-between items-center text-sm font-medium text-zinc-300 hover:text-zinc-100 transition"
+                  >
+                    <span>Advanced Options</span>
+                    {isAdvancedOptionsOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                  </button>
+
+                  {isAdvancedOptionsOpen && (
+                    <div className="mt-4 space-y-4 bg-zinc-900 rounded-lg p-4">
+                      <div>
+                        <button
+                          onClick={handleExportWallet}
+                          disabled={exportLoading}
+                          className="px-10 py-1 text-white outline outline-orange-600 hover:opacity-70  rounded-md transition disabled:opacity-50"
+                        >
+                          {exportLoading ? 'Exporting...' : 'Export Wallet'}
+                        </button>
+                        <p className="text-xs text-zinc-400 mt-2">
+                          Export your wallet private key. Use with caution.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+
             </div>
           </section>
 
