@@ -181,7 +181,7 @@ const ToolCard: React.FC<{
 };
 
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect }) => {
-  const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('wallet');
+  const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
   const { user, getAccessToken } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
   const [totalValue, setTotalValue] = useState<number | null>(null);
