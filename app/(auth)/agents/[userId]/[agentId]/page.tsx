@@ -677,7 +677,7 @@ export default function Home() {
 
   const EmptyState = ({ agent, userId, agentId, onDescribeTools }: EmptyStateProps) => {
     return (
-      <div className="mx-auto w-full max-w-md px-4 px-0">
+      <div className="mx-auto w-full max-w-md sm:px-4 px-0">
         <div className="border rounded-xl p-4 sm:p-8 flex flex-col items-center gap-4 sm:gap-6 text-zinc-400 border-zinc-700 bg-zinc-800/30">
           {/* Agent Image/Icon with responsive sizing */}
           <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-zinc-700 flex items-center justify-center">
@@ -738,7 +738,7 @@ export default function Home() {
 
   return (
     <div>
-    <div className="flex flex-col h-screen bg-white bg-zinc-900">
+    <div className="flex flex-col h-screen bg-zinc-900">
   
       <div className="flex flex-1 pt-16 lg:pt-0">
 
@@ -764,7 +764,7 @@ export default function Home() {
       </div>        
   
         {/* Main chat area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col max-w-full break-words overflow-hidden">
           <div 
             className={`flex-1 overflow-y-auto ${messages.length === 0 ? 'pt-0 sm:32' : 'pt-0 sm:pt-20'} pb-32`}
             onDragOver={handleDragOver}
@@ -789,12 +789,12 @@ export default function Home() {
             </AnimatePresence>
   
             {/* Messages */}
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-2xl sm:max-w-4xl mx-auto">
               {messages.length > 0 ? (
                 messages.map((message, index) => (
                   <motion.div
                     key={message.id}
-                    className={`flex gap-3 py-4 w-full`}
+                    className={`flex gap-3 py-4 max-w-[95%]`}
                     initial={{ y: 5, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                   >
@@ -822,41 +822,41 @@ export default function Home() {
 
                         switch(tool.toolName) {
                           case 'getUserSolanaBalance':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getAgentSolanaBalance':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getUserPortfolioValue':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getAgentPortfolioValue':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getUserTokenHoldings':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getFearAndGreedIndex':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><FearAndGreedIndex key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><FearAndGreedIndex key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getSolanaTransactionVolume':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><SolanaTransactionVolume key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><SolanaTransactionVolume key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getAgentTokenHoldings':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getMarketMovers':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getRecentlyLaunchedCoins':
                             return <RecentCoinsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'getTokenInfo':
-                            return  <div className="max-w-[95%] sm:max-w-[75%]"><TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return  <div className="max-w-[100%] sm:max-w-[75%]"><TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'searchTokens':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getContractAddress':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getTotalCryptoMarketCap':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getMarketCategories':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><MarketCategories key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><MarketCategories key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getDerivativesExchanges':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getTopHolders':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getAccountDetails':
-                            return <div className="max-w-[95%] sm:max-w-[75%]"><AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getTrendingCoins':
                             return <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
                           default:
@@ -878,7 +878,7 @@ export default function Home() {
                         </div>
                       )}
                       
-                      <div className="max-w-[95%] sm:max-w-[75%]">
+                      <div className="max-w-[90%] sm:max-w-[75%]">
                         <Markdown>{message.content}</Markdown>
                       </div>
 
