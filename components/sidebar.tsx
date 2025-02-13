@@ -144,7 +144,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto bg-zinc-900">
+      <div className="flex-1 overflow-auto bg-zinc-900 min-w-0">
         <main className="p-6">
           {children}
         </main>

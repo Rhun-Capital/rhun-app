@@ -72,7 +72,7 @@ export default function HomePage() {
           <div className="w-full sm:w-auto">
           <Link 
               href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
-              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px] gap-2 px-6 py-5 sm:py-2 bg-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-sm"
+              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px] gap-2 px-6 py-5 sm:py-2 bg-indigo-500 hover:bg-indigo-500 rounded-full font-semibold transition-colors text-lg sm:text-sm"
             >
               <span>Start Chatting</span>
               <MessageSquare className="w-5 h-5"/>
@@ -83,7 +83,7 @@ export default function HomePage() {
             <Link 
               href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
-              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px]  gap-2 px-6 py-5 sm:py-2 bg-zinc-700 text-white rounded-full font-semibold transition-colors text-sm"
+              className="inline-flex items-center justify-center min-w-[100%] sm:min-w-[170px]  gap-2 px-6 py-5 sm:py-2 bg-zinc-700 text-white rounded-full font-semibold transition-colors text-lg sm:text-sm"
             >
               <span>Read Docs</span>
               <BookOpenIcon className="w-5 h-5"/>

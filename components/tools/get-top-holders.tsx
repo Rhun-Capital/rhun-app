@@ -224,7 +224,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     return (
       <div className="bg-zinc-900 p-4 rounded-lg mb-4 space-y-4">
         {/* Time Range Filters */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-zinc-400 mb-1">Start Time</label>
             <input
@@ -248,7 +248,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         </div>
 
         {/* Address Filters */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-zinc-400 mb-1">From Address</label>
             <input
@@ -274,7 +274,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         </div>
 
         {/* Platform and Source Filters */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-zinc-400 mb-1">
               Platform Addresses (max 5, comma-separated)
@@ -306,7 +306,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         {/* Activity Types */}
         <div>
           <label className="block text-sm text-zinc-400 mb-2">Activity Types</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {ACTIVITY_TYPES.map(type => (
               <div 
                 key={type} 
@@ -331,7 +331,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         <div className="flex justify-end">
           <button
             onClick={() => selectedHolder && fetchActivities(selectedHolder)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm transition-colors"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm transition-colors w-full sm:w-auto"
           >
             Apply Filters
           </button>
@@ -339,6 +339,62 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       </div>
     );
   });
+
+  const ActivityCard: React.FC<{ activity: Activity; token1: TokenMetadata; token2: TokenMetadata }> = ({ activity, token1, token2 }) => (
+    <div className="border border-zinc-900 p-4 bg-zinc-900 rounded-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-2">
+        <span className="text-sm font-medium mb-1 sm:mb-0">
+          {activity.activity_type.replace('ACTIVITY_', '')}
+        </span>
+        <span className="text-xs text-zinc-400">
+          {new Date(activity.time).toLocaleString()}
+        </span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            {token1?.token_icon ? (
+              <img 
+                src={token1.token_icon} 
+                alt={token1.token_symbol} 
+                className="w-5 h-5 rounded-full"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
+                ?
+              </div>
+            )}
+            <span className="text-sm">
+              {formatAmount(activity.routers.amount1, activity.routers.token1_decimals)} {token1?.token_symbol}
+            </span>
+          </div>
+          <span className="text-zinc-500 hidden sm:block">→</span>
+          <span className="text-zinc-500 block sm:hidden">↓</span>
+          <div className="flex items-center gap-2">
+            {token2?.token_icon ? (
+              <img 
+                src={token2.token_icon} 
+                alt={token2.token_symbol} 
+                className="w-5 h-5 rounded-full"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
+                ?
+              </div>
+            )}
+            <span className="text-sm">
+              {formatAmount(activity.routers.amount2, activity.routers.token2_decimals)} {token2?.token_symbol}
+            </span>
+          </div>
+        </div>
+        <div className="text-sm text-zinc-400 w-full sm:w-auto text-left sm:text-right mt-2 sm:mt-0">
+          ${activity.value.toFixed(2)}
+        </div>
+      </div>
+    </div>
+  );  
+
 
   if (isLoading) {
     return (
@@ -352,9 +408,9 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
 
   if (selectedHolder && activities) {
     return (
-      <div className="p-6 bg-zinc-800 rounded-lg space-y-4">
+      <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg space-y-4">
         {/* Header with back button */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
           <button 
             onClick={() => setSelectedHolder(null)}
             className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
@@ -364,7 +420,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
           </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
+            className="flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors w-full sm:w-auto justify-center sm:justify-start"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -387,11 +443,11 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         {showFilters && <FiltersPanel />}
 
         {/* Holder header */}
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start mb-6">
           <div>
             <h2 className="text-xl font-bold">Wallet Activities</h2>
-            <div className="flex items-center gap-2">
-              <p className="text-zinc-400 font-mono">
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-zinc-400 font-mono text-sm">
                 {selectedHolder.slice(0, 4)}...{selectedHolder.slice(-4)}
               </p>
               <CopyButton text={selectedHolder}/>
@@ -399,72 +455,18 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
           </div>
         </div>
 
-     {/* Activity list */}
-     <div className="space-y-3">
+        {/* Activity list */}
+        <div className="space-y-3">
           {paginatedActivities.length > 0 ? (
             <>
-              {paginatedActivities.map((activity, index) => {
-                const token1 = activities.metadata.tokens[activity.routers.token1];
-                const token2 = activities.metadata.tokens[activity.routers.token2];
-
-                return (
-                  <div 
-                    key={index}
-                    className="border border-zinc-900 p-4 bg-zinc-900 rounded-lg"
-                  >
-   
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-sm font-medium">
-                      {activity.activity_type.replace('ACTIVITY_', '')}
-                    </span>
-                    <span className="text-xs text-zinc-400">
-                      {new Date(activity.time).toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                      {token1?.token_icon ? (
-                          <img 
-                            src={token1.token_icon} 
-                            alt={token1.token_symbol} 
-                            className="w-5 h-5 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
-                            ?
-                          </div>
-                        )}
-                        <span className="text-sm">
-                          {formatAmount(activity.routers.amount1, activity.routers.token1_decimals)} {token1?.token_symbol}
-                        </span>
-                      </div>
-                      <span className="text-zinc-500">→</span>
-                      <div className="flex items-center gap-2">
-                      {token2?.token_icon ? (
-                          <img 
-                            src={token2.token_icon} 
-                            alt={token2.token_symbol} 
-                            className="w-5 h-5 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
-                            ?
-                          </div>
-                        )}
-                        <span className="text-sm">
-                          {formatAmount(activity.routers.amount2, activity.routers.token2_decimals)} {token2?.token_symbol}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-sm text-zinc-400">
-                      ${activity.value.toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-                );
-              })}
+              {paginatedActivities.map((activity, index) => (
+                <ActivityCard
+                  key={index}
+                  activity={activity}
+                  token1={activities.metadata.tokens[activity.routers.token1]}
+                  token2={activities.metadata.tokens[activity.routers.token2]}
+                />
+              ))}
               <PaginationControls />
             </>
           ) : (
@@ -489,19 +491,19 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
   }
 
   return (
-    <div key={toolCallId} className="p-6 bg-zinc-800 rounded-lg">
+    <div key={toolCallId} className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">Top Token Holders</h3>
-      <p className="mb-4">Click the holder to see recent activities like token swaps, staking, and more. </p>
+      <p className="mb-4">Click the holder to see recent activities like token swaps, staking, and more.</p>
 
       <div className="space-y-3">
         {toolInvocation.result && toolInvocation.result.map((holder, index) => (
           <div 
             key={holder.owner}
             onClick={() => fetchActivities(holder.owner)}
-            className="flex items-center border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg 
-                     hover:border-indigo-400 hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer"
+            className="flex flex-col sm:flex-row items-start sm:items-center border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg 
+                     hover:border-indigo-400 hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer gap-3"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400">
                 #{index + 1}
               </div>
@@ -514,9 +516,6 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
                 </div>
               </div>
             </div>
-            {/* <div className="text-right text-sm text-zinc-400">
-              {holder.percentage.toFixed(2)}%
-            </div> */}
           </div>
         ))}
       </div>
