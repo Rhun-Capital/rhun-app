@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
 const COINGECKO_BASE_URL = process.env.COINGECKO_BASE_URL;
 
+export const dynamic = 'force-dynamic';
+
+
 interface TokenSearchResult {
   id: string;
   name: string;

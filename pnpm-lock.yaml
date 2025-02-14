@@ -112,7 +112,7 @@ dependencies:
     version: 14.2.5(react-dom@18.3.1)(react@18.3.1)
   openai:
     specifier: ^4.80.1
-    version: 4.80.1(ws@7.5.10)(zod@3.24.1)
+    version: 4.80.1(ws@8.18.0)(zod@3.24.1)
   p-limit:
     specifier: ^6.2.0
     version: 6.2.0
@@ -10013,7 +10013,7 @@ packages:
     dependencies:
       wrappy: 1.0.2
 
-  /openai@4.80.1(ws@7.5.10)(zod@3.24.1):
+  /openai@4.80.1(ws@8.18.0)(zod@3.24.1):
     resolution: {integrity: sha512-+6+bbXFwbIE88foZsBEt36bPkgZPdyFN82clAXG61gnHb2gXdZApDyRrcAHqEtpYICywpqaNo57kOm9dtnb7Cw==}
     hasBin: true
     peerDependencies:
@@ -10032,7 +10032,7 @@ packages:
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
       node-fetch: 2.7.0(encoding@0.1.13)
-      ws: 7.5.10
+      ws: 8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       zod: 3.24.1
     transitivePeerDependencies:
       - encoding
