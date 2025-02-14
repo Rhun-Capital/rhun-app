@@ -16,6 +16,7 @@ interface Tool {
   description: string;
   command: string;
   isPro?: boolean;
+  isNew?: boolean;
 }
 
 
@@ -140,41 +141,49 @@ const ToolCard: React.FC<{
   return (
     <div 
       className={`relative group ${
-        canUse 
-          ? 'cursor-pointer hover:bg-zinc-700' 
-          : 'cursor-not-allowed opacity-75'
+      canUse 
+        ? 'cursor-pointer hover:bg-zinc-700' 
+        : 'cursor-not-allowed opacity-75'
       } bg-zinc-800 p-3 rounded-lg border transition-all duration-200 ${
-        tool.isPro 
-          ? 'border-indigo-500/50 hover:border-indigo-500' 
-          : 'border-zinc-700'
+      tool.isPro 
+        ? 'border-indigo-500/50 hover:border-indigo-500' 
+        : tool.isNew 
+        ? 'border-green-500/50 hover:border-green-500' 
+        : 'border-zinc-700'
       }`}
       onClick={() => canUse && onClick()}
     >
       <div className="flex justify-between items-start mb-1">
-        <div className="font-medium text-white group-hover:text-white/90">
-          {tool.name}
+      <div className="font-medium text-white group-hover:text-white/90">
+        {tool.name}
+      </div>
+      {tool.isPro && (
+        <div className="flex items-center gap-1 bg-indigo-500/10 px-2 py-0.5 rounded text-indigo-400 text-xs">
+        <Sparkles className="w-3 h-3" />
+        PRO
         </div>
-        {tool.isPro && (
-          <div className="flex items-center gap-1 bg-indigo-500/10 px-2 py-0.5 rounded text-indigo-400 text-xs">
-            <Sparkles className="w-3 h-3" />
-            PRO
-          </div>
-        )}
+      )}
+      {tool.isNew && (
+        <div className="flex items-center gap-1 bg-green-500/10 px-2 py-0.5 rounded text-green-400 text-xs">
+        <Sparkles className="w-3 h-3" />
+        NEW
+        </div>
+      )}      
       </div>
       <div className="text-sm text-zinc-400 group-hover:text-zinc-300">
-        {tool.description}
+      {tool.description}
       </div>
       
       {/* Upgrade overlay for pro features */}
       {tool.isPro && !isSubscribed && (
-        <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <a 
-            href="/account" 
-            className="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-600 transition-colors"
-          >
-            Upgrade to Pro
-          </a>
-        </div>
+      <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <a 
+        href="/account" 
+        className="bg-indigo-500 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-600 transition-colors"
+        >
+        Upgrade to Pro
+        </a>
+      </div>
       )}
     </div>
   );
@@ -208,103 +217,141 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       name: 'Get My Portfolio Value', 
       description: 'View the current value of your connected wallet portfolio.',
       command: 'Show me my portfolio value',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: "Get Agent's Portfolio Value", 
       description: "View the current value of the agent's embedded wallet portfolio.",
       command: "Show me your portfolio value",
-      isPro: true // Pro feature
+      isPro: true, // Pro feature
+      isNew: false
     },
     { 
       name: 'Get My Token Holdings', 
       description: 'See a detailed breakdown of all tokens in your connected wallet.',
       command: 'Show me my token holdings',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: "Get Agent's Token Holdings", 
       description: "See a detailed breakdown of all tokens in the agent's wallet.",
       command: "Show me your token holdings",
-      isPro: true // Pro feature
+      isPro: true, // Pro feature
+      isNew: false
     },
     { 
       name: 'Get Solana Transaction Volume', 
       description: 'Check the current transaction volume across the Solana network.',
       command: 'Show me the transaction volume on Solana',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
+    {
+      name: 'Get Solana DEX Trading Volume',
+      description: 'The decentralized exchange trading volume within the Solana ecosystem for the last 30 days.',
+      command: 'Show me the Solana DEX trading volume',
+      isPro: false,
+      isNew: true
+    },
+    {
+      name: 'Get Solana Fees',
+      description: 'The total fees generated within the Solana ecosystem over the past 30 days.',
+      command: 'Show me the Solana fees',
+      isPro: false,
+      isNew: true
+    },
+    {
+      name: 'Get Solana Active Loans',
+      description: 'The change in active loans within the Solana ecosystem over the last 30 days.',
+      command: 'Show me the Solana active loans',
+      isPro: false,
+      isNew: true
+    },    
     { 
       name: 'Get Token Info', 
       description: 'Access comprehensive information about any specific token.',
       command: 'Show me information about the token',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: 'Get Wallet Info', 
       description: 'Examine detailed information about any Solana wallet address.',
       command: 'Show me information about a solana account',
-      isPro: false
+      isPro: false,
+      isNew: false
     },    
     { 
       name: 'Track Wallet Activity', 
       description: 'Track wallet activity for any Solana wallet address',
       command: 'Show me information about a solana account and track activity',
-      isPro: true // Pro feature
+      isPro: true, // Pro feature
+      isNew: false
     },     
     { 
       name: 'Get Latest Tokens', 
       description: 'Discover newly listed tokens on CoinGecko.',
       command: 'Search for tokens the recently listed tokens',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: 'Get Trending Tokens', 
       description: 'Discover trending tokens.',
       command: 'Search for trending tokens',
-      isPro: false
+      isPro: false,
+      isNew: false
     },    
     { 
       name: 'Search Tokens', 
       description: 'Search through the complete database of tokens.',
       command: 'Search for tokens',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: 'Get Top Token Holders', 
       description: 'Identify the largest holders of any specific token.',
       command: 'Show me the top token holders',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: 'Get Market Movers', 
       description: 'Track the biggest price movers in the market.',
       command: 'Show me the top market movers today',
-      isPro: false
+      isPro: false,
+      isNew: false
     },    
     { 
       name: 'Get Total Crypto Market Cap', 
       description: 'View the total market capitalization of all cryptocurrencies.',
       command: 'Show me the total crypto market cap',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: 'Get Market Categories', 
       description: 'Explore different categories of tokens and their performance.',
       command: 'Show me the market categories',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: 'Get Derivatives Exchanges', 
       description: 'View comprehensive data about cryptocurrency derivatives exchanges.',
       command: 'Show me derivatives exchanges',
-      isPro: false
+      isPro: false,
+      isNew: false
     },
     { 
       name: 'Fear & Greed Index', 
       description: 'Check the current market sentiment using the Fear and Greed Index.',
       command: 'What is the current fear and greed index?',
-      isPro: false
+      isPro: false,
+      isNew: false
     }
   ];
   
