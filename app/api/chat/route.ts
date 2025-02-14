@@ -36,7 +36,6 @@ export async function POST(req: Request) {
     retrieveCoins(latestMessage.content) // Add semantic search based on user's message
   ]);
 
-
   const allTools: { [key: string]: { description: string; parameters: any; execute: (args: any) => Promise<any> } } =
   { 
   
@@ -119,7 +118,7 @@ export async function POST(req: Request) {
         const response = await getTransactionVolumeAndCount(timeframe);
         return response;
       },
-    },      
+    },  
   
     getTokenInfo: {
       description: "Get detailed information about a specific Solana token using its contract address.",
@@ -360,10 +359,16 @@ If the user requests functionality that requires a paid subscription, inform the
 this feature is only available to paid users and direct them to upgrade their subscription.
 Free tools available to the user include:
 ${Object.values(freeTools).map(tool => `- ${tool.description}`).join('\n')}
+- Solana DEX Trading Volume: The decentralized exchange trading volume within the Solana ecosystem for the last 30 days.
+- Solana Fees: The total fees generated within the Solana ecosystem over the past 30 days.
+- Solana Active Loans: The change in active loans within the Solana ecosystem over the last 30 days.
 ` : `
 ## Subscription Status
-The user has an active subscription. They have access to all available tools.
+Pro tools available to the user include:
 ${Object.values(proTools).map(tool => `- ${tool.description}`).join('\n')}
+- Solana DEX Trading Volume: The decentralized exchange trading volume within the Solana ecosystem for the last 30 days.
+- Solana Fees: The total fees generated within the Solana ecosystem over the past 30 days.
+- Solana Active Loans: The change in active loans within the Solana ecosystem over the last 30 days.
 `}
 
 ## Agent's Solana Wallet Address Exception Handling:
