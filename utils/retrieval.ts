@@ -1,4 +1,5 @@
 import { createEmbedding, initPinecone } from './embeddings';
+import { RecordMetadata, RecordMetadataValue } from '@pinecone-database/pinecone';
 
 // Base interface for common coin data
 interface BaseCoinData {
@@ -41,6 +42,76 @@ export interface RetrievedContext {
   source: string;
   score: number;
 }
+
+interface SolanaMetrics {
+  metadata: Record<string, any>;  // Raw metrics data
+  timestamp: string;
+  score: number;
+}
+
+export async function retrieveSolanaMetrics(
+  query: string,
+  maxResults: number = 5
+): Promise<SolanaMetrics[]> {
+  try {
+    const pinecone = initPinecone();
+    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+
+    const queryEmbedding = await createEmbedding(query);
+
+    const queryResponse = await index.query({
+      vector: queryEmbedding,
+      filter: { 
+        source: { $eq: "solana-metrics.csv" }
+      },
+      topK: maxResults,
+      includeMetadata: true,
+    });
+
+    return queryResponse.matches?.map(match => ({
+      metadata: match.metadata as Record<string, any>,
+      timestamp: match.metadata?.timestamp as string,
+      score: match.score || 0
+    })) || [];
+  } catch (error) {
+    console.error('Error retrieving Solana metrics:', error);
+    return [];
+  }
+}
+
+// Helper function to get the most recent value for a specific metric
+export async function getLatestMetric(metricName: string): Promise<number | string | null> {
+  const results = await retrieveSolanaMetrics(`${metricName}`, 1);
+  if (results.length > 0) {
+    // Find the closest matching metric name
+    const metricKey = Object.keys(results[0].metadata)
+      .find(key => key.toLowerCase().includes(metricName.toLowerCase()));
+    
+    return metricKey ? results[0].metadata[metricKey] : null;
+  }
+  return null;
+}
+
+// Helper function to get multiple metrics at once
+export async function getLatestMetrics(metricNames: string[]): Promise<Record<string, any>> {
+  const results = await retrieveSolanaMetrics(metricNames.join(" "), 1);
+  if (results.length > 0) {
+    const metrics: Record<string, any> = {};
+    
+    metricNames.forEach(name => {
+      const metricKey = Object.keys(results[0].metadata)
+        .find(key => key.toLowerCase().includes(name.toLowerCase()));
+      
+      if (metricKey) {
+        metrics[name] = results[0].metadata[metricKey];
+      }
+    });
+    
+    return metrics;
+  }
+  return {};
+}
+
 
 export async function retrieveContext(
   query: string,

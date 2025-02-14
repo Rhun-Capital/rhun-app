@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText, tool } from "ai";
-import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveSolanaMetrics } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
@@ -22,6 +22,114 @@ import { getAccountDetails } from '@/utils/solscan';
 import { checkSubscriptionStatus } from '@/utils/subscriptions';
 
 
+function formatNumber(num: number): string {
+  if (Math.abs(num) >= 1000000000) {
+    return `${(num / 1000000000).toFixed(2)}B`;
+  }
+  if (Math.abs(num) >= 1000000) {
+    return `${(num / 1000000).toFixed(2)}M`;
+  }
+  if (Math.abs(num) >= 1000) {
+    return `${(num / 1000).toFixed(2)}K`;
+  }
+  // For very small numbers (like ratios)
+  if (Math.abs(num) < 0.01) {
+    return num.toFixed(4);
+  }
+  return num.toFixed(2);
+}
+
+function metricsToText(metricsArray: any[]): string {
+  // Get the latest data entry
+  const latestMetrics = metricsArray.find(item => 
+    typeof item.metadata.Price === 'number'
+  )?.metadata;
+
+  if (!latestMetrics) return "No metrics data available.";
+
+  const sections: { [key: string]: string[] } = {
+    price: [],
+    market: [],
+    users: [],
+    transactions: [],
+    financial: [],
+    token: [],
+    ratios: [],
+    network: []
+  };
+
+  // Price and Market Cap
+  sections.price.push(`Solana's current price is $${latestMetrics.Price.toFixed(2)}`);
+  sections.market = [
+    `The circulating market cap is $${formatNumber(latestMetrics['Market cap (circulating)'])}`,
+    `with a fully diluted market cap of $${formatNumber(latestMetrics['Market cap (fully diluted)'])}`,
+    `and a circulating supply of ${formatNumber(latestMetrics['Circulating supply'])} tokens`
+  ];
+
+  // Users and Addresses
+  sections.users = [
+    'User Activity:',
+    `• Daily: ${formatNumber(latestMetrics['Active users (daily)'])} users / ${formatNumber(latestMetrics['Active addresses (daily)'])} addresses`,
+    `• Weekly: ${formatNumber(latestMetrics['Active users (weekly)'])} users / ${formatNumber(latestMetrics['Active addresses (weekly)'])} addresses`,
+    `• Monthly: ${formatNumber(latestMetrics['Active users (monthly)'])} users / ${formatNumber(latestMetrics['Active addresses (monthly)'])} addresses`
+  ];
+
+  // Transactions
+  sections.transactions = [
+    'Transaction Metrics:',
+    `• Count: ${formatNumber(latestMetrics['Transaction count'])} total transactions`,
+    `• Speed: ${formatNumber(latestMetrics['Transactions per second'])} TPS`,
+    `• Average Fee: $${latestMetrics['Average transaction fee'].toFixed(4)}`
+  ];
+
+  // Financial Metrics
+  sections.financial = [
+    'Financial Overview:',
+    `• Revenue: $${formatNumber(latestMetrics.Revenue)}`,
+    `• Fees: $${formatNumber(latestMetrics.Fees)}`,
+    `• Expenses: $${formatNumber(latestMetrics.Expenses)}`,
+    `• Earnings: $${formatNumber(latestMetrics.Earnings)}`,
+    `• Supply-side Fees: $${formatNumber(latestMetrics['Supplyside fees'])}`,
+    `• Token Incentives: $${formatNumber(latestMetrics['Token incentives'])}`
+  ];
+
+  // Per User Metrics
+  sections.financial.push(
+    'Per User Metrics:',
+    `• ARPU: $${latestMetrics['Average revenue per user (ARPU)'].toFixed(4)}`,
+    `• AFPU: $${latestMetrics['Average fee per user (AFPU)'].toFixed(4)}`
+  );
+
+  // Token Metrics
+  sections.token = [
+    'Token Metrics:',
+    `• Trading Volume: $${formatNumber(latestMetrics['Token trading volume'])}`,
+    `• Turnover (Circulating): ${latestMetrics['Token turnover (circulating)'].toFixed(4)}`,
+    `• Turnover (Fully Diluted): ${latestMetrics['Token turnover (fully diluted)'].toFixed(4)}`
+  ];
+
+  // Ratios
+  sections.ratios = [
+    'Market Ratios:',
+    `• P/F Ratio (Circulating): ${latestMetrics['PF ratio (circulating)'].toFixed(2)}`,
+    `• P/F Ratio (Fully Diluted): ${latestMetrics['PF ratio (fully diluted)'].toFixed(2)}`,
+    `• P/S Ratio (Circulating): ${latestMetrics['PS ratio (circulating)'].toFixed(2)}`,
+    `• P/S Ratio (Fully Diluted): ${latestMetrics['PS ratio (fully diluted)'].toFixed(2)}`
+  ];
+
+  // Network Development
+  sections.network = [
+    'Network Development:',
+    `• Core Developers: ${latestMetrics['Core developers']}`,
+    `• Recent Code Commits: ${latestMetrics['Code commits']}`
+  ];
+
+  // Combine all sections with proper spacing
+  return Object.values(sections)
+    .filter(section => section.length > 0)
+    .map(section => section.join('\n'))
+    .join('\n\n');
+}
 
 
 export async function POST(req: Request) {
@@ -30,11 +138,18 @@ export async function POST(req: Request) {
   const latestMessage = messages[messages.length - 1];
 
   // Fetch context, agent configuration, and coin data in parallel
-  const [context, agentConfig, coins] = await Promise.all([
+  const [context, agentConfig, coins, solanaMetrics] = await Promise.all([
     retrieveContext(latestMessage.content, agent.id),
     getAgentConfig(agent.userId, agent.id),
-    retrieveCoins(latestMessage.content) // Add semantic search based on user's message
+    retrieveCoins(latestMessage.content),
+    retrieveSolanaMetrics(latestMessage.content),
   ]);
+
+
+  
+  const metricsText = metricsToText(solanaMetrics);
+
+
 
   const allTools: { [key: string]: { description: string; parameters: any; execute: (args: any) => Promise<any> } } =
   { 
@@ -320,24 +435,25 @@ export async function POST(req: Request) {
         availableTools = freeTools;
     }
 
-  // Format context for the prompt
-  const contextText = context
-    .map(item => `Relevant context from ${item.source}:\n${item.text}`)
-    .join('\n\n');   
+// Format context for the prompt
+const contextText = context
+.map(item => `Relevant context from ${item.source}:\n${item.text}`)
+.join('\n\n');   
 
-  // Format coin data for the prompt
-  const coinContext = coins.length > 0 ? `
-    ## Recent Cryptocurrency Data:
-    ${coins.slice(0, 5).map(coin => `
-    - Name: ${coin.name} (${coin.symbol})
-      Price: $${coin.current_price_usd?.toFixed(2) || 'N/A'}
-      Market Cap: $${coin.market_cap_usd?.toLocaleString() || 'N/A'}
-      Categories: ${coin.categories?.join(', ') || 'N/A'}
-    `).join('\n')}
-    ` : '';    
 
-  const systemPrompt = `
+// Format coin data for the prompt
+const coinContext = coins.length > 0 ? `
+## Recent Cryptocurrency Data:
+${coins.slice(0, 5).map(coin => `
+- Name: ${coin.name} (${coin.symbol})
+  Price: $${coin.current_price_usd?.toFixed(2) || 'N/A'}
+  Market Cap: $${coin.market_cap_usd?.toLocaleString() || 'N/A'}
+  Categories: ${coin.categories?.join(', ') || 'N/A'}
+`).join('\n')}
+` : '';    
 
+
+const systemPrompt = `
 ## User Information (the user that's interacting with the agent):
 - User's ID: ${user.id}
 - User's Email: ${user.email || 'N/A'}
@@ -359,29 +475,16 @@ If the user requests functionality that requires a paid subscription, inform the
 this feature is only available to paid users and direct them to upgrade their subscription.
 Free tools available to the user include:
 ${Object.values(freeTools).map(tool => `- ${tool.description}`).join('\n')}
-- Solana DEX Trading Volume: The decentralized exchange trading volume within the Solana ecosystem for the last 30 days.
-- Solana Fees: The total fees generated within the Solana ecosystem over the past 30 days.
-- Solana Active Loans: The change in active loans within the Solana ecosystem over the last 30 days.
+- Solana Metrics: The latest metrics data for the Solana ecosystem.
 ` : `
 ## Subscription Status
 Pro tools available to the user include:
 ${Object.values(proTools).map(tool => `- ${tool.description}`).join('\n')}
-- Solana DEX Trading Volume: The decentralized exchange trading volume within the Solana ecosystem for the last 30 days.
-- Solana Fees: The total fees generated within the Solana ecosystem over the past 30 days.
-- Solana Active Loans: The change in active loans within the Solana ecosystem over the last 30 days.
+- Solana Metrics: The latest metrics data for the Solana ecosystem.
 `}
 
-## Agent's Solana Wallet Address Exception Handling:
-If you're asked to do anything with the agents wallet but it is not available, please let the user know that the agent's wallet is not created and they should created it to proceed. They can create one for the agent in the wallet tab of the agent settings.
-
-## Chatbot Tool Special Instructions:
-When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
-Dont add links to markdown. 
-If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
-When your listing token holdings do not add the token image to the list.
-You only have token data on for the Solana blockchain. If the user asks for token data on another blockchain, let them know that you only have data for Solana tokens.
-When you're replying to the user and the reponses in not a tool, do not add images to the response.
-When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
+## Solana Metrics
+${metricsText ? metricsText : ''}
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
@@ -429,7 +532,6 @@ ${coinContext}
 
 
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
-
 
   const result = await streamText({
     model: openai("gpt-4o"),

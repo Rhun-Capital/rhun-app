@@ -249,23 +249,9 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isNew: false
     },
     {
-      name: 'Get Solana DEX Trading Volume',
-      description: 'The decentralized exchange trading volume within the Solana ecosystem for the last 30 days.',
-      command: 'Show me the Solana DEX trading volume',
-      isPro: false,
-      isNew: true
-    },
-    {
-      name: 'Get Solana Fees',
-      description: 'The total fees generated within the Solana ecosystem over the past 30 days.',
-      command: 'Show me the Solana fees',
-      isPro: false,
-      isNew: true
-    },
-    {
-      name: 'Get Solana Active Loans',
-      description: 'The change in active loans within the Solana ecosystem over the last 30 days.',
-      command: 'Show me the Solana active loans',
+      name: 'Get Solana Metrics',
+      description: 'Get the latest metrics for the Solana blockchain.',
+      command: 'Show me the Solana metrics',
       isPro: false,
       isNew: true
     },    
