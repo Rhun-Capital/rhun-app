@@ -146,10 +146,7 @@ export async function POST(req: Request) {
   ]);
 
 
-  
   const metricsText = metricsToText(solanaMetrics);
-
-
 
   const allTools: { [key: string]: { description: string; parameters: any; execute: (args: any) => Promise<any> } } =
   { 
@@ -529,6 +526,19 @@ ${agentConfig.styleGuide}
 ${contextText}
 
 ${coinContext}
+
+${agentConfig.userId === 'template' ? `
+ If the users runs the Get Agent Portfolio tool (getAgentPortfolioValue), tell them this is a template agent and does not have a wallet. 
+`: ''}
+
+# Chatbot Tool Special Instructions:
+When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
+Dont add links to markdown. 
+If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
+When your listing token holdings do not add the token image to the list.
+You only have token data on for the Solana blockchain. If the user asks for token data on another blockchain, let them know that you only have data for Solana tokens.
+When you're replying to the user and the reponses in not a tool, do not add images to the response.
+When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
 
 
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
