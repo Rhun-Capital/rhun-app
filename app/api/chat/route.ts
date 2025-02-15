@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText, tool } from "ai";
-import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveSolanaMetrics, retrieveNfts } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveSolanaMetrics, retrieveNfts, retrieveTrendingSolanaTokens, getTrendingTokensWithPositiveMovement } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
@@ -143,6 +143,7 @@ export async function POST(req: Request) {
     getAgentConfig(agent.userId, agent.id),
     retrieveCoins(latestMessage.content),
     retrieveSolanaMetrics(latestMessage.content),
+    // retrieveTrendingSolanaTokens()
   ]);
 
 
@@ -161,15 +162,8 @@ export async function POST(req: Request) {
         (sum: number, token: TokenHolding) => sum + token.usdValue,
         0
       ) : 0;
-      // const totalChange24h = data.holdings.reduce(
-      //   (sum: number, token: TokenHolding) =>
-      //     sum + (token.usdValue * token.priceChange24h) / 100,
-      //   0
-      // );
       return {
         totalValue,
-        // totalChange24h, // confirm these work
-        // changePercentage24h: (totalChange24h / totalValue) * 100,
       }
   
       } 
@@ -186,11 +180,6 @@ export async function POST(req: Request) {
         (sum: number, token: TokenHolding) => sum + token.usdValue,
         0
       ) : 0;
-      // const totalChange24h = data.holdings.reduce(
-      //   (sum: number, token: TokenHolding) =>
-      //     sum + (token.usdValue * token.priceChange24h) / 100,
-      //   0
-      // );
       return {totalValue}
   
       }
@@ -290,15 +279,81 @@ export async function POST(req: Request) {
       },
     },
 
-    getTrendingCoins: {
-      description: "Get the current trending cryptocurrencies across all chains. Shows price in BTC, market cap rank, and other relevant metrics.",
-      parameters: z.object({}), // No parameters needed
-      execute: async () => {
-        const trendingCoins = await retrieveTrendingCoins();
-        return trendingCoins;
+    // getTrendingTokens: {
+    //   description: "Get trending tokens and cryptocurrencies. Supports both global trending data from CoinGecko and Solana-specific data from Solscan.",
+    //   parameters: z.object({
+    //     chain: z.enum(['all', 'solana'])
+    //       .describe("Which blockchain to get trending tokens for. Use 'all' for trending across all chains, or 'solana' for Solana-specific tokens")
+    //       .default('all'),
+    //   }),
+    //   execute: async ({ chain }) => {
+    //     if (chain === 'solana') {
+    //       const trendingTokens = await retrieveTrendingSolanaTokens();
+    //       return trendingTokens;
+    //     }
+        
+    //     const trendingCoins = await retrieveTrendingCoins();
+    //     return trendingCoins
+    //   },
+    // },    
+  
+    getTrendingTokens: {
+      description: "Get trending tokens and cryptocurrencies with optional filters. Supports both global trending data and Solana-specific data with filtering options.",
+      parameters: z.object({
+        chain: z.enum(['all', 'solana'])
+          .describe("Which blockchain to get trending tokens for. Use 'all' for trending across all chains, or 'solana' for Solana-specific tokens")
+          .default('all'),
+        filters: z.object({
+          minPrice: z.number().optional()
+            .describe("Minimum price in USD"),
+          maxPrice: z.number().optional()
+            .describe("Maximum price in USD"),
+          minMarketCap: z.number().optional()
+            .describe("Minimum market cap in USD"),
+          maxMarketCap: z.number().optional()
+            .describe("Maximum market cap in USD"),
+          minHolders: z.number().optional()
+            .describe("Minimum number of token holders (Solana only)"),
+          minVolume: z.number().optional()
+            .describe("Minimum 24h trading volume in USD"),
+          minPriceChange: z.number().optional()
+            .describe("Filter for tokens with minimum price increase percentage in 24h"),
+        }).optional(),
+        maxResults: z.number().optional()
+          .describe("Maximum number of tokens to return")
+          .default(100),
+        sortBy: z.enum(['trending', 'price_change', 'market_cap', 'volume', 'holders'])
+          .describe("How to sort the results")
+          .default('trending'),
+      }),
+      execute: async ({ chain, filters, maxResults, sortBy }) => {
+        if (chain === 'solana') {
+          let trendingTokens = await retrieveTrendingSolanaTokens(undefined, filters);
+          
+          // Apply sorting using numeric fields
+          if (sortBy === 'price_change') {
+            trendingTokens = trendingTokens
+              .filter(token => token.price_change_24h && token.price_change_24h > (filters?.minPriceChange || 0))
+              .sort((a, b) => (b.price_change_24h || 0) - (a.price_change_24h || 0));
+          } else if (sortBy === 'market_cap') {
+            trendingTokens = trendingTokens
+              .sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0)); // Now uses numeric field
+          } else if (sortBy === 'volume') {
+            trendingTokens = trendingTokens
+              .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0)); // Now uses numeric field
+          } else if (sortBy === 'holders') {
+            trendingTokens = trendingTokens
+              .sort((a, b) => (b.holder || 0) - (a.holder || 0));
+          }
+    
+          return trendingTokens.slice(0, maxResults)
+        }
+        
+        const trendingCoins = await retrieveTrendingCoins(filters);
+        return trendingCoins.slice(0, maxResults)
       },
     },
-    
+ 
     getRecentlyLaunchedCoins: {
       description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, and more.",
       parameters: z.object({ 
@@ -434,7 +489,7 @@ export async function POST(req: Request) {
     getDerivativesExchanges: allTools.getDerivativesExchanges,
     getTopHolders: allTools.getTopHolders,
     getAccountDetails: allTools.getAccountDetails,
-    getTrendingCoins: allTools.getTrendingCoins,
+    getTrendingTokens: allTools.getTrendingTokens,
     getTokenInfo: allTools.getTokenInfo,
     getMarketMovers: allTools.getMarketMovers,
     searchTokens: allTools.searchTokens,
@@ -443,6 +498,7 @@ export async function POST(req: Request) {
     getFearAndGreedIndex: allTools.getFearAndGreedIndex,
     getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
     getTopNfts: allTools.getTopNfts,
+    // getTrendingSolanaTokens: allTools.getTrendingSolanaTokens,
   };
 
   const proTools = {
@@ -486,6 +542,7 @@ ${coins.slice(0, 5).map(coin => `
   Categories: ${coin.categories?.join(', ') || 'N/A'}
 `).join('\n')}
 ` : '';    
+
 
 
 const systemPrompt = `
