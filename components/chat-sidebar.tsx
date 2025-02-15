@@ -134,9 +134,10 @@ const TransferButton = ({ tokens, solanaBalance, agent }: TransferButtonProps & 
 const ToolCard: React.FC<{
   tool: Tool;
   isSubscribed: boolean;
+  isDisabled: boolean;
   onClick: () => void;
-}> = ({ tool, isSubscribed, onClick }) => {
-  const canUse = !tool.isPro || isSubscribed;
+}> = ({ tool, isSubscribed, onClick, isDisabled }) => {
+  const canUse = (!tool.isPro || isSubscribed) && !isDisabled;
 
   return (
     <div 
@@ -191,6 +192,7 @@ const ToolCard: React.FC<{
 
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect }) => {
   const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
+  const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
   const { user, getAccessToken } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
   const [totalValue, setTotalValue] = useState<number | null>(null);
@@ -255,6 +257,13 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isPro: false,
       isNew: true
     },    
+    {
+      name: 'Get Top NFTs',
+      description: 'Discover the top NFTs. Filter by volume, floor price, and more.',
+      command: 'Show me the top NFTs',
+      isPro: false,
+      isNew: true
+    },        
     { 
       name: 'Get Token Info', 
       description: 'Access comprehensive information about any specific token.',
@@ -343,7 +352,15 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   
 
   const handleToolClick = (tool: Tool) => {
+    if (isToolClickDisabled) return;
+
+    setIsToolClickDisabled(true);
+
     onToolSelect(tool.command);
+
+    setTimeout(() => {
+      setIsToolClickDisabled(false);
+    }, 5000);    
   };
 
   async function getPortfolioValue(walletAddress: string) {
@@ -570,6 +587,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                     key={tool.name}
                     tool={tool}
                     isSubscribed={isSubscribed}
+                    isDisabled={isToolClickDisabled}
                     onClick={() => handleToolClick(tool)}
                   />
                 ))}

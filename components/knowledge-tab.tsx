@@ -41,7 +41,6 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       toast.promise(
         new Promise((resolve) => setTimeout(resolve, 4000)),
         {
-          loading: 'Processing text',
           success: 'Text added to processing queue',
           error: 'Failed to process text',
         }
@@ -123,11 +122,11 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       setMessage(`Error: ${error.message}`);
       toast.error('Failed to process URL');
     } finally {
+      setLoading3(false);
       scrollToTop();
       toast.promise(
         new Promise((resolve) => setTimeout(resolve, 4000)),
         {
-          loading: 'File uploading',
           success: 'File uploaded starting queue processing',
           error: 'Failed to upload file',
         }
@@ -225,7 +224,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
           <input
             type="file"
             onChange={handleFileUpload}
-            accept=".pdf,.doc,.docx,.txt,.csv"
+            accept=".pdf,.doc,.docx,.txt,.csv,.json"
             disabled={loading}
             className="block w-full text-sm text-zinc-400
               file:mr-4 file:py-2 file:px-4
@@ -236,7 +235,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
               disabled:opacity-50"
           />
           <p className="text-xs text-zinc-500">
-            Supported formats: PDF, CSV, Word documents, Text files
+            Supported formats: PDF, CSV, JSON, Word documents, Text files
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText, tool } from "ai";
-import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveSolanaMetrics } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveSolanaMetrics, retrieveNfts } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
@@ -253,6 +253,43 @@ export async function POST(req: Request) {
       },
     },   
 
+    getTopNfts: {
+      description: "Get the top NFTs by market cap, volume, and other relevant metrics. You can filter by floor price, market cap, volume, platform, and minimum holders.",
+      parameters: z.object({
+        minFloorPrice: z.number().optional()
+          .describe("Minimum floor price in USD"),
+        maxFloorPrice: z.number().optional()
+          .describe("Maximum floor price in USD"),
+        minMarketCap: z.number().optional()
+          .describe("Minimum market cap in USD"),
+        maxMarketCap: z.number().optional()
+          .describe("Maximum market cap in USD"),
+        platform: z.enum(["ethereum", "solana", "polygon"]).optional()
+          .describe("Filter by blockchain platform"),
+        minVolume: z.number().optional()
+          .describe("Minimum 24h volume in USD"),
+        minHolders: z.number().optional()
+          .describe("Minimum number of unique holders"),
+        query: z.string().optional()
+          .describe("Search query to filter NFTs by name or description")
+      }),
+      execute: async (params) => {
+        const topNfts = await retrieveNfts(
+          params.query,
+          {
+            minFloorPrice: params.minFloorPrice,
+            maxFloorPrice: params.maxFloorPrice,
+            minMarketCap: params.minMarketCap,
+            maxMarketCap: params.maxMarketCap,
+            platform: params.platform,
+            minVolume: params.minVolume,
+            minHolders: params.minHolders
+          }
+        );
+        return topNfts;
+      },
+    },
+
     getTrendingCoins: {
       description: "Get the current trending cryptocurrencies across all chains. Shows price in BTC, market cap rank, and other relevant metrics.",
       parameters: z.object({}), // No parameters needed
@@ -405,6 +442,7 @@ export async function POST(req: Request) {
     getMarketCategories: allTools.getMarketCategories,
     getFearAndGreedIndex: allTools.getFearAndGreedIndex,
     getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
+    getTopNfts: allTools.getTopNfts,
   };
 
   const proTools = {
@@ -539,7 +577,7 @@ When your listing token holdings do not add the token image to the list.
 You only have token data on for the Solana blockchain. If the user asks for token data on another blockchain, let them know that you only have data for Solana tokens.
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
 When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
-
+Only when using the getTopNfts tool, show the image of the NFT.
 
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
 

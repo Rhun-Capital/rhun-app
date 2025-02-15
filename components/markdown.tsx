@@ -55,7 +55,10 @@ export const NonMemoizedMarkdown = ({ children }: { children: string }) => {
           {children}
         </a>
       );
-    }
+    },
+    img: ({ node, ...props }: any) => {
+      return <img className="rounded-lg" {...props} />;
+    },
   };
 
   return (

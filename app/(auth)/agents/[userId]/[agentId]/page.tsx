@@ -32,6 +32,7 @@ import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import AccountInfo from "@/components/tools/account-info";
 import TrendingCoins from "@/components/tools/trending-searches";
+import TopNFTsResults from "@/components/tools/top-nfts";
 import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
 
@@ -677,7 +678,7 @@ export default function Home() {
 
   const EmptyState = ({ agent, userId, agentId, onDescribeTools }: EmptyStateProps) => {
     return (
-      <div className="mx-auto w-full max-w-md sm:px-4 px-0">
+      <div className="mx-auto w-full max-w-md">
         <div className="border rounded-xl p-4 sm:p-8 flex flex-col items-center gap-4 sm:gap-6 text-zinc-400 border-zinc-700 bg-zinc-800/30">
           {/* Agent Image/Icon with responsive sizing */}
           <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-zinc-700 flex items-center justify-center">
@@ -859,6 +860,8 @@ export default function Home() {
                             return <div className="max-w-[100%] sm:max-w-[75%]"><AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getTrendingCoins':
                             return <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          case 'getTopNfts':
+                            return <TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
                           default:
                             return null;
                         }
@@ -904,8 +907,8 @@ export default function Home() {
   
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex gap-3 py-4 w-full bg-zinc-900">
-                  <LoadingIndicator />
+                <div className="flex gap-3 py-4 w-full bg-zinc-900 text-zinc-500 text-sm">
+                  <LoadingIndicator /> Thinking...
                 </div>
               )}
             </div>
