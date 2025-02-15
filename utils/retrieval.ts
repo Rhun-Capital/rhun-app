@@ -472,7 +472,7 @@ export async function retrieveCoins(
     const defaultVector = Array(1536).fill(0.1);
     const queryParams = {
       vector: query ? await createEmbedding(query) : defaultVector,
-      filter: { globalData: { $eq: true } },
+      filter: { isRecent: { $eq: true } },
       topK: maxResults,
       includeMetadata: true,
     };
@@ -517,7 +517,6 @@ export async function retrieveTrendingCoins(
     // Build filter conditions
     const filterConditions: any[] = [
       { isTrending: { $eq: true } },
-      { globalData: { $eq: true } }
     ];
 
     if (filters) {
@@ -562,7 +561,6 @@ export async function retrieveTrendingCoins(
       price_change_percentage_24h: match.metadata?.price_change_percentage_24h as number,
       sparkline: match.metadata?.sparkline as string,
       content_description: match.metadata?.content_description as string,
-      globalData: match.metadata?.globalData as boolean,
       isTrending: match.metadata?.isTrending as boolean
     })) || [];
 
@@ -624,7 +622,7 @@ export async function retrieveCoinsWithFilters(
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
 
     const filterConditions: any[] = [
-      { globalData: { $eq: true } }
+      { isRecent: { $eq: true } }
     ];
 
     if (filters.marketCap?.min !== undefined) {
