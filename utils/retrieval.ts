@@ -1,3 +1,4 @@
+import { resourceLimits } from 'node:worker_threads';
 import { createEmbedding, initPinecone } from './embeddings';
 import { RecordMetadata, RecordMetadataValue } from '@pinecone-database/pinecone';
 
@@ -47,6 +48,243 @@ interface SolanaMetrics {
   metadata: Record<string, any>;  // Raw metrics data
   timestamp: string;
   score: number;
+}
+
+// Interface for NFT price data
+interface NftPrice {
+  native_currency: number;
+  usd: number;
+}
+
+// Interface for NFT percentage change data
+interface NftPercentageChange {
+  native_currency: number;
+  usd: number;
+}
+
+// Interface for NFT image data
+interface NftImage {
+  small: string;
+  small_2x: string;
+}
+
+// Interface for NFT data
+export interface NftData {
+  id: string;
+  name: string;
+  symbol: string;
+  description: string;
+  asset_platform_id: string;
+  contract_address: string;
+  native_currency: string;
+  native_currency_symbol: string;
+  total_supply: number;
+  
+  // Price and market data
+  floor_price: NftPrice;
+  market_cap: NftPrice;
+  volume_24h: NftPrice;
+  
+  // Percentage changes
+  floor_price_24h_percentage_change: NftPercentageChange;
+  market_cap_24h_percentage_change: NftPercentageChange;
+  volume_24h_percentage_change: NftPercentageChange;
+  floor_price_in_usd_24h_percentage_change: number;
+  volume_in_usd_24h_percentage_change: number;
+  
+  // Sales and holder metrics
+  one_day_sales: number;
+  one_day_sales_24h_percentage_change: number;
+  one_day_average_sale_price: number;
+  one_day_average_sale_price_24h_percentage_change: number;
+  number_of_unique_addresses: number;
+  number_of_unique_addresses_24h_percentage_change: number;
+  
+  // Images
+  image: NftImage;
+  
+  // Metadata
+  timestamp: string;
+  score: number;
+}
+
+// Interface for NFT price data
+interface NftPrice {
+  native_currency: number;
+  usd: number;
+}
+
+// Interface for NFT percentage change data
+interface NftPercentageChange {
+  native_currency: number;
+  usd: number;
+}
+
+// Interface for NFT image data
+interface NftImage {
+  small: string;
+  small_2x: string;
+}
+
+// Interface for NFT data
+export interface NftData {
+  id: string;
+  name: string;
+  symbol: string;
+  description: string;
+  asset_platform_id: string;
+  contract_address: string;
+  native_currency: string;
+  native_currency_symbol: string;
+  total_supply: number;
+  
+  // Price and market data
+  floor_price: NftPrice;
+  market_cap: NftPrice;
+  volume_24h: NftPrice;
+  
+  // Percentage changes
+  floor_price_24h_percentage_change: NftPercentageChange;
+  market_cap_24h_percentage_change: NftPercentageChange;
+  volume_24h_percentage_change: NftPercentageChange;
+  floor_price_in_usd_24h_percentage_change: number;
+  volume_in_usd_24h_percentage_change: number;
+  
+  // Sales and holder metrics
+  one_day_sales: number;
+  one_day_sales_24h_percentage_change: number;
+  one_day_average_sale_price: number;
+  one_day_average_sale_price_24h_percentage_change: number;
+  number_of_unique_addresses: number;
+  number_of_unique_addresses_24h_percentage_change: number;
+  
+  // Images
+  image: NftImage;
+  
+  // Metadata
+  timestamp: string;
+  score: number;
+}
+
+export async function retrieveNfts(
+  query?: string,
+  filters?: {
+    minFloorPrice?: number;
+    maxFloorPrice?: number;
+    minMarketCap?: number;
+    maxMarketCap?: number;
+    platform?: string;
+    minVolume?: number;
+    minHolders?: number;
+  },
+  maxResults: number = 200
+): Promise<NftData[]> {
+  try {
+    const pinecone = initPinecone();
+    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+
+    // Base filter condition to identify NFT records
+    const filterConditions: any[] = [
+      // Check for presence of NFT-specific fields
+      { "floor_price.usd": { $exists: true } },
+      { "number_of_unique_addresses": { $exists: true } }
+    ];
+
+    // Add optional filters
+    if (filters) {
+      if (filters.minFloorPrice !== undefined) {
+        filterConditions.push({ "floor_price.usd": { $gte: filters.minFloorPrice } });
+      }
+      if (filters.maxFloorPrice !== undefined) {
+        filterConditions.push({ "floor_price.usd": { $lte: filters.maxFloorPrice } });
+      }
+      if (filters.minMarketCap !== undefined) {
+        filterConditions.push({ "market_cap.usd": { $gte: filters.minMarketCap } });
+      }
+      if (filters.maxMarketCap !== undefined) {
+        filterConditions.push({ "market_cap.usd": { $lte: filters.maxMarketCap } });
+      }
+      if (filters.platform !== undefined) {
+        filterConditions.push({ asset_platform_id: { $eq: filters.platform } });
+      }
+      if (filters.minVolume !== undefined) {
+        filterConditions.push({ "volume_24h.usd": { $gte: filters.minVolume } });
+      }
+      if (filters.minHolders !== undefined) {
+        filterConditions.push({ number_of_unique_addresses: { $gte: filters.minHolders } });
+      }
+    }
+
+    const queryParams = {
+      vector: query ? await createEmbedding(query) : Array(1536).fill(0.1),
+      filter: { $and: filterConditions },
+      topK: maxResults,
+      includeMetadata: true,
+    };
+
+    const queryResponse = await index.query(queryParams);
+
+    const results = queryResponse.matches?.map(match => ({
+      id: match.metadata?.id as string,
+      name: match.metadata?.name as string,
+      symbol: match.metadata?.symbol as string,
+      description: match.metadata?.description as string,
+      asset_platform_id: match.metadata?.asset_platform_id as string,
+      contract_address: match.metadata?.contract_address as string,
+      native_currency: match.metadata?.native_currency as string,
+      native_currency_symbol: match.metadata?.native_currency_symbol as string,
+      total_supply: match.metadata?.total_supply as number,
+      
+      floor_price: {
+        native_currency: match.metadata?.["floor_price.native_currency"] as number,
+        usd: match.metadata?.["floor_price.usd"] as number,
+      },
+      market_cap: {
+        native_currency: match.metadata?.["market_cap.native_currency"] as number,
+        usd: match.metadata?.["market_cap.usd"] as number,
+      },
+      volume_24h: {
+        native_currency: match.metadata?.["volume_24h.native_currency"] as number,
+        usd: match.metadata?.["volume_24h.usd"] as number,
+      },
+      
+      floor_price_24h_percentage_change: {
+        native_currency: match.metadata?.["floor_price_24h_percentage_change.native_currency"] as number,
+        usd: match.metadata?.["floor_price_24h_percentage_change.usd"] as number,
+      },
+      market_cap_24h_percentage_change: {
+        native_currency: match.metadata?.["market_cap_24h_percentage_change.native_currency"] as number,
+        usd: match.metadata?.["market_cap_24h_percentage_change.usd"] as number,
+      },
+      volume_24h_percentage_change: {
+        native_currency: match.metadata?.["volume_24h_percentage_change.native_currency"] as number,
+        usd: match.metadata?.["volume_24h_percentage_change.usd"] as number,
+      },
+      
+      floor_price_in_usd_24h_percentage_change: match.metadata?.floor_price_in_usd_24h_percentage_change as number,
+      volume_in_usd_24h_percentage_change: match.metadata?.volume_in_usd_24h_percentage_change as number,
+      
+      one_day_sales: match.metadata?.one_day_sales as number,
+      one_day_sales_24h_percentage_change: match.metadata?.one_day_sales_24h_percentage_change as number,
+      one_day_average_sale_price: match.metadata?.one_day_average_sale_price as number,
+      one_day_average_sale_price_24h_percentage_change: match.metadata?.one_day_average_sale_price_24h_percentage_change as number,
+      number_of_unique_addresses: match.metadata?.number_of_unique_addresses as number,
+      number_of_unique_addresses_24h_percentage_change: match.metadata?.number_of_unique_addresses_24h_percentage_change as number,
+      
+      image: {
+        small: match.metadata?.["image.small"] as string,
+        small_2x: match.metadata?.["image.small_2x"] as string,
+      },
+      
+      timestamp: match.metadata?.timestamp as string,
+      score: match.score ?? 0,
+    })) || [];
+
+    return results;
+  } catch (error) {
+    console.error('Error retrieving NFTs:', error);
+    return [];
+  }
 }
 
 export async function retrieveSolanaMetrics(
