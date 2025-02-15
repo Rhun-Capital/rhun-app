@@ -32,6 +32,7 @@ import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import AccountInfo from "@/components/tools/account-info";
 import TrendingCoins from "@/components/tools/trending-searches";
+import TrendingSolanaTokens from "@/components/tools/trending-solana-tokens";
 import TopNFTsResults from "@/components/tools/top-nfts";
 import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
@@ -858,8 +859,17 @@ export default function Home() {
                             return <div className="max-w-[100%] sm:max-w-[75%]"><TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getAccountDetails':
                             return <div className="max-w-[100%] sm:max-w-[75%]"><AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
-                          case 'getTrendingCoins':
-                            return <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          // case 'getTrendingCoins':
+                          //   return <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                          // case 'getTrendingSolanaTokens':
+                          //   return <TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+
+                          case 'getTrendingTokens':
+                            // Check the chain parameter from the tool result
+                            return tool.args.chain === 'solana' 
+                              ? <TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
+                              : <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+
                           case 'getTopNfts':
                             return <TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
                           default:

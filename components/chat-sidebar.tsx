@@ -257,6 +257,20 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isPro: false,
       isNew: true
     },    
+    { 
+      name: 'Get Trending Tokens', 
+      description: 'Discover trending tokens on CoinGecko across all chains. Filter by market cap, volume, and more.',
+      command: 'Search for trending tokens',
+      isPro: false,
+      isNew: false
+    },    
+    { 
+      name: 'Get Solana Trending Tokens', 
+      description: 'Discover trending tokens on Solana. Filter by market cap, volume, and more.',
+      command: 'Search for trending tokens on Solana',
+      isPro: false,
+      isNew: true
+    },      
     {
       name: 'Get Top NFTs',
       description: 'Discover the top NFTs. Filter by volume, floor price, and more.',
@@ -288,17 +302,10 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     { 
       name: 'Get Latest Tokens', 
       description: 'Discover newly listed tokens on CoinGecko.',
-      command: 'Search for tokens the recently listed tokens',
+      command: 'Search for recently listed tokens',
       isPro: false,
       isNew: false
-    },
-    { 
-      name: 'Get Trending Tokens', 
-      description: 'Discover trending tokens.',
-      command: 'Search for trending tokens',
-      isPro: false,
-      isNew: false
-    },    
+    },      
     { 
       name: 'Search Tokens', 
       description: 'Search through the complete database of tokens.',
@@ -349,7 +356,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isNew: false
     }
   ];
-  
+
 
   const handleToolClick = (tool: Tool) => {
     if (isToolClickDisabled) return;

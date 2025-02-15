@@ -10,7 +10,7 @@ interface Coin {
   price_usd: number;
   market_cap_rank: number;
   price_change_percentage_24h: number;
-  market_cap: string;
+  market_cap: number;
   total_volume: string;
   sparkline?: string;
   content_description?: string;
@@ -151,7 +151,7 @@ interface SortableColumn {
         </div>
         <div>
           <div className="text-zinc-400">Market Cap</div>
-          <div className="text-white font-medium">{coin.market_cap}</div>
+          <div className="text-white font-medium">{formatUsdPrice(coin.market_cap)}</div>
         </div>
         <div>
           <div className="text-zinc-400">Volume (24h)</div>
@@ -225,7 +225,7 @@ interface SortableColumn {
             </div>
             <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
               <div className="text-sm text-zinc-500">Market Cap</div>
-              <div className="text-base sm:text-lg font-semibold text-white">{selectedCoin.market_cap}</div>
+              <div className="text-base sm:text-lg font-semibold text-white">{formatUsdPrice(selectedCoin.market_cap)}</div>
             </div>
             <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
               <div className="text-sm text-zinc-500">Volume (24h)</div>
@@ -270,7 +270,8 @@ interface SortableColumn {
   return (
     <div className="w-full bg-zinc-800 rounded-lg overflow-hidden">
       <div className="p-4 sm:p-6">
-        <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">Trending Cryptocurrencies</h2>
+        <h2 className="text-lg sm:text-xl font-bold text-white ">Trending Cryptocurrencies</h2>
+        <p className="mb-4 sm:mb-6 text-sm text-zinc-500">Top 15 trending coins on CoinGecko</p>
         
         {/* Mobile View (Cards) remains the same */}
         <div className="lg:hidden space-y-3">
@@ -328,7 +329,7 @@ interface SortableColumn {
                     #{coin.market_cap_rank}
                   </td>
                   <td className="p-4 text-right text-white">
-                    {coin.market_cap}
+                    {formatUsdPrice(coin.market_cap)}
                   </td>
                   <td className="p-4 text-right text-white">
                     {coin.total_volume}

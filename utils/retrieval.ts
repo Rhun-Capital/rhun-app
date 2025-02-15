@@ -16,6 +16,16 @@ interface BaseCoinData {
   score: number;
 }
 
+interface TrendingFilters {
+  minPrice?: number;
+  maxPrice?: number;
+  minMarketCap?: number;
+  maxMarketCap?: number;
+  minVolume?: number;
+  minPriceChange?: number;
+  sortBy?: 'trending' | 'price_change' | 'market_cap' | 'volume';
+}
+
 // Interface for regular coin data
 export interface CoinData extends BaseCoinData {
   current_price_usd: number;
@@ -30,7 +40,7 @@ export interface CoinData extends BaseCoinData {
 // Interface specifically for trending coins
 export interface TrendingCoinData extends BaseCoinData {
   price_usd: number;
-  market_cap: string;
+  market_cap: number;
   total_volume: string;
   price_change_percentage_24h: number;
   market_cap_rank: number;
@@ -68,46 +78,6 @@ interface NftImage {
   small_2x: string;
 }
 
-// Interface for NFT data
-export interface NftData {
-  id: string;
-  name: string;
-  symbol: string;
-  description: string;
-  asset_platform_id: string;
-  contract_address: string;
-  native_currency: string;
-  native_currency_symbol: string;
-  total_supply: number;
-  
-  // Price and market data
-  floor_price: NftPrice;
-  market_cap: NftPrice;
-  volume_24h: NftPrice;
-  
-  // Percentage changes
-  floor_price_24h_percentage_change: NftPercentageChange;
-  market_cap_24h_percentage_change: NftPercentageChange;
-  volume_24h_percentage_change: NftPercentageChange;
-  floor_price_in_usd_24h_percentage_change: number;
-  volume_in_usd_24h_percentage_change: number;
-  
-  // Sales and holder metrics
-  one_day_sales: number;
-  one_day_sales_24h_percentage_change: number;
-  one_day_average_sale_price: number;
-  one_day_average_sale_price_24h_percentage_change: number;
-  number_of_unique_addresses: number;
-  number_of_unique_addresses_24h_percentage_change: number;
-  
-  // Images
-  image: NftImage;
-  
-  // Metadata
-  timestamp: string;
-  score: number;
-}
-
 // Interface for NFT price data
 interface NftPrice {
   native_currency: number;
@@ -124,6 +94,117 @@ interface NftPercentageChange {
 interface NftImage {
   small: string;
   small_2x: string;
+}
+
+// Interface for Solana token data
+export interface SolanaTrendingData {
+  address: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  icon?: string;
+  holder?: number;
+  price?: number;
+  total_volume?: number;
+  volume_24h?: number;
+  market_cap?: number;
+  market_cap_rank?: number;
+  price_change_24h?: number;
+  description?: string;
+  twitter?: string;
+  website?: string;
+  creator?: string;
+  supply?: string;
+  last_updated: string;
+  score: number;
+}
+
+export async function retrieveTrendingSolanaTokens(
+  query?: string,
+  filters?: {
+    minPrice?: number;
+    maxPrice?: number;
+    minMarketCap?: number;
+    maxMarketCap?: number;
+    minHolders?: number;
+    minVolume?: number;
+  },
+  maxResults: number = 100
+): Promise<SolanaTrendingData[]> {
+  try {
+    const pinecone = initPinecone();
+    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+
+    // Base filter conditions for Solana trending tokens
+    const filterConditions: any[] = [
+      { isTrendingSolana: { $eq: true } },
+      { network: { $eq: 'solana' } }
+    ];
+
+    // Add optional filters
+    if (filters) {
+      if (filters.minPrice !== undefined) {
+        filterConditions.push({ price: { $gte: filters.minPrice } });
+      }
+      if (filters.maxPrice !== undefined) {
+        filterConditions.push({ price: { $lte: filters.maxPrice } });
+      }
+      if (filters.minMarketCap !== undefined) {
+        filterConditions.push({ market_cap: { $gte: filters.minMarketCap } });
+      }
+      if (filters.maxMarketCap !== undefined) {
+        filterConditions.push({ market_cap: { $lte: filters.maxMarketCap } });
+      }
+      if (filters.minHolders !== undefined) {
+        filterConditions.push({ holder: { $gte: filters.minHolders } });
+      }
+      if (filters.minVolume !== undefined) {
+        filterConditions.push({ volume_24h: { $gte: filters.minVolume } });
+      }
+    }
+
+    const queryParams = {
+      vector: query ? await createEmbedding(query) : Array(1536).fill(0.1),
+      filter: { $and: filterConditions },
+      topK: maxResults,
+      includeMetadata: true,
+    };
+
+    const queryResponse = await index.query(queryParams);
+
+    const results = queryResponse.matches?.map(match => ({
+      address: match.metadata?.address as string,
+      name: match.metadata?.name as string,
+      symbol: match.metadata?.symbol as string,
+      decimals: match.metadata?.decimals as number,
+      icon: match.metadata?.icon as string,
+      holder: match.metadata?.holder as number,
+      price: match.metadata?.price as number,
+      volume_24h: match.metadata?.volume_24h as number,
+      market_cap: match.metadata?.market_cap as number,
+      market_cap_rank: match.metadata?.market_cap_rank as number,
+      price_change_24h: match.metadata?.price_change_24h as number,
+      description: match.metadata?.description as string,
+      twitter: match.metadata?.twitter as string,
+      website: match.metadata?.website as string,
+      creator: match.metadata?.creator as string,
+      supply: match.metadata?.supply as string,
+      last_updated: match.metadata?.last_updated as string,
+      score: match.score ?? 0,
+    })) || [];
+
+    // Sort by market cap rank if available, then by score
+    return results.sort((a, b) => {
+      if (a.market_cap_rank !== undefined && b.market_cap_rank !== undefined) {
+        return a.market_cap_rank - b.market_cap_rank;
+      }
+      return b.score - a.score;
+    });
+
+  } catch (error) {
+    console.error('Error retrieving Solana trending tokens:', error);
+    return [];
+  }
 }
 
 // Interface for NFT data
@@ -350,7 +431,6 @@ export async function getLatestMetrics(metricNames: string[]): Promise<Record<st
   return {};
 }
 
-
 export async function retrieveContext(
   query: string,
   agentId: string,
@@ -427,15 +507,43 @@ export async function retrieveCoins(
 }
 
 export async function retrieveTrendingCoins(
-  maxResults: number = 28
+  filters?: TrendingFilters,
+  maxResults: number = 100
 ): Promise<TrendingCoinData[]> {
   try {
     const pinecone = initPinecone();
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
 
+    // Build filter conditions
+    const filterConditions: any[] = [
+      { isTrending: { $eq: true } },
+      { globalData: { $eq: true } }
+    ];
+
+    if (filters) {
+      if (filters.minPrice !== undefined) {
+        filterConditions.push({ price_usd: { $gte: filters.minPrice } });
+      }
+      if (filters.maxPrice !== undefined) {
+        filterConditions.push({ price_usd: { $lte: filters.maxPrice } });
+      }
+      if (filters.minMarketCap !== undefined) {
+        filterConditions.push({ market_cap: { $gte: filters.minMarketCap } });
+      }
+      if (filters.maxMarketCap !== undefined) {
+        filterConditions.push({ market_cap: { $lte: filters.maxMarketCap } });
+      }
+      if (filters.minVolume !== undefined) {
+        filterConditions.push({ total_volume: { $gte: filters.minVolume } });
+      }
+      if (filters.minPriceChange !== undefined) {
+        filterConditions.push({ price_change_percentage_24h: { $gte: filters.minPriceChange } });
+      }
+    }
+
     const queryResponse = await index.query({
       vector: Array(1536).fill(0.1),
-      filter: { isTrending: { $eq: true } },
+      filter: { $and: filterConditions },
       topK: maxResults,
       includeMetadata: true,
     });
@@ -445,20 +553,49 @@ export async function retrieveTrendingCoins(
       name: match.metadata?.name as string,
       symbol: match.metadata?.symbol as string,
       price_usd: match.metadata?.price_usd as number,
-      market_cap: match.metadata?.market_cap as string,
+      market_cap: match.metadata?.market_cap as number,
       total_volume: match.metadata?.total_volume as string,
       last_updated: match.metadata?.last_updated as string,
       score: match.score ?? 0,
       thumb: match.metadata?.thumb as string,
-      small: match.metadata?.small as string,
-      large: match.metadata?.large as string,
       market_cap_rank: match.metadata?.market_cap_rank as number,
       price_change_percentage_24h: match.metadata?.price_change_percentage_24h as number,
       sparkline: match.metadata?.sparkline as string,
-      content_description: match.metadata?.content_description as string
+      content_description: match.metadata?.content_description as string,
+      globalData: match.metadata?.globalData as boolean,
+      isTrending: match.metadata?.isTrending as boolean
     })) || [];
 
-    return results.sort((a, b) => (a.market_cap_rank || Infinity) - (b.market_cap_rank || Infinity));
+    // Apply sorting
+    if (filters?.sortBy) {
+      switch (filters.sortBy) {
+        case 'price_change':
+          results.sort((a, b) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0));
+          break;
+        case 'market_cap':
+          results.sort((a, b) => {
+            const aMarketCap = Number(a.market_cap) || 0;
+            const bMarketCap = Number(b.market_cap) || 0;
+            return bMarketCap - aMarketCap;
+          });
+          break;
+        case 'volume':
+          results.sort((a, b) => {
+            const aVolume = Number(a.total_volume?.replace(/[$,]/g, '')) || 0;
+            const bVolume = Number(b.total_volume?.replace(/[$,]/g, '')) || 0;
+            return bVolume - aVolume;
+          });
+          break;
+        default:
+          // Default sorting by market cap rank
+          results.sort((a, b) => (a.market_cap_rank || Infinity) - (b.market_cap_rank || Infinity));
+      }
+    } else {
+      // Default sorting by market cap rank
+      results.sort((a, b) => (a.market_cap_rank || Infinity) - (b.market_cap_rank || Infinity));
+    }
+
+    return results;
   } catch (error) {
     console.error('Error retrieving trending coins:', error);
     return [];
