@@ -14,7 +14,7 @@ interface ReceiveModalProps {
 const ReceiveModal = ({ isOpen, agent, onClose }: ReceiveModalProps) => {
   // check the agent exists and has a solana wallet
   let activeWallet;
-  if (!agent || !agent.wallets || !agent.wallets.solana){
+  if (agent && agent?.wallets && agent.wallets.solana){
     activeWallet = agent.wallets.solana;
   } else {
     activeWallet = null;

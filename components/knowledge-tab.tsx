@@ -218,7 +218,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       </div>
 
       {/* File Upload Section */}
-      <div className="p-6 bg-zinc-800 rounded-lg">
+      <div className="p-6 bg-zinc-800 bg-opacity-40 border border-zinc-700  rounded-lg">
         <h3 className="text-md font-medium mb-4">Upload Documents</h3>
         <div className="space-y-4">
           <input
@@ -241,14 +241,14 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       </div>
 
       {/* Text Input Section */}
-      <div className="p-6 bg-zinc-800 rounded-lg">
+      <div className="p-6 bg-zinc-800 bg-opacity-40 border border-zinc-700  rounded-lg">
         <h3 className="text-md font-medium mb-4">Add Text Knowledge</h3>
         <form onSubmit={handleTextSubmit} className="space-y-4">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter text knowledge here..."
-            className="w-full px-4 py-2 rounded-lg bg-zinc-700 text-white placeholder-zinc-400"
+            className="w-full px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-white placeholder-zinc-400"
             rows={6}
           />
           <button
@@ -262,7 +262,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
       </div>
 
       {/* URL Input Section */}
-      <div className="p-6 bg-zinc-800 rounded-lg">
+      <div className="p-6 bg-zinc-800 bg-opacity-40 border border-zinc-700  rounded-lg">
         <h3 className="text-md font-medium mb-4">Add URL Knowledge</h3>
         <form onSubmit={handleUrlSubmit} className="space-y-4">
           <input
@@ -270,7 +270,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Enter URL to process..."
-            className="w-full px-4 py-2 rounded-lg bg-zinc-700 text-white placeholder-zinc-400"
+            className="w-full px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-white placeholder-zinc-400"
           />
           <button
             type="submit"

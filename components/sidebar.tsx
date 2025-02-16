@@ -9,12 +9,14 @@ import { usePathname } from 'next/navigation';
 import { RecentChats } from './recent-chats-component';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useModal } from '../contexts/modal-context';
 
 export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const { login, logout, authenticated, user, getAccessToken } = usePrivy();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { isAnyModalOpen } = useModal();
 
   const navigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
@@ -41,7 +43,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-900 text-zinc-400">
+    <div className='flex h-screen bg-zinc-900 text-zinc-400'>
       {/* Mobile menu button */}
       <button
         onClick={toggleSidebar}
@@ -51,12 +53,16 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
       </button>
 
       {/* Sidebar */}
-      <div className={`
-        fixed lg:static inset-y-0 left-0 z-40
-        transform ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 transition-transform duration-300 ease-in-out
-        w-64 bg-zinc-900 text-zinc-400 shadow-lg flex flex-col border-r border-zinc-700
-      `}>
+      <div 
+        className={`
+          w-64 text-zinc-400 shadow-lg flex flex-col border-r border-zinc-700 bg-zinc-900
+          fixed lg:static inset-y-0 left-0
+          transform transition-transform duration-300 ease-in-out
+          ${isAnyModalOpen ? 'bg-black/50 backdrop-blur-sm' : 'z-40'}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0
+        `}
+      >
         <div className="p-4 border-b border-zinc-700 min-h-[61px]">
           <Link href='/' onClick={() => setIsOpen(false)}>
             <div className="flex items-center ml-2">
