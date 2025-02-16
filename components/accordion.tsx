@@ -17,7 +17,7 @@ export default function Accordion({ title, children, defaultOpen = false }: Acco
           e.preventDefault();
           setIsOpen(!isOpen)
         }}
-        className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-zinc-800 rounded-lg transition-colors"
+        className="w-full px-4 py-3 flex justify-between items-center text-left bg-zinc-700 bg-opacity-40 border border-zinc-700  hover:bg-zinc-800 rounded-lg transition-colors"
         aria-expanded={isOpen}
       >
         <span className="text-sm font-medium">{title}</span>

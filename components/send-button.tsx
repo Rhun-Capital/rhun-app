@@ -1,21 +1,189 @@
 // components/TransferModal.tsx
 'use client';
-
-'use client';
-
 import { useState, useEffect } from 'react';
 import { usePrivy, useSolanaWallets } from '@privy-io/react-auth';
-import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Connection } from '@solana/web3.js';
+import { 
+  PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Connection, 
+  Commitment, GetLatestBlockhashConfig, SendOptions, RpcResponseAndContext, 
+  SignatureStatus,   GetAccountInfoConfig,
+  AccountInfo 
+} from '@solana/web3.js';
 import { 
   createTransferCheckedInstruction,
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
-  TOKEN_PROGRAM_ID,
   getAccount,
-  getMint
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,  
 } from '@solana/spl-token';
-import Image from 'next/image'
-import { resourceUsage } from 'process';
+import Image from 'next/image';
+
+// ProxyConnection class for handling RPC requests
+class ProxyConnection extends Connection {
+  constructor(config?: { commitment?: Commitment }) {
+    super('http://localhost', config);
+  }
+
+  private async customRpcRequest(method: string, params: any[]) {
+    try {
+      const response = await fetch('/api/solana/rpc', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method,
+          params,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+
+      return data.result;
+    } catch (error) {
+      console.error('RPC request failed:', error);
+      throw error;
+    }
+  }
+
+  async _rpcRequest(method: string, params: any[]) {
+    const result = await this.customRpcRequest(method, params);
+    return {
+      result,
+      id: 1,
+      jsonrpc: '2.0'
+    };
+  }
+
+  async getAccountInfo<T>(
+    publicKey: PublicKey,
+    commitmentOrConfig?: Commitment | GetAccountInfoConfig
+  ): Promise<AccountInfo<T> | null> {
+    try {
+      const config = typeof commitmentOrConfig === 'string' 
+        ? { commitment: commitmentOrConfig, encoding: 'base64' }
+        : { ...commitmentOrConfig, encoding: 'base64' };
+
+      const params = [
+        publicKey.toBase58(),
+        config
+      ];
+
+      console.log('Getting account info for:', publicKey.toBase58());
+      const result = await this.customRpcRequest('getAccountInfo', params);
+      
+      if (!result?.value) {
+        console.log('No account info found');
+        return null;
+      }
+
+      console.log('Account info raw result:', result.value);
+
+      // Handle different possible data formats
+      let accountData: Buffer;
+      if (Array.isArray(result.value.data)) {
+        accountData = Buffer.from(result.value.data[0], 'base64');
+      } else if (typeof result.value.data === 'string') {
+        accountData = Buffer.from(result.value.data, 'base64');
+      } else {
+        throw new Error('Unexpected account data format');
+      }
+
+      const accountInfo = {
+        data: accountData,
+        executable: !!result.value.executable,
+        lamports: result.value.lamports ?? 0,
+        owner: new PublicKey(result.value.owner),
+        rentEpoch: result.value.rentEpoch ?? 0,
+      } as AccountInfo<T>;
+
+      console.log('Processed account info:', {
+        executable: accountInfo.executable,
+        lamports: accountInfo.lamports,
+        owner: accountInfo.owner.toBase58(),
+        rentEpoch: accountInfo.rentEpoch,
+        dataLength: (accountInfo.data as unknown as Buffer).length
+      });
+
+      return accountInfo;
+    } catch (error) {
+      console.error('getAccountInfo error:', error);
+      throw error;
+    }
+  }
+
+  async getLatestBlockhash(
+    commitmentOrConfig?: Commitment | GetLatestBlockhashConfig
+  ): Promise<Readonly<{
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }>> {
+    const config = typeof commitmentOrConfig === 'string' 
+      ? { commitment: commitmentOrConfig }
+      : commitmentOrConfig;
+
+    const params = config ? [config] : [];
+    const result = await this.customRpcRequest('getLatestBlockhash', params);
+    
+    return {
+      blockhash: result.value.blockhash,
+      lastValidBlockHeight: result.value.lastValidBlockHeight,
+    };
+  }
+
+  async sendRawTransaction(
+    rawTransaction: Buffer | Uint8Array | Array<number>,
+    options?: SendOptions
+  ): Promise<string> {
+    const buffer = Buffer.from(rawTransaction);
+    
+    const params = [
+      buffer.toString('base64'),
+      {
+        encoding: 'base64',
+        ...options
+      }
+    ];
+
+    try {
+      const signature = await this.customRpcRequest('sendTransaction', params);
+      return signature;
+    } catch (error) {
+      console.error('Send transaction error:', error);
+      throw error;
+    }
+  }
+
+  async getSignatureStatus(
+    signature: string,
+    config?: any
+  ): Promise<RpcResponseAndContext<SignatureStatus | null>> {
+    const params = [signature];
+    if (config) {
+      params.push(config);
+    }
+    
+    try {
+      const response = await this.customRpcRequest('getSignatureStatuses', [params]);
+      if (!response.value[0]) {
+        throw new Error('No status returned for signature');
+      }
+      return { context: { slot: 0 }, value: response.value }; 
+    } catch (error) {
+      console.error('Get signature status error:', error);
+      throw error;
+    }
+  }
+}
 
 interface Token {
   token_address: string;
@@ -44,7 +212,7 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
   const { wallets } = useSolanaWallets();
   const solanaWallet = agent.wallets ? wallets.find(w => w.address === agent.wallets.solana) : null;
   
-  const connection = new Connection('https://api.devnet.solana.com', 'confirmed');
+  const connection = new ProxyConnection({ commitment: 'confirmed' });
   
   const [step, setStep] = useState<'select-token' | 'transfer'>('select-token');
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
@@ -54,6 +222,8 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [transactionStatus, setTransactionStatus] = useState<'pending' | 'confirmed' | 'failed' | null>(null);
+  const [pendingSignature, setPendingSignature] = useState<string | null>(null);
 
   const resetForm = () => {
     setStep('select-token');
@@ -62,6 +232,8 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
     setAmount('');
     setError('');
     setSuccess('');
+    setTransactionStatus(null);
+    setPendingSignature(null);
   };
 
   useEffect(() => {
@@ -69,6 +241,247 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
       resetForm();
     }
   }, [isOpen]);
+
+  const checkTransactionStatus = async (signature: string) => {
+    let retries = 0;
+    const maxRetries = 45; // 90 seconds total (45 * 2 second intervals)
+    
+    const checkStatus = async () => {
+      try {
+        const status = await connection.getSignatureStatus(signature);
+        console.log('Transaction status:', status?.value);
+        if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
+          setTransactionStatus('confirmed');
+          setSuccess(signature);
+          return true;          
+        }        
+
+        if (status?.value?.err) {
+          setTransactionStatus('failed');
+          setError(`Transaction failed: ${JSON.stringify(status.value.err)}`);
+          return false;
+        }
+
+        return null;
+      } catch (error) {
+        console.error('Status check error:', error);
+        return null;
+      }
+    };
+
+    // Initial check
+    const initialStatus = await checkStatus();
+    if (initialStatus !== null) return;
+
+    // Start polling
+    const intervalId = setInterval(async () => {
+      retries++;
+      const status = await checkStatus();
+      
+      if (status !== null || retries >= maxRetries) {
+        clearInterval(intervalId);
+        if (status === null && retries >= maxRetries) {
+          setError(`Transaction confirmation is taking longer than expected. Please check the transaction status on Solscan. Signature: ${signature}`);
+        }
+      }
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  };
+
+  const handleTransfer = async () => {
+    if (!solanaWallet) {
+      setError('Wallet not found');
+      return;
+    }
+  
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+  
+      const recipientPubkey = new PublicKey(recipient);
+      let transferAmount = parseFloat(amount);
+  
+      if (isUSD) {
+        transferAmount = transferAmount / selectedToken!.usd_value * selectedToken!.formatted_amount;
+      }
+  
+      if (isNaN(transferAmount) || transferAmount <= 0) {
+        throw new Error('Invalid amount');
+      }
+  
+      const senderPubkey = new PublicKey(solanaWallet.address);
+      let transaction = new Transaction();
+  
+      if (selectedToken?.token_address === 'SOL') {
+        // Transfer SOL
+        transaction.add(
+          SystemProgram.transfer({
+            fromPubkey: senderPubkey,
+            toPubkey: recipientPubkey,
+            lamports: Math.floor(transferAmount * LAMPORTS_PER_SOL)
+          })
+        );
+      } else if (selectedToken) {
+        // Transfer SPL Token
+        console.log('Starting SPL token transfer setup...');
+        
+        const mintPubkey = new PublicKey(selectedToken.token_address);
+        console.log('Mint address:', mintPubkey.toString());
+        
+        // Get sender's ATA
+        const sourceAta = await getAssociatedTokenAddress(
+          mintPubkey,
+          senderPubkey,
+          false,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        console.log('Sender ATA:', sourceAta.toString());
+  
+        // Verify sender's token account exists and has sufficient balance
+        try {
+          console.log('Verifying sender token account...');
+          const sourceAccount = await getAccount(
+            connection,
+            sourceAta,
+            'confirmed',
+            TOKEN_PROGRAM_ID
+          );
+          
+          console.log('Source account details:', {
+            address: sourceAccount.address.toString(),
+            mint: sourceAccount.mint.toString(),
+            owner: sourceAccount.owner.toString(),
+            amount: sourceAccount.amount.toString()
+          });
+  
+          // Verify account ownership
+          if (!sourceAccount.owner.equals(senderPubkey)) {
+            throw new Error('Token account not owned by sender');
+          }
+  
+          // Verify sufficient balance
+          const rawAmount = BigInt(Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals)));
+          if (sourceAccount.amount < rawAmount) {
+            throw new Error('Insufficient token balance');
+          }
+  
+        } catch (e: any) {
+          console.error('Source account verification error:', e);
+          if (e?.message?.includes('TokenAccountNotFoundError')) {
+            throw new Error('You don\'t have a token account for this token. Please ensure you own this token.');
+          }
+          throw new Error(`Failed to verify sender's token account: ${e.message}`);
+        }
+  
+        // Get recipient's ATA
+        const destinationAta = await getAssociatedTokenAddress(
+          mintPubkey,
+          recipientPubkey,
+          false,
+          TOKEN_PROGRAM_ID,
+          ASSOCIATED_TOKEN_PROGRAM_ID
+        );
+        console.log('Recipient ATA:', destinationAta.toString());
+  
+        // Check if destination account exists
+        try {
+          await getAccount(
+            connection,
+            destinationAta,
+            'confirmed',
+            TOKEN_PROGRAM_ID
+          );
+          console.log('Destination account exists');
+        } catch (e: any) {
+          if (e?.message?.includes('TokenAccountNotFoundError')) {
+            console.log('Creating destination token account...');
+            transaction.add(
+              createAssociatedTokenAccountInstruction(
+                senderPubkey,
+                destinationAta,
+                recipientPubkey,
+                mintPubkey,
+                TOKEN_PROGRAM_ID,
+                ASSOCIATED_TOKEN_PROGRAM_ID
+              )
+            );
+          } else {
+            console.error('Error checking destination account:', e);
+            throw e;
+          }
+        }
+  
+        // Add transfer instruction
+        const rawAmount = Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals));
+        console.log('Creating transfer instruction:', {
+          from: sourceAta.toString(),
+          to: destinationAta.toString(),
+          amount: rawAmount,
+          decimals: selectedToken.token_decimals
+        });
+        
+        transaction.add(
+          createTransferCheckedInstruction(
+            sourceAta,
+            mintPubkey,
+            destinationAta,
+            senderPubkey,
+            rawAmount,
+            selectedToken.token_decimals,
+            [],
+            TOKEN_PROGRAM_ID
+          )
+        );
+      }
+  
+      // Get latest blockhash
+      const { blockhash } = await connection.getLatestBlockhash('confirmed');
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = senderPubkey;
+  
+      // Log transaction details
+      console.log('Transaction setup complete:', {
+        instructions: transaction.instructions.map(ix => ({
+          programId: ix.programId.toString(),
+          keys: ix.keys.map(k => ({
+            pubkey: k.pubkey.toString(),
+            isSigner: k.isSigner,
+            isWritable: k.isWritable
+          }))
+        })),
+        feePayer: transaction.feePayer?.toString(),
+        recentBlockhash: transaction.recentBlockhash
+      });
+  
+      // Sign and send transaction
+      const signedTx = await solanaWallet.signTransaction(transaction);
+      
+      console.log('Sending signed transaction...');
+      const signature = await connection.sendRawTransaction(
+        signedTx.serialize(),
+        {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+          maxRetries: 3
+        }
+      );
+  
+      console.log('Transaction submitted with signature:', signature);
+      setTransactionStatus('pending');
+      setPendingSignature(signature);
+      checkTransactionStatus(signature);
+  
+    } catch (err: any) {
+      console.error('Transfer error:', err);
+      setError(err.message || 'Failed to complete transfer');
+      setTransactionStatus('failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTokenSelect = (token: Token | 'SOL') => {
     if (token === 'SOL') {
@@ -111,100 +524,74 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
     }
   };
 
-  const handleTransfer = async () => {
-    if (!solanaWallet) {
-      setError('Wallet not found');
-      return;
-    }
 
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-
-      const recipientPubkey = new PublicKey(recipient);
-      let transferAmount = parseFloat(amount);
-
-      if (isUSD) {
-        transferAmount = transferAmount / selectedToken!.usd_value * selectedToken!.formatted_amount;
-      }
-
-      if (isNaN(transferAmount) || transferAmount <= 0) {
-        throw new Error('Invalid amount');
-      }
-
-      const senderPubkey = new PublicKey(solanaWallet.address);
-      let transaction = new Transaction();
-
-      if (selectedToken?.token_address === 'SOL') {
-        // Transfer SOL
-        transaction.add(
-          SystemProgram.transfer({
-            fromPubkey: senderPubkey,
-            toPubkey: recipientPubkey,
-            lamports: Math.floor(transferAmount * LAMPORTS_PER_SOL)
-          })
-        );
-      } else if (selectedToken) {
-        // Transfer SPL Token
-        const mintPubkey = new PublicKey(selectedToken.token_address);
-        const sourceAta = await getAssociatedTokenAddress(mintPubkey, senderPubkey);
-        const destinationAta = await getAssociatedTokenAddress(mintPubkey, recipientPubkey);
-
-        // Check if destination account exists
-        let destinationAccount;
-        try {
-          destinationAccount = await getAccount(connection, destinationAta);
-        } catch (e) {
-          // If destination account doesn't exist, add creation instruction
-          transaction.add(
-            createAssociatedTokenAccountInstruction(
-              senderPubkey,
-              destinationAta,
-              recipientPubkey,
-              mintPubkey
-            )
-          );
-        }
-
-        // Add transfer instruction
-        const rawAmount = Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals));
-        transaction.add(
-          createTransferCheckedInstruction(
-            sourceAta,
-            mintPubkey,
-            destinationAta,
-            senderPubkey,
-            rawAmount,
-            selectedToken.token_decimals
-          )
-        );
-      }
-
-      // Get latest blockhash
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = senderPubkey;
-
-      // Sign and send transaction using Privy's wallet
-      const signature  = await solanaWallet.sendTransaction(transaction, connection);
-      
-      await connection.confirmTransaction(signature);
-
-      setSuccess(`Transfer successful! Signature: ${signature}`);
-      setTimeout(() => onClose(), 2000);
-
-    } catch (err: any) {
-      console.error('Transfer error:', err);
-      setError(err.message || 'Failed to complete transfer');
-    } finally {
-      setLoading(false);
-    }
-  };
   if (!isOpen) return null;
 
   if (!solanaWallet)
     return null;
+
+const renderSuccessState = () => {
+    if (!pendingSignature && !success) return null;
+  
+    const signature = success || pendingSignature;
+    const isPending = transactionStatus === 'pending';
+    
+    return (
+      <div className="inset-0 bg-zinc-900 flex flex-col items-center justify-center rounded-lg px-6 h-[400px]">
+        {/* Status Icon */}
+        {transactionStatus === 'confirmed' ? (
+          <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        ) : (
+          <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-yellow-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        )}
+  
+        {/* Status Text */}
+        <h3 className="text-xl font-bold text-white mb-2">
+          {isPending ? 'Transaction Pending' : 'Transfer Successful'}
+        </h3>
+        
+        <p className="text-zinc-400 text-center mb-4">
+          {isPending 
+            ? 'Please wait while your transaction is being confirmed...' 
+            : `Successfully transferred ${amount} ${selectedToken?.token_symbol}`}
+        </p>
+  
+        {/* Transaction Link */}
+        <a
+          href={`https://solscan.io/tx/${signature}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors"
+        >
+          View on Solscan
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+  
+        {/* New Transfer Button (only show if confirmed) */}
+        {transactionStatus === 'confirmed' && (
+          <button
+            onClick={() => {
+              resetForm();
+            }}
+            className="mt-6 px-6 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
+          >
+            Make Another Transfer
+          </button>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -226,6 +613,8 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
           <div className="bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
             Please connect your wallet first
           </div>
+        ) : success || pendingSignature ? (
+          renderSuccessState()
         ) : step === 'select-token' ? (
           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
             {solanaBalance && (
@@ -290,7 +679,7 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
                 type="number"
                 placeholder={`Amount in ${isUSD ? 'USD' : selectedToken?.token_symbol}`}
                 value={amount}
-                onChange={(e) => handleAmountChange(e.target.value)}
+                onChange={(e) => setAmount(e.target.value)}
                 className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white"
               />
               <div className="absolute right-2 top-2 flex items-center gap-2">
@@ -320,12 +709,6 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
             {error && (
               <div className="bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
                 {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-500/20 text-green-200 p-4 rounded-md border border-green-500/40">
-                {success}
               </div>
             )}
           </div>

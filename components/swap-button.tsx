@@ -6,8 +6,8 @@ import { PublicKey, Connection, Commitment, GetLatestBlockhashConfig, SendOption
 import base58 from 'bs58';
 
 import Image from 'next/image';
-const TOKENS_PER_PAGE = 50;
-const JUPITER_TOKEN_LIST_URL = 'https://token.jup.ag/strict';  // Using strict list for better performance
+const TOKENS_PER_PAGE =   10;
+const JUPITER_TOKEN_LIST_URL = `https://tokens.jup.ag/tokens?tags=community`;  // Using strict list for better performance
 const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
 
 interface PaginatedTokens {
@@ -45,6 +45,7 @@ interface SwapModalProps {
     usdValue: number;
     logoURI: string;
   };
+  onSwapComplete: () => void;
 }
 
 interface PaginatedTokens {
@@ -156,7 +157,7 @@ class ProxyConnection extends Connection {
     
     try {
       const response = await this.customRpcRequest('getSignatureStatuses', [params]);
-      console.log(response.value)
+      console.log("getSignatureStatuses Response:", response.value)
       if (!response.value[0]) {
         throw new Error('No status returned for signature');
       }
@@ -168,15 +169,11 @@ class ProxyConnection extends Connection {
   }
 }
 
-const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
+const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComplete }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
   const { wallets: solanaWallets } = useSolanaWallets();
   const activeWallet = solanaWallets.find(
     wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
   );
-
-  console.log(solanaWallets)
-
-  console.log('activeWallet', activeWallet);
 
   const [selecting, setSelecting] = useState<SelectionType>(null);
   const [fromToken, setFromToken] = useState<Token | null>(null);
@@ -274,8 +271,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       const amountInDecimals = Math.floor(
         parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
       );
-
-      console.log(amountInDecimals)
   
       const slippageBps = Math.floor(parseFloat(slippage) * 100);
   
@@ -398,7 +393,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       try {
         const status = await connection.getSignatureStatus(signature);
         console.log('Immediate transaction status:', status);
-        if (status.value?.confirmationStatus === 'finalized') {
+        if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
           setTransactionStatus('confirmed');
           setSuccess(signature);
         }
@@ -429,22 +424,17 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       try {
         const status = await connection.getSignatureStatus(signature);
         console.log('Transaction status:', status?.value);
-        if (status.value?.confirmationStatus === 'finalized') {
+        if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
           setTransactionStatus('confirmed');
           setSuccess(signature);
+          onSwapComplete();
+          return true;          
         }        
 
         if (status?.value?.err) {
           setTransactionStatus('failed');
           setError(`Transaction failed: ${JSON.stringify(status.value.err)}`);
           return false;
-        }
-
-        if (status?.value?.confirmationStatus === 'confirmed' || 
-            status?.value?.confirmationStatus === 'finalized') {
-          setTransactionStatus('confirmed');
-          setSuccess(signature);
-          return true;
         }
 
         return null;
@@ -467,10 +457,10 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
         clearInterval(intervalId);
         if (status === null && retries >= maxRetries) {
           // Don't mark as failed, just note it's taking longer
-          setError(`Transaction confirmation is taking longer than expected. Please check the transaction status on Solscan.`);
+          setError(`Transaction confirmation is taking longer than expected. Please check the transaction status on Solscan. Signature: ${signature}`);
         }
       }
-    }, 20000);
+    }, 2000);
 
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
@@ -512,7 +502,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
       console.error('Swap error:', error);
       setTransactionStatus('failed');
       setError(error.message || 'Failed to complete swap');
-    } finally {
       setLoading(false);
     }
   };
@@ -578,16 +567,16 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
     }
   };
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
-    if (
-      scrollHeight - scrollTop - clientHeight < 50 &&
-      !isLoadingTokens &&
-      paginatedTokens.tokens.length < paginatedTokens.totalTokens
-    ) {
-      fetchJupiterTokens(paginatedTokens.currentPage + 1, searchTerm);
-    }
-  };  
+  // const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  //   const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+  //   if (
+  //     scrollHeight - scrollTop - clientHeight < 50 &&
+  //     !isLoadingTokens &&
+  //     paginatedTokens.tokens.length < paginatedTokens.totalTokens
+  //   ) {
+  //     fetchJupiterTokens(paginatedTokens.currentPage + 1, searchTerm);
+  //   }
+  // };  
 
   const renderSuccessState = () => {
     if (!pendingSignature && !success) return null;
@@ -596,7 +585,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
     const isPending = transactionStatus === 'pending';
     
     return (
-      <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center rounded-lg px-6 h-[400px]">
+      <div className="inset-0 bg-zinc-900 flex flex-col items-center justify-center rounded-lg px-6 h-[400px]">
         {/* Status Icon */}
         {transactionStatus === 'confirmed' ? (
           <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
@@ -614,11 +603,16 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
   
         {/* Status Text */}
         <h3 className="text-xl font-bold text-white mb-2">
-          {isPending ? 'Transaction Pending' : 'Transaction Successful'}
+          {isPending ? 'Transaction Pending' : 'Swap Successful'}
         </h3>
         
         <p className="text-zinc-400 text-center mb-4">
-          {isPending ? 'Please wait while your transaction is being confirmed...' : 'Your swap has been processed'}
+          {isPending 
+            ? 'Please wait while your transaction is being confirmed...' 
+            : `Successfully swapped ${amount} ${fromToken?.token_symbol} for ${
+        quote ? (quote.outAmount / Math.pow(10, toToken?.token_decimals || 1)).toFixed(6) : '?'
+      } ${toToken?.token_symbol}`
+          }
         </p>
   
         {/* Transaction Link */}
@@ -638,10 +632,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
         {transactionStatus === 'confirmed' && (
           <button
             onClick={() => {
-              setSuccess('');
-              setPendingSignature(null);
-              setTransactionStatus(null);
-              setError('');
+              resetForm();
             }}
             className="mt-6 px-6 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
           >
@@ -683,7 +674,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
 
         <div 
           className="space-y-2 max-h-[60vh] overflow-y-auto"
-          onScroll={handleScroll}
         >
           {/* SOL Option */}
           {solanaBalance && (
@@ -707,13 +697,23 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
           {/* Token List */}
           {selecting === 'from' ? (
             // Show wallet tokens for "From" selection
-            tokens.map((token) => (
+            tokens.map((token: Token) => (
               <div
                 key={token.token_address}
                 onClick={() => handleTokenSelect(token)}
                 className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
               >
-                {/* ... (token display remains the same) ... */}
+                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Image src={token.token_icon} alt={token.token_symbol} width={32} height={32} className="rounded-full"/>
+                  <div>
+                    <div className="text-white">{token.token_name}</div>
+                    <div className="text-sm text-zinc-400">{token.formatted_amount} {token.token_symbol}</div>
+                  </div>
+                </div>
+                <div className="text-sm text-zinc-400">${token.usd_value.toFixed(2)}</div>
+              </div>
+
               </div>
             ))
           ) : (
@@ -759,11 +759,13 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
     setSuccess('');
     setQuote(null);
     setSearchTerm('');
+    setLoading(false);
+    setPendingSignature(null);
+    setTransactionStatus(null);
   };
 
   const handleTokenSelect = (token: Token | JupiterToken | 'SOL') => {
     let selectedToken: Token;
-    
     if (token === 'SOL') {
       selectedToken = {
         token_address: 'SOL',
@@ -861,7 +863,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 relative shadow-xl border border-zinc-700">
+      <div className="bg-zinc-900 rounded-lg p-6 w-full mb-30 max-w-md mx-4 relative shadow-xl">
         {/* Main Swap UI */}
         {!selecting ? (
           <>
@@ -869,6 +871,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
               onClick={() => {
                 onClose();
                 resetForm();
+                onSwapComplete();
               }}
               className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
             >
@@ -877,7 +880,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent }: SwapModalP
               </svg>
             </button>
 
-            {success ? renderSuccessState() :
+            {success || pendingSignature ? renderSuccessState() :
 
                 <div>
                 <h2 className="text-xl font-bold mb-6 text-white">Swap Tokens</h2>

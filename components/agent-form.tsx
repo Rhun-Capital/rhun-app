@@ -629,7 +629,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       disabled={params.userId === 'template'}
       value={formData.name}
       onChange={handleChange}
-      className="w-full px-3 py-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+      className="w-full px-3 py-3 sm:px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700  text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
     />
   </div>
 
@@ -646,7 +646,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       value={formData.description}
       onChange={handleChange}
       rows={4}
-      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700  text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
     />
   </div>
 
@@ -668,7 +668,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               value={formData[field.name]}
               onChange={handleChange}
               rows={field.rows || 10}
-              className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 outline-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700  text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
             />
           </div>
         ))}

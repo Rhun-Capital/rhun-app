@@ -1,7 +1,7 @@
 // components/chat-sidebar.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { WalletIcon, ToolsIcon } from '@/components/icons';
-import { SendIcon, QrCode, Repeat2, Sparkles } from 'lucide-react';
+import { SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw } from 'lucide-react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import LoadingIndicator from './loading-indicator';
@@ -10,6 +10,8 @@ import dynamic from 'next/dynamic';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { set } from 'lodash';
+import { useModal } from '@/contexts/modal-context';
 
 interface Tool {
   name: string;
@@ -44,6 +46,7 @@ interface TransferButtonProps {
   tokens: any[];
   publicKey: string;
   agent: any;
+  onSwapComplete: () => void;
   solanaBalance?: {
     amount: number;
     usdValue: number;
@@ -51,13 +54,27 @@ interface TransferButtonProps {
   };
 }
 
-const SwapButton = ({ tokens, solanaBalance, agent }: TransferButtonProps) => {
+const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete }: TransferButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { openModal, closeModal } = useModal();
+
+  // Memoize the handlers
+  const handleOpenModal = useCallback(() => {
+    setIsOpen(true);
+    openModal();
+  }, [openModal]);
+
+  const handleCloseModal = useCallback(() => {
+    setIsOpen(false);
+    closeModal();
+  }, [closeModal]);
+
+
 
   return (
     <>
       <button 
-        onClick={() => setIsOpen(true)}
+        onClick={() => handleOpenModal()}
         className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
       >
         <div className=" flex flex-col items-center gap-1 p-2">
@@ -69,10 +86,11 @@ const SwapButton = ({ tokens, solanaBalance, agent }: TransferButtonProps) => {
       </button>
       <SwapModal 
         isOpen={isOpen} 
-        onClose={() => setIsOpen(false)}
+        onClose={() => handleCloseModal()}
         tokens={tokens}
         solanaBalance={solanaBalance}
         agent={agent}
+        onSwapComplete={onSwapComplete} // TODO
       />
     </>
   );
@@ -211,6 +229,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   }
   
   const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
+  const [refreshLoading, setRefreshLoading] = useState(false);
 
 
   // Define tools with pro status
@@ -429,6 +448,29 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   }, [activeTab, agent.wallets?.solana]);
 
 
+  const refreshWalletData = async () => {
+    setRefreshLoading(true);
+    if (agent.wallets?.solana) {
+      try {
+        // Refresh tokens
+        const tokenResponse = await getTokens(agent.wallets.solana);
+        setTokens(tokenResponse);
+
+        // Refresh portfolio
+        const portfolioResponse = await getPortfolioValue(agent.wallets.solana);
+        const tv = portfolioResponse.holdings.reduce(
+          (acc: number, token: { usdValue: number }) => acc + token.usdValue, 
+          0
+        );
+        setTotalValue(tv);
+        setPortfolio(portfolioResponse);
+        setRefreshLoading(false);
+      } catch (error) {
+        console.error('Error refreshing wallet data:', error);
+      }
+    }
+  };
+
   return (
     <div className={`fixed right-0 top-0 h-full border-l border-zinc-700 transition-all duration-300 bg-zinc-900 z-10 ${
       isOpen ? 'w-80' : 'w-0'
@@ -480,7 +522,22 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
                 {/* Wallet Address */}
                 <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
+                <div  className="flex items-center justify-between">
                   <div className="text-sm text-zinc-400">Wallet Address</div>
+                  <button
+                    className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
+                    title="Refresh wallet data"
+                    onClick={() => {
+                      setRefreshLoading(true);
+                      setTimeout(() => {
+                        setRefreshLoading(false);
+                      }, 2000)
+                      refreshWalletData();
+                    }}
+                  >
+                    {refreshLoading ?  <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
+                  </button>                  
+                </div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="text-sm text-white">
                       {(agent.wallets?.solana && params.userId !== 'template') ?
@@ -503,12 +560,13 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 
                 
 
-                {/* {agent.wallets ?  (
+                {agent.wallets ?  (
                   <div className="flex gap-2 mt-2">
                   <ReceiveButton 
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
                       agent={agent}
+                      onSwapComplete={refreshWalletData}
                       solanaBalance={portfolio?.holdings[0] ? {
                         amount: portfolio.holdings[0].amount,
                         usdValue: portfolio.holdings[0].usdValue,
@@ -520,6 +578,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
                       agent={agent}
+                      onSwapComplete={refreshWalletData}
                       solanaBalance={portfolio?.holdings[0] ? {
                         amount: portfolio.holdings[0].amount,
                         usdValue: portfolio.holdings[0].usdValue,
@@ -530,6 +589,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                   <SwapButton 
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
+                      onSwapComplete={refreshWalletData}
                       solanaBalance={portfolio?.holdings[0] ? {
                         amount: portfolio.holdings[0].amount,
                         usdValue: portfolio.holdings[0].usdValue,
@@ -538,10 +598,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       agent={agent}
                     /> 
                     </div>
-                    ) : null} */}
-
-
-            
+                    ) : null}
 
                 </div>
 
