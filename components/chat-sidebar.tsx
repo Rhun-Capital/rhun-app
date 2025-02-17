@@ -4,14 +4,15 @@ import { WalletIcon, ToolsIcon } from '@/components/icons';
 import { SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw } from 'lucide-react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
+import {useFundWallet} from '@privy-io/react-auth/solana';
 import LoadingIndicator from './loading-indicator';
 import CopyButton from './copy-button';
 import dynamic from 'next/dynamic';
 import { useSubscription } from '@/hooks/use-subscription';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { set } from 'lodash';
 import { useModal } from '@/contexts/modal-context';
+import FundingModal from './funding-amount-modal';
 
 interface Tool {
   name: string;
@@ -215,10 +216,8 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const [portfolio, setPortfolio] = useState<any>(null);
   const [totalValue, setTotalValue] = useState<number | null>(null);
   const params = useParams();
-
   const { isSubscribed } = useSubscription();
 
-  
   interface Token {
     token_address: string;
     token_icon: string;
@@ -230,6 +229,8 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   
   const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
   const [refreshLoading, setRefreshLoading] = useState(false);
+  const [showFundingModal, setShowFundingModal] = useState(false);
+  const { fundWallet } = useFundWallet();
 
 
   // Define tools with pro status
@@ -376,6 +377,29 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     }
   ];
 
+  // get portfolio value and tokens every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (activeTab === 'wallet' && agent.wallets?.solana) {
+        getTokens(agent.wallets.solana)
+          .then((response) => {
+            setTokens(response);
+          })
+          .catch((error) => console.error('Error fetching tokens:', error));
+
+          getPortfolioValue(agent.wallets.solana)
+          .then((portfolio) => {
+            // sum the total value of all tokens usdValue
+            const tv = portfolio.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
+            setTotalValue(tv)
+            setPortfolio(portfolio);
+          })
+          .catch((error) => console.error('Error fetching portfolio:', error));          
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [activeTab, agent.wallets?.solana]);
+
 
   const handleToolClick = (tool: Tool) => {
     if (isToolClickDisabled) return;
@@ -388,6 +412,23 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       setIsToolClickDisabled(false);
     }, 5000);    
   };
+
+  async function handleShowFundingModal() {
+    setShowFundingModal(true);
+  }
+
+  async function handleFundingConfirm(amount: number) {
+    if (agent.wallets?.solana) {
+      try {
+        await fundWallet(agent.wallets.solana, {
+          amount: amount.toString(),
+        });
+        refreshWalletData();
+      } catch (error) {
+        console.error('Error funding wallet:', error);
+      }
+    }
+  }
 
   async function getPortfolioValue(walletAddress: string) {
     const url = `/api/portfolio/${walletAddress}`;
@@ -543,7 +584,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       {(agent.wallets?.solana && params.userId !== 'template') ?
                         <div className="text-sm text-zinc-500 mt-2">
                           {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
-                      </div> : <div className="text-sm text-zinc-500 mt-2">Template agents do no have access to wallets. </div>
+                      </div> : params.userId === 'template' ? <div className="text-sm text-zinc-500 mt-2">Template agents do no have access to wallets. </div> : <div className="text-sm text-zinc-500 mt-2">No agent wallet found. <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create your wallet now</Link> in the wallet settings of your agent</div>
                       }
                     </div>
                     {agent.wallets?.solana && (
@@ -560,7 +601,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 
                 
 
-                {agent.wallets ?  (
+                {agent.wallets &&  (
                   <div className="flex gap-2 mt-2">
                   <ReceiveButton 
                       tokens={tokens.data}
@@ -598,7 +639,12 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       agent={agent}
                     /> 
                     </div>
-                    ) : null}
+                    )}
+                  
+                  {agent.wallets && <button onClick={handleShowFundingModal} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
+                    Add Funds
+                    </button>
+                  }
 
                 </div>
 
@@ -660,6 +706,14 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
           </div>
         </div>
       )}
+
+<FundingModal
+    isOpen={showFundingModal}
+    onClose={() => setShowFundingModal(false)}
+    onConfirm={handleFundingConfirm}
+    defaultAmount={0.1}
+  />
+
     </div>
   );
 };

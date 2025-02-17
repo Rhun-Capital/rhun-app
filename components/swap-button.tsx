@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { usePrivy, useSolanaWallets, getAccessToken } from '@privy-io/react-auth';
-import { PublicKey, Connection, Commitment, GetLatestBlockhashConfig, SendOptions, Transaction, VersionedTransaction, AddressLookupTableAccount, RpcResponseAndContext, SignatureStatus } from '@solana/web3.js';
-import base58 from 'bs58';
+import { ProxyConnection, executeSwap, getQuote } from '../utils/solana';
 
 import Image from 'next/image';
 const TOKENS_PER_PAGE =   10;
 const JUPITER_TOKEN_LIST_URL = `https://tokens.jup.ag/tokens?tags=community`;  // Using strict list for better performance
 const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
+
 
 interface PaginatedTokens {
   tokens: JupiterToken[];
@@ -55,119 +55,6 @@ interface PaginatedTokens {
 }
 
 type SelectionType = 'from' | 'to' | null;
-
-
-
-class ProxyConnection extends Connection {
-  constructor(config?: { commitment?: Commitment }) {
-    // Use a dummy URL since we'll override all RPC calls
-    super('http://localhost', config);
-  }
-
-  private async customRpcRequest(method: string, params: any[]) {
-    try {
-      const response = await fetch('/api/solana/rpc', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method,
-          params,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error.message);
-      }
-
-      return data.result;
-    } catch (error) {
-      console.error('RPC request failed:', error);
-      throw error;
-    }
-  }
-
-  async _rpcRequest(method: string, params: any[]) {
-    const result = await this.customRpcRequest(method, params);
-    return {
-      result,
-      id: 1,
-      jsonrpc: '2.0'
-    };
-  }
-
-  async getLatestBlockhash(
-    commitmentOrConfig?: Commitment | GetLatestBlockhashConfig
-  ): Promise<Readonly<{
-    blockhash: string;
-    lastValidBlockHeight: number;
-  }>> {
-    const config = typeof commitmentOrConfig === 'string' 
-      ? { commitment: commitmentOrConfig }
-      : commitmentOrConfig;
-
-    const params = config ? [config] : [];
-    const result = await this.customRpcRequest('getLatestBlockhash', params);
-    
-    return {
-      blockhash: result.value.blockhash,
-      lastValidBlockHeight: result.value.lastValidBlockHeight,
-    };
-  }
-
-  async sendRawTransaction(
-    rawTransaction: Buffer | Uint8Array | Array<number>,
-    options?: SendOptions
-  ): Promise<string> {
-    const buffer = Buffer.from(rawTransaction);
-    
-    const params = [
-      buffer.toString('base64'),
-      {
-        encoding: 'base64',
-        ...options
-      }
-    ];
-
-    try {
-      const signature = await this.customRpcRequest('sendTransaction', params);
-      return signature;
-    } catch (error) {
-      console.error('Send transaction error:', error);
-      throw error;
-    }
-  }
-
-  async getSignatureStatus(
-    signature: string,
-    config?: any
-  ): Promise<RpcResponseAndContext<SignatureStatus | null>> {
-    const params = [signature];
-    if (config) {
-      params.push(config);
-    }
-    
-    try {
-      const response = await this.customRpcRequest('getSignatureStatuses', [params]);
-      console.log("getSignatureStatuses Response:", response.value)
-      if (!response.value[0]) {
-        throw new Error('No status returned for signature');
-      }
-      return { context: { slot: 0 }, value: response.value }; // Matching Connection class response format
-    } catch (error) {
-      console.error('Get signature status error:', error);
-      throw error;
-    }
-  }
-}
 
 const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComplete }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
   const { wallets: solanaWallets } = useSolanaWallets();
@@ -230,8 +117,16 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
   };
 
   useEffect(() => {
-    getQuote();
-  }, [fromToken, toToken, amount]);
+    getQuote(
+        fromToken,
+        toToken,
+        amount,
+        slippage
+      
+    ).then((quote) => {
+      setQuote(quote);
+    });
+  }, [fromToken, toToken, amount, slippage, getQuote]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -244,176 +139,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
 
   
   // const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-  
-  const executeSwap = async () => {
-    try {
-      if (!activeWallet || !activeWallet.address) {
-        throw new Error('Wallet not connected');
-      }
-  
-      // Log wallet state
-      console.log('Wallet state:', {
-        address: activeWallet.address,
-        type: activeWallet.walletClientType,
-        hasSignTransaction: !!activeWallet.signTransaction,
-        hasSendTransaction: !!activeWallet.sendTransaction
-      });
-  
-      const inputMint = fromToken?.token_address === 'SOL' 
-        ? 'So11111111111111111111111111111111111111112' 
-        : fromToken?.token_address;
-      
-      const outputMint = toToken?.token_address === 'SOL'
-        ? 'So11111111111111111111111111111111111111112'
-        : toToken?.token_address;
-  
-      // Calculate decimals amount here
-      const amountInDecimals = Math.floor(
-        parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
-      );
-  
-      const slippageBps = Math.floor(parseFloat(slippage) * 100);
-  
-      // Log swap parameters
-      console.log('Swap parameters:', {
-        inputMint,
-        outputMint,
-        amount,
-        amountInDecimals,
-        slippageBps,
-        userAddress: activeWallet.address
-      });
-  
-      // Get quote with specific options
-      console.log('Fetching quote...');
-      const quoteResponse = await fetch(
-        `${JUPITER_V6_QUOTE_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountInDecimals}&slippageBps=${slippageBps}&asLegacyTransaction=true`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-      );
-  
-      if (!quoteResponse.ok) {
-        const errorText = await quoteResponse.text();
-        console.error('Quote error:', errorText);
-        throw new Error(`Failed to get quote: ${errorText}`);
-      }
-  
-      const quoteData = await quoteResponse.json();
-      console.log('Quote received:', {
-        routes: quoteData.routesInfos?.length,
-        inAmount: quoteData.inputAmount,
-        outAmount: quoteData.outputAmount
-      });
-  
-      // Get fresh blockhash
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-      console.log('Got blockhash:', { blockhash, lastValidBlockHeight });
-  
-      // Now get the swap transaction
-      console.log('Requesting swap transaction...');
-      const swapRequest = {
-        quoteResponse: quoteData,
-        userPublicKey: activeWallet.address,
-        asLegacyTransaction: true,
-        computeUnitPriceMicroLamports: 1000,
-        useTokenLedger: false
-      };
-  
-      const swapResponse = await fetch(`${JUPITER_V6_QUOTE_API}/swap`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(swapRequest)
-      });
-  
-      if (!swapResponse.ok) {
-        const errorText = await swapResponse.text();
-        console.error('Swap preparation error:', errorText);
-        throw new Error(`Failed to prepare swap: ${errorText}`);
-      }
-  
-      const responseData = await swapResponse.json();
-      if (!responseData.swapTransaction) {
-        console.error('No swap transaction in response:', responseData);
-        throw new Error('No swap transaction received from API');
-      }
-  
-      // Log transaction data
-      console.log('Got swap transaction data');
-  
-      // Decode transaction
-      console.log('Decoding transaction...');
-      const serializedTransaction = Buffer.from(responseData.swapTransaction, 'base64');
-      const transaction = Transaction.from(serializedTransaction);
-  
-      // Set transaction parameters
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = new PublicKey(activeWallet.address);
-  
-      // Log transaction details
-      console.log('Transaction prepared:', {
-        numInstructions: transaction.instructions.length,
-        recentBlockhash: transaction.recentBlockhash,
-        feePayer: transaction.feePayer.toBase58(),
-        signers: transaction.signatures.length
-      });
-  
-      // Try sending transaction
-      // console.log('Sending transaction to wallet for approval...');
-      // const signature = await activeWallet.sendTransaction(
-      //   transaction,
-      //   connection,
-      //   {
-      //     skipPreflight: false,
-      //     preflightCommitment: 'confirmed',
-      //     maxRetries: 3
-      //   }
-      // );
 
-      const signedTx = await activeWallet.signTransaction(transaction);
-      
-      // Send raw transaction through our proxy connection
-      console.log('Sending signed transaction through proxy...');
-      const signature = await connection.sendRawTransaction(
-        signedTx.serialize(),
-        {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-          maxRetries: 3
-        }
-      );      
-  
-      console.log('Transaction submitted with signature:', signature);
-  
-      // Try to get immediate status
-      try {
-        const status = await connection.getSignatureStatus(signature);
-        console.log('Immediate transaction status:', status);
-        if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
-          setTransactionStatus('confirmed');
-          setSuccess(signature);
-        }
-      } catch (statusError) {
-        console.error('Error getting immediate status:', statusError);
-      }
-  
-      return signature;
-  
-    } catch (error) {
-      // Log any errors in detail
-      console.error('Swap execution error:', {
-        error,
-        message: (error as Error).message,
-        stack: (error as Error).stack,
-        name: (error as Error).name
-      });
-      throw error;
-    }
-  };
 
   const checkTransactionStatus = async (signature: string) => {
     let retries = 0;
@@ -494,7 +220,15 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
       setLoading(true);
       setError('');
       console.log("Proceeding with swap...");
-      const signature = await executeSwap();
+      const signature = await executeSwap(
+        {
+          fromToken,
+          toToken,
+          amount,
+          slippage: parseFloat(slippage),
+          wallet: activeWallet
+        }
+      );
       setTransactionStatus('pending');
       setPendingSignature(signature);
       checkTransactionStatus(signature);
@@ -503,67 +237,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
       setTransactionStatus('failed');
       setError(error.message || 'Failed to complete swap');
       setLoading(false);
-    }
-  };
-
-  const getQuote = async () => {
-    if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0) {
-      setQuote(null);
-      return;
-    }
-  
-    try {
-      const inputMint = fromToken.token_address === 'SOL' 
-        ? 'So11111111111111111111111111111111111111112' 
-        : fromToken.token_address;
-      
-      const outputMint = toToken.token_address === 'SOL'
-        ? 'So11111111111111111111111111111111111111112'
-        : toToken.token_address;
-  
-      const amountInDecimals = Math.floor(
-        parseFloat(amount) * Math.pow(10, fromToken.token_decimals)
-      );
-  
-      const slippageBps = Math.floor(parseFloat(slippage) * 100);
-  
-      console.log('Getting quote for:', {
-        inputMint,
-        outputMint,
-        amount: amountInDecimals,
-        slippageBps
-      });
-  
-      const queryParams = new URLSearchParams({
-        inputMint,
-        outputMint,
-        amount: amountInDecimals.toString(),
-        slippageBps: slippageBps.toString(),
-        asLegacyTransaction: 'true'
-      });
-  
-      const response = await fetch(
-        `${JUPITER_V6_QUOTE_API}/quote?${queryParams.toString()}`
-      );
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to get quote');
-      }
-  
-      const quoteData = await response.json();
-      console.log('Received quote:', quoteData);
-  
-      if (!quoteData) {
-        throw new Error('No quote data received');
-      }
-  
-      setQuote(quoteData);
-      setError('');
-    } catch (err: any) {
-      console.error('Error getting quote:', err);
-      setError(err.message || 'Failed to get quote');
-      setQuote(null);
     }
   };
 
@@ -577,6 +250,18 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
   //     fetchJupiterTokens(paginatedTokens.currentPage + 1, searchTerm);
   //   }
   // };  
+
+  const getPrice = async (id: string) => {
+    const accessToken = await getAccessToken();
+    // fetch token details from coingecko using the extensions.coingeckoId 
+    const coin = await fetch('/api/coingecko/coins/' + id, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+    });
+    const coinItem = await coin.json()    
+    return coinItem.market_data.current_price.usd
+}    
 
   const renderSuccessState = () => {
     if (!pendingSignature && !success) return null;
@@ -689,7 +374,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                     <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
                   </div>
                 </div>
-                <div className="text-sm text-zinc-400">${solanaBalance.usdValue.toFixed(2)}</div>
+                <div className="text-sm text-zinc-400">${solanaBalance.usdValue && solanaBalance.usdValue.toFixed(2)}</div>
               </div>
             </div>
           )}

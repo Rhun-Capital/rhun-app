@@ -6,8 +6,11 @@ import { useParams } from 'next/navigation';
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
 import { SendIcon, QrCode, Repeat2, RefreshCcw } from 'lucide-react';
 import CopyButton from '@/components/copy-button';
+import FundingModal from '@/components/funding-amount-modal';
 import LoadingIndicator from '@/components/loading-indicator';
 import dynamic from 'next/dynamic';
+import {useFundWallet} from '@privy-io/react-auth/solana';
+
 
 const TransferModal = dynamic(() => import('@/components/send-button'), {
   ssr: false,
@@ -36,7 +39,9 @@ export default function WalletTab({ agentId }: { agentId: string }) {
   const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [showFundingModal, setShowFundingModal] = useState(false);
   const params = useParams();
+  const { fundWallet } = useFundWallet();
 
 // Fetch all data in a single useEffect
 useEffect(() => {
@@ -176,6 +181,25 @@ useEffect(() => {
     }
   };
 
+  async function handleShowFundingModal() {
+    setShowFundingModal(true);
+  }
+
+  async function handleFundingConfirm(amount: number) {
+    if (walletAddress) {
+      try {
+        await fundWallet(walletAddress, {
+          amount: amount.toString(),
+        });
+        refreshWalletData();
+      } catch (error) {
+        console.error('Error funding wallet:', error);
+      }
+    }
+
+  }
+
+
   if (!agentId) {
     return (
       <div className="p-6 bg-zinc-800 rounded-lg text-zinc-400">
@@ -247,9 +271,16 @@ useEffect(() => {
             {/* Portfolio Value */}
             {totalValue !== null && (
               <div className="pt-4 border-t border-zinc-700">
-                <h3 className="text-sm font-medium text-zinc-400 mb-1">Total Value</h3>
-                <div className="text-xl font-semibold text-white">
-                  ${totalValue.toFixed(2)}
+                <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium text-zinc-400 mb-1">Total Value</h3>
+                  <div className="text-xl font-semibold text-white">
+                    ${totalValue.toFixed(2)}
+                  </div>
+                </div>
+                <button onClick={handleShowFundingModal} className="mt-4 w-180 px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
+                    Add Funds
+                    </button>
                 </div>
               </div>
             )}
@@ -408,6 +439,14 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      <FundingModal
+          isOpen={showFundingModal}
+          onClose={() => setShowFundingModal(false)}
+          onConfirm={handleFundingConfirm}
+          defaultAmount={0.1}
+        />
+
     </div>
   );
 }
