@@ -22,6 +22,7 @@ import { getAccountDetails } from '@/utils/solscan';
 import { checkSubscriptionStatus } from '@/utils/subscriptions';
 
 
+
 function formatNumber(num: number): string {
   if (Math.abs(num) >= 1000000000) {
     return `${(num / 1000000000).toFixed(2)}B`;
@@ -459,24 +460,18 @@ export async function POST(req: Request) {
       }
     },
   
-    // swap: {
-    //   description: "Get a Solana token swap quote using Jupiter and execute the swap",
-    //   parameters: z.object({
-    //     inputMint: z.string().describe('Input token mint address'),
-    //     outputMint: z.string().describe('Output token mint address'),
-    //     amount: z.string().describe('Amount to swap in lamports/smallest decimal unit')
-    //   }),
-    //   execute: async ({ inputMint, outputMint, amount }) => {
-    //     // const tokenInfo = await getTokenInfo(outputMint);
-    //     // const decimals = tokenInfo.onchain.attributes.decimals
-    //     // const response = await swapTokens(inputMint, outputMint, amount);
-    //     // add decimal conversion to response
-    //     // response.displayAmount = Number(response.outAmount) / Math.pow(10, decimals);
-    //     // return response;
-    //     return []
-          
-    //   },
-    // },
+    swap: {
+      description: "execute the swap. the fromToken, toToken, amount, slippage are passed in but the user does supply those. they just supply the names and the amount",
+      parameters: z.object({
+        fromToken: z.string().describe('Input token object'),
+        toToken: z.string().describe('Output token object'),
+        amount: z.string().describe('Amount to swap '),
+        slippage: z.number().optional().default(1.0).describe('Slippage tolerance in percentage') 
+      }),
+      execute: async ({ fromToken, toToken, amount }) => {
+        return {fromToken, toToken, amount}  
+      },
+    },
     
   }
 
@@ -498,6 +493,7 @@ export async function POST(req: Request) {
     getFearAndGreedIndex: allTools.getFearAndGreedIndex,
     getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
     getTopNfts: allTools.getTopNfts,
+    swap: allTools.swap,
     // getTrendingSolanaTokens: allTools.getTrendingSolanaTokens,
   };
 
@@ -584,25 +580,20 @@ ${agentConfig.coreCapabilities}
 ### Interaction Style
 ${agentConfig.interactionStyle}
 
-
 ### Analysis Approach
 ${agentConfig.analysisApproach}
 
 ### Risk Communication
 ${agentConfig.riskCommunication}
 
-
 ## Response Format
 ${agentConfig.responseFormat}
-
 
 ## Limitations & Disclaimers
 ${agentConfig.limitationsDisclaimers}
 
-
 ## Prohibited Behaviors
 ${agentConfig.prohibitedBehaviors}
-
 
 ## Knowledge Updates
 ${agentConfig.knowledgeUpdates}
@@ -612,7 +603,6 @@ ${agentConfig.responsePriorityOrder}
 
 ## Special Instructions
 ${agentConfig.specialInstructions}
-
 
 ## Style Guide
 ${agentConfig.styleGuide}
@@ -624,6 +614,7 @@ ${coinContext}
 
 ${agentConfig.userId === 'template' ? `
  If the users runs the Get Agent Portfolio tool (getAgentPortfolioValue), tell them this is a template agent and does not have a wallet. 
+ Template agents do no have access to wallets and therefore cannot execute swaps. If they run the swap tool, tell them template agents cannot execute swaps and to create a new agent, fund the agent wallet to use this functionality.
 `: ''}
 
 # Chatbot Tool Special Instructions:
@@ -635,6 +626,7 @@ You only have token data on for the Solana blockchain. If the user asks for toke
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
 When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
 Only when using the getTopNfts tool, show the image of the NFT.
+When using the swap tool, make sure to only say the swap has been submitted and to check the results above. you can mention the details of the swap. If the user doesn't specifiy a slippage, use the default of 1.0. Always ask to confirm the swap before executing it.
 
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
 

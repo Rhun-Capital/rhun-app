@@ -36,6 +36,7 @@ import TrendingSolanaTokens from "@/components/tools/trending-solana-tokens";
 import TopNFTsResults from "@/components/tools/top-nfts";
 import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
+import ExecuteSwap from "@/components/tools/execute-swap";
 
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
@@ -874,6 +875,8 @@ export default function Home() {
                             return <TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
                           default:
                             return null;
+                          case 'swap':
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
                         }
                       })}
 

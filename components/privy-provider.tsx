@@ -22,8 +22,6 @@ export default function PrivyWrapper({
         loginMethods: ['wallet', 'email'],
         appearance: {
           theme: 'dark',
-          accentColor: '#22c55e',
-          // logo: "https://your-logo-url",
           walletChainType: "solana-only",   
           showWalletLoginFirst: true,       
         },
