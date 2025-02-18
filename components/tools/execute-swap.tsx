@@ -284,16 +284,6 @@ const ExecuteSwap: React.FC<{
         slippage
       });
   
-      // Estimate USD value of swap
-      const fromTokenUsdValue = fromToken.usd_value || 0;
-      const swapValueUsd = amountToSwap * fromTokenUsdValue;
-  
-      console.log("Swap Value Estimation:", {
-        amountInToken: amountToSwap,
-        tokenUsdPrice: fromTokenUsdValue,
-        swapValueUsd
-      });
-  
       // Execute swap
       setStatus('swapping');
       let signature;
