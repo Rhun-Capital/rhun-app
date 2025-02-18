@@ -37,7 +37,7 @@ import TopNFTsResults from "@/components/tools/top-nfts";
 import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
 import ExecuteSwap from "@/components/tools/execute-swap";
-
+import RecentDexScreenerTokens from "@/components/tools/recent-dexscreener-tokens";
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
 
@@ -226,6 +226,7 @@ export default function Home() {
   const [newChatId] = useState<string>(`chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHeadersReady, setIsHeadersReady] = useState(false);
+  const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (newChatId && !chatId) {
@@ -235,6 +236,12 @@ export default function Home() {
     }
   }, [newChatId, chatId]);
 
+  // if new message is added, scroll to the bottom
+  useEffect(() => {
+    if (topRef.current) {
+      topRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [topRef.current]);
 
   useEffect(() => {
     if (window.innerWidth < 1024) {
@@ -818,7 +825,7 @@ export default function Home() {
                       )}
                     </div>
   
-                    <div className="flex-1 space-y-2 max-w-[100%] text-white">
+                    <div className="flex-1 space-y-2 max-w-[100%] text-white" ref={topRef}>
                       
                       {/* Tool Invocations */}
                       {message.toolInvocations?.map((tool) => {
@@ -860,23 +867,19 @@ export default function Home() {
                             return <div className="max-w-[100%] sm:max-w-[75%]"><TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
                           case 'getAccountDetails':
                             return <div className="max-w-[100%] sm:max-w-[75%]"><AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
-                          // case 'getTrendingCoins':
-                          //   return <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
-                          // case 'getTrendingSolanaTokens':
-                          //   return <TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
-
                           case 'getTrendingTokens':
                             // Check the chain parameter from the tool result
                             return tool.args.chain === 'solana' 
                               ? <TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
                               : <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
-
                           case 'getTopNfts':
                             return <TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
                           default:
                             return null;
                           case 'swap':
                             return <div className="max-w-[100%] sm:max-w-[75%]"><ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
+                          case 'getRecentDexScreenerTokens':
+                            return <div className="max-w-[100%] sm:max-w-[75%]"><RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
                         }
                       })}
 

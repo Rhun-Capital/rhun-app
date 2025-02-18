@@ -271,9 +271,9 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isNew: false
     },
     {
-      name: 'Get Solana Metrics',
-      description: 'Get the latest metrics for the Solana blockchain.',
-      command: 'Show me the Solana metrics',
+      name: 'Get Recent Tokens on DexScreener',
+      description: 'Discover the latest tokens listed on DexScreener.',
+      command: 'Search for recently listed tokens on DexScreener. Filter by market cap, volume, age and more.',
       isPro: false,
       isNew: true
     },    

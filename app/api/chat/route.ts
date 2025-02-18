@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, streamText, tool } from "ai";
-import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveSolanaMetrics, retrieveNfts, retrieveTrendingSolanaTokens } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveNfts, retrieveTrendingSolanaTokens, retrieveDexScreenerTokens } from '@/utils/retrieval';
 import { z } from 'zod';
 import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
@@ -22,6 +22,34 @@ import { getAccountDetails } from '@/utils/solscan';
 import { checkSubscriptionStatus } from '@/utils/subscriptions';
 
 
+// Interface for DexScreener token data
+export interface DexScreenerTokenData {
+  tokenAddress: string;
+  chainId: string;
+  url?: string;
+  icon?: string;
+  header?: string;
+  description?: string;
+  link_urls?: string[];
+  link_descriptions?: string[];
+  last_updated: string;
+  score: number;
+}
+
+// Interface for token retrieval filters
+export interface DexScreenerTokenFilters {
+  chainId?: string;
+  minLinks?: number;
+  hasDescription?: boolean;
+  hasIcon?: boolean;
+}
+// Define the minimal filter interface needed for the retrieval function
+export interface DexScreenerTokenFilters {
+  chainId?: string;
+  minLinks?: number;
+  hasDescription?: boolean;
+  hasIcon?: boolean;
+}
 
 function formatNumber(num: number): string {
   if (Math.abs(num) >= 1000000000) {
@@ -42,6 +70,7 @@ function formatNumber(num: number): string {
 
 function metricsToText(metricsArray: any[]): string {
   // Get the latest data entry
+  console.log(metricsArray)
   const latestMetrics = metricsArray.find(item => 
     typeof item.metadata.Price === 'number'
   )?.metadata;
@@ -139,16 +168,11 @@ export async function POST(req: Request) {
   const latestMessage = messages[messages.length - 1];
 
   // Fetch context, agent configuration, and coin data in parallel
-  const [context, agentConfig, coins, solanaMetrics] = await Promise.all([
+  const [context, agentConfig] = await Promise.all([
     retrieveContext(latestMessage.content, agent.id),
     getAgentConfig(agent.userId, agent.id),
-    retrieveCoins(latestMessage.content),
-    retrieveSolanaMetrics(latestMessage.content),
-    // retrieveTrendingSolanaTokens()
   ]);
 
-
-  const metricsText = metricsToText(solanaMetrics);
 
   const allTools: { [key: string]: { description: string; parameters: any; execute: (args: any) => Promise<any> } } =
   { 
@@ -279,24 +303,6 @@ export async function POST(req: Request) {
         return topNfts;
       },
     },
-
-    // getTrendingTokens: {
-    //   description: "Get trending tokens and cryptocurrencies. Supports both global trending data from CoinGecko and Solana-specific data from Solscan.",
-    //   parameters: z.object({
-    //     chain: z.enum(['all', 'solana'])
-    //       .describe("Which blockchain to get trending tokens for. Use 'all' for trending across all chains, or 'solana' for Solana-specific tokens")
-    //       .default('all'),
-    //   }),
-    //   execute: async ({ chain }) => {
-    //     if (chain === 'solana') {
-    //       const trendingTokens = await retrieveTrendingSolanaTokens();
-    //       return trendingTokens;
-    //     }
-        
-    //     const trendingCoins = await retrieveTrendingCoins();
-    //     return trendingCoins
-    //   },
-    // },    
   
     getTrendingTokens: {
       description: "Get trending tokens and cryptocurrencies with optional filters. Supports both global trending data and Solana-specific data with filtering options.",
@@ -440,16 +446,7 @@ export async function POST(req: Request) {
         const response = await getAccountDetails(address);
         return response;
       },
-    },           
-  
-    // analyzeSolanaTokenHolders: {
-    //   description: "Analyze new Solana tokens (created in last 36 hours) that share holders with specified tokens",
-    //   parameters: z.object({ tokenAddresses: z.array(z.string()) }),
-    //   execute: async ({ tokenAddresses }) => {
-    //     const response = await getSolanaTokenHolders(tokenAddresses);
-    //     return response;
-    //   }
-    // }      
+    },             
   
     getTopHolders: {
       description: "Get the top holders of a Solana token by contract address.",
@@ -472,7 +469,142 @@ export async function POST(req: Request) {
         return {fromToken, toToken, amount}  
       },
     },
-    
+
+
+
+      getRecentDexScreenerTokens: {
+        description: "Get trending tokens from DexScreener with optional filters",
+        parameters: z.object({
+          chain: z.enum(['all', 'solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'fantom', 'arbitrum'])
+            .describe("Which blockchain to get trending tokens for")
+            .default('all'),
+          filters: z.object({
+            minLinks: z.number().optional()
+              .describe("Minimum number of links"),
+            minPrice: z.number().optional()
+              .describe("Minimum price in USD"),
+            maxPrice: z.number().optional()
+              .describe("Maximum price in USD"),
+            minMarketCap: z.number().optional()
+              .describe("Minimum market cap in USD"),
+            maxMarketCap: z.number().optional()
+              .describe("Maximum market cap in USD"),
+            minVolume: z.number().optional()
+              .describe("Minimum 24h volume in USD"),
+            minLiquidity: z.number().optional()
+              .describe("Minimum liquidity in USD"),
+            minAge: z.number().optional()
+              .describe("Minimum age in days"),
+            maxAge: z.number().optional()
+              .describe("Maximum age in days"),
+            hasDescription: z.boolean().optional()
+              .describe("Filter for tokens with/without description"),
+            hasIcon: z.boolean().optional()
+              .describe("Filter for tokens with/without icon"),
+            hasLabels: z.boolean().optional()
+              .describe("Filter for tokens with labels"),
+            minBuySellRatio: z.number().optional()
+              .describe("Minimum ratio of buys to sells in 24h")
+          }).optional(),
+          maxResults: z.number().optional()
+            .describe("Maximum number of tokens to return")
+            .default(100),
+          sortBy: z.enum(['score', 'links', 'recent', 'volume', 'market_cap', 'liquidity', 'transactions', 'price'])
+            .describe("How to sort the results")
+            .default('score'),
+        }),
+        execute: async ({ chain, filters, maxResults, sortBy }) => {
+          // Prepare chain-specific filters
+          const chainFilters: DexScreenerTokenFilters = { ...filters };
+          
+          // If specific chain is specified, add chain filter
+          if (chain !== 'all') {
+            chainFilters.chainId = chain;
+          }
+      
+          // Retrieve tokens
+          let trendingTokens = await retrieveDexScreenerTokens(
+            undefined, // No semantic query needed for trending tokens
+            chainFilters, 
+            maxResults || 100
+          );
+                
+          // Apply sorting
+          switch (sortBy) {
+            case 'links':
+              trendingTokens = trendingTokens.sort((a, b) => (b.totalLinks || 0) - (a.totalLinks || 0));
+              break;
+            case 'recent':
+              trendingTokens = trendingTokens.sort((a, b) => {
+                const aDate = new Date(a.last_updated || 0).getTime();
+                const bDate = new Date(b.last_updated || 0).getTime();
+                return bDate - aDate;
+              });
+              break;
+            case 'volume':
+              trendingTokens = trendingTokens.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
+              break;
+            case 'market_cap':
+              trendingTokens = trendingTokens.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
+              break;
+            case 'liquidity':
+              trendingTokens = trendingTokens.sort((a, b) => (b.liquidity_usd || 0) - (a.liquidity_usd || 0));
+              break;
+            case 'transactions':
+              trendingTokens = trendingTokens.sort((a, b) => (b.total_txns_24h || 0) - (a.total_txns_24h || 0));
+              break;
+            case 'price':
+              trendingTokens = trendingTokens.sort((a, b) => (b.price_usd || 0) - (a.price_usd || 0));
+              break;
+            default:
+              // Default to sorting by score
+              trendingTokens = trendingTokens.sort((a, b) => b.score - a.score);
+          }
+      
+          // Format response data
+          return trendingTokens.map(token => ({
+            tokenAddress: token.tokenAddress,
+            chainId: token.chainId,
+            name: token.token_name || token.header || `Token on ${token.chainId}`,
+            symbol: token.token_symbol,
+            url: token.url,
+            description: token.description || "No description available",
+            icon: token.icon || token.image_url,
+            price: {
+              value: token.price_usd,
+              formatted: token.formattedPrice || "Unknown"
+            },
+            metrics: {
+              marketCap: token.market_cap,
+              fullyDilutedValuation: token.fully_diluted_valuation,
+              volume24h: token.volume_24h,
+              liquidity: token.liquidity_usd,
+              totalPairs: token.total_pairs,
+              buys24h: token.buys_24h,
+              sells24h: token.sells_24h,
+              totalTransactions24h: token.total_txns_24h,
+              buySellRatio: token.buySellRatio
+            },
+            links: {
+              total: token.totalLinks || 0,
+              socialLinks: token.social_links || [],
+              websiteUrls: token.website_urls || [],
+              otherLinks: token.link_urls?.map((url, index) => ({
+                url,
+                description: token.link_descriptions?.[index] || "Link"
+              })) || []
+            },
+            details: {
+              createdAt: token.created_at ? new Date(token.created_at).toISOString() : undefined,
+              ageDays: token.age_days,
+              labels: token.labels || [],
+              uniqueDexes: token.unique_dexes || []
+            },
+            last_updated: token.last_updated,
+            score: parseFloat(token.score.toFixed(4))
+          }));
+        }
+      }
   }
 
   // Define tool sets for different user tiers
@@ -494,7 +626,7 @@ export async function POST(req: Request) {
     getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
     getTopNfts: allTools.getTopNfts,
     swap: allTools.swap,
-    // getTrendingSolanaTokens: allTools.getTrendingSolanaTokens,
+    getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
   };
 
   const proTools = {
@@ -528,19 +660,6 @@ const contextText = context
 .join('\n\n');   
 
 
-// Format coin data for the prompt
-const coinContext = coins.length > 0 ? `
-## Recent Cryptocurrency Data:
-${coins.slice(0, 5).map(coin => `
-- Name: ${coin.name} (${coin.symbol})
-  Price: $${coin.current_price_usd?.toFixed(2) || 'N/A'}
-  Market Cap: $${coin.market_cap_usd?.toLocaleString() || 'N/A'}
-  Categories: ${coin.categories?.join(', ') || 'N/A'}
-`).join('\n')}
-` : '';    
-
-
-
 const systemPrompt = `
 ## User Information (the user that's interacting with the agent):
 - User's ID: ${user.id}
@@ -563,16 +682,11 @@ If the user requests functionality that requires a paid subscription, inform the
 this feature is only available to paid users and direct them to upgrade their subscription.
 Free tools available to the user include:
 ${Object.values(freeTools).map(tool => `- ${tool.description}`).join('\n')}
-- Solana Metrics: The latest metrics data for the Solana ecosystem.
 ` : `
 ## Subscription Status
 Pro tools available to the user include:
 ${Object.values(proTools).map(tool => `- ${tool.description}`).join('\n')}
-- Solana Metrics: The latest metrics data for the Solana ecosystem.
 `}
-
-## Solana Metrics
-${metricsText ? metricsText : ''}
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
@@ -610,8 +724,6 @@ ${agentConfig.styleGuide}
 # Relevant Context for This Query:
 ${contextText}
 
-${coinContext}
-
 ${agentConfig.userId === 'template' ? `
  If the users runs the Get Agent Portfolio tool (getAgentPortfolioValue), tell them this is a template agent and does not have a wallet. 
  Template agents do no have access to wallets and therefore cannot execute swaps. If they run the swap tool, tell them template agents cannot execute swaps and to create a new agent, fund the agent wallet to use this functionality.
@@ -627,7 +739,8 @@ When you're replying to the user and the reponses in not a tool, do not add imag
 When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
 Only when using the getTopNfts tool, show the image of the NFT.
 When using the swap tool, make sure to only say the swap has been submitted and to check the results above. you can mention the details of the swap. If the user doesn't specifiy a slippage, use the default of 1.0. Always ask to confirm the swap before executing it.
-
+When the users asks to get recent tokens ask them if thy'd like to get recent tokens on DexScreener, or recent coins listed on CoinGecko.
+If the user asks to see trending tokens, ask them if they'd like to see trending tokens on Solscan or trending tokens on CoinGecko.
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
 
   const result = await streamText({

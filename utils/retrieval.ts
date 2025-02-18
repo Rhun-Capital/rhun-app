@@ -96,6 +96,62 @@ interface NftImage {
   small_2x: string;
 }
 
+export interface DexScreenerToken {
+  tokenAddress: string;
+  chainId: string;
+  url?: string;
+  icon?: string;
+  header?: string;
+  description?: string;
+  link_urls?: string[];
+  link_descriptions?: string[];
+  social_links?: string[];
+  website_urls?: string[];
+  token_name?: string;
+  token_symbol?: string;
+  price_usd?: number;
+  market_cap?: number;
+  fully_diluted_valuation?: number;
+  volume_24h?: number;
+  liquidity_usd?: number;
+  total_pairs?: number;
+  created_at?: number;
+  age_days?: number;
+  labels?: string[];
+  buys_24h?: number;
+  sells_24h?: number;
+  total_txns_24h?: number;
+  unique_dexes?: string[];
+  image_url?: string;
+  last_updated: string;
+  score: number;
+  network?: string;
+  // Computed properties
+  totalLinks?: number;
+  buySellRatio?: number | null;
+  formattedPrice?: string | null;
+}
+
+// Interface for token retrieval filters
+export interface DexScreenerTokenFilters {
+  chainId?: string;
+  minLinks?: number;
+  hasDescription?: boolean;
+  hasIcon?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  minMarketCap?: number;
+  maxMarketCap?: number;
+  minVolume?: number;
+  minAge?: number;
+  maxAge?: number;
+  minLiquidity?: number;
+  hasLabels?: boolean;
+  minBuySellRatio?: number;
+  network?: string;
+}
+
+
 // Interface for Solana token data
 export interface SolanaTrendingData {
   address: string;
@@ -688,6 +744,196 @@ export async function retrieveCoinsWithFilters(
     return results;
   } catch (error) {
     console.error('Error retrieving filtered coins:', error);
+    return [];
+  }
+}
+
+export async function retrieveDexScreenerTokens(
+  query?: string,
+  filters?: DexScreenerTokenFilters,
+  maxResults: number = 100
+): Promise<DexScreenerToken[]> {
+  try {
+    // Initialize Pinecone
+    const pinecone = initPinecone();
+    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+
+    // Build filter conditions
+    const filterConditions: any[] = [
+      { dexScreenerUrl: { $exists: true } }
+    ];
+
+    // Apply optional filters
+    if (filters) {
+      if (filters.chainId) {
+        filterConditions.push({ chainId: { $eq: filters.chainId } });
+      }
+
+      if (filters.network) {
+        filterConditions.push({ network: { $eq: filters.network } });
+      }
+
+      if (filters.minLinks !== undefined) {
+        filterConditions.push({ 
+          $expr: { 
+            $gte: [{ $size: "$link_urls" }, filters.minLinks] 
+          } 
+        });
+      }
+
+      if (filters.hasDescription === true) {
+        filterConditions.push({ description: { $exists: true, $ne: '' } });
+      } else if (filters.hasDescription === false) {
+        filterConditions.push({ 
+          $or: [
+            { description: { $exists: false } },
+            { description: '' }
+          ]
+        });
+      }
+
+      if (filters.hasIcon === true) {
+        filterConditions.push({ icon: { $exists: true, $ne: '' } });
+      } else if (filters.hasIcon === false) {
+        filterConditions.push({ 
+          $or: [
+            { icon: { $exists: false } },
+            { icon: '' }
+          ]
+        });
+      }
+
+      // Add new filters
+      if (filters.minPrice !== undefined) {
+        filterConditions.push({ price_usd: { $gte: filters.minPrice } });
+      }
+
+      if (filters.maxPrice !== undefined) {
+        filterConditions.push({ price_usd: { $lte: filters.maxPrice } });
+      }
+
+      if (filters.minMarketCap !== undefined) {
+        filterConditions.push({ market_cap: { $gte: filters.minMarketCap } });
+      }
+
+      if (filters.maxMarketCap !== undefined) {
+        filterConditions.push({ market_cap: { $lte: filters.maxMarketCap } });
+      }
+
+      if (filters.minVolume !== undefined) {
+        filterConditions.push({ volume_24h: { $gte: filters.minVolume } });
+      }
+
+      if (filters.minLiquidity !== undefined) {
+        filterConditions.push({ liquidity_usd: { $gte: filters.minLiquidity } });
+      }
+
+      if (filters.minAge !== undefined) {
+        filterConditions.push({ age_days: { $gte: filters.minAge } });
+      }
+
+      if (filters.maxAge !== undefined) {
+        filterConditions.push({ age_days: { $lte: filters.maxAge } });
+      }
+
+      if (filters.hasLabels === true) {
+        filterConditions.push({ 
+          $and: [
+            { labels: { $exists: true } },
+            { $expr: { $gt: [{ $size: "$labels" }, 0] } }
+          ]
+        });
+      }
+
+      if (filters.minBuySellRatio !== undefined) {
+        filterConditions.push({ 
+          $and: [
+            { buys_24h: { $exists: true } },
+            { sells_24h: { $exists: true, $ne: 0 } },
+            { $expr: { $gte: [{ $divide: ["$buys_24h", "$sells_24h"] }, filters.minBuySellRatio] } }
+          ]
+        });
+      }
+    }
+
+    // Prepare query vector (use default if no query provided)
+    const defaultVector = Array(1536).fill(0.1);
+    
+    const queryParams = {
+      vector: query 
+        ? await createEmbedding(query)
+        : defaultVector,
+      filter: { $and: filterConditions },
+      topK: maxResults,
+      includeMetadata: true,
+    };
+
+    const queryResponse = await index.query(queryParams);
+
+    // Map query results to DexScreenerToken with all fields
+    const results = queryResponse.matches?.map(match => {
+      const token: DexScreenerToken = {
+        tokenAddress: match.metadata?.tokenAddress as string,
+        chainId: match.metadata?.chainId as string,
+        url: match.metadata?.dexScreenerUrl as string,
+        icon: match.metadata?.icon as string,
+        header: match.metadata?.header as string,
+        description: match.metadata?.description as string,
+        link_urls: match.metadata?.link_urls as string[] | undefined,
+        link_descriptions: match.metadata?.link_descriptions as string[] | undefined,
+        social_links: match.metadata?.social_links as string[] | undefined,
+        website_urls: match.metadata?.website_urls as string[] | undefined,
+        token_name: match.metadata?.token_name as string | undefined,
+        token_symbol: match.metadata?.token_symbol as string | undefined,
+        price_usd: match.metadata?.price_usd as number | undefined,
+        market_cap: match.metadata?.market_cap as number | undefined,
+        fully_diluted_valuation: match.metadata?.fully_diluted_valuation as number | undefined,
+        volume_24h: match.metadata?.volume_24h as number | undefined,
+        liquidity_usd: match.metadata?.liquidity_usd as number | undefined,
+        total_pairs: match.metadata?.total_pairs as number | undefined,
+        created_at: match.metadata?.created_at as number | undefined,
+        age_days: match.metadata?.age_days as number | undefined,
+        labels: match.metadata?.labels as string[] | undefined,
+        buys_24h: match.metadata?.buys_24h as number | undefined,
+        sells_24h: match.metadata?.sells_24h as number | undefined,
+        total_txns_24h: match.metadata?.total_txns_24h as number | undefined,
+        unique_dexes: match.metadata?.unique_dexes as string[] | undefined,
+        image_url: match.metadata?.image_url as string | undefined,
+        last_updated: match.metadata?.last_updated as string,
+        score: match.score ?? 0,
+        network: match.metadata?.network as string | undefined,
+      };
+
+      // Calculate computed properties
+      token.totalLinks = (token.link_urls?.length || 0) + 
+                         (token.social_links?.length || 0) + 
+                         (token.website_urls?.length || 0);
+      
+      if (token.buys_24h !== undefined && token.sells_24h !== undefined && token.sells_24h > 0) {
+        token.buySellRatio = token.buys_24h / token.sells_24h;
+      } else {
+        token.buySellRatio = null;
+      }
+      
+      if (token.price_usd !== undefined) {
+        // Format price based on its magnitude
+        if (token.price_usd < 0.000001) {
+          token.formattedPrice = token.price_usd.toExponential(4);
+        } else if (token.price_usd < 0.01) {
+          token.formattedPrice = token.price_usd.toFixed(8);
+        } else {
+          token.formattedPrice = token.price_usd.toFixed(4);
+        }
+      } else {
+        token.formattedPrice = null;
+      }
+
+      return token;
+    }) || [];
+
+    return results;
+  } catch (error) {
+    console.error('Error retrieving DexScreener tokens:', error);
     return [];
   }
 }
