@@ -183,14 +183,14 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     );
   }
 
-  // if (params.userId === 'template') {
-  //   return (
-  //    <div className="border-t border-zinc-700 pt-6">
-  //     <h3 className="text-lg font-semibold mb-4">Knowledge Base Content</h3>
-  //     <KnowledgeList agentId={agentId} refreshTrigger={refreshCounter} />
-  //   </div>
-  //   );
-  // }
+  if (params.userId === 'template') {
+    return (
+     <div className="border-t border-zinc-700 pt-6">
+      <h3 className="text-lg font-semibold mb-4">Knowledge Base Content</h3>
+      <KnowledgeList agentId={agentId} refreshTrigger={refreshCounter} />
+    </div>
+    );
+  }
 
   return (
     <div className="space-y-6" ref={topRef}>
