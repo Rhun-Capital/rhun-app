@@ -1,4 +1,4 @@
-import { Connection, PublicKey, Commitment, GetLatestBlockhashConfig, SendOptions, RpcResponseAndContext, SignatureStatus, Transaction, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey, Commitment, GetLatestBlockhashConfig, SendOptions, RpcResponseAndContext, SignatureStatus, TransactionMessage, Transaction, SystemProgram, VersionedTransaction, TransactionInstruction, GetBlockHeightConfig, TransactionConfirmationStrategy, SignatureResult, } from '@solana/web3.js';
 import { createTransferInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
  
 const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
@@ -9,7 +9,7 @@ interface Token {
   token_address: string;
   token_icon: string;
   token_name: string;
-  usd_value: number;
+  usd_price: number;
   formatted_amount: number;
   token_symbol: string;
   token_decimals: number;
@@ -167,16 +167,52 @@ export class ProxyConnection extends Connection {
       throw error;
     }
   }
+
+
+  getBlockHeight = async (
+    commitmentOrConfig?: Commitment | GetBlockHeightConfig
+  ): Promise<number> => {
+    const config = typeof commitmentOrConfig === 'string'
+      ? { commitment: commitmentOrConfig }
+      : commitmentOrConfig;
+
+    const params = config ? [config] : [];
+    try {
+      return await this.customRpcRequest('getBlockHeight', params);
+    } catch (error) {
+      console.error('Get block height error:', error);
+      throw error;
+    }
+  }
+
+}
+
+
+interface Token {
+  token_address: string;
+  token_icon: string;
+  token_name: string;
+  usd_value: number;
+  formatted_amount: number;
+  token_symbol: string;
+  token_decimals: number;
+}
+
+interface SwapParams {
+  fromToken: Token;
+  toToken: Token;
+  amount: string;
+  slippage: number;
+  wallet: any;
 }
 
 export const executeSwap = async ({
-    fromToken,
-    toToken,
-    amount,
-    slippage,
-    wallet
-  }: SwapParams  
-) => {
+  fromToken,
+  toToken,
+  amount,
+  slippage,
+  wallet
+}: SwapParams) => {
   try {
     if (!wallet || !wallet.address) {
       throw new Error('Wallet not connected');
@@ -184,14 +220,7 @@ export const executeSwap = async ({
 
     const connection = new ProxyConnection({ commitment: 'confirmed' });
 
-    // Log wallet state
-    console.log('Wallet state:', {
-      address: wallet.address,
-      type: wallet.walletClientType,
-      hasSignTransaction: !!wallet.signTransaction,
-      hasSendTransaction: !!wallet.sendTransaction
-    });
-
+    // Setup input and output mints
     const inputMint = fromToken?.token_address === 'SOL' 
       ? 'So11111111111111111111111111111111111111112' 
       : fromToken?.token_address;
@@ -200,27 +229,66 @@ export const executeSwap = async ({
       ? 'So11111111111111111111111111111111111111112'
       : toToken?.token_address;
 
-    // Calculate decimals amount here
-    const amountInDecimals = Math.floor(
+    // Calculate USD value of the swap
+    const swapUsdAmount = parseFloat(amount) * fromToken.usd_price;
+    const usdFee = swapUsdAmount * FEE_PERCENTAGE;
+    
+    // Get SOL price and convert fee to SOL
+    const solPriceUsd = fromToken.token_symbol === 'SOL' 
+      ? fromToken.usd_price 
+      : toToken.token_symbol === 'SOL'
+      ? toToken.usd_price : 0;
+      
+    // Calculate SOL fee amount in lamports
+    const feeAmountInSol = usdFee / solPriceUsd;
+    const feeAmountInLamports = Math.floor(feeAmountInSol * Math.pow(10, 9));
+
+    // Prepare swap amount in token's smallest unit
+    const swapAmount = Math.floor(
       parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
     );
 
-    const slippageBps = Math.floor(slippage * 100);
-
-    // Log swap parameters
-    console.log('Swap parameters:', {
-      inputMint,
-      outputMint,
-      amount,
-      amountInDecimals,
-      slippageBps,
-      userAddress: wallet.address
+    // Create SOL fee transfer instruction
+    const userPublicKey = new PublicKey(wallet.address);
+    const feeRecipientPublicKey = new PublicKey(FEE_RECIPIENT);
+    
+    const feeInstruction = SystemProgram.transfer({
+      fromPubkey: userPublicKey,
+      toPubkey: feeRecipientPublicKey,
+      lamports: feeAmountInLamports
     });
 
-    // Get quote with specific options
-    console.log('Fetching quote...');
+    // Get fresh blockhash for fee transaction
+    const { blockhash: feeBlockhash } = await connection.getLatestBlockhash('confirmed');
+
+    // Create and send fee transaction
+    const feeMessage = new TransactionMessage({
+      payerKey: userPublicKey,
+      recentBlockhash: feeBlockhash,
+      instructions: [feeInstruction]
+    }).compileToV0Message();
+
+    const feeTransaction = new VersionedTransaction(feeMessage);
+    const signedFeeTx = await wallet.signTransaction(feeTransaction);
+    
+    console.log('Sending fee transaction...');
+    const feeSignature = await connection.sendRawTransaction(
+      signedFeeTx.serialize(),
+      {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+        maxRetries: 3
+      }
+    );
+    console.log('Fee transaction sent:', feeSignature);
+
+    // Calculate slippage in basis points for Jupiter
+    const slippageBps = Math.floor(slippage * 100);
+
+    // Get swap quote
+    console.log('Getting swap quote...');
     const quoteResponse = await fetch(
-      `${JUPITER_V6_QUOTE_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountInDecimals}&slippageBps=${slippageBps}&asLegacyTransaction=true`,
+      `${JUPITER_V6_QUOTE_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${swapAmount}&slippageBps=${slippageBps}`,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -229,331 +297,67 @@ export const executeSwap = async ({
     );
 
     if (!quoteResponse.ok) {
-      const errorText = await quoteResponse.text();
-      console.error('Quote error:', errorText);
-      throw new Error(`Failed to get quote: ${errorText}`);
+      throw new Error(`Failed to get quote: ${await quoteResponse.text()}`);
     }
 
     const quoteData = await quoteResponse.json();
-    console.log('Quote received:', {
-      routes: quoteData.routesInfos?.length,
-      inAmount: quoteData.inputAmount,
-      outAmount: quoteData.outputAmount
-    });
 
-    // Get fresh blockhash
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-    console.log('Got blockhash:', { blockhash, lastValidBlockHeight });
-
-    // Now get the swap transaction
-    console.log('Requesting swap transaction...');
+    // Request swap transaction
+    console.log('Preparing swap transaction...');
     const swapRequest = {
       quoteResponse: quoteData,
       userPublicKey: wallet.address,
-      asLegacyTransaction: true,
       computeUnitPriceMicroLamports: 1000,
       useTokenLedger: false
     };
 
     const swapResponse = await fetch(`${JUPITER_V6_QUOTE_API}/swap`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(swapRequest)
     });
 
     if (!swapResponse.ok) {
-      const errorText = await swapResponse.text();
-      console.error('Swap preparation error:', errorText);
-      throw new Error(`Failed to prepare swap: ${errorText}`);
+      throw new Error(`Failed to prepare swap: ${await swapResponse.text()}`);
     }
 
     const responseData = await swapResponse.json();
     if (!responseData.swapTransaction) {
-      console.error('No swap transaction in response:', responseData);
       throw new Error('No swap transaction received from API');
     }
 
-    // Log transaction data
-    console.log('Got swap transaction data');
+    // Get fresh blockhash for swap
+    const { blockhash: swapBlockhash } = await connection.getLatestBlockhash('confirmed');
 
-    // Decode transaction
-    console.log('Decoding transaction...');
-    const serializedTransaction = Buffer.from(responseData.swapTransaction, 'base64');
-    const transaction = Transaction.from(serializedTransaction);
-
-    // Set transaction parameters
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = new PublicKey(wallet.address);
-
-    // Log transaction details
-    console.log('Transaction prepared:', {
-      numInstructions: transaction.instructions.length,
-      recentBlockhash: transaction.recentBlockhash,
-      feePayer: transaction.feePayer.toBase58(),
-      signers: transaction.signatures.length
-    });
-
-    const signedTx = await wallet.signTransaction(transaction);
+    // Prepare and send swap transaction
+    console.log('Preparing swap transaction...');
+    const swapTransactionBuf = Buffer.from(responseData.swapTransaction, 'base64');
+    const swapTransaction = VersionedTransaction.deserialize(swapTransactionBuf);
     
-    // Send raw transaction through our proxy connection
-    console.log('Sending signed transaction through proxy...');
-    const signature = await connection.sendRawTransaction(
-      signedTx.serialize(),
+    // Update swap transaction with fresh blockhash
+    swapTransaction.message.recentBlockhash = swapBlockhash;
+    
+    const signedSwapTx = await wallet.signTransaction(swapTransaction);
+    
+    console.log('Sending swap transaction...');
+    const swapSignature = await connection.sendRawTransaction(
+      signedSwapTx.serialize(),
       {
         skipPreflight: false,
         preflightCommitment: 'confirmed',
         maxRetries: 3
       }
-    );      
+    );
+    console.log('Swap transaction sent:', swapSignature);
 
-    console.log('Transaction submitted with signature:', signature);
-
-    return signature;
+    // Return swap signature - component will handle confirmation
+    return swapSignature;
 
   } catch (error) {
-    // Log any errors in detail
-    console.error('Swap execution error:', {
-      error,
-      message: (error as Error).message,
-      stack: (error as Error).stack,
-      name: (error as Error).name
-    });
+    console.error('Swap execution error:', error);
     throw error;
   }
 };
-
-// With fees, not working 
-// export const executeSwap = async ({
-//   fromToken,
-//   toToken,
-//   amount,
-//   slippage,
-//   wallet
-// }: SwapParams  
-// ) => {
-// try {
-//   if (!wallet || !wallet.address) {
-//     throw new Error('Wallet not connected');
-//   }
-
-//   const connection = new ProxyConnection({ commitment: 'confirmed' });
-
-//   const inputMint = fromToken?.token_address === 'SOL' 
-//     ? 'So11111111111111111111111111111111111111112' 
-//     : fromToken?.token_address;
-  
-//   const outputMint = toToken?.token_address === 'SOL'
-//     ? 'So11111111111111111111111111111111111111112'
-//     : toToken?.token_address;
-
-//   // Robust USD value extraction with fallbacks
-//   const usdValue = (() => {
-//     if ((fromToken as any).usd_price) return (fromToken as any).usd_price;
-//     if (fromToken.usd_value) return fromToken.usd_value;
-//     console.warn('No USD value found for token');
-//     return 0;
-//   })();
-
-//   // Prevent division by zero and add minimum fee logic
-//   const MIN_FEE_LAMPORTS = 5000;  // Minimum fee of 0.005 SOL
-//   const MAX_FEE_PERCENTAGE = 0.05;  // Maximum 5% fee
-//   const MIN_SWAP_AMOUNT = 0.000001;  // Minimum swap amount
-
-//   const amountInUSD = parseFloat(amount) * usdValue;
-  
-//   // Validate swap amount
-//   if (amountInUSD < MIN_SWAP_AMOUNT) {
-//     throw new Error(`Swap amount too small. Minimum is $${MIN_SWAP_AMOUNT}`);
-//   }
-
-//   // Calculate fee with min and max bounds
-//   const feeInUSD = Math.max(
-//     Math.min(
-//       amountInUSD * FEE_PERCENTAGE,  // Normal percentage fee
-//       amountInUSD * MAX_FEE_PERCENTAGE  // Cap at max percentage
-//     ),
-//     MIN_FEE_LAMPORTS / 10**9  // Ensure minimum fee in SOL
-//   );
-
-//   console.log("Fee Calculation:", {
-//     amountInUSD,
-//     usdValue,
-//     feeInUSD,
-//     feePercentage: (feeInUSD / amountInUSD * 100).toFixed(2) + '%'
-//   });
-
-//   // Prevent division by zero
-//   const feeInTokenAmount = usdValue > 0 
-//     ? feeInUSD / usdValue 
-//     : 0;
-
-//   // Calculate original amount in decimals
-//   const originalAmountInDecimals = Math.floor(
-//     parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
-//   );
-
-//   // Calculate fee amount in base units
-//   const feeAmountInDecimals = Math.floor(
-//     feeInTokenAmount * Math.pow(10, fromToken?.token_decimals || 9)
-//   );
-
-//   const slippageBps = Math.floor(slippage * 100);
-
-//   // Get latest blockhash first
-//   console.log('Getting latest blockhash...');
-//   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-//   console.log('Got blockhash:', { blockhash, lastValidBlockHeight });
-  
-//   // Calculate final swap amount
-//   const swapAmount = originalAmountInDecimals - feeAmountInDecimals;
-
-//   console.log('Fee Calculation Details:', {
-//     originalAmount: parseFloat(amount),
-//     usdValue,
-//     amountInUSD,
-//     feeInUSD,
-//     feeInTokenAmount,
-//     feeAmountInDecimals,
-//     swapAmount
-//   });
-  
-//   // Get quote from Jupiter with reduced amount
-//   console.log('Getting quote for:', {
-//     inputMint,
-//     outputMint,
-//     swapAmount,
-//     originalAmount: originalAmountInDecimals,
-//     feeInUSD,
-//     slippageBps
-//   });
-
-//   // Get quote for reduced amount
-//   const quoteResponse = await fetch(
-//     `${JUPITER_V6_QUOTE_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${swapAmount}&slippageBps=${slippageBps}&asLegacyTransaction=true`,
-//     {
-//       headers: {
-//         'Content-Type': 'application/json',
-//       }
-//     }
-//   );
-
-//   if (!quoteResponse.ok) {
-//     const errorText = await quoteResponse.text();
-//     console.error('Quote error:', errorText);
-//     throw new Error(`Failed to get quote: ${errorText}`);
-//   }
-
-//   const quoteData = await quoteResponse.json();
-//   console.log('Quote received:', quoteData);
-
-//   // Get swap transaction for the reduced amount
-//   console.log('Requesting swap transaction...');
-//   const swapRequest = {
-//     quoteResponse: quoteData,
-//     userPublicKey: wallet.address,
-//     asLegacyTransaction: true,
-//     computeUnitPriceMicroLamports: 1000,
-//     useTokenLedger: false
-//   };
-
-//   const swapResponse = await fetch(`${JUPITER_V6_QUOTE_API}/swap`, {
-//     method: 'POST',
-//     headers: { 
-//       'Content-Type': 'application/json',
-//     },
-//     body: JSON.stringify(swapRequest)
-//   });
-
-//   if (!swapResponse.ok) {
-//     const errorText = await swapResponse.text();
-//     console.error('Swap preparation error:', errorText);
-//     throw new Error(`Failed to prepare swap: ${errorText}`);
-//   }
-
-//   const responseData = await swapResponse.json();
-//   if (!responseData.swapTransaction) {
-//     console.error('No swap transaction in response:', responseData);
-//     throw new Error('No swap transaction received from API');
-//   }
-
-//   // Decode transaction
-//   console.log('Decoding transaction...');
-//   const serializedTransaction = Buffer.from(responseData.swapTransaction, 'base64');
-//   let transaction = Transaction.from(serializedTransaction);
-
-//   // Log detailed instruction info
-//   console.log('Jupiter transaction details:', {
-//     instructionCount: transaction.instructions.length,
-//     instructions: transaction.instructions.map(ix => ({
-//       programId: ix.programId.toBase58(),
-//       accountKeys: ix.keys.map(k => ({
-//         pubkey: k.pubkey.toBase58(),
-//         isWritable: k.isWritable,
-//         isSigner: k.isSigner
-//       })),
-//       data: ix.data.toString('hex').slice(0, 20) + '...' // Just show start of data
-//     }))
-//   });
-
-//   // Create fee transfer instruction
-//   const feeTransferIx = SystemProgram.transfer({
-//     fromPubkey: new PublicKey(wallet.address),
-//     toPubkey: new PublicKey(FEE_RECIPIENT),
-//     lamports: Math.max(MIN_FEE_LAMPORTS, feeAmountInDecimals)  // Ensure minimum fee
-//   });
-
-//   // Create final transaction
-//   const finalTransaction = new Transaction();
-//   finalTransaction.recentBlockhash = blockhash;
-//   finalTransaction.feePayer = new PublicKey(wallet.address);
-
-//   // Add Jupiter's instructions, inserting our fee transfer in the middle
-//   const midpoint = Math.floor(transaction.instructions.length / 2);
-//   const firstHalf = transaction.instructions.slice(0, midpoint);
-//   const secondHalf = transaction.instructions.slice(midpoint);
-
-//   // Add instructions in order:
-//   // 1. First half of Jupiter's instructions (setup)
-//   // 2. Our fee transfer
-//   // 3. Second half of Jupiter's instructions (swap)
-//   firstHalf.forEach(ix => finalTransaction.add(ix));
-//   finalTransaction.add(feeTransferIx);
-//   secondHalf.forEach(ix => finalTransaction.add(ix));
-  
-//   console.log('Final transaction:', {
-//     numInstructions: finalTransaction.instructions.length,
-//     instructionTypes: finalTransaction.instructions.map(ix => ix.programId.toBase58()),
-//     feeAmount: Math.max(MIN_FEE_LAMPORTS, feeAmountInDecimals)
-//   });
-
-//   const signedTx = await wallet.signTransaction(finalTransaction);
-  
-//   // Send raw transaction
-//   console.log('Sending signed transaction...');
-//   const signature = await connection.sendRawTransaction(
-//     signedTx.serialize(),
-//     {
-//       skipPreflight: false,
-//       preflightCommitment: 'confirmed',
-//       maxRetries: 3
-//     }
-//   );      
-
-//   console.log('Transaction submitted with signature:', signature);
-//   return signature;
-
-// } catch (error) {
-//   console.error('Swap execution error:', {
-//     error,
-//     message: (error as Error).message,
-//     stack: (error as Error).stack,
-//     name: (error as Error).name
-//   });
-//   throw error;
-// }
-// };
 
 export const getQuote = async (
   fromToken: Token | null,
@@ -591,8 +395,7 @@ export const getQuote = async (
       inputMint,
       outputMint,
       amount: amountInDecimals.toString(),
-      slippageBps: slippageBps.toString(),
-      asLegacyTransaction: 'true'
+      slippageBps: slippageBps.toString()
     });
 
     const response = await fetch(
@@ -611,9 +414,9 @@ export const getQuote = async (
       throw new Error('No quote data received');
     }
 
-    return quoteData
+    return quoteData;
   } catch (err: any) {
     console.error('Error getting quote:', err);
-    return null
+    return null;
   }
 };

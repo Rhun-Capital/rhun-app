@@ -16,7 +16,7 @@ interface Token {
   token_name: string;
   token_symbol: string;
   token_decimals: number;
-  usd_value: number;
+  usd_price: number;
   formatted_amount: number;
 }
 
@@ -128,7 +128,7 @@ const ExecuteSwap: React.FC<{
           token_name: 'Solana',
           token_symbol: 'SOL',
           token_decimals: 9,
-          usd_value: price,
+          usd_price: price,
           formatted_amount: 0
         };
       }
@@ -154,7 +154,7 @@ const ExecuteSwap: React.FC<{
         token_name: token.name,
         token_symbol: token.symbol,
         token_decimals: token.decimals,
-        usd_value: price, 
+        usd_price: price, 
         formatted_amount: 0 
       };
     } catch (error) {

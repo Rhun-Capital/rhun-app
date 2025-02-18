@@ -465,28 +465,28 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     return response.json();
   }
 
-  useEffect(() => {
-    if (activeTab === 'wallet' && agent.wallets?.solana) {
-      getTokens(agent.wallets.solana)
-        .then((response) => {
-          setTokens(response);
-        })
-        .catch((error) => console.error('Error fetching tokens:', error));
-    }
-  }, [activeTab, agent.wallets?.solana]);
+  // useEffect(() => {
+  //   if (activeTab === 'wallet' && agent.wallets?.solana) {
+  //     getTokens(agent.wallets.solana)
+  //       .then((response) => {
+  //         setTokens(response);
+  //       })
+  //       .catch((error) => console.error('Error fetching tokens:', error));
+  //   }
+  // }, [activeTab, agent.wallets?.solana]);
 
-  useEffect(() => {
-    if (activeTab === 'wallet' && agent.wallets?.solana) {
-      getPortfolioValue(agent.wallets.solana)
-        .then((portfolio) => {
-          // sum the total value of all tokens usdValue
-          const tv = portfolio.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
-          setTotalValue(tv)
-          setPortfolio(portfolio);
-        })
-        .catch((error) => console.error('Error fetching portfolio:', error));
-    }
-  }, [activeTab, agent.wallets?.solana]);
+  // useEffect(() => {
+  //   if (activeTab === 'wallet' && agent.wallets?.solana) {
+  //     getPortfolioValue(agent.wallets.solana)
+  //       .then((portfolio) => {
+  //         // sum the total value of all tokens usdValue
+  //         const tv = portfolio.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
+  //         setTotalValue(tv)
+  //         setPortfolio(portfolio);
+  //       })
+  //       .catch((error) => console.error('Error fetching portfolio:', error));
+  //   }
+  // }, [activeTab, agent.wallets?.solana]);
 
 
   const refreshWalletData = async () => {

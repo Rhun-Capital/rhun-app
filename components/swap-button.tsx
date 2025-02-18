@@ -5,9 +5,9 @@ import { usePrivy, useSolanaWallets, getAccessToken } from '@privy-io/react-auth
 import { ProxyConnection, executeSwap, getQuote } from '../utils/solana';
 
 import Image from 'next/image';
+import LoadingIndicator from './loading-indicator';
 const TOKENS_PER_PAGE =   10;
 const JUPITER_TOKEN_LIST_URL = `https://tokens.jup.ag/tokens?tags=community`;  // Using strict list for better performance
-const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
 
 
 interface PaginatedTokens {
@@ -21,6 +21,7 @@ interface Token {
   token_icon: string;
   token_name: string;
   usd_value: number;
+  usd_price: number;
   formatted_amount: number;
   token_symbol: string;
   token_decimals: number;
@@ -72,6 +73,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
   const [quote, setQuote] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [slippage, setSlippage] = useState<string>('1.0');
+  const [priceLoading, setPriceLoading] = useState(false);
   const [showSlippageSettings, setShowSlippageSettings] = useState(false);
   const [pendingSignature, setPendingSignature] = useState<string | null>(null);
   const [transactionStatus, setTransactionStatus] = useState<'pending' | 'confirmed' | 'failed' | null>(null);
@@ -83,6 +85,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
     totalTokens: 0
   });
   const [isLoadingTokens, setIsLoadingTokens] = useState(false);
+
 
   // Fetch tokens with pagination
   const fetchJupiterTokens = async (page: number = 1, search: string = '') => {
@@ -251,10 +254,10 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
   //   }
   // };  
 
-  const getPrice = async (id: string) => {
+  const getSolPrice = async () => {
     const accessToken = await getAccessToken();
     // fetch token details from coingecko using the extensions.coingeckoId 
-    const coin = await fetch('/api/coingecko/coins/' + id, {
+    const coin = await fetch('/api/coingecko/coins/solana', {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       },
@@ -262,6 +265,77 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
     const coinItem = await coin.json()    
     return coinItem.market_data.current_price.usd
 }    
+
+  const resetForm = () => {
+    setSelecting(null);
+    setFromToken(null);
+    setToToken(null);
+    setAmount('');
+    setError('');
+    setSuccess('');
+    setQuote(null);
+    setSearchTerm('');
+    setLoading(false);
+    setPendingSignature(null);
+    setTransactionStatus(null);
+    setPriceLoading(false);
+  };
+
+  const handleTokenSelect = async (token: Token | JupiterToken | 'SOL') => {
+    let selectedToken: Token;
+    if (token === 'SOL') {
+      setPriceLoading(true);
+      const price = await getSolPrice()
+      setPriceLoading(false);
+      selectedToken = {
+        token_address: 'SOL',
+        token_icon: solanaBalance?.logoURI || '',
+        token_name: 'Solana',
+        usd_value: solanaBalance?.usdValue || 0,
+        usd_price: price,
+        formatted_amount: solanaBalance?.amount || 0,
+        token_symbol: 'SOL',
+        token_decimals: 9
+      };
+    } else if ('token_address' in token) {
+      selectedToken = token;
+    } else {
+      selectedToken = {
+        token_address: token.address,
+        token_icon: token.logoURI,
+        token_name: token.name,
+        usd_value: 0,
+        usd_price: 0,
+        formatted_amount: 0,
+        token_symbol: token.symbol,
+        token_decimals: token.decimals
+      };
+    }
+
+    if (selecting === 'from') {
+      setFromToken(selectedToken);
+    } else {
+      setToToken(selectedToken);
+    }
+    setSelecting(null);
+    setSearchTerm('');
+  };
+
+  const handleSlippageChange = (value: string) => {
+    // Remove any non-numeric characters except decimal point
+    const cleanValue = value.replace(/[^\d.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = cleanValue.split('.');
+    const formatted = parts.length > 2 ? `${parts[0]}.${parts[1]}` : cleanValue;
+    
+    // Limit to 1 decimal place and max value of 50
+    const parsed = parseFloat(formatted);
+    if (!isNaN(parsed) && parsed <= 50) {
+      setSlippage(formatted);
+    }
+  };  
+
 
   const renderSuccessState = () => {
     if (!pendingSignature && !success) return null;
@@ -360,24 +434,26 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
         <div 
           className="space-y-2 max-h-[60vh] overflow-y-auto"
         >
-          {/* SOL Option */}
-          {solanaBalance && (
+            {/* SOL Option */}
+            {solanaBalance && (
             <div
               onClick={() => handleTokenSelect('SOL')}
               className="bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Image src={solanaBalance.logoURI} alt="SOL" width={32} height={32} className="rounded-full"/>
-                  <div>
-                    <div className="text-white">Solana</div>
-                    <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
-                  </div>
+              <div className="flex items-center gap-2">
+                <Image src={solanaBalance.logoURI} alt="SOL" width={32} height={32} className="rounded-full"/>
+                <div>
+                <div className="text-white">Solana</div>
+                <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
                 </div>
-                <div className="text-sm text-zinc-400">${solanaBalance.usdValue && solanaBalance.usdValue.toFixed(2)}</div>
+              </div>
+              <div className="text-sm text-zinc-400">
+                {priceLoading ? <LoadingIndicator/> : `$${solanaBalance.usdValue && solanaBalance.usdValue.toFixed(2)}`}
+              </div>
               </div>
             </div>
-          )}
+            )}
 
           {/* Token List */}
           {selecting === 'from' ? (
@@ -434,72 +510,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
       </>
     );
   };
-
-  const resetForm = () => {
-    setSelecting(null);
-    setFromToken(null);
-    setToToken(null);
-    setAmount('');
-    setError('');
-    setSuccess('');
-    setQuote(null);
-    setSearchTerm('');
-    setLoading(false);
-    setPendingSignature(null);
-    setTransactionStatus(null);
-  };
-
-  const handleTokenSelect = (token: Token | JupiterToken | 'SOL') => {
-    let selectedToken: Token;
-    if (token === 'SOL') {
-      selectedToken = {
-        token_address: 'SOL',
-        token_icon: solanaBalance?.logoURI || '',
-        token_name: 'Solana',
-        usd_value: solanaBalance?.usdValue || 0,
-        formatted_amount: solanaBalance?.amount || 0,
-        token_symbol: 'SOL',
-        token_decimals: 9
-      };
-    } else if ('token_address' in token) {
-      selectedToken = token;
-    } else {
-      selectedToken = {
-        token_address: token.address,
-        token_icon: token.logoURI,
-        token_name: token.name,
-        usd_value: 0,
-        formatted_amount: 0,
-        token_symbol: token.symbol,
-        token_decimals: token.decimals
-      };
-    }
-
-    if (selecting === 'from') {
-      setFromToken(selectedToken);
-    } else {
-      setToToken(selectedToken);
-    }
-    setSelecting(null);
-    setSearchTerm('');
-  };
-
-  const handleSlippageChange = (value: string) => {
-    // Remove any non-numeric characters except decimal point
-    const cleanValue = value.replace(/[^\d.]/g, '');
-    
-    // Ensure only one decimal point
-    const parts = cleanValue.split('.');
-    const formatted = parts.length > 2 ? `${parts[0]}.${parts[1]}` : cleanValue;
-    
-    // Limit to 1 decimal place and max value of 50
-    const parsed = parseFloat(formatted);
-    if (!isNaN(parsed) && parsed <= 50) {
-      setSlippage(formatted);
-    }
-  };  
-
-
 
     // Add slippage settings UI component
     const renderSlippageSettings = () => {
@@ -682,7 +692,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
 
         {/* Error and Success Messages */}
         {error && (
-          <div className="mt-4 bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
+          <div className="mt-4 bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40 max-w-full overflow-auto">
             {error}
           </div>
         )}
