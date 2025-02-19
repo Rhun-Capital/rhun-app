@@ -272,8 +272,8 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     },
     {
       name: 'Get Recent Tokens on DexScreener',
-      description: 'Discover the latest tokens listed on DexScreener.',
-      command: 'Search for recently listed tokens on DexScreener. Filter by market cap, volume, age and more.',
+      description: 'Discover the latest tokens listed on DexScreener. Filter by market cap, volume, age and more.',
+      command: 'Search for recently listed tokens on DexScreener.',
       isPro: false,
       isNew: true
     },    

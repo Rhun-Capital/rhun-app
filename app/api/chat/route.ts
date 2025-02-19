@@ -21,19 +21,47 @@ import {
 import { getAccountDetails } from '@/utils/solscan';
 import { checkSubscriptionStatus } from '@/utils/subscriptions';
 
-
-// Interface for DexScreener token data
-export interface DexScreenerTokenData {
+export interface DexScreenerToken {
   tokenAddress: string;
   chainId: string;
+  name?: string;
+  symbol?: string;
   url?: string;
-  icon?: string;
-  header?: string;
   description?: string;
-  link_urls?: string[];
-  link_descriptions?: string[];
+  icon?: string;
+  price?: {
+    value: number;
+    formatted: string;
+  };
+  metrics?: {
+    marketCap?: number;
+    fullyDilutedValuation?: number;
+    volume24h?: number;
+    liquidity?: number;
+    totalPairs?: number;
+    buys24h?: number;
+    sells24h?: number;
+    totalTransactions24h?: number;
+    buySellRatio?: number;
+  };
+  links?: {
+    total: number;
+    socialLinks: string[];
+    websiteUrls: string[];
+    otherLinks: {
+      url: string;
+      description: string;
+    }[];
+  };
+  details?: {
+    createdAt?: string;
+    ageDays?: number;
+    labels?: string[];
+    uniqueDexes?: string[];
+  };
   last_updated: string;
   score: number;
+  network?: string;
 }
 
 // Interface for token retrieval filters
@@ -42,13 +70,18 @@ export interface DexScreenerTokenFilters {
   minLinks?: number;
   hasDescription?: boolean;
   hasIcon?: boolean;
-}
-// Define the minimal filter interface needed for the retrieval function
-export interface DexScreenerTokenFilters {
-  chainId?: string;
-  minLinks?: number;
-  hasDescription?: boolean;
-  hasIcon?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  minMarketCap?: number;
+  maxMarketCap?: number;
+  minVolume?: number;
+  minAge?: number;
+  maxAge?: number;
+  minLiquidity?: number;
+  hasLabels?: boolean;
+  minBuySellRatio?: number;
+  network?: string;
+  searchText?: string; // Text search filter for name/symbol
 }
 
 function formatNumber(num: number): string {
@@ -369,7 +402,7 @@ export async function POST(req: Request) {
           minPrice: z.number().optional(),
           maxPrice: z.number().optional(),
           categories: z.array(z.string()).optional(),
-          nameContains: z.string().optional(),
+          // nameContains: z.string().optional(),
           marketCap: z.object({
             min: z.number().optional(),
             max: z.number().optional()
@@ -460,8 +493,8 @@ export async function POST(req: Request) {
     swap: {
       description: "execute the swap. the fromToken, toToken, amount, slippage are passed in but the user does supply those. they just supply the names and the amount",
       parameters: z.object({
-        fromToken: z.string().describe('Input token object'),
-        toToken: z.string().describe('Output token object'),
+        fromToken: z.string().describe('Input token object or contract address'),
+        toToken: z.string().describe('Output token object or contract address'),
         amount: z.string().describe('Amount to swap '),
         slippage: z.number().optional().default(1.0).describe('Slippage tolerance in percentage') 
       }),
@@ -470,141 +503,106 @@ export async function POST(req: Request) {
       },
     },
 
-
-
-      getRecentDexScreenerTokens: {
-        description: "Get trending tokens from DexScreener with optional filters",
-        parameters: z.object({
-          chain: z.enum(['all', 'solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'fantom', 'arbitrum'])
-            .describe("Which blockchain to get trending tokens for")
-            .default('all'),
-          filters: z.object({
-            minLinks: z.number().optional()
-              .describe("Minimum number of links"),
-            minPrice: z.number().optional()
-              .describe("Minimum price in USD"),
-            maxPrice: z.number().optional()
-              .describe("Maximum price in USD"),
-            minMarketCap: z.number().optional()
-              .describe("Minimum market cap in USD"),
-            maxMarketCap: z.number().optional()
-              .describe("Maximum market cap in USD"),
-            minVolume: z.number().optional()
-              .describe("Minimum 24h volume in USD"),
-            minLiquidity: z.number().optional()
-              .describe("Minimum liquidity in USD"),
-            minAge: z.number().optional()
-              .describe("Minimum age in days"),
-            maxAge: z.number().optional()
-              .describe("Maximum age in days"),
-            hasDescription: z.boolean().optional()
-              .describe("Filter for tokens with/without description"),
-            hasIcon: z.boolean().optional()
-              .describe("Filter for tokens with/without icon"),
-            hasLabels: z.boolean().optional()
-              .describe("Filter for tokens with labels"),
-            minBuySellRatio: z.number().optional()
-              .describe("Minimum ratio of buys to sells in 24h")
-          }).optional(),
-          maxResults: z.number().optional()
-            .describe("Maximum number of tokens to return")
-            .default(100),
-          sortBy: z.enum(['score', 'links', 'recent', 'volume', 'market_cap', 'liquidity', 'transactions', 'price'])
-            .describe("How to sort the results")
-            .default('score'),
-        }),
-        execute: async ({ chain, filters, maxResults, sortBy }) => {
-          // Prepare chain-specific filters
-          const chainFilters: DexScreenerTokenFilters = { ...filters };
-          
-          // If specific chain is specified, add chain filter
-          if (chain !== 'all') {
-            chainFilters.chainId = chain;
-          }
-      
-          // Retrieve tokens
-          let trendingTokens = await retrieveDexScreenerTokens(
-            undefined, // No semantic query needed for trending tokens
-            chainFilters, 
-            maxResults || 100
-          );
-                
-          // Apply sorting
-          switch (sortBy) {
-            case 'links':
-              trendingTokens = trendingTokens.sort((a, b) => (b.totalLinks || 0) - (a.totalLinks || 0));
-              break;
-            case 'recent':
-              trendingTokens = trendingTokens.sort((a, b) => {
-                const aDate = new Date(a.last_updated || 0).getTime();
-                const bDate = new Date(b.last_updated || 0).getTime();
-                return bDate - aDate;
-              });
-              break;
-            case 'volume':
-              trendingTokens = trendingTokens.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
-              break;
-            case 'market_cap':
-              trendingTokens = trendingTokens.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
-              break;
-            case 'liquidity':
-              trendingTokens = trendingTokens.sort((a, b) => (b.liquidity_usd || 0) - (a.liquidity_usd || 0));
-              break;
-            case 'transactions':
-              trendingTokens = trendingTokens.sort((a, b) => (b.total_txns_24h || 0) - (a.total_txns_24h || 0));
-              break;
-            case 'price':
-              trendingTokens = trendingTokens.sort((a, b) => (b.price_usd || 0) - (a.price_usd || 0));
-              break;
-            default:
-              // Default to sorting by score
-              trendingTokens = trendingTokens.sort((a, b) => b.score - a.score);
-          }
-      
-          // Format response data
-          return trendingTokens.map(token => ({
-            tokenAddress: token.tokenAddress,
-            chainId: token.chainId,
-            name: token.token_name || token.header || `Token on ${token.chainId}`,
-            symbol: token.token_symbol,
-            url: token.url,
-            description: token.description || "No description available",
-            icon: token.icon || token.image_url,
-            price: {
-              value: token.price_usd,
-              formatted: token.formattedPrice || "Unknown"
-            },
-            metrics: {
-              marketCap: token.market_cap,
-              fullyDilutedValuation: token.fully_diluted_valuation,
-              volume24h: token.volume_24h,
-              liquidity: token.liquidity_usd,
-              totalPairs: token.total_pairs,
-              buys24h: token.buys_24h,
-              sells24h: token.sells_24h,
-              totalTransactions24h: token.total_txns_24h,
-              buySellRatio: token.buySellRatio
-            },
-            links: {
-              total: token.totalLinks || 0,
-              socialLinks: token.social_links || [],
-              websiteUrls: token.website_urls || [],
-              otherLinks: token.link_urls?.map((url, index) => ({
-                url,
-                description: token.link_descriptions?.[index] || "Link"
-              })) || []
-            },
-            details: {
-              createdAt: token.created_at ? new Date(token.created_at).toISOString() : undefined,
-              ageDays: token.age_days,
-              labels: token.labels || [],
-              uniqueDexes: token.unique_dexes || []
-            },
-            last_updated: token.last_updated,
-            score: parseFloat(token.score.toFixed(4))
-          }));
+    getRecentDexScreenerTokens: {
+      description: "Get recent tokens from DexScreener with optional filters and search",
+      parameters: z.object({
+        chain: z.enum(['all', 'solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'fantom', 'arbitrum'])
+          .describe("Which blockchain to get recent tokens for")
+          .default('all'),
+        searchText: z.string().optional()
+          .describe("Search for tokens by name or symbol (case-insensitive)"),
+        filters: z.object({
+          minLinks: z.number().optional()
+            .describe("Minimum number of links"),
+          minPrice: z.number().optional()
+            .describe("Minimum price in USD"),
+          maxPrice: z.number().optional()
+            .describe("Maximum price in USD"),
+          minMarketCap: z.number().optional()
+            .describe("Minimum market cap in USD"),
+          maxMarketCap: z.number().optional()
+            .describe("Maximum market cap in USD"),
+          minVolume: z.number().optional()
+            .describe("Minimum 24h volume in USD"),
+          minLiquidity: z.number().optional()
+            .describe("Minimum liquidity in USD"),
+          minAge: z.number().optional()
+            .describe("Minimum age in days"),
+          maxAge: z.number().optional()
+            .describe("Maximum age in days"),
+          hasDescription: z.boolean().optional()
+            .describe("Filter for tokens with/without description"),
+          hasIcon: z.boolean().optional()
+            .describe("Filter for tokens with/without icon"),
+          hasLabels: z.boolean().optional()
+            .describe("Filter for tokens with labels"),
+          minBuySellRatio: z.number().optional()
+            .describe("Minimum ratio of buys to sells in 24h")
+        }).optional(),
+        maxResults: z.number().optional()
+          .describe("Maximum number of tokens to return")
+          .default(100),
+        sortBy: z.enum(['score', 'links', 'recent', 'volume', 'market_cap', 'liquidity', 'transactions', 'price'])
+          .describe("How to sort the results")
+          .default('score'),
+      }),
+      execute: async ({ chain, searchText, filters, maxResults, sortBy }) => {
+        // Prepare chain-specific filters
+        const chainFilters: DexScreenerTokenFilters = { ...filters };
+        
+        // If specific chain is specified, add chain filter
+        if (chain !== 'all') {
+          chainFilters.chainId = chain;
         }
+        
+        // Add search text if provided
+        if (searchText) {
+          chainFilters.searchText = searchText;
+        }
+    
+        // Retrieve tokens
+        let trendingTokens = await retrieveDexScreenerTokens(
+          undefined, // No semantic query needed for trending/filtering
+          chainFilters, 
+          maxResults || 100
+        );
+    
+        // Apply sorting
+        switch (sortBy) {
+          case 'links':
+            trendingTokens = trendingTokens.sort((a, b) => (b.links?.total || 0) - (a.links?.total || 0));
+            break;
+          case 'recent':
+            trendingTokens = trendingTokens.sort((a, b) => {
+              const aDate = new Date(a.last_updated || 0).getTime();
+              const bDate = new Date(b.last_updated || 0).getTime();
+              return bDate - aDate;
+            });
+            break;
+          case 'volume':
+            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.volume24h || 0) - (a.metrics?.volume24h || 0));
+            break;
+          case 'market_cap':
+            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.marketCap || 0) - (a.metrics?.marketCap || 0));
+            break;
+          case 'liquidity':
+            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.liquidity || 0) - (a.metrics?.liquidity || 0));
+            break;
+          case 'transactions':
+            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.totalTransactions24h || 0) - (a.metrics?.totalTransactions24h || 0));
+            break;
+          case 'price':
+            trendingTokens = trendingTokens.sort((a, b) => (b.price?.value || 0) - (a.price?.value || 0));
+            break;
+          default:
+            // Default to sorting by score
+            trendingTokens = trendingTokens.sort((a, b) => b.score - a.score);
+        }
+    
+        return trendingTokens;
       }
+    }
+      
   }
 
   // Define tool sets for different user tiers
@@ -741,6 +739,7 @@ Only when using the getTopNfts tool, show the image of the NFT.
 When using the swap tool, make sure to only say the swap has been submitted and to check the results above. you can mention the details of the swap. If the user doesn't specifiy a slippage, use the default of 1.0. Always ask to confirm the swap before executing it.
 When the users asks to get recent tokens ask them if thy'd like to get recent tokens on DexScreener, or recent coins listed on CoinGecko.
 If the user asks to see trending tokens, ask them if they'd like to see trending tokens on Solscan or trending tokens on CoinGecko.
+If the user wants to search for a token ask them if they'd like to search for a token listed on CoinGecko or recent tokens on DexScreener. If they say CoinGecko use the searchTokens tool. If they DexScreener use the getRecentDexScreenerTokens tool.
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
 
   const result = await streamText({
