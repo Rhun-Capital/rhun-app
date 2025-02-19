@@ -2,193 +2,15 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { usePrivy, useSolanaWallets } from '@privy-io/react-auth';
-import { 
-  PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Connection, 
-  Commitment, GetLatestBlockhashConfig, SendOptions, RpcResponseAndContext, 
-  SignatureStatus,   GetAccountInfoConfig,
-  AccountInfo 
-} from '@solana/web3.js';
-import { 
-  createTransferCheckedInstruction,
-  getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
-  getAccount,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,  
-} from '@solana/spl-token';
 import Image from 'next/image';
+import { ProxyConnection, executeTransfer } from '../utils/solana';
 
-// ProxyConnection class for handling RPC requests
-class ProxyConnection extends Connection {
-  constructor(config?: { commitment?: Commitment }) {
-    super('http://localhost', config);
-  }
-
-  private async customRpcRequest(method: string, params: any[]) {
-    try {
-      const response = await fetch('/api/solana/rpc', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method,
-          params,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error.message);
-      }
-
-      return data.result;
-    } catch (error) {
-      console.error('RPC request failed:', error);
-      throw error;
-    }
-  }
-
-  async _rpcRequest(method: string, params: any[]) {
-    const result = await this.customRpcRequest(method, params);
-    return {
-      result,
-      id: 1,
-      jsonrpc: '2.0'
-    };
-  }
-
-  async getAccountInfo<T>(
-    publicKey: PublicKey,
-    commitmentOrConfig?: Commitment | GetAccountInfoConfig
-  ): Promise<AccountInfo<T> | null> {
-    try {
-      const config = typeof commitmentOrConfig === 'string' 
-        ? { commitment: commitmentOrConfig, encoding: 'base64' }
-        : { ...commitmentOrConfig, encoding: 'base64' };
-
-      const params = [
-        publicKey.toBase58(),
-        config
-      ];
-
-      console.log('Getting account info for:', publicKey.toBase58());
-      const result = await this.customRpcRequest('getAccountInfo', params);
-      
-      if (!result?.value) {
-        console.log('No account info found');
-        return null;
-      }
-
-      console.log('Account info raw result:', result.value);
-
-      // Handle different possible data formats
-      let accountData: Buffer;
-      if (Array.isArray(result.value.data)) {
-        accountData = Buffer.from(result.value.data[0], 'base64');
-      } else if (typeof result.value.data === 'string') {
-        accountData = Buffer.from(result.value.data, 'base64');
-      } else {
-        throw new Error('Unexpected account data format');
-      }
-
-      const accountInfo = {
-        data: accountData,
-        executable: !!result.value.executable,
-        lamports: result.value.lamports ?? 0,
-        owner: new PublicKey(result.value.owner),
-        rentEpoch: result.value.rentEpoch ?? 0,
-      } as AccountInfo<T>;
-
-      console.log('Processed account info:', {
-        executable: accountInfo.executable,
-        lamports: accountInfo.lamports,
-        owner: accountInfo.owner.toBase58(),
-        rentEpoch: accountInfo.rentEpoch,
-        dataLength: (accountInfo.data as unknown as Buffer).length
-      });
-
-      return accountInfo;
-    } catch (error) {
-      console.error('getAccountInfo error:', error);
-      throw error;
-    }
-  }
-
-  async getLatestBlockhash(
-    commitmentOrConfig?: Commitment | GetLatestBlockhashConfig
-  ): Promise<Readonly<{
-    blockhash: string;
-    lastValidBlockHeight: number;
-  }>> {
-    const config = typeof commitmentOrConfig === 'string' 
-      ? { commitment: commitmentOrConfig }
-      : commitmentOrConfig;
-
-    const params = config ? [config] : [];
-    const result = await this.customRpcRequest('getLatestBlockhash', params);
-    
-    return {
-      blockhash: result.value.blockhash,
-      lastValidBlockHeight: result.value.lastValidBlockHeight,
-    };
-  }
-
-  async sendRawTransaction(
-    rawTransaction: Buffer | Uint8Array | Array<number>,
-    options?: SendOptions
-  ): Promise<string> {
-    const buffer = Buffer.from(rawTransaction);
-    
-    const params = [
-      buffer.toString('base64'),
-      {
-        encoding: 'base64',
-        ...options
-      }
-    ];
-
-    try {
-      const signature = await this.customRpcRequest('sendTransaction', params);
-      return signature;
-    } catch (error) {
-      console.error('Send transaction error:', error);
-      throw error;
-    }
-  }
-
-  async getSignatureStatus(
-    signature: string,
-    config?: any
-  ): Promise<RpcResponseAndContext<SignatureStatus | null>> {
-    const params = [signature];
-    if (config) {
-      params.push(config);
-    }
-    
-    try {
-      const response = await this.customRpcRequest('getSignatureStatuses', [params]);
-      if (!response.value[0]) {
-        throw new Error('No status returned for signature');
-      }
-      return { context: { slot: 0 }, value: response.value }; 
-    } catch (error) {
-      console.error('Get signature status error:', error);
-      throw error;
-    }
-  }
-}
 
 interface Token {
   token_address: string;
   token_icon: string;
   token_name: string;
+  usd_price: number;
   usd_value: number;
   formatted_amount: number;
   token_symbol: string;
@@ -289,211 +111,242 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
     return () => clearInterval(intervalId);
   };
 
-  const handleTransfer = async () => {
-    if (!solanaWallet) {
-      setError('Wallet not found');
+  // const handleTransfer = async () => {
+  //   if (!solanaWallet) {
+  //     setError('Wallet not found');
+  //     return;
+  //   }
+  
+  //   try {
+  //     setLoading(true);
+  //     setError('');
+  //     setSuccess('');
+  
+  //     const recipientPubkey = new PublicKey(recipient);
+  //     let transferAmount = parseFloat(amount);
+  
+  //     if (isUSD) {
+  //       transferAmount = transferAmount / selectedToken!.usd_value * selectedToken!.formatted_amount;
+  //     }
+  
+  //     if (isNaN(transferAmount) || transferAmount <= 0) {
+  //       throw new Error('Invalid amount');
+  //     }
+  
+  //     const senderPubkey = new PublicKey(solanaWallet.address);
+  //     let transaction = new Transaction();
+  
+  //     if (selectedToken?.token_address === 'SOL') {
+  //       // Transfer SOL
+  //       transaction.add(
+  //         SystemProgram.transfer({
+  //           fromPubkey: senderPubkey,
+  //           toPubkey: recipientPubkey,
+  //           lamports: Math.floor(transferAmount * LAMPORTS_PER_SOL)
+  //         })
+  //       );
+  //     } else if (selectedToken) {
+  //       // Transfer SPL Token
+  //       console.log('Starting SPL token transfer setup...');
+        
+  //       const mintPubkey = new PublicKey(selectedToken.token_address);
+  //       console.log('Mint address:', mintPubkey.toString());
+        
+  //       // Get sender's ATA
+  //       const sourceAta = await getAssociatedTokenAddress(
+  //         mintPubkey,
+  //         senderPubkey,
+  //         false,
+  //         TOKEN_PROGRAM_ID,
+  //         ASSOCIATED_TOKEN_PROGRAM_ID
+  //       );
+  //       console.log('Sender ATA:', sourceAta.toString());
+  
+  //       // Verify sender's token account exists and has sufficient balance
+  //       try {
+  //         console.log('Verifying sender token account...');
+  //         const sourceAccount = await getAccount(
+  //           connection,
+  //           sourceAta,
+  //           'confirmed',
+  //           TOKEN_PROGRAM_ID
+  //         );
+          
+  //         console.log('Source account details:', {
+  //           address: sourceAccount.address.toString(),
+  //           mint: sourceAccount.mint.toString(),
+  //           owner: sourceAccount.owner.toString(),
+  //           amount: sourceAccount.amount.toString()
+  //         });
+  
+  //         // Verify account ownership
+  //         if (!sourceAccount.owner.equals(senderPubkey)) {
+  //           throw new Error('Token account not owned by sender');
+  //         }
+  
+  //         // Verify sufficient balance
+  //         const rawAmount = BigInt(Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals)));
+  //         if (sourceAccount.amount < rawAmount) {
+  //           throw new Error('Insufficient token balance');
+  //         }
+  
+  //       } catch (e: any) {
+  //         console.error('Source account verification error:', e);
+  //         if (e?.message?.includes('TokenAccountNotFoundError')) {
+  //           throw new Error('You don\'t have a token account for this token. Please ensure you own this token.');
+  //         }
+  //         throw new Error(`Failed to verify sender's token account: ${e.message}`);
+  //       }
+  
+  //       // Get recipient's ATA
+  //       const destinationAta = await getAssociatedTokenAddress(
+  //         mintPubkey,
+  //         recipientPubkey,
+  //         false,
+  //         TOKEN_PROGRAM_ID,
+  //         ASSOCIATED_TOKEN_PROGRAM_ID
+  //       );
+  //       console.log('Recipient ATA:', destinationAta.toString());
+  
+  //       // Check if destination account exists
+  //       try {
+  //         await getAccount(
+  //           connection,
+  //           destinationAta,
+  //           'confirmed',
+  //           TOKEN_PROGRAM_ID
+  //         );
+  //         console.log('Destination account exists');
+  //       } catch (e: any) {
+  //         if (e?.message?.includes('TokenAccountNotFoundError')) {
+  //           console.log('Creating destination token account...');
+  //           transaction.add(
+  //             createAssociatedTokenAccountInstruction(
+  //               senderPubkey,
+  //               destinationAta,
+  //               recipientPubkey,
+  //               mintPubkey,
+  //               TOKEN_PROGRAM_ID,
+  //               ASSOCIATED_TOKEN_PROGRAM_ID
+  //             )
+  //           );
+  //         } else {
+  //           console.error('Error checking destination account:', e);
+  //           throw e;
+  //         }
+  //       }
+  
+  //       // Add transfer instruction
+  //       const rawAmount = Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals));
+  //       console.log('Creating transfer instruction:', {
+  //         from: sourceAta.toString(),
+  //         to: destinationAta.toString(),
+  //         amount: rawAmount,
+  //         decimals: selectedToken.token_decimals
+  //       });
+        
+  //       transaction.add(
+  //         createTransferCheckedInstruction(
+  //           sourceAta,
+  //           mintPubkey,
+  //           destinationAta,
+  //           senderPubkey,
+  //           rawAmount,
+  //           selectedToken.token_decimals,
+  //           [],
+  //           TOKEN_PROGRAM_ID
+  //         )
+  //       );
+  //     }
+  
+  //     // Get latest blockhash
+  //     const { blockhash } = await connection.getLatestBlockhash('confirmed');
+  //     transaction.recentBlockhash = blockhash;
+  //     transaction.feePayer = senderPubkey;
+  
+  //     // Log transaction details
+  //     console.log('Transaction setup complete:', {
+  //       instructions: transaction.instructions.map(ix => ({
+  //         programId: ix.programId.toString(),
+  //         keys: ix.keys.map(k => ({
+  //           pubkey: k.pubkey.toString(),
+  //           isSigner: k.isSigner,
+  //           isWritable: k.isWritable
+  //         }))
+  //       })),
+  //       feePayer: transaction.feePayer?.toString(),
+  //       recentBlockhash: transaction.recentBlockhash
+  //     });
+  
+  //     // Sign and send transaction
+  //     const signedTx = await solanaWallet.signTransaction(transaction);
+      
+  //     console.log('Sending signed transaction...');
+  //     const signature = await connection.sendRawTransaction(
+  //       signedTx.serialize(),
+  //       {
+  //         skipPreflight: false,
+  //         preflightCommitment: 'confirmed',
+  //         maxRetries: 3
+  //       }
+  //     );
+  
+  //     console.log('Transaction submitted with signature:', signature);
+  //     setTransactionStatus('pending');
+  //     setPendingSignature(signature);
+  //     checkTransactionStatus(signature);
+  
+  //   } catch (err: any) {
+  //     console.error('Transfer error:', err);
+  //     setError(err.message || 'Failed to complete transfer');
+  //     setTransactionStatus('failed');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const handleSendTransaction = async () => {
+    if (!selectedToken) {
+      setError('No token selected');
       return;
     }
+
+    const result = await executeTransfer({
+      wallet: solanaWallet,
+      recipient: recipient,
+      token: selectedToken,
+      amount: amount,
+      isUSD: isUSD,
+      connection: new ProxyConnection()
+    });
   
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess('');
-  
-      const recipientPubkey = new PublicKey(recipient);
-      let transferAmount = parseFloat(amount);
-  
-      if (isUSD) {
-        transferAmount = transferAmount / selectedToken!.usd_value * selectedToken!.formatted_amount;
-      }
-  
-      if (isNaN(transferAmount) || transferAmount <= 0) {
-        throw new Error('Invalid amount');
-      }
-  
-      const senderPubkey = new PublicKey(solanaWallet.address);
-      let transaction = new Transaction();
-  
-      if (selectedToken?.token_address === 'SOL') {
-        // Transfer SOL
-        transaction.add(
-          SystemProgram.transfer({
-            fromPubkey: senderPubkey,
-            toPubkey: recipientPubkey,
-            lamports: Math.floor(transferAmount * LAMPORTS_PER_SOL)
-          })
-        );
-      } else if (selectedToken) {
-        // Transfer SPL Token
-        console.log('Starting SPL token transfer setup...');
-        
-        const mintPubkey = new PublicKey(selectedToken.token_address);
-        console.log('Mint address:', mintPubkey.toString());
-        
-        // Get sender's ATA
-        const sourceAta = await getAssociatedTokenAddress(
-          mintPubkey,
-          senderPubkey,
-          false,
-          TOKEN_PROGRAM_ID,
-          ASSOCIATED_TOKEN_PROGRAM_ID
-        );
-        console.log('Sender ATA:', sourceAta.toString());
-  
-        // Verify sender's token account exists and has sufficient balance
-        try {
-          console.log('Verifying sender token account...');
-          const sourceAccount = await getAccount(
-            connection,
-            sourceAta,
-            'confirmed',
-            TOKEN_PROGRAM_ID
-          );
-          
-          console.log('Source account details:', {
-            address: sourceAccount.address.toString(),
-            mint: sourceAccount.mint.toString(),
-            owner: sourceAccount.owner.toString(),
-            amount: sourceAccount.amount.toString()
-          });
-  
-          // Verify account ownership
-          if (!sourceAccount.owner.equals(senderPubkey)) {
-            throw new Error('Token account not owned by sender');
-          }
-  
-          // Verify sufficient balance
-          const rawAmount = BigInt(Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals)));
-          if (sourceAccount.amount < rawAmount) {
-            throw new Error('Insufficient token balance');
-          }
-  
-        } catch (e: any) {
-          console.error('Source account verification error:', e);
-          if (e?.message?.includes('TokenAccountNotFoundError')) {
-            throw new Error('You don\'t have a token account for this token. Please ensure you own this token.');
-          }
-          throw new Error(`Failed to verify sender's token account: ${e.message}`);
-        }
-  
-        // Get recipient's ATA
-        const destinationAta = await getAssociatedTokenAddress(
-          mintPubkey,
-          recipientPubkey,
-          false,
-          TOKEN_PROGRAM_ID,
-          ASSOCIATED_TOKEN_PROGRAM_ID
-        );
-        console.log('Recipient ATA:', destinationAta.toString());
-  
-        // Check if destination account exists
-        try {
-          await getAccount(
-            connection,
-            destinationAta,
-            'confirmed',
-            TOKEN_PROGRAM_ID
-          );
-          console.log('Destination account exists');
-        } catch (e: any) {
-          if (e?.message?.includes('TokenAccountNotFoundError')) {
-            console.log('Creating destination token account...');
-            transaction.add(
-              createAssociatedTokenAccountInstruction(
-                senderPubkey,
-                destinationAta,
-                recipientPubkey,
-                mintPubkey,
-                TOKEN_PROGRAM_ID,
-                ASSOCIATED_TOKEN_PROGRAM_ID
-              )
-            );
-          } else {
-            console.error('Error checking destination account:', e);
-            throw e;
-          }
-        }
-  
-        // Add transfer instruction
-        const rawAmount = Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals));
-        console.log('Creating transfer instruction:', {
-          from: sourceAta.toString(),
-          to: destinationAta.toString(),
-          amount: rawAmount,
-          decimals: selectedToken.token_decimals
-        });
-        
-        transaction.add(
-          createTransferCheckedInstruction(
-            sourceAta,
-            mintPubkey,
-            destinationAta,
-            senderPubkey,
-            rawAmount,
-            selectedToken.token_decimals,
-            [],
-            TOKEN_PROGRAM_ID
-          )
-        );
-      }
-  
-      // Get latest blockhash
-      const { blockhash } = await connection.getLatestBlockhash('confirmed');
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = senderPubkey;
-  
-      // Log transaction details
-      console.log('Transaction setup complete:', {
-        instructions: transaction.instructions.map(ix => ({
-          programId: ix.programId.toString(),
-          keys: ix.keys.map(k => ({
-            pubkey: k.pubkey.toString(),
-            isSigner: k.isSigner,
-            isWritable: k.isWritable
-          }))
-        })),
-        feePayer: transaction.feePayer?.toString(),
-        recentBlockhash: transaction.recentBlockhash
-      });
-  
-      // Sign and send transaction
-      const signedTx = await solanaWallet.signTransaction(transaction);
+    if (result.status === 'pending') {
+      // Handle pending state
+      setPendingSignature(result.signature);
       
-      console.log('Sending signed transaction...');
-      const signature = await connection.sendRawTransaction(
-        signedTx.serialize(),
-        {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-          maxRetries: 3
-        }
-      );
-  
-      console.log('Transaction submitted with signature:', signature);
-      setTransactionStatus('pending');
-      setPendingSignature(signature);
-      checkTransactionStatus(signature);
-  
-    } catch (err: any) {
-      console.error('Transfer error:', err);
-      setError(err.message || 'Failed to complete transfer');
-      setTransactionStatus('failed');
-    } finally {
-      setLoading(false);
+      try {
+        await checkTransactionStatus(result.signature);
+      } catch (error) {
+        // Handle timeout or error
+      }
+    } else if (result.status === 'failed') {
+      // Handle error
+      setError(result.error || 'An unknown error occurred');
     }
   };
 
   const handleTokenSelect = (token: Token | 'SOL') => {
     if (token === 'SOL') {
       setSelectedToken({
-        token_address: 'SOL',
-        token_icon: solanaBalance?.logoURI || '',
-        token_name: 'Solana',
-        usd_value: solanaBalance?.usdValue || 0,
-        formatted_amount: solanaBalance?.amount || 0,
-        token_symbol: 'SOL',
-        token_decimals: 9
-      });
+              token_address: 'SOL',
+              token_icon: solanaBalance?.logoURI || '',
+              token_name: 'Solana',
+              usd_price: solanaBalance?.usdValue || 0, // Add this line
+              usd_value: solanaBalance?.usdValue || 0,
+              formatted_amount: solanaBalance?.amount || 0,
+              token_symbol: 'SOL',
+              token_decimals: 9
+            });
     } else {
       setSelectedToken(token as Token);
     }
@@ -509,10 +362,6 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
     }
   };
 
-  const handleAmountChange = (value: string) => {
-    setAmount(value);
-  };
-
   const toggleAmountType = () => {
     if (!selectedToken) return;
     setIsUSD(!isUSD);
@@ -523,7 +372,6 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
       setAmount(newAmount);
     }
   };
-
 
   if (!isOpen) return null;
 
@@ -699,7 +547,7 @@ const renderSuccessState = () => {
             </div>
 
             <button
-              onClick={handleTransfer}
+              onClick={handleSendTransaction}
               disabled={loading || !recipient || !amount}
               className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >

@@ -1,5 +1,27 @@
-import { Connection, PublicKey, Commitment, GetLatestBlockhashConfig, SendOptions, RpcResponseAndContext, SignatureStatus, TransactionMessage, Transaction, SystemProgram, VersionedTransaction, TransactionInstruction, GetBlockHeightConfig, ComputeBudgetProgram } from '@solana/web3.js';
-import { createTransferInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { 
+  Connection, 
+  PublicKey, 
+  Commitment, 
+  GetLatestBlockhashConfig, 
+  SendOptions, 
+  RpcResponseAndContext, 
+  SignatureStatus, 
+  TransactionMessage, 
+  Transaction, 
+  SystemProgram, 
+  VersionedTransaction, 
+  GetBlockHeightConfig, 
+  ComputeBudgetProgram,
+  LAMPORTS_PER_SOL
+} from '@solana/web3.js';
+import { 
+  createTransferCheckedInstruction,
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
  
 const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
 const FEE_PERCENTAGE = 0.01; // 1% fee
@@ -10,6 +32,7 @@ interface Token {
   token_icon: string;
   token_name: string;
   usd_price: number;
+  usd_value: number;
   formatted_amount: number;
   token_symbol: string;
   token_decimals: number;
@@ -26,6 +49,21 @@ interface SwapParams {
 interface PriorityFeeEstimate {
   microLamports: number;
   confidence: 'low' | 'medium' | 'high';
+}
+
+interface TransferParams {
+  wallet: any; // Wallet interface from Privy
+  recipient: string;
+  token: Token | 'SOL';
+  amount: string;
+  isUSD?: boolean;
+  connection: ProxyConnection;
+}
+
+interface TransferResult {
+  signature: string;
+  status: 'pending' | 'confirmed' | 'failed';
+  error?: string;
 }
 
 export class SolanaPriorityFeeEstimator {
@@ -318,6 +356,187 @@ export class ProxyConnection extends Connection {
 
 }
 
+export async function executeTransfer({
+  wallet,
+  recipient,
+  token,
+  amount,
+  isUSD = false,
+  connection
+}: TransferParams): Promise<TransferResult> {
+  if (!wallet || !wallet.address) {
+    return { 
+      signature: '', 
+      status: 'failed', 
+      error: 'Wallet not connected' 
+    };
+  }
+
+  try {
+    const recipientPubkey = new PublicKey(recipient);
+    const selectedToken = token === 'SOL' 
+      ? { 
+          token_address: 'SOL', 
+          token_decimals: 9, 
+          usd_value: 0, 
+          formatted_amount: 0 
+        } 
+      : token;
+
+    let transferAmount = parseFloat(amount);
+
+    if (isUSD) {
+      transferAmount = transferAmount / selectedToken.usd_value * selectedToken.formatted_amount;
+    }
+
+    if (isNaN(transferAmount) || transferAmount <= 0) {
+      return { 
+        signature: '', 
+        status: 'failed', 
+        error: 'Invalid amount' 
+      };
+    }
+
+    const senderPubkey = new PublicKey(wallet.address);
+    let transaction = new Transaction();
+
+    // Initialize Priority Fee Estimator
+    const priorityFeeEstimator = new SolanaPriorityFeeEstimator(connection);
+    
+    // Estimate priority fee
+    const feeEstimate = await priorityFeeEstimator.estimatePriorityFee();
+    const computeUnits = priorityFeeEstimator.getComputeUnitsForFee(feeEstimate);
+
+    // Add compute budget instructions for priority fee
+    transaction.add(
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: feeEstimate.microLamports }),
+      ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits })
+    );
+
+    if (selectedToken.token_address === 'SOL') {
+      // Transfer SOL
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: senderPubkey,
+          toPubkey: recipientPubkey,
+          lamports: Math.floor(transferAmount * LAMPORTS_PER_SOL)
+        })
+      );
+    } else {
+      // SPL Token Transfer
+      const mintPubkey = new PublicKey(selectedToken.token_address);
+      
+      // Get sender's ATA
+      const sourceAta = await getAssociatedTokenAddress(
+        mintPubkey,
+        senderPubkey,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      // Verify sender's token account exists and has sufficient balance
+      const sourceAccount = await getAccount(
+        connection,
+        sourceAta,
+        'confirmed',
+        TOKEN_PROGRAM_ID
+      );
+
+      // Verify account ownership and balance
+      if (!sourceAccount.owner.equals(senderPubkey)) {
+        return { 
+          signature: '', 
+          status: 'failed', 
+          error: 'Token account not owned by sender' 
+        };
+      }
+
+      // Get recipient's ATA
+      const destinationAta = await getAssociatedTokenAddress(
+        mintPubkey,
+        recipientPubkey,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      // Check if destination account exists, create if not
+      try {
+        await getAccount(
+          connection,
+          destinationAta,
+          'confirmed',
+          TOKEN_PROGRAM_ID
+        );
+      } catch (e: any) {
+        if (e?.message?.includes('TokenAccountNotFoundError')) {
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              senderPubkey,
+              destinationAta,
+              recipientPubkey,
+              mintPubkey,
+              TOKEN_PROGRAM_ID,
+              ASSOCIATED_TOKEN_PROGRAM_ID
+            )
+          );
+        } else {
+          return { 
+            signature: '', 
+            status: 'failed', 
+            error: 'Failed to verify destination account' 
+          };
+        }
+      }
+
+      // Add transfer instruction
+      const rawAmount = Math.floor(transferAmount * Math.pow(10, selectedToken.token_decimals));
+      transaction.add(
+        createTransferCheckedInstruction(
+          sourceAta,
+          mintPubkey,
+          destinationAta,
+          senderPubkey,
+          rawAmount,
+          selectedToken.token_decimals,
+          [],
+          TOKEN_PROGRAM_ID
+        )
+      );
+    }
+
+    // Get latest blockhash
+    const { blockhash } = await connection.getLatestBlockhash('confirmed');
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = senderPubkey;
+
+    // Sign and send transaction
+    const signedTx = await wallet.signTransaction(transaction);
+    
+    const signature = await connection.sendRawTransaction(
+      signedTx.serialize(),
+      {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+        maxRetries: 3
+      }
+    );
+
+    return {
+      signature,
+      status: 'pending'
+    };
+
+  } catch (error: any) {
+    console.error('Transfer error:', error);
+    return { 
+      signature: '', 
+      status: 'failed', 
+      error: error.message || 'Failed to complete transfer' 
+    };
+  }
+}
 
 export const executeSwap = async ({
   fromToken,
@@ -492,159 +711,6 @@ export const executeSwap = async ({
     throw error;
   }
 };
-
-// export const executeSwap = async ({
-//   fromToken,
-//   toToken,
-//   amount,
-//   slippage,
-//   wallet
-// }: SwapParams) => {
-//   try {
-//     if (!wallet || !wallet.address) {
-//       throw new Error('Wallet not connected');
-//     }
-
-//     const connection = new ProxyConnection({ commitment: 'confirmed' });
-
-//     // Setup input and output mints
-//     const inputMint = fromToken?.token_address === 'SOL' 
-//       ? 'So11111111111111111111111111111111111111112' 
-//       : fromToken?.token_address;
-    
-//     const outputMint = toToken?.token_address === 'SOL'
-//       ? 'So11111111111111111111111111111111111111112'
-//       : toToken?.token_address;
-
-//     // Calculate USD value of the swap
-//     const swapUsdAmount = parseFloat(amount) * fromToken.usd_price;
-//     const usdFee = swapUsdAmount * FEE_PERCENTAGE;
-    
-//     // Get SOL price and convert fee to SOL
-//     const solPriceUsd = fromToken.token_symbol === 'SOL' 
-//       ? fromToken.usd_price 
-//       : toToken.token_symbol === 'SOL'
-//       ? toToken.usd_price : 0;
-      
-//     // Calculate SOL fee amount in lamports
-//     const feeAmountInSol = usdFee / solPriceUsd;
-//     const feeAmountInLamports = Math.floor(feeAmountInSol * Math.pow(10, 9));
-
-//     // Prepare swap amount in token's smallest unit
-//     const swapAmount = Math.floor(
-//       parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
-//     );
-
-//     // Create SOL fee transfer instruction
-//     const userPublicKey = new PublicKey(wallet.address);
-//     const feeRecipientPublicKey = new PublicKey(FEE_RECIPIENT);
-    
-//     const feeInstruction = SystemProgram.transfer({
-//       fromPubkey: userPublicKey,
-//       toPubkey: feeRecipientPublicKey,
-//       lamports: feeAmountInLamports
-//     });
-
-//     // Get fresh blockhash for fee transaction
-//     const { blockhash: feeBlockhash } = await connection.getLatestBlockhash('confirmed');
-
-//     // Create and send fee transaction
-//     const feeMessage = new TransactionMessage({
-//       payerKey: userPublicKey,
-//       recentBlockhash: feeBlockhash,
-//       instructions: [feeInstruction]
-//     }).compileToV0Message();
-
-//     const feeTransaction = new VersionedTransaction(feeMessage);
-//     const signedFeeTx = await wallet.signTransaction(feeTransaction);
-    
-//     console.log('Sending fee transaction...');
-//     const feeSignature = await connection.sendRawTransaction(
-//       signedFeeTx.serialize(),
-//       {
-//         skipPreflight: false,
-//         preflightCommitment: 'confirmed',
-//         maxRetries: 3
-//       }
-//     );
-//     console.log('Fee transaction sent:', feeSignature);
-
-//     // Calculate slippage in basis points for Jupiter
-//     const slippageBps = Math.floor(slippage * 100);
-
-//     // Get swap quote
-//     console.log('Getting swap quote...');
-//     const quoteResponse = await fetch(
-//       `${JUPITER_V6_QUOTE_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${swapAmount}&slippageBps=${slippageBps}`,
-//       {
-//         headers: {
-//           'Content-Type': 'application/json',
-//         }
-//       }
-//     );
-
-//     if (!quoteResponse.ok) {
-//       throw new Error(`Failed to get quote: ${await quoteResponse.text()}`);
-//     }
-
-//     const quoteData = await quoteResponse.json();
-
-//     // Request swap transaction
-//     console.log('Preparing swap transaction...');
-//     const swapRequest = {
-//       quoteResponse: quoteData,
-//       userPublicKey: wallet.address,
-//       computeUnitPriceMicroLamports: 1000,
-//       useTokenLedger: false
-//     };
-
-//     const swapResponse = await fetch(`${JUPITER_V6_QUOTE_API}/swap`, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify(swapRequest)
-//     });
-
-//     if (!swapResponse.ok) {
-//       throw new Error(`Failed to prepare swap: ${await swapResponse.text()}`);
-//     }
-
-//     const responseData = await swapResponse.json();
-//     if (!responseData.swapTransaction) {
-//       throw new Error('No swap transaction received from API');
-//     }
-
-//     // Get fresh blockhash for swap
-//     const { blockhash: swapBlockhash } = await connection.getLatestBlockhash('confirmed');
-
-//     // Prepare and send swap transaction
-//     console.log('Preparing swap transaction...');
-//     const swapTransactionBuf = Buffer.from(responseData.swapTransaction, 'base64');
-//     const swapTransaction = VersionedTransaction.deserialize(swapTransactionBuf);
-    
-//     // Update swap transaction with fresh blockhash
-//     swapTransaction.message.recentBlockhash = swapBlockhash;
-    
-//     const signedSwapTx = await wallet.signTransaction(swapTransaction);
-    
-//     console.log('Sending swap transaction...');
-//     const swapSignature = await connection.sendRawTransaction(
-//       signedSwapTx.serialize(),
-//       {
-//         skipPreflight: false,
-//         preflightCommitment: 'confirmed',
-//         maxRetries: 3
-//       }
-//     );
-//     console.log('Swap transaction sent:', swapSignature);
-
-//     // Return swap signature - component will handle confirmation
-//     return swapSignature;
-
-//   } catch (error) {
-//     console.error('Swap execution error:', error);
-//     throw error;
-//   }
-// };
 
 export const getQuote = async (
   fromToken: Token | null,
