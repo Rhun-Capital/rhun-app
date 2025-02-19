@@ -12,7 +12,9 @@ import {
   VersionedTransaction, 
   GetBlockHeightConfig, 
   ComputeBudgetProgram,
-  LAMPORTS_PER_SOL
+  LAMPORTS_PER_SOL,
+  GetAccountInfoConfig,
+  AccountInfo
 } from '@solana/web3.js';
 import { 
   createTransferCheckedInstruction,
@@ -272,6 +274,45 @@ export class ProxyConnection extends Connection {
       jsonrpc: '2.0'
     };
   }
+
+  async getAccountInfo(
+    publicKey: PublicKey,
+    config?: GetAccountInfoConfig
+  ): Promise<AccountInfo<Buffer> | null> {
+    const params = [
+      publicKey.toBase58(),
+      // Ensure config is properly formatted for RPC call
+      config ? {
+        encoding: config.encoding || 'base64',
+        commitment: config.commitment || 'confirmed',
+        ...config
+      } : {
+        encoding: 'base64',
+        commitment: 'confirmed'
+      }
+    ];
+  
+    try {
+      const result = await this.customRpcRequest('getAccountInfo', params);
+      
+      // If no account found, return null
+      if (!result || !result.value) {
+        return null;
+      }
+  
+      // Convert the account info to match Solana Web3.js AccountInfo structure
+      return {
+        executable: result.value.executable,
+        owner: new PublicKey(result.value.owner),
+        lamports: result.value.lamports,
+        data: Buffer.from(result.value.data[0], result.value.data[1]),
+        rentEpoch: result.value.rentEpoch || 0
+      };
+    } catch (error) {
+      console.error('Get account info error:', error);
+      throw error;
+    }
+  }  
 
   async getLatestBlockhash(
     commitmentOrConfig?: Commitment | GetLatestBlockhashConfig
