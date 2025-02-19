@@ -283,7 +283,7 @@ export class ProxyConnection extends Connection {
       publicKey.toBase58(),
       // Ensure config is properly formatted for RPC call
       config ? {
-        encoding: config.encoding || 'base64',
+        encoding: 'base64',
         commitment: config.commitment || 'confirmed',
         ...config
       } : {
