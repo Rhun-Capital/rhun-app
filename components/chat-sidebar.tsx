@@ -149,6 +149,21 @@ const TransferButton = ({ tokens, solanaBalance, agent }: TransferButtonProps & 
   );
 };
 
+const LoadingCard = () => {
+  return (<div className="animate-pulse bg-zinc-800 p-3 rounded-lg border border-zinc-700 h-[65px]">
+  <div className="flex items-center justify-between">
+  <div className="flex items-center gap-2">
+    <div className="bg-zinc-700 w-10 h-10 rounded-full"></div>
+    <div className="flex flex-col justify-start gap-1">
+      <div className="bg-zinc-700 w-20 h-4 rounded-lg"></div>
+      <div className="bg-zinc-700 w-10 h-3 rounded-lg"></div>
+    </div>   
+  </div>
+  <div className="bg-zinc-700 w-10 h-3 rounded-lg"></div>      
+  </div>
+</div>)
+}
+
 
 const ToolCard: React.FC<{
   tool: Tool;
@@ -215,8 +230,13 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const { user, getAccessToken } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
   const [totalValue, setTotalValue] = useState<number | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
   const params = useParams();
   const { isSubscribed } = useSubscription();
+  const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [showFundingModal, setShowFundingModal] = useState(false);
+  const { fundWallet } = useFundWallet();
 
   interface Token {
     token_address: string;
@@ -227,10 +247,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     token_symbol: string;
   }
   
-  const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
-  const [refreshLoading, setRefreshLoading] = useState(false);
-  const [showFundingModal, setShowFundingModal] = useState(false);
-  const { fundWallet } = useFundWallet();
+
 
 
   // Define tools with pro status
@@ -394,11 +411,12 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
             setTotalValue(tv)
             setPortfolio(portfolio);
           })
-          .catch((error) => console.error('Error fetching portfolio:', error));          
+          .catch((error) => console.error('Error fetching portfolio:', error))
+          .finally(() => setInitialLoading(false));          
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [activeTab, agent.wallets?.solana]);
+  }, [activeTab, agent.wallets?.solana, setInitialLoading]);
 
 
   const handleToolClick = (tool: Tool) => {
@@ -464,30 +482,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     }
     return response.json();
   }
-
-  // useEffect(() => {
-  //   if (activeTab === 'wallet' && agent.wallets?.solana) {
-  //     getTokens(agent.wallets.solana)
-  //       .then((response) => {
-  //         setTokens(response);
-  //       })
-  //       .catch((error) => console.error('Error fetching tokens:', error));
-  //   }
-  // }, [activeTab, agent.wallets?.solana]);
-
-  // useEffect(() => {
-  //   if (activeTab === 'wallet' && agent.wallets?.solana) {
-  //     getPortfolioValue(agent.wallets.solana)
-  //       .then((portfolio) => {
-  //         // sum the total value of all tokens usdValue
-  //         const tv = portfolio.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
-  //         setTotalValue(tv)
-  //         setPortfolio(portfolio);
-  //       })
-  //       .catch((error) => console.error('Error fetching portfolio:', error));
-  //   }
-  // }, [activeTab, agent.wallets?.solana]);
-
 
   const refreshWalletData = async () => {
     setRefreshLoading(true);
@@ -584,7 +578,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       {(agent.wallets?.solana && params.userId !== 'template') ?
                         <div className="text-sm text-zinc-500 mt-2">
                           {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
-                      </div> : params.userId === 'template' ? <div className="text-sm text-zinc-500 mt-2">Template agents do no have access to wallets. </div> : <div className="text-sm text-zinc-500 mt-2">No agent wallet found. <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create your wallet now</Link> in the wallet settings of your agent</div>
+                      </div> : params.userId === 'template' ? <div className="text-sm text-zinc-500 mt-2">Template agents do no have access to wallets. <Link className="text-indigo-400" href={`/agents/create`}>Create your agent</Link> now or <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>use the template</Link> to get started </div> : <div className="text-sm text-zinc-500 mt-2">No agent wallet found. <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create your wallet now</Link> in the wallet settings of your agent</div>
                       }
                     </div>
                     {agent.wallets?.solana && (
@@ -650,6 +644,12 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
                 {/* Token List */}
                 <div className="space-y-2">
+
+                {initialLoading ? <div className="space-y-2">
+                  <LoadingCard/>
+                  <LoadingCard/>
+                  <LoadingCard/>
+                </div> : null}
 
                 {agent.wallets?.solana && portfolio && <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
                         <div className="flex items-center justify-between">

@@ -102,6 +102,29 @@ useEffect(() => {
   fetchAllData();
 }, [agentId, params.userId]);  
 
+  // get portfolio value and tokens every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (walletAddress) {
+        getTokens(walletAddress)
+          .then((response) => {
+            setTokens(response);
+          })
+          .catch((error) => console.error('Error fetching tokens:', error));
+
+          getPortfolioValue(walletAddress)
+          .then((portfolio) => {
+            // sum the total value of all tokens usdValue
+            const tv = portfolio.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
+            setTotalValue(tv)
+            setPortfolio(portfolio);
+          })
+          .catch((error) => console.error('Error fetching portfolio:', error));          
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [walletAddress]);
+
   // API calls
   async function getPortfolioValue(address: string) {
     const token = await getAccessToken();
