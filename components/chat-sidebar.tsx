@@ -642,7 +642,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 {/* Token List */}
                 <div className="space-y-2">
 
-                {initialLoading ? <div className="space-y-2">
+                {initialLoading && params.userId !== 'template' ? <div className="space-y-2">
                   <LoadingCard/>
                   <LoadingCard/>
                   <LoadingCard/>
