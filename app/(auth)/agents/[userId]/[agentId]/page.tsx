@@ -923,8 +923,8 @@ export default function Home() {
   
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex gap-3 py-4 w-full bg-zinc-900 text-zinc-500 text-sm animate-pulse">
-                  <LoadingIndicator /> Thinking...
+                <div className="flex gap-3 py-4 w-full bg-zinc-900 text-zinc-500 text-sm">
+                  <LoadingIndicator /> <span className="animate-pulse">Thinking...</span>
                 </div>
               )}
             </div>
