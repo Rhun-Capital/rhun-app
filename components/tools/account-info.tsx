@@ -6,6 +6,7 @@ import LoadingIndicator from '@/components/loading-indicator';
 import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/use-subscription';
 import CopyButton from '@/components/copy-button';
+import TrackWalletModal from '@/components/tools/track-wallet-modal';
 
 interface TrackingFilters {
   minAmount?: number;
@@ -20,7 +21,11 @@ interface TrackingFilters {
 interface TrackingOptions {
   filters: TrackingFilters;
   showFilters: boolean;
+  name: string;
+  tags: string[];
+  tagInput: string;
 }
+
 
 
 interface AccountData {
@@ -84,6 +89,8 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
   const [isTracked, setIsTracked] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
+  const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+
 
   const [trackingOptions, setTrackingOptions] = useState<TrackingOptions>({
     filters: {
@@ -94,9 +101,18 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
       sort_by: 'block_time',
       sort_order: 'desc'
     },
-    showFilters: false
-  });  
-
+    showFilters: false,
+    name: '',
+    tags: [],
+    tagInput: ''
+  });
+  
+  const handleTrackSuccess = () => {
+    setIsTracked(true);
+    setIsTrackModalOpen(false);
+  };
+  
+  
   const handleFilterChange = (key: keyof TrackingFilters, value: any) => {
     setTrackingOptions(prev => ({
       ...prev,
@@ -105,6 +121,38 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
         [key]: value
       }
     }));
+  };  
+
+  const addTag = () => {
+    const newTag = trackingOptions.tagInput.trim();
+    if (newTag && !trackingOptions.tags.includes(newTag)) {
+      setTrackingOptions(prev => ({
+        ...prev,
+        tags: [...prev.tags, newTag],
+        tagInput: ''
+      }));
+    }
+  };
+  
+  const removeTag = (tagToRemove: string) => {
+    setTrackingOptions(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };  
+
+  const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTrackingOptions(prev => ({
+      ...prev,
+      tagInput: e.target.value
+    }));
+  };
+  
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag();
+    }
   };  
 
   // Handle NaN values and convert to SOL with proper formatting
@@ -190,20 +238,22 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
         body: JSON.stringify({
           walletAddress: accountData.account,
           userId: user?.id,
-          filters: trackingOptions.filters
+          filters: trackingOptions.filters,
+          name: trackingOptions.name.trim() || null,
+          tags: trackingOptions.tags.length > 0 ? trackingOptions.tags : null
         })
       });
       
       if (!response.ok) throw new Error('Failed to start tracking');
       setIsTracked(true);
+      toast.success('Wallet tracking started successfully');
     } catch (error) {
       console.error('Error tracking wallet:', error);
       setError('Failed to start tracking wallet');
+      toast.error('Failed to track wallet');
     }
     setIsTrackLoading(false);
-    toast.success('Wallet tracking started successfully');
   };
-
 
   // Handle error cases in render
   if (!("result" in toolInvocation)) {
@@ -224,101 +274,157 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
     <div className="w-full max-w-4xl bg-zinc-800 rounded-lg overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-zinc-700 flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-white">Wallet Details</h2>
-        <div className="flex items-center gap-4">
-          {(accountData && isSubscribed) ? (
-            <>
-              <button
-                onClick={() => setTrackingOptions(prev => ({ ...prev, showFilters: !prev.showFilters }))}
-                className="px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
-              >
-                {trackingOptions.showFilters ? 'Hide Filters' : 'Show Filters'}
-              </button>
-              <button
-                disabled={isTrackLoading}
-                onClick={() => accountData && trackWallet(accountData)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isTrackLoading ? 'Tracking Wallet...' : 'Track Wallet'}
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => toast.error('You need an active subscription to track wallets')}
-              className=" px-3 py-1 text-zinc-300 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start group hover:bg-zinc-600"
-            >
-              Track Wallet (Subscription Required) 
-            </button>
-          )}
+  <h2 className="text-lg font-semibold text-white">Wallet Details</h2>
+  <div className="flex items-center gap-4">
+    {isSubscribed ? (
+      isTracked ? (
+        <div className="flex items-center gap-2 text-green-400">
+          <span className="w-2 h-2 rounded-full bg-green-400"></span>
+          <span>Wallet Tracked</span>
         </div>
-
-        {/* if you're not subscripted show warning banner here */}
-
-
-
-      </div>
+      ) : (
+        <button
+          onClick={() => setIsTrackModalOpen(true)}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+        >
+          Track Wallet
+        </button>
+      )
+    ) : (
+      <button
+        onClick={() => toast.error('You need an active subscription to track wallets')}
+        className="px-3 py-1 text-zinc-300 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start group hover:bg-zinc-600"
+      >
+        Track Wallet (Subscription Required) 
+      </button>
+    )}
+  </div>
+</div>
 
  {/* Tracking Filters */}
- {trackingOptions.showFilters && !isTracked && (
-        <div className="p-6 border border-zinc-700 bg-zinc-900">
-          <h3 className="text-sm font-medium text-white mb-4">Tracking Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Minimum Amount Filter */}
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-400">Minimum Amount (USD)</label>
-              <input
-                type="number"
-                min="0"
-                value={trackingOptions.filters.minAmount}
-                onChange={(e) => handleFilterChange('minAmount', parseFloat(e.target.value))}
-                className="w-full px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 text-white"
-              />
-            </div>
-
-            {/* Specific Token Filter */}
-            <div className="space-y-2">
-              <label className="text-sm text-zinc-400">Specific Token Address (Optional)</label>
-              <input
-                type="text"
-                value={trackingOptions.filters.specificToken}
-                onChange={(e) => handleFilterChange('specificToken', e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 text-white"
-                placeholder="Enter token address"
-              />
-            </div>
-
-            {/* Activity Types Filter */}
-            <div className="space-y-2 col-span-full">
-              <label className="text-sm text-zinc-400">Activity Types</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  'ACTIVITY_TOKEN_SWAP',
-                  'ACTIVITY_AGG_TOKEN_SWAP',
-                  'ACTIVITY_TOKEN_ADD_LIQ',
-                  'ACTIVITY_TOKEN_REMOVE_LIQ'
-                ].map((type) => (
-                  <label key={type} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={trackingOptions.filters.activityTypes?.includes(type)}
-                      onChange={(e) => {
-                        const types = e.target.checked
-                          ? [...(trackingOptions.filters.activityTypes || []), type]
-                          : (trackingOptions.filters.activityTypes || []).filter(t => t !== type);
-                        handleFilterChange('activityTypes', types);
-                      }}
-                      className="form-checkbox text-indigo-600"
-                    />
-                    <span className="text-sm text-zinc-400">
-                      {type.replace('ACTIVITY_', '')}
-                    </span>
-                  </label>
-                ))}
+{trackingOptions.showFilters && !isTracked && (
+  <div className="p-6 border-t border-zinc-700 bg-zinc-900">
+    <div className="grid grid-cols-1 gap-6">
+      {/* Wallet Identity Section */}
+      <div>
+        <h3 className="text-sm font-medium text-white mb-4">Wallet Identity</h3>
+        
+        {/* Wallet Name */}
+        <div className="space-y-2 mb-4">
+          <label className="text-sm text-zinc-400">Wallet Name (Optional)</label>
+          <input
+            type="text"
+            value={trackingOptions.name}
+            onChange={(e) => setTrackingOptions(prev => ({...prev, name: e.target.value}))}
+            placeholder={`Wallet ${accountData?.account?.slice(0, 4)}...${accountData?.account?.slice(-4)}`}
+            className="w-full px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
+        
+        {/* Tags */}
+        <div className="space-y-2">
+          <label className="text-sm text-zinc-400">Tags (Optional)</label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {trackingOptions.tags.map(tag => (
+              <div key={tag} className="bg-indigo-900/50 text-indigo-200 px-2 py-1 rounded-md flex items-center text-sm">
+                <span>{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="ml-1 text-indigo-300 hover:text-white"
+                >
+                  ×
+                </button>
               </div>
-            </div>
+            ))}
+          </div>
+          <div className="flex">
+            <input
+              type="text"
+              value={trackingOptions.tagInput}
+              onChange={handleTagInputChange}
+              onKeyDown={handleTagInputKeyDown}
+              onBlur={addTag}
+              placeholder="Add tags (press Enter or comma to add)"
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+          <p className="text-xs text-zinc-500 mt-1">
+            Tags help you organize and search for wallets
+          </p>
+        </div>
+      </div>
+      
+      {/* Alert Settings Section */}
+      <div>
+        <h3 className="text-sm font-medium text-white mb-4">Alert Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Minimum Amount Filter */}
+          <div className="space-y-2">
+            <label className="text-sm text-zinc-400">Minimum Amount (USD)</label>
+            <input
+              type="number"
+              min="0"
+              value={trackingOptions.filters.minAmount}
+              onChange={(e) => handleFilterChange('minAmount', parseFloat(e.target.value))}
+              className="w-full px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <p className="text-xs text-zinc-500">
+              Only alert for transactions above this amount
+            </p>
+          </div>
+
+          {/* Specific Token Filter */}
+          <div className="space-y-2">
+            <label className="text-sm text-zinc-400">Specific Token Address (Optional)</label>
+            <input
+              type="text"
+              value={trackingOptions.filters.specificToken}
+              onChange={(e) => handleFilterChange('specificToken', e.target.value)}
+              className="w-full px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              placeholder="Enter token address"
+            />
+            <p className="text-xs text-zinc-500">
+              Only alert for transactions involving this token
+            </p>
           </div>
         </div>
-      )}      
+
+        {/* Activity Types Filter */}
+        <div className="space-y-2 mt-4">
+          <label className="text-sm text-zinc-400">Activity Types</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              { value: 'ACTIVITY_TOKEN_SWAP', label: 'Token Swap' },
+              { value: 'ACTIVITY_AGG_TOKEN_SWAP', label: 'Aggregator Token Swap' },
+              { value: 'ACTIVITY_TOKEN_ADD_LIQ', label: 'Add Liquidity' },
+              { value: 'ACTIVITY_TOKEN_REMOVE_LIQ', label: 'Remove Liquidity' }
+            ].map(({ value, label }) => (
+              <label key={value} className="flex items-center space-x-2 px-3 py-2 bg-zinc-800 rounded-lg border border-zinc-700 hover:bg-zinc-750">
+                <input
+                  type="checkbox"
+                  checked={trackingOptions.filters.activityTypes?.includes(value)}
+                  onChange={(e) => {
+                    const types = e.target.checked
+                      ? [...(trackingOptions.filters.activityTypes || []), value]
+                      : (trackingOptions.filters.activityTypes || []).filter(t => t !== value);
+                    handleFilterChange('activityTypes', types);
+                  }}
+                  className="form-checkbox h-4 w-4 text-indigo-600 rounded border-zinc-500 bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-300">{label}</span>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-zinc-500 mt-1">
+            Select which activity types to receive alerts for
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}      
 
 
       {/* Account Info Content */}
@@ -438,6 +544,18 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
           )}
         </div>
       </div>
+
+      {isSubscribed && accountData && (
+  <TrackWalletModal
+    isOpen={isTrackModalOpen}
+    onClose={() => setIsTrackModalOpen(false)}
+    onSuccess={handleTrackSuccess}
+    walletAddress={accountData.account}
+    userId={user?.id || ''}
+  />
+)}
+
+
     </div>
   );
 };
