@@ -18,6 +18,7 @@ interface LastActivityWrapper {
   type: string;
 }
 
+
 interface WatcherData {
   walletAddress: string;
   userId: string;
@@ -27,6 +28,8 @@ interface WatcherData {
   pk: string;
   type: string;
   lastChecked: string | null;
+  name?: string; // Optional name field
+  tags?: string[]; // Optional tags array
   lastDataPoint?: {
     solBalance: number;
     timestamp: number;
@@ -43,8 +46,6 @@ interface WatchersResponse {
   watchers: WatcherData[];
 }
 
-
-
 const WalletWatchers = () => {
   const { getAccessToken, user, ready } = usePrivy();
   const [watchers, setWatchers] = useState<WatcherData[]>([]);
@@ -60,10 +61,44 @@ const WalletWatchers = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter function for search
-  const filterWatchers = (watcher: WatcherData) => {
-    if (!searchQuery) return true;
-    return watcher.walletAddress.toLowerCase().includes(searchQuery.toLowerCase());
-  };  
+// Updated filter function
+const filterWatchers = (watcher: WatcherData) => {
+  if (!searchQuery) return true;
+  
+  const query = searchQuery.toLowerCase();
+  
+  // Search in wallet address
+  if (watcher.walletAddress.toLowerCase().includes(query)) {
+    return true;
+  }
+  
+  // Search in name if it exists
+  if (watcher.name && watcher.name.toLowerCase().includes(query)) {
+    return true;
+  }
+  
+  // Search in tags if they exist
+  if (watcher.tags && watcher.tags.some(tag => tag.toLowerCase().includes(query))) {
+    return true;
+  }
+  
+  return false;
+};
+
+const handleWatcherUpdate = (updatedWatcher: WatcherData) => {
+  // Update the watcher in the watchers array
+  setWatchers(prevWatchers => 
+    prevWatchers.map(watcher => 
+      watcher.walletAddress === updatedWatcher.walletAddress ? 
+        { ...watcher, ...updatedWatcher } : 
+        watcher
+    )
+  );
+  
+  // Also update the selected watcher
+  setSelectedWatcher(updatedWatcher);
+};
+
 
   const sortWatchers = (a: WatcherData, b: WatcherData) => {
     // Handle null/undefined cases
@@ -162,66 +197,96 @@ const WalletWatchers = () => {
   }, [user]);
 
   // mobile-friendly card component for the watchers
-  const WatcherCard = ({ watcher, onDelete, onClick }: { 
-    watcher: WatcherData; 
-    onDelete: (e: React.MouseEvent) => void;
-    onClick: () => void;
-  }) => (
-    <div 
-      onClick={onClick}
-      className="bg-zinc-800 rounded-lg p-4 space-y-3 hover:bg-zinc-700 transition-colors cursor-pointer"
-    >
-      <div className="flex justify-between items-start">
-        <div className="font-medium text-white hover:text-indigo-300 transition-colors">
-          {`${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
-        </div>
-        <div 
-          className={`inline-flex text-xs px-2 py-0.5 rounded-full ${
-            watcher.isActive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-          }`}
-        >
-          {watcher.isActive ? 'Active' : 'Inactive'}
-        </div>
-      </div>
-
-      <div className="text-xs text-zinc-300">
-        Last Updated: {watcher.lastChecked ? 
-          new Date(watcher.lastChecked).toLocaleString() : 
-          'Never'
-        }
-      </div>
-
-      <div className="flex flex-wrap gap-1">
-        {(watcher.filters?.minAmount && watcher.filters.minAmount > 0) ? (
-          <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
-            Min: ${watcher.filters.minAmount}
-          </span>
-        ) : null}
-        {watcher.filters?.specificToken && (
-          <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
-            Token: {`${watcher.filters.specificToken.slice(0, 4)}...${watcher.filters.specificToken.slice(-4)}`}
-          </span>
+  // Updated WatcherCard component for mobile view
+const WatcherCard = ({ watcher, onDelete, onClick }: { 
+  watcher: WatcherData; 
+  onDelete: (e: React.MouseEvent) => void;
+  onClick: () => void;
+}) => (
+  <div 
+    onClick={onClick}
+    className="bg-zinc-800 rounded-lg p-4 space-y-3 hover:bg-zinc-700 transition-colors cursor-pointer"
+  >
+    <div className="flex justify-between items-start">
+      <div>
+        {watcher.name ? (
+          <div className="font-medium text-white hover:text-indigo-300 transition-colors">
+            {watcher.name}
+          </div>
+        ) : (
+          <div className="font-medium text-white hover:text-indigo-300 transition-colors">
+            {`${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
+          </div>
         )}
-        {watcher.filters?.activityTypes?.map(type => (
+        
+        {/* Show address as secondary line if name exists */}
+        {watcher.name && (
+          <div className="text-xs text-zinc-400 mt-0.5">
+            {`${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
+          </div>
+        )}
+      </div>
+      <div 
+        className={`inline-flex text-xs px-2 py-0.5 rounded-full ${
+          watcher.isActive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+        }`}
+      >
+        {watcher.isActive ? 'Active' : 'Inactive'}
+      </div>
+    </div>
+
+    {/* Tags display */}
+    {watcher.tags && watcher.tags.length > 0 && (
+      <div className="flex flex-wrap gap-1">
+        {watcher.tags.map(tag => (
           <span 
-            key={type}
-            className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full"
+            key={tag}
+            className="text-xs bg-indigo-900/30 text-indigo-200 px-2 py-0.5 rounded-full"
           >
-            {type.replace('ACTIVITY_', '')}
+            {tag}
           </span>
         ))}
       </div>
+    )}
 
-      <div className="flex justify-end">
-        <button
-          onClick={onDelete}
-          className="text-sm text-red-400 hover:text-red-300 transition-colors"
-        >
-          Delete
-        </button>
-      </div>
+    <div className="text-xs text-zinc-300">
+      Last Updated: {watcher.lastChecked ? 
+        new Date(watcher.lastChecked).toLocaleString() : 
+        'Never'
+      }
     </div>
-  );  
+
+    <div className="flex flex-wrap gap-1">
+      {(watcher.filters?.minAmount && watcher.filters.minAmount > 0) ? (
+        <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
+          Min: ${watcher.filters.minAmount}
+        </span>
+      ) : null}
+      {watcher.filters?.specificToken && (
+        <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
+          Token: {`${watcher.filters.specificToken.slice(0, 4)}...${watcher.filters.specificToken.slice(-4)}`}
+        </span>
+      )}
+      {watcher.filters?.activityTypes?.map(type => (
+        <span 
+          key={type}
+          className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full"
+        >
+          {type.replace('ACTIVITY_', '')}
+        </span>
+      ))}
+    </div>
+
+    <div className="flex justify-end">
+      <button
+        onClick={onDelete}
+        className="text-sm text-red-400 hover:text-red-300 transition-colors"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+);
 
   const Header = () => {
     return (
@@ -303,7 +368,7 @@ const WalletWatchers = () => {
       <div className="relative">
         <input
           type="text"
-          placeholder="Search wallet address..."
+          placeholder="Search by name, address, or tag..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full my-4 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-indigo-500 transition-colors"
@@ -311,89 +376,114 @@ const WalletWatchers = () => {
       </div>      
       <div className="hidden md:block overflow-x-auto">
       <table className="w-full bg-zinc-800 rounded-lg">
-          <thead>
-            <tr className="text-left border-b border-zinc-700">
-              <th className="p-4 text-sm font-medium text-zinc-400">Wallet Address</th>
-              <th className="p-4 text-sm font-medium text-zinc-400">Status</th>
-              <SortableHeader />
-              <th className="p-4 text-sm font-medium text-zinc-400">Filters</th>
-              <th className="p-4 text-sm font-medium text-zinc-400">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+        <thead>
+          <tr className="text-left border-b border-zinc-700">
+            <th className="p-4 text-sm font-medium text-zinc-400">Name/Address</th>
+            <th className="p-4 text-sm font-medium text-zinc-400">Status</th>
+            <SortableHeader />
+            <th className="p-4 text-sm font-medium text-zinc-400">Tags</th>
+            <th className="p-4 text-sm font-medium text-zinc-400">Filters</th>
+            <th className="p-4 text-sm font-medium text-zinc-400">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
           {filteredAndSortedWatchers.map((watcher) => (
-              <tr 
-                onClick={() => setSelectedWatcher(watcher)}
-                key={watcher.walletAddress + watcher.createdAt}
-                className="border-b border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-              >
-                <td className="p-4">
+            <tr 
+              onClick={() => setSelectedWatcher(watcher)}
+              key={watcher.walletAddress + watcher.createdAt}
+              className="border-b border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+            >
+              <td className="p-4">
+                {watcher.name ? (
+                  <div>
+                    <div className="font-medium text-white hover:text-indigo-300 transition-colors">
+                      {watcher.name}
+                    </div>
+                    <div className="text-xs text-zinc-400 mt-0.5">
+                      {`${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
+                    </div>
+                  </div>
+                ) : (
                   <div className="font-medium text-white hover:text-indigo-300 transition-colors">
                     {`${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
                   </div>
-                </td>
-                <td className="p-4">
-                  <div 
-                    className={`inline-flex text-xs px-2 py-0.5 rounded-full ${
-                      watcher.isActive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                    }`}
-                  >
-                    {watcher.isActive ? 'Active' : 'Inactive'}
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="text-xs text-zinc-300">
-                    {watcher.lastChecked ? (
-                      new Date(watcher.lastChecked).toLocaleString()
-                    ) : (
-                      'Never'
-                    )}
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-wrap gap-1">
-                    {(watcher.filters?.minAmount && watcher.filters.minAmount > 0) ? (
-                      <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
-                        Min: ${watcher.filters.minAmount}
-                      </span>
-                    ) : null}
-                    {watcher.filters?.specificToken && (
-                      <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
-                        Token: {`${watcher.filters.specificToken.slice(0, 4)}...${watcher.filters.specificToken.slice(-4)}`}
-                      </span>
-                    )}
-                    {watcher.filters?.activityTypes?.map(type => (
+                )}
+              </td>
+              <td className="p-4">
+                <div 
+                  className={`inline-flex text-xs px-2 py-0.5 rounded-full ${
+                    watcher.isActive ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                  }`}
+                >
+                  {watcher.isActive ? 'Active' : 'Inactive'}
+                </div>
+              </td>
+              <td className="p-4">
+                <div className="text-xs text-zinc-300">
+                  {watcher.lastChecked ? (
+                    new Date(watcher.lastChecked).toLocaleString()
+                  ) : (
+                    'Never'
+                  )}
+                </div>
+              </td>
+              <td className="p-4">
+                <div className="flex flex-wrap gap-1">
+                  {watcher.tags && watcher.tags.length > 0 ? (
+                    watcher.tags.map(tag => (
                       <span 
-                        key={type}
-                        className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full"
+                        key={tag}
+                        className="text-xs bg-indigo-900/30 text-indigo-200 px-2 py-0.5 rounded-full"
                       >
-                        {type.replace('ACTIVITY_', '')}
+                        {tag}
                       </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setWatcherToDelete(watcher);
-                        setIsDeleteModalOpen(true);
-                      }}
-                      className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                    ))
+                  ) : (
+                    <span className="text-xs text-zinc-500">None</span>
+                  )}
+                </div>
+              </td>
+              <td className="p-4">
+                <div className="flex flex-wrap gap-1">
+                  {(watcher.filters?.minAmount && watcher.filters.minAmount > 0) ? (
+                    <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
+                      Min: ${watcher.filters.minAmount}
+                    </span>
+                  ) : null}
+                  {watcher.filters?.specificToken && (
+                    <span className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full">
+                      Token: {`${watcher.filters.specificToken.slice(0, 4)}...${watcher.filters.specificToken.slice(-4)}`}
+                    </span>
+                  )}
+                  {watcher.filters?.activityTypes?.map(type => (
+                    <span 
+                      key={type}
+                      className="text-xs bg-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full"
                     >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-
-
-      </div>
+                      {type.replace('ACTIVITY_', '')}
+                    </span>
+                  ))}
+                </div>
+              </td>
+              <td className="p-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setWatcherToDelete(watcher);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
 
       {filteredAndSortedWatchers.length === 0 && searchQuery && (
           <div className="text-center py-8 text-zinc-400">
@@ -421,6 +511,7 @@ const WalletWatchers = () => {
         <WalletDetailsModal
           watcher={selectedWatcher}
           onClose={() => setSelectedWatcher(null)}
+          onUpdate={handleWatcherUpdate}
         />
       )}
 

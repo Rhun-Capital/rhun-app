@@ -33,6 +33,8 @@ function createRuleName(userId: string, walletAddress: string, filterHash: strin
 interface TrackWalletRequest {
   walletAddress: string;
   userId: string;
+  name?: string;
+  tags?: string[];  
   filters?: {
     minAmount?: number;
     specificToken?: string;
@@ -50,7 +52,7 @@ interface TrackWalletRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const { walletAddress, userId, filters = {} }: TrackWalletRequest = await request.json();
+    const { walletAddress, userId, name, tags, filters = {} }: TrackWalletRequest = await request.json();
 
     if (!walletAddress || !userId) {
       return NextResponse.json(
@@ -93,6 +95,8 @@ export async function POST(request: NextRequest) {
       walletAddress,
       userId,
       // Default to swap activities if not specified
+      ...(name && name.trim() && { name: name.trim() }),
+      ...(tags && tags.length > 0 && { tags }),      
       activityTypes: filters.activityTypes || ['ACTIVITY_TOKEN_SWAP', 'ACTIVITY_AGG_TOKEN_SWAP'],
       // Add optional filters if they exist
       ...(filters.minAmount && { minAmount: filters.minAmount }),
@@ -130,3 +134,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

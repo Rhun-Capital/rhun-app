@@ -146,22 +146,6 @@ export default function HomePage() {
         </div>
       </div>
 
-        {/* Start Button */}
-        {user && ready && <div className="text-center mb-4">
-          <Link 
-            href="/agents"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-lg font-semibold transition-colors text-lg"
-            onClick={(e) => {
-              if (!user && ready) {
-                e.preventDefault();
-                toast.error('Please sign in to access this feature.');
-              }
-            }}            
-          >
-            Get Started
-            &#8250;
-          </Link>
-        </div> }
       </div>
     </div>
   );
