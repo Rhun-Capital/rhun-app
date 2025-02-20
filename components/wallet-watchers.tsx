@@ -27,7 +27,7 @@ interface WatcherData {
   sk: string;
   pk: string;
   type: string;
-  lastChecked: string | null;
+  lastChecked?: string | null | undefined;
   name?: string; // Optional name field
   tags?: string[]; // Optional tags array
   lastDataPoint?: {

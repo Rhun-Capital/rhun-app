@@ -32,7 +32,6 @@ interface Watcher {
     activityTypes?: string[];
     platform?: string[];
   };
-  // Add missing fields from WatcherData
   userId: string;
   createdAt: string;
   sk: string;
@@ -44,7 +43,7 @@ interface Watcher {
 interface WalletDetailsModalProps {
   watcher: Watcher;
   onClose: () => void;
-  onUpdate?: (updatedWatcher: Watcher) => void;
+  onUpdate: (updatedWatcher: Watcher) => void;
 }
 
 const formatActivityType = (type: string) => {
