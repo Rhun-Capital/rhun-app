@@ -398,21 +398,18 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   useEffect(() => {
     const interval = setInterval(() => {
       if (activeTab === 'wallet' && agent.wallets?.solana) {
-        getTokens(agent.wallets.solana)
-          .then((response) => {
-            setTokens(response);
-          })
-          .catch((error) => console.error('Error fetching tokens:', error));
-
+        Promise.all([
+          getTokens(agent.wallets.solana),
           getPortfolioValue(agent.wallets.solana)
-          .then((portfolio) => {
-            // sum the total value of all tokens usdValue
-            const tv = portfolio.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
-            setTotalValue(tv)
-            setPortfolio(portfolio);
-          })
-          .catch((error) => console.error('Error fetching portfolio:', error))
-          .finally(() => setInitialLoading(false));          
+        ])
+        .then(([tokensResponse, portfolioResponse]) => {
+          setTokens(tokensResponse);
+          const tv = portfolioResponse.holdings.reduce((acc: number, token: { usdValue: number }) => acc + token.usdValue, 0);
+          setTotalValue(tv);
+          setPortfolio(portfolioResponse);
+        })
+        .catch((error) => console.error('Error fetching data:', error))
+        .finally(() => setInitialLoading(false));
       }
     }, 10000);
     return () => clearInterval(interval);
