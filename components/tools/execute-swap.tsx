@@ -8,7 +8,8 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
-const JUPITER_TOKEN_LIST_URL = 'https://tokens.jup.ag/tokens?tags=verified,unknown';
+const JUPITER_TOKEN_LIST_URL = 'https://tokens.jup.ag/tokens?tags=community';
+const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 interface Token {
   token_address: string;
@@ -125,7 +126,7 @@ const ExecuteSwap: React.FC<{
         const price = await getPrice('solana')
         return {
           token_address: 'SOL',
-          token_icon: '', // You might want to set a default SOL icon
+          token_icon: '',
           token_name: 'Solana',
           token_symbol: 'SOL',
           token_decimals: 9,
@@ -134,97 +135,57 @@ const ExecuteSwap: React.FC<{
           formatted_amount: 0
         };
       }
-  
+
       const response = await fetch(JUPITER_TOKEN_LIST_URL);
       if (!response.ok) throw new Error('Failed to fetch token list');
       
       const tokens = await response.json();
-      console.log(tokens.slice(0, 5));
-      // Check if the identifier is a contract address first
-      let token = tokens.find((t: any) => 
-        t.address.toLowerCase() === tokenIdentifier.toLowerCase()
-      );
       
-      // If not found by address, search by name or symbol
-      if (!token) {
+      // Determine search strategy based on input format
+      const isAddress = SOLANA_ADDRESS_REGEX.test(tokenIdentifier);
+      let token;
+
+      if (isAddress) {
+        // If input matches address format, only search by address
         token = tokens.find((t: any) => 
-          t.name.toLowerCase() === tokenIdentifier.toLowerCase() ||
-          t.symbol.toLowerCase() === tokenIdentifier.toLowerCase()
+          t.address.toLowerCase() === tokenIdentifier.toLowerCase()
+        );
+      } else {
+        // If input doesn't match address format, search by name/symbol
+        const searchTerm = tokenIdentifier.toLowerCase();
+        token = tokens.find((t: any) => 
+          t.name.toLowerCase() === searchTerm ||
+          t.symbol.toLowerCase() === searchTerm
         );
       }
-  
+
       if (!token) return null;
-  
+
       // Get price using CoinGecko ID if available
       let price = 0;
       try {
-        if (token.extensions && token.extensions.coingeckoId) {
+        if (token.extensions?.coingeckoId) {
           price = await getPrice(token.extensions.coingeckoId);
         }
       } catch (priceError) {
         console.warn('Could not fetch price for token:', tokenIdentifier, priceError);
-        // Continue without price
       }
-  
+
       return {
         token_address: token.address,
         token_icon: token.logoURI || '',
         token_name: token.name,
         token_symbol: token.symbol,
         token_decimals: token.decimals,
-        usd_price: price, 
+        usd_price: price,
         usd_value: 0,
-        formatted_amount: 0 
+        formatted_amount: 0
       };
     } catch (error) {
       console.error('Error finding token:', error);
       return null;
     }
-  };
-  //   try {
-  //     // Handle SOL case
-  //     if (tokenName.toUpperCase() === 'SOL') {
-  //       const price = await getPrice('solana')
-  //       return {
-  //         token_address: 'SOL',
-  //         token_icon: '', // You might want to set a default SOL icon
-  //         token_name: 'Solana',
-  //         token_symbol: 'SOL',
-  //         token_decimals: 9,
-  //         usd_price: price,
-  //         formatted_amount: 0
-  //       };
-  //     }
-
-  //     const response = await fetch(JUPITER_TOKEN_LIST_URL);
-  //     if (!response.ok) throw new Error('Failed to fetch token list');
-      
-  //     const tokens = await response.json();
-      
-  //     // Search by name or symbol
-  //     const token = tokens.find((t: any) => 
-  //       t.name.toLowerCase() === tokenName.toLowerCase() ||
-  //       t.symbol.toLowerCase() === tokenName.toLowerCase()
-  //     );
-
-  //     const price = await getPrice(token.extensions.coingeckoId)
-
-  //     if (!token) return null;
-
-  //     return {
-  //       token_address: token.address,
-  //       token_icon: token.logoURI,
-  //       token_name: token.name,
-  //       token_symbol: token.symbol,
-  //       token_decimals: token.decimals,
-  //       usd_price: price, 
-  //       formatted_amount: 0 
-  //     };
-  //   } catch (error) {
-  //     console.error('Error finding token:', error);
-  //     return null;
-  //   }
-  // };
+};
 
   const updateToolInvocation = async ({
     chatId,
