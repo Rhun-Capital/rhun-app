@@ -19,7 +19,6 @@ import {
   getTokenHoldings
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
-import { checkSubscriptionStatus } from '@/utils/subscriptions';
 
 export interface DexScreenerToken {
   tokenAddress: string;
@@ -606,9 +605,10 @@ export async function POST(req: Request) {
   }
 
   // Define tool sets for different user tiers
-  const freeTools = {
-    // Basic tools available to free users
+  const availableTools = {
+    getAgentPortfolioValue: allTools.getAgentPortfolioValue,
     getUserPortfolioValue: allTools.getUserPortfolioValue,
+    getAgentTokenHoldings: allTools.getAgentTokenHoldings,
     getUserTokenHoldings: allTools.getUserTokenHoldings,
     getSolanaTransactionVolume: allTools.getSolanaTransactionVolume,
     getDerivativesExchanges: allTools.getDerivativesExchanges,
@@ -626,31 +626,6 @@ export async function POST(req: Request) {
     swap: allTools.swap,
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
   };
-
-  const proTools = {
-    // All tools available to paid users
-    ...freeTools,
-    getAgentPortfolioValue: allTools.getAgentPortfolioValue,
-    getAgentTokenHoldings: allTools.getAgentTokenHoldings,
-  };
-
-
-    // Check user's subscription status
-    const subscriptionStatus = await checkSubscriptionStatus(user.id);
-    const { isSubscribed, subscriptionType } = subscriptionStatus;
-  
-    // Select appropriate tool set based on subscription type
-    let availableTools;
-    switch (subscriptionType) {
-      case 'stripe':
-        availableTools = proTools;
-        break;
-      case 'token':
-        availableTools = proTools;
-        break;
-      default:
-        availableTools = freeTools;
-    }
 
 // Format context for the prompt
 const contextText = context
@@ -672,19 +647,6 @@ const systemPrompt = `
 
 ## Agent's Solana Wallet Address:
 ${agentConfig.wallets?.solana || 'N/A'}
-
-${!isSubscribed ? `
-## Free User Limitations
-You are interacting with a free tier user. Some advanced features are not available. 
-If the user requests functionality that requires a paid subscription, inform them that 
-this feature is only available to paid users and direct them to upgrade their subscription.
-Free tools available to the user include:
-${Object.values(freeTools).map(tool => `- ${tool.description}`).join('\n')}
-` : `
-## Subscription Status
-Pro tools available to the user include:
-${Object.values(proTools).map(tool => `- ${tool.description}`).join('\n')}
-`}
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}

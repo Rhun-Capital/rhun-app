@@ -604,6 +604,13 @@ export default function Home() {
     });
   }, [user])
 
+  const refreshAgent = async () => {
+    if (!user) return;
+    getAgent().then((agent) => {
+      setAgent(agent);
+    });
+  }
+
   const getAgent = async () => {
     const accessToken = await getAccessToken();
     const response = await fetch(
@@ -1079,6 +1086,7 @@ export default function Home() {
             isOpen={sidebarOpen}
             onToggle={() => setSidebarOpen(!sidebarOpen)}
             onToolSelect={handleToolSelect}
+            refreshAgent={refreshAgent}
           />      
     </div>
   );
