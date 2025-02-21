@@ -32,12 +32,12 @@ const PUBLIC_ROUTES = new Set([
 ]);
 
 // Define routes that require active subscription
-const SUBSCRIPTION_REQUIRED_ROUTES = new Set([
-  '/watchers',
-]);
+// const SUBSCRIPTION_REQUIRED_ROUTES = new Set([
+//   '/watchers',
+// ]);
 
 // Default template agent that's accessible without subscription
-const DEFAULT_TEMPLATE_AGENT = 'cc425065-b039-48b0-be14-f8afa0704357';
+// const DEFAULT_TEMPLATE_AGENT = 'cc425065-b039-48b0-be14-f8afa0704357';
 
 interface StripeSubscription {
   status: string;
@@ -111,41 +111,41 @@ async function hasActiveSubscription(userId: string): Promise<boolean> {
   return hasStripeSubscription || hasTokenSubscription;
 }
 
-function isAgentRoute(pathname: string): boolean {
-  return pathname.startsWith('/agents/');
-}
+// function isAgentRoute(pathname: string): boolean {
+//   return pathname.startsWith('/agents/');
+// }
 
-function parseAgentPath(pathname: string): { 
-  isTemplateAgent: boolean; 
-  agentId: string | null;
-  isEditPage: boolean;
-} {
-  const parts = pathname.split('/');
+// function parseAgentPath(pathname: string): { 
+//   isTemplateAgent: boolean; 
+//   agentId: string | null;
+//   isEditPage: boolean;
+// } {
+//   const parts = pathname.split('/');
   
-  // Handle template agent paths: /agents/template/<agentId>
-  if (parts[2] === 'template' && parts[3]) {
-    return {
-      isTemplateAgent: true,
-      agentId: parts[3],
-      isEditPage: parts[4] === 'edit'
-    };
-  }
+//   // Handle template agent paths: /agents/template/<agentId>
+//   if (parts[2] === 'template' && parts[3]) {
+//     return {
+//       isTemplateAgent: true,
+//       agentId: parts[3],
+//       isEditPage: parts[4] === 'edit'
+//     };
+//   }
   
-  // Handle user agent paths: /agents/<userId>/<agentId>
-  if (parts[2] && parts[3]) {
-    return {
-      isTemplateAgent: false,
-      agentId: parts[3],
-      isEditPage: parts[4] === 'edit'
-    };
-  }
+//   // Handle user agent paths: /agents/<userId>/<agentId>
+//   if (parts[2] && parts[3]) {
+//     return {
+//       isTemplateAgent: false,
+//       agentId: parts[3],
+//       isEditPage: parts[4] === 'edit'
+//     };
+//   }
 
-  return {
-    isTemplateAgent: false,
-    agentId: null,
-    isEditPage: false
-  };
-}
+//   return {
+//     isTemplateAgent: false,
+//     agentId: null,
+//     isEditPage: false
+//   };
+// }
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -168,35 +168,35 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check if subscription is required
-    let requiresSubscription = SUBSCRIPTION_REQUIRED_ROUTES.has(pathname);
+    // let requiresSubscription = SUBSCRIPTION_REQUIRED_ROUTES.has(pathname);
 
     // Special handling for agent routes
-    if (isAgentRoute(pathname)) {
-      const { isTemplateAgent, agentId, isEditPage } = parseAgentPath(pathname);
+    // if (isAgentRoute(pathname)) {
+    //   const { isTemplateAgent, agentId, isEditPage } = parseAgentPath(pathname);
       
-      // Require subscription for:
-      // 1. Chatting with any template agent except the default one
-      // 2. All non-template agents
-      requiresSubscription = (!isEditPage && isTemplateAgent && agentId !== DEFAULT_TEMPLATE_AGENT) || 
-        (!isTemplateAgent);
-    }
+    //   // Require subscription for:
+    //   // 1. Chatting with any template agent except the default one
+    //   // 2. All non-template agents
+    //   requiresSubscription = (!isEditPage && isTemplateAgent && agentId !== DEFAULT_TEMPLATE_AGENT) || 
+    //     (!isTemplateAgent);
+    // }
 
     // Check subscription if required
-    if (requiresSubscription) {
-      const isSubscribed = await hasActiveSubscription(user.userId);
+    // if (requiresSubscription) {
+    //   const isSubscribed = await hasActiveSubscription(user.userId);
       
-      if (!isSubscribed) {
-        // For API routes
-        if (pathname.startsWith('/api/')) {
-          return NextResponse.json(
-            { error: 'Active subscription required' },
-            { status: 403 }
-          );
-        }
-        // For page routes, redirect to pricing
-        return NextResponse.redirect(new URL('/account?requiresSub=true', request.url));
-      }
-    }
+    //   if (!isSubscribed) {
+    //     // For API routes
+    //     if (pathname.startsWith('/api/')) {
+    //       return NextResponse.json(
+    //         { error: 'Active subscription required' },
+    //         { status: 403 }
+    //       );
+    //     }
+    //     // For page routes, redirect to pricing
+    //     return NextResponse.redirect(new URL('/account?requiresSub=true', request.url));
+    //   }
+    // }
 
     return NextResponse.next();
   } catch (error) {

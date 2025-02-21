@@ -319,16 +319,18 @@ useEffect(() => {
               </button>
               
               <button 
+                disabled={!totalValue || tokens.data.length === 0}
                 onClick={() => setIsTransferModalOpen(true)}
-                className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2"
+                className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <SendIcon className="w-5 h-5 mb-1" />
                 <span className="text-sm text-zinc-400">Send</span>
               </button>
               
               <button 
+                disabled={!totalValue || tokens.data.length === 0}
                 onClick={() => setIsSwapModalOpen(true)}
-                className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2"
+                className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Repeat2 className="w-5 h-5 mb-1" />
                 <span className="text-sm text-zinc-400">Swap</span>

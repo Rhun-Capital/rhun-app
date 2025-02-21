@@ -139,36 +139,90 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     if (!file) return;
   
     setLoading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('agentId', agentId);
-  
     try {
+      // Step 1: Get presigned URL
+      const accessToken = await getAccessToken();
+      const presignedResponse = await fetch(`/api/upload/${params.userId}/presigned`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}` 
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          agentId
+        }),
+      });
+
+      if (!presignedResponse.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { uploadUrl, fileKey } = await presignedResponse.json();
+
+      // Step 2: Upload to S3 using presigned URL
       toast.promise(
-        new Promise((resolve) => setTimeout(resolve, 4000)),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
         {
-          loading: 'File uploading',
-          success: 'File uploaded and queued for processing',
+          loading: 'Uploading file...',
+          success: 'File uploaded successfully',
           error: 'Failed to upload file',
         }
       );
-      const accessToken = await getAccessToken()
-      const response = await fetch('/api/upload/file', {
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-        method: 'POST',
-        body: formData,
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
       });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file to storage');
+      }
+
+      // Step 3: Trigger processing
+      toast.promise(
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+        {
+          loading: 'Starting processing...',
+          success: 'File queued for processing',
+          error: 'Failed to queue file',
+        }
+      );
+
+      const processResponse = await fetch(`/api/upload/${params.userId}/process`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          fileKey,
+          fileName: file.name,
+          fileType: file.type,
+          agentId,
+          metadata: {
+            type: 'file',
+            contentType: file.type,
+            timestamp: new Date().toISOString()
+          }
+        }),
+      });
+
+      if (!processResponse.ok) {
+        throw new Error('Failed to queue file for processing');
+      }
   
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Upload failed');
-      
       setMessage(`File "${file.name}" uploaded and queued for processing. This may take up to 15 minutes.`);
-      toast.success('File uploaded and queued for processing');
       refreshKnowledge();
       
     } catch (error: any) {
       console.error('Upload error:', error);
       setMessage(`Error: ${error.message || 'Failed to upload file'}`);
+      toast.error(error.message || 'Failed to upload file');
     } finally {
       setLoading(false);
       e.target.value = '';
@@ -201,8 +255,8 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
             : 'bg-green-900/50 border border-green-500'
         }`}>
           <div className="flex-1">
-            <div className="flex align-center gap-2">
-              {message.includes('Error') && <div className="mt-1"><AlertCircle  /></div>}
+            <div className="flex align-center gap-2 items-center">
+              {message.includes('Error') && <AlertCircle/>}
               <p className="text-white text-sm ">
                 {message}
               </p>

@@ -124,11 +124,23 @@ const ReceiveButton = ({ agent, tokens, solanaBalance }: TransferButtonProps & {
 
 const TransferButton = ({ tokens, solanaBalance, agent }: TransferButtonProps & { agent: any }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { openModal, closeModal } = useModal();
+
+  // Memoize the handlers
+  const handleOpenModal = useCallback(() => {
+    setIsOpen(true);
+    openModal();
+  }, [openModal]);
+
+  const handleCloseModal = useCallback(() => {
+    setIsOpen(false);
+    closeModal();
+  }, [closeModal]);
 
   return (
     <>
       <button 
-        onClick={() => setIsOpen(true)}
+        onClick={() => handleOpenModal()}
         className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
       >
         <div className=" flex flex-col items-center gap-1 p-2">
@@ -141,7 +153,7 @@ const TransferButton = ({ tokens, solanaBalance, agent }: TransferButtonProps & 
       <TransferModal 
         agent={agent}
         isOpen={isOpen} 
-        onClose={() => setIsOpen(false)}
+        onClose={() => handleCloseModal()}
         tokens={tokens}
         solanaBalance={solanaBalance}
       />
@@ -556,7 +568,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
                 <div  className="flex items-center justify-between">
                   <div className="text-sm text-zinc-400">Wallet Address</div>
-                  <button
+                  {params.userId !== 'template' && <button
                     className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
                     title="Refresh wallet data"
                     onClick={() => {
@@ -568,14 +580,26 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                     }}
                   >
                     {refreshLoading ?  <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
-                  </button>                  
+                  </button>  }                
                 </div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="text-sm text-white">
                       {(agent.wallets?.solana && params.userId !== 'template') ?
                         <div className="text-sm text-zinc-500 mt-2">
                           {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
-                      </div> : params.userId === 'template' ? <div className="text-sm text-zinc-500 mt-2">Template agents do no have access to wallets. <Link className="text-indigo-400" href={`/agents/create`}>Create your agent</Link> now or <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>use the template</Link> to get started </div> : <div className="text-sm text-zinc-500 mt-2">No agent wallet found. <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create your wallet now</Link> in the wallet settings of your agent</div>
+                      </div> : params.userId === 'template' ? 
+                      <div className="text-zinc-500 mt-2 mb-2 w-full">
+                        <div>Template agents do no have access to wallets.</div>
+                        <Link href={`/agents/create`}>
+                          <button className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
+                            Create Your Agent
+                          </button>
+                        </Link>
+                        </div> 
+                       : <div className="text-sm text-zinc-500 mt-2">No agent wallet found. \
+                       <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create your wallet now</Link> 
+                        in the wallet settings of your agent
+                        </div>
                       }
                     </div>
                     {agent.wallets?.solana && (
@@ -642,7 +666,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 {/* Token List */}
                 <div className="space-y-2">
 
-                {initialLoading && params.userId !== 'template' ? <div className="space-y-2">
+                {initialLoading && agent.wallets?.solana && params.userId !== 'template' ? <div className="space-y-2">
                   <LoadingCard/>
                   <LoadingCard/>
                   <LoadingCard/>

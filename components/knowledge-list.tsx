@@ -7,10 +7,18 @@ import { TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useParams } from 'next/navigation';
 
+type KnowledgeEntry = {
+  id: string;
+  fileName: string;
+  fileType: string;
+  uploadedAt: string;
+  metadata: Record<string, any>;
+  vectorCount: number;
+}
 
 export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, refreshTrigger?: number }) {
   const { getAccessToken } = usePrivy();
-  const [knowledge, setKnowledge] = useState<any[]>([]);
+  const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -33,7 +41,7 @@ export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, re
       );
       if (!response.ok) throw new Error('Failed to fetch knowledge');
       const data = await response.json();
-      setKnowledge(data.knowledge);
+      setKnowledge(data.items); // Updated to use items from new response format
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -41,21 +49,19 @@ export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, re
     }
   };
 
-  const handleDelete = async (source: string, type: string) => {
+  const handleDelete = async (fileName: string, uploadedAt: string) => {
     toast.success('Knowledge content queued for deletion');
-    const key = `${source}-${type}`;
+    const key = `${fileName}-${uploadedAt}`;
     try {
       setDeleting(key);
       const accessToken = await getAccessToken();
       const response = await fetch(
-        `/api/knowledge/${agentId}`,
+        `/api/knowledge/${agentId}?fileName=${encodeURIComponent(fileName)}&timestamp=${encodeURIComponent(uploadedAt)}`,
         {
           method: 'DELETE',
           headers: {
-            'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ source, type }),
+          }
         }
       );
 
@@ -65,6 +71,7 @@ export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, re
 
       // Refresh the knowledge list
       await fetchKnowledge();
+      toast.success('Knowledge deleted successfully');
     } catch (err: any) {
       setError(err.message);
       toast.error('Failed to delete knowledge');
@@ -100,36 +107,40 @@ export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, re
 
   return (
     <div className="space-y-4">
-      {knowledge.map((item, index) => {
-        const parsedItem = JSON.parse(item);
-        const key = `${parsedItem.source}-${parsedItem.type}`;
+      {knowledge.map((item) => {
+        const key = `${item.fileName}-${item.uploadedAt}`;
         const isDeleting = deleting === key;
 
         return (
-          <div key={index} className="p-4 bg-zinc-800 rounded-lg">
+          <div key={item.id} className="p-4 bg-zinc-800 rounded-lg">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">
-                {parsedItem.source}
+                {item.fileName}
               </span>
-              {params.userId !== 'template' && <button
-                onClick={() => handleDelete(parsedItem.source, parsedItem.type)}
-                disabled={isDeleting}
-                className="p-2 text-zinc-400 hover:text-red-400 transition-colors disabled:opacity-50"
-              >
-                {isDeleting ? (
-                  <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <TrashIcon className="w-4 h-4" />
-                )}
-              </button>}
+              {params.userId !== 'template' && (
+                <button 
+                  onClick={() => handleDelete(item.fileName, item.uploadedAt)}
+                  disabled={isDeleting}
+                  className="p-2 text-zinc-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <TrashIcon className="w-4 h-4" />
+                  )}
+                </button>
+              )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-between">
               <span className="text-xs px-2 py-1 bg-zinc-700 rounded-full">
-                {parsedItem.type}
+                {item.fileType}
+              </span>
+              <span className="text-xs text-zinc-500 px-2 py-1">
+                {new Date(item.uploadedAt).toLocaleString()}
               </span>
             </div>
           </div>
-        )
+        );
       })}
     </div>
   );

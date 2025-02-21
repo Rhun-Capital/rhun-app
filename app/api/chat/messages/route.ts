@@ -1,15 +1,36 @@
 import { NextResponse } from 'next/server';
-import { DynamoDB } from 'aws-sdk';
-import { uploadToS3 } from '@/utils/s3';
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
-const dynamodb = new DynamoDB.DocumentClient();
+const s3Client = new S3Client({ 
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+  }
+}) as any;
 
-// Utility function to convert base64 to buffer
-const base64toBuffer = (dataUrl: string) => {
-  const base64Data = dataUrl.split(',')[1];
-  return Buffer.from(base64Data, 'base64');
-};
+const ddbClient = DynamoDBDocument.from(new DynamoDB({ 
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+  }
+}));
+
+// Get presigned URL for upload
+async function getPresignedUrl(key: string, contentType: string) {
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+    ContentType: contentType
+  });
+
+  return getSignedUrl(s3Client, command, { expiresIn: 300 });
+}
 
 // Utility function to get MIME type from data URL
 const getMimeType = (dataUrl: string) => {
@@ -37,19 +58,22 @@ export async function POST(request: Request) {
       processedAttachments = await Promise.all(attachments.map(async (attachment: any) => {
         // Only process if it's a data URL
         if (attachment.url && attachment.url.startsWith('data:')) {
-          const buffer = base64toBuffer(attachment.url);
           const mimeType = getMimeType(attachment.url);
           const extension = mimeType.split('/')[1];
-          const key = `chat-attachments/${chatId}/${messageId}/${uuidv4()}.${extension}`;
+          const fileKey = `chat-attachments/${chatId}/${messageId}/${uuidv4()}.${extension}`;
 
-          // Upload to S3 using our utility function
-          const url = await uploadToS3(buffer, key);
-
-          // Return the attachment with CloudFront URL instead of data URL
+          // Get presigned URL for upload
+          const uploadUrl = await getPresignedUrl(fileKey, mimeType);
+          
+          // Return both the upload URL and the final S3 URL
+          const finalUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
+          
           return {
             name: attachment.name,
             contentType: attachment.contentType,
-            url
+            uploadUrl, // Used by frontend to upload the file
+            url: finalUrl, // Stored in DynamoDB
+            key: fileKey // Store the key for future reference
           };
         }
         // If it's not a data URL, return as is
@@ -72,9 +96,12 @@ export async function POST(request: Request) {
       }
     };
 
-    await dynamodb.put(params).promise();
+    await ddbClient.put(params);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      attachments: processedAttachments 
+    });
   } catch (error) {
     console.error('Error storing chat message:', error);
     return NextResponse.json(

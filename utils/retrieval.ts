@@ -1,6 +1,7 @@
 import { resourceLimits } from 'node:worker_threads';
 import { createEmbedding, initPinecone } from './embeddings';
-import { RecordMetadata, RecordMetadataValue } from '@pinecone-database/pinecone';
+import { RecordMetadataValue } from '@pinecone-database/pinecone';
+import { QueryResponse, RecordMetadata, ScoredPineconeRecord } from '@pinecone-database/pinecone';
 
 // Base interface for common coin data
 interface BaseCoinData {
@@ -181,6 +182,50 @@ export interface SolanaTrendingData {
   supply?: string;
   last_updated: string;
   score: number;
+}
+
+// Define Pinecone response types
+interface PineconeMetadata {
+  tokenAddress?: string;
+  chainId?: string;
+  token_name_lower?: string;
+  header?: string;
+  token_symbol_lower?: string;
+  dexScreenerUrl?: string;
+  icon?: string;
+  image_url?: string;
+  description?: string;
+  last_updated?: string;
+  network?: string;
+  price_usd?: number;
+  market_cap?: number;
+  fully_diluted_valuation?: number;
+  volume_24h?: number;
+  liquidity_usd?: number;
+  total_pairs?: number;
+  buys_24h?: number;
+  sells_24h?: number;
+  total_txns_24h?: number;
+  social_links?: string[];
+  website_urls?: string[];
+  link_urls?: string[];
+  link_descriptions?: string[];
+  created_at?: number;
+  age_days?: number;
+  labels?: string[];
+  unique_dexes?: string[];
+}
+
+interface PineconeMatch {
+  id: string;
+  score: number;
+  values?: number[];
+  metadata?: PineconeMetadata;
+}
+
+interface PineconeQueryResponse {
+  matches?: PineconeMatch[];
+  namespace?: string;
 }
 
 export async function retrieveTrendingSolanaTokens(
@@ -504,10 +549,12 @@ export async function retrieveContext(
     const queryEmbedding = await createEmbedding(query);
     const pinecone = initPinecone();
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+    
+    // Get the namespace for this agent
+    const namespaceIndex = index.namespace(agentId);
 
-    const queryResponse = await index.query({
+    const queryResponse = await namespaceIndex.query({
       vector: queryEmbedding,
-      filter: { agentId: { $eq: agentId } },
       topK: maxResults,
       includeMetadata: true,
     });
@@ -756,15 +803,25 @@ export async function retrieveCoinsWithFilters(
   }
 }
 
+
+
 export async function retrieveDexScreenerTokens(
   semanticQuery?: string,
   filters?: DexScreenerTokenFilters,
-  maxResults: number = 100
+  maxResults: number = 100,
+  namespaceDate?: string
 ): Promise<DexScreenerToken[]> {
   try {
     // Initialize Pinecone
     const pinecone = initPinecone();
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+
+    // Determine which namespace to query
+    const targetDate = namespaceDate || new Date().toISOString().split('T')[0];
+    const namespace = `dexscreener_${targetDate}`;
+    const namespaceIndex = index.namespace(namespace);
+    
+    console.log(`Querying namespace: ${namespace}`);
 
     // Build filter conditions
     const filterConditions: any[] = [
@@ -780,13 +837,6 @@ export async function retrieveDexScreenerTokens(
       if (filters.network) {
         filterConditions.push({ network: { $eq: filters.network } });
       }
-
-      // TODO: this doesnt work, sie is not a legit operator
-      // if (filters.minLinks !== undefined) {
-      //   filterConditions.push({ 
-      //       $and: [{ $size: "$link_urls" }, filters.minLinks] 
-      //   });
-      // }
 
       if (filters.hasDescription === true) {
         filterConditions.push({ description: { $exists: true, $ne: '' } });
@@ -885,95 +935,115 @@ export async function retrieveDexScreenerTokens(
       includeMetadata: true,
     };
 
-    const queryResponse = await index.query(queryParams);
+    // Query the specific namespace
+    const queryResponse = await namespaceIndex.query(queryParams);
 
-    // Map query results to DexScreenerToken
-    const results = queryResponse.matches?.map(match => {
-      // Extract base token fields
-      const token: DexScreenerToken = {
-        tokenAddress: match.metadata?.tokenAddress as string,
-        chainId: match.metadata?.chainId as string,
-        name: match.metadata?.token_name_lower as string || match.metadata?.header as string,
-        symbol: match.metadata?.token_symbol_lower as string,
-        url: match.metadata?.dexScreenerUrl as string,
-        icon: match.metadata?.icon as string || match.metadata?.image_url as string,
-        description: match.metadata?.description as string,
-        last_updated: match.metadata?.last_updated as string,
-        score: match.score ?? 0,
-        network: match.metadata?.network as string,
-      };
-
-      // Extract price data
-      if (match.metadata?.price_usd !== undefined) {
-        let formattedPrice: string;
-        const priceValue = match.metadata.price_usd as number;
-        
-        // Format price based on its magnitude
-        if (priceValue < 0.000001) {
-          formattedPrice = priceValue.toExponential(4);
-        } else if (priceValue < 0.01) {
-          formattedPrice = priceValue.toFixed(8);
-        } else {
-          formattedPrice = priceValue.toFixed(4);
-        }
-        
-        token.price = {
-          value: priceValue,
-          formatted: formattedPrice
-        };
-      }
-
-      // Extract metrics
-      token.metrics = {
-        marketCap: match.metadata?.market_cap as number,
-        fullyDilutedValuation: match.metadata?.fully_diluted_valuation as number,
-        volume24h: match.metadata?.volume_24h as number,
-        liquidity: match.metadata?.liquidity_usd as number,
-        totalPairs: match.metadata?.total_pairs as number,
-        buys24h: match.metadata?.buys_24h as number,
-        sells24h: match.metadata?.sells_24h as number,
-        totalTransactions24h: match.metadata?.total_txns_24h as number,
-      };
-
-      // Calculate buy/sell ratio if possible
-      if (token.metrics.buys24h !== undefined && 
-          token.metrics.sells24h !== undefined && 
-          token.metrics.sells24h > 0) {
-        token.metrics.buySellRatio = token.metrics.buys24h / token.metrics.sells24h;
-      }
-
-      // Extract links
-      const socialLinks = (match.metadata?.social_links || []) as string[];
-      const websiteUrls = (match.metadata?.website_urls || []) as string[];
-      const linkUrls = (match.metadata?.link_urls || []) as string[];
-      const linkDescriptions = (match.metadata?.link_descriptions || []) as string[];
+    // If no results found in the current namespace and we're querying today's namespace,
+    // try yesterday's namespace as fallback
+    if ((!queryResponse.matches || queryResponse.matches.length === 0) && !namespaceDate) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayNamespace = `dexscreener_${yesterday.toISOString().split('T')[0]}`;
+      console.log(`No results in current namespace, trying yesterday's namespace: ${yesterdayNamespace}`);
       
-      const otherLinks = linkUrls.map((url, index) => ({
-        url,
-        description: index < linkDescriptions.length ? linkDescriptions[index] : "Link"
-      }));
-      
-      token.links = {
-        total: socialLinks.length + websiteUrls.length + linkUrls.length,
-        socialLinks,
-        websiteUrls,
-        otherLinks
-      };
+      const yesterdayIndex = index.namespace(yesterdayNamespace);
+      const yesterdayResponse = await yesterdayIndex.query(queryParams);
+      if (yesterdayResponse.matches && yesterdayResponse.matches.length > 0) {
+        console.log(`Found ${yesterdayResponse.matches.length} results in yesterday's namespace`);
+        return mapResponseToTokens(yesterdayResponse);
+      }
+    }
 
-      // Extract details
-      token.details = {
-        createdAt: match.metadata?.created_at ? new Date(match.metadata.created_at as number).toISOString() : undefined,
-        ageDays: match.metadata?.age_days as number,
-        labels: match.metadata?.labels as string[] || [],
-        uniqueDexes: match.metadata?.unique_dexes as string[] || [],
-      };
+    return mapResponseToTokens(queryResponse);
 
-      return token;
-    }) || [];
-
-    return results;
   } catch (error) {
     console.error('Error retrieving DexScreener tokens:', error);
     return [];
   }
+}
+
+// Helper function to map query response to DexScreenerToken objects
+function mapResponseToTokens(queryResponse: QueryResponse<RecordMetadata>): DexScreenerToken[] {
+  return (queryResponse.matches?.map(match => {
+    // Extract base token fields
+    const token: DexScreenerToken = {
+      tokenAddress: match.metadata?.tokenAddress as string,
+      chainId: match.metadata?.chainId as string,
+      name: match.metadata?.token_name_lower as string || match.metadata?.header as string,
+      symbol: match.metadata?.token_symbol_lower as string,
+      url: match.metadata?.dexScreenerUrl as string,
+      icon: match.metadata?.icon as string || match.metadata?.image_url as string,
+      description: match.metadata?.description as string,
+      last_updated: match.metadata?.last_updated as string,
+      score: match.score || 0, // Handle undefined score
+      network: match.metadata?.network as string,
+    };
+
+    // Extract price data
+    if (match.metadata?.price_usd !== undefined) {
+      let formattedPrice: string;
+      const priceValue = match.metadata.price_usd as number;
+      
+      // Format price based on its magnitude
+      if (priceValue < 0.000001) {
+        formattedPrice = priceValue.toExponential(4);
+      } else if (priceValue < 0.01) {
+        formattedPrice = priceValue.toFixed(8);
+      } else {
+        formattedPrice = priceValue.toFixed(4);
+      }
+      
+      token.price = {
+        value: priceValue,
+        formatted: formattedPrice
+      };
+    }
+
+    // Extract metrics
+    token.metrics = {
+      marketCap: match.metadata?.market_cap as number,
+      fullyDilutedValuation: match.metadata?.fully_diluted_valuation as number,
+      volume24h: match.metadata?.volume_24h as number,
+      liquidity: match.metadata?.liquidity_usd as number,
+      totalPairs: match.metadata?.total_pairs as number,
+      buys24h: match.metadata?.buys_24h as number,
+      sells24h: match.metadata?.sells_24h as number,
+      totalTransactions24h: match.metadata?.total_txns_24h as number,
+    };
+
+    // Calculate buy/sell ratio if possible
+    if (token.metrics.buys24h !== undefined && 
+        token.metrics.sells24h !== undefined && 
+        token.metrics.sells24h > 0) {
+      token.metrics.buySellRatio = token.metrics.buys24h / token.metrics.sells24h;
+    }
+
+    // Extract links
+    const socialLinks = (match.metadata?.social_links || []) as string[];
+    const websiteUrls = (match.metadata?.website_urls || []) as string[];
+    const linkUrls = (match.metadata?.link_urls || []) as string[];
+    const linkDescriptions = (match.metadata?.link_descriptions || []) as string[];
+    
+    const otherLinks = linkUrls.map((url, index) => ({
+      url,
+      description: index < linkDescriptions.length ? linkDescriptions[index] : "Link"
+    }));
+    
+    token.links = {
+      total: socialLinks.length + websiteUrls.length + linkUrls.length,
+      socialLinks,
+      websiteUrls,
+      otherLinks
+    };
+
+    // Extract details
+    token.details = {
+      createdAt: match.metadata?.created_at ? new Date(match.metadata.created_at as number).toISOString() : undefined,
+      ageDays: match.metadata?.age_days as number,
+      labels: match.metadata?.labels as string[] || [],
+      uniqueDexes: match.metadata?.unique_dexes as string[] || [],
+    };
+
+    return token;
+  }) || []);
 }

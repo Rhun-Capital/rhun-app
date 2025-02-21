@@ -1,11 +1,9 @@
-// components/TransferModal.tsx
-'use client';
 import { useState, useEffect } from 'react';
 import { usePrivy, useSolanaWallets } from '@privy-io/react-auth';
 import Image from 'next/image';
 import { ProxyConnection, executeTransfer } from '../utils/solana';
 import { RefreshCw } from 'lucide-react';
-
+import { useModal } from '../contexts/modal-context'; // Ensure this path is correct
 
 interface Token {
   token_address: string;
@@ -19,20 +17,29 @@ interface Token {
 }
 
 interface TransferModalProps {
-  isOpen: boolean;
-  onClose: () => void;
   agent: any;
   tokens: Token[];
+  isOpen: boolean;
+  onClose: () => void;
   solanaBalance?: {
     amount: number;
     usdValue: number;
     logoURI: string;
   };
+  onSwapComplete?: () => void;
 }
 
-const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: TransferModalProps) => {
+const TransferModal = ({ 
+  agent, 
+  tokens, 
+  isOpen, 
+  onClose, 
+  solanaBalance, 
+  onSwapComplete 
+}: TransferModalProps) => {
   const { authenticated } = usePrivy();
   const { wallets } = useSolanaWallets();
+  const { isAnyModalOpen, closeModal } = useModal();
   const solanaWallet = agent.wallets ? wallets.find(w => w.address === agent.wallets.solana) : null;
   
   const connection = new ProxyConnection({ commitment: 'confirmed' });
@@ -60,11 +67,11 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
     setLoading(false);
   };
 
-  useEffect(() => {
-    if (!isOpen) {
-      resetForm();
-    }
-  }, [isOpen]);
+  const handleClose = () => {
+    resetForm();
+    onClose();
+    closeModal();
+  };
 
   const checkTransactionStatus = async (signature: string) => {
     let retries = 0;
@@ -78,6 +85,7 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
         if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
           setTransactionStatus('confirmed');
           setSuccess(signature);
+          onSwapComplete && onSwapComplete();
           return true;          
         }        
 
@@ -155,15 +163,15 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
   const handleTokenSelect = (token: Token | 'SOL') => {
     if (token === 'SOL') {
       setSelectedToken({
-              token_address: 'SOL',
-              token_icon: solanaBalance?.logoURI || '',
-              token_name: 'Solana',
-              usd_price: solanaBalance?.usdValue || 0, // Add this line
-              usd_value: solanaBalance?.usdValue || 0,
-              formatted_amount: solanaBalance?.amount || 0,
-              token_symbol: 'SOL',
-              token_decimals: 9
-            });
+        token_address: 'SOL',
+        token_icon: solanaBalance?.logoURI || '',
+        token_name: 'Solana',
+        usd_price: solanaBalance?.usdValue || 0,
+        usd_value: solanaBalance?.usdValue || 0,
+        formatted_amount: solanaBalance?.amount || 0,
+        token_symbol: 'SOL',
+        token_decimals: 9
+      });
     } else {
       setSelectedToken(token as Token);
     }
@@ -190,16 +198,16 @@ const TransferModal = ({ isOpen, onClose, agent, tokens, solanaBalance }: Transf
     }
   };
 
-  if (!isOpen) return null;
+  // If no modal is open, don't render anything
+  if (!isOpen || !isAnyModalOpen) return null;
 
   if (!solanaWallet)
     return null;
 
-const renderSuccessState = () => {
+  const renderSuccessState = () => {
     if (!pendingSignature && !success) return null;
   
     const signature = success || pendingSignature;
-    console.log(transactionStatus)
     const isPending = transactionStatus === 'pending';
     
     return (
@@ -256,12 +264,11 @@ const renderSuccessState = () => {
     );
   };
 
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 relative shadow-xl border border-zinc-700">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -361,7 +368,7 @@ const renderSuccessState = () => {
                 </button>
               </div>
             </div>
-
+            
             <button
               onClick={handleSendTransaction}
               disabled={loading || !recipient || !amount}
