@@ -13,6 +13,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useModal } from '@/contexts/modal-context';
 import FundingModal from './funding-amount-modal';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
+
 
 interface Tool {
   name: string;
@@ -28,6 +30,7 @@ interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
   onToolSelect: (command: string) => void;
+  refreshAgent: () => void;
 }
 
 
@@ -236,8 +239,8 @@ const ToolCard: React.FC<{
   );
 };
 
-const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect }) => {
-  const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
+const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent }) => {
+  const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('wallet');
   const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
   const { user, getAccessToken } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
@@ -248,7 +251,9 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [showFundingModal, setShowFundingModal] = useState(false);
+  const [createWalletLoading, setCreateWalletLoading] = useState(false);
   const { fundWallet } = useFundWallet();
+  const { createWallet, wallets } = useSolanaWallets();
 
   interface Token {
     token_address: string;
@@ -259,9 +264,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     token_symbol: string;
   }
   
-
-
-
   // Define tools with pro status
   const tools: Tool[] = [ 
     { 
@@ -275,7 +277,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       name: "Get Agent's Portfolio Value", 
       description: "View the current value of the agent's embedded wallet portfolio.",
       command: "Show me your portfolio value",
-      isPro: true, // Pro feature
+      isPro: false,
       isNew: false
     },
     { 
@@ -289,7 +291,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       name: "Get Agent's Token Holdings", 
       description: "See a detailed breakdown of all tokens in the agent's wallet.",
       command: "Show me your token holdings",
-      isPro: true, // Pro feature
+      isPro: false, 
       isNew: false
     },
     { 
@@ -345,7 +347,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       name: 'Track Wallet Activity', 
       description: 'Track wallet activity for any Solana wallet address',
       command: 'Show me information about a solana account and track activity',
-      isPro: true, // Pro feature
+      isPro: false, 
       isNew: false
     },     
     { 
@@ -456,6 +458,29 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       }
     }
   }
+
+  const handleCreateWallet = async () => {
+    try {
+      setCreateWalletLoading(true);
+      const wallet = await createWallet({ createAdditional: true });
+      
+      const accessToken = await getAccessToken();
+      
+      await fetch(`/api/agents/${decodeURIComponent(params.userId as string)}/${params.agentId}/wallet`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ wallets: { solana: wallet.address } }),
+      });
+      refreshAgent();
+    } catch (error) {
+      console.error('Error creating wallet:', error);
+    } finally {
+      setCreateWalletLoading(false);
+    }
+  };  
 
   async function getPortfolioValue(walletAddress: string) {
     const url = `/api/portfolio/${walletAddress}`;
@@ -583,7 +608,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                   </button>  }                
                 </div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="text-sm text-white">
+                    <div className="text-sm text-white w-full">
                       {(agent.wallets?.solana && params.userId !== 'template') ?
                         <div className="text-sm text-zinc-500 mt-2">
                           {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
@@ -596,9 +621,11 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                           </button>
                         </Link>
                         </div> 
-                       : <div className="text-sm text-zinc-500 mt-2">No agent wallet found. \
-                       <Link className="text-indigo-400" href={`/agents/${params.userId}/${params.agentId}/edit`}>Create your wallet now</Link> 
-                        in the wallet settings of your agent
+                       : <div className="w-full">
+                          <div className="text-sm text-zinc-500 mt-2 mb-4">No agent wallet found. </div>
+                          <button disabled={createWalletLoading} onClick={handleCreateWallet} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">
+                            {createWalletLoading ? 'Creating...' : 'Create Agent Wallet'}
+                          </button>                          
                         </div>
                       }
                     </div>
