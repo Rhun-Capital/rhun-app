@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { DynamoDB } from 'aws-sdk';
+import { getCloudFrontSignedUrl } from '@/utils/cloudfront';
+
 
 const dynamodb = new DynamoDB.DocumentClient();
 
@@ -32,30 +34,49 @@ export async function GET(
       return NextResponse.json({ messages: [] });
     }
 
-    // Sort messages and preserve all data including attachments
-    const messages = result.Items
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      .map(item => ({
-        messageId: item.messageId,
-        createdAt: item.createdAt,
-        role: item.role,
-        content: item.content,
-        // Include attachments if they exist
-        ...(item.attachments && {
-          attachments: item.attachments.map((attachment: any) => ({
-            name: attachment.name,
-            url: attachment.url,
-            contentType: attachment.contentType
-          }))
-        }),
-        toolInvocations: item.toolInvocations ? item.toolInvocations.map((tool: any) => ({
-          ...tool,
-          toolName: tool.toolName,
-          toolCallId: tool.toolCallId,
-          args: tool.args,
-          result: tool.result
-        })) : []
-      }));
+    const isCloudFrontUrl = (url: string) => {
+      return url.includes('.cloudfront.net');
+    };
+    
+    const processAttachmentUrl = async (url: string) => {
+      // If it's a CloudFront URL without a signature, return as-is
+      if (isCloudFrontUrl(url)) {
+        return url;
+      }
+      
+      // Otherwise, generate a signed URL
+      return await getCloudFrontSignedUrl(url);
+    };
+    
+
+    
+    const messages = await Promise.all(
+      result.Items
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map(async (item) => ({
+          messageId: item.messageId,
+          createdAt: item.createdAt,
+          role: item.role,
+          content: item.content,
+          // Use Promise.all to resolve attachment URLs
+          ...(item.attachments && {
+            attachments: await Promise.all(
+              item.attachments.map(async (attachment: any) => ({
+                name: attachment.name,
+                url: await processAttachmentUrl(attachment.url),
+                contentType: attachment.contentType
+              }))
+            )
+          }),
+          toolInvocations: item.toolInvocations ? item.toolInvocations.map((tool: any) => ({
+            ...tool,
+            toolName: tool.toolName,
+            toolCallId: tool.toolCallId,
+            args: tool.args,
+            result: tool.result
+          })) : []
+        }))
+    );
 
     return NextResponse.json({ messages });
   } catch (error) {

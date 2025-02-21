@@ -178,7 +178,7 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
         className="rounded-md w-40 h-40 object-cover"
         onError={(e) => {
           console.error('Error loading image:', e);
-          e.currentTarget.src = '/placeholder-image.png';
+          // e.currentTarget.src = '/placeholder-image.png';
         }}
       />
     );
@@ -202,8 +202,6 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
 
   return null;
 };
-
-
 
 export default function Home() {
   const params = useParams();
@@ -444,8 +442,70 @@ export default function Home() {
           isTemplate: params.userId === 'template'
         })
       });
+
+      // Process attachments if they exist
+      let processedAttachments = [] as any[];
+      if (lastMessage.experimental_attachments?.length) {
+        processedAttachments = await Promise.all(
+          lastMessage.experimental_attachments.map(async (attachment) => {
+            // Only process data URLs
+            if (attachment.url.startsWith('data:')) {
+              // Create blob from data URL
+              const blob = await fetch(attachment.url).then(r => r.blob());
+              
+              // Get presigned URL
+              const presignedResponse = await fetch(`/api/chat/presigned`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  fileName: attachment.name,
+                  contentType: attachment.contentType,
+                  chatId: currentChatId,
+                  messageId: lastMessage.id
+                })
+              });
+
+              if (!presignedResponse.ok) {
+                throw new Error('Failed to get upload URL');
+              }
+
+              const { url, fields, fileUrl } = await presignedResponse.json();
+
+              // Create FormData and append fields
+              const formData = new FormData();
+              Object.entries(fields).forEach(([key, value]) => {
+                formData.append(key, value as string);
+              });
+              formData.append('file', blob, attachment.name);
+
+              // Upload to S3
+              const uploadResponse = await fetch(url, {
+                method: 'POST',
+                body: formData
+              });
+
+              if (!uploadResponse.ok) {
+                throw new Error('Failed to upload file');
+              }
+
+              // Return processed attachment with S3 URL
+              return {
+                name: attachment.name,
+                contentType: attachment.contentType,
+                url: fileUrl
+              };
+            }
+            
+            // Return non-data URLs as-is
+            return attachment;
+          })
+        );
+      }
   
-      // Store the message
+      // Store the message with processed attachments
       await fetch('/api/chat/messages', {
         method: 'POST',
         headers: {
@@ -460,11 +520,7 @@ export default function Home() {
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
-          attachments: lastMessage.experimental_attachments?.map(attachment => ({
-            name: attachment.name,
-            url: attachment.url,
-            contentType: attachment.contentType,
-          })),
+          attachments: processedAttachments,
           toolInvocations: lastMessage.toolInvocations?.map(tool => ({
             toolName: tool.toolName,
             toolCallId: tool.toolCallId,
@@ -974,7 +1030,7 @@ export default function Home() {
                 ref={fileInputRef}
                 className="hidden"
                 multiple
-                accept="image/*,text/*"
+                accept="image/png,image/jpeg,image/jpg,text/*"
                 onChange={handleFileChange}
               />
               

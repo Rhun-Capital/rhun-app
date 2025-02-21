@@ -69,7 +69,7 @@ export default function MarketplacePage() {
       </div>
 
       {/* Categories Preview */}
-      <div className="max-w-7xl mx-auto py-24 px-6">
+      <div className="max-w-7xl mx-auto px-6">
         <h2 className="text-2xl font-bold mb-8">App Categories</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[

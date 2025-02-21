@@ -15,12 +15,10 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
   // Use useCallback to memoize these functions
   const openModal = useCallback(() => {
-    console.log('openModal');
     setOpenModalCount(prev => prev + 1);
   }, []);
 
   const closeModal = useCallback(() => {
-    console.log('closeModal');
     setOpenModalCount(prev => Math.max(0, prev - 1));
   }, []);
 

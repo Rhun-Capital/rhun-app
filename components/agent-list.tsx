@@ -19,18 +19,7 @@ type AttributeMap = {
 
 type FilterType = 'all' | 'templates' | 'custom';
 
-function CreateAgentButton({ isSubscribed }: { isSubscribed: boolean }) {
-  if (!isSubscribed) {
-    return (
-      <Link 
-        href="/account?requiresSub=true"
-        className="flex items-center gap-2 px-4 py-2 bg-zinc-700 text-zinc-300 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start group hover:bg-zinc-600"
-      >
-        <span className="whitespace-nowrap">Create New Agent</span>
-        <AlertCircle className="w-4 h-4 text-zinc-400 group-hover:text-zinc-300" />
-      </Link>
-    );
-  }
+function CreateAgentButton() {
 
   return (
     <Link 
@@ -43,7 +32,7 @@ function CreateAgentButton({ isSubscribed }: { isSubscribed: boolean }) {
   );
 }
 
-function CreateAgentCard({ isSubscribed }: { isSubscribed: boolean }) {
+function CreateAgentCard() {
   const cardContent = (
     <div className="h-48 sm:h-48 p-4 sm:p-6 bg-zinc-800 rounded-lg border border-zinc-700 border-dashed
                   transition-all duration-200 ease-in-out
@@ -53,15 +42,7 @@ function CreateAgentCard({ isSubscribed }: { isSubscribed: boolean }) {
     </div>
   );
 
-  if (!isSubscribed) {
-    return (
-      <Link href="/account?requiresSub=true" className="group block">
-        <div className="hover:opacity-80 transition-opacity">
-          {cardContent}
-        </div>
-      </Link>
-    );
-  }
+
 
   return (
     <Link href="/agents/create" className="group block">
@@ -74,7 +55,6 @@ function CreateAgentCard({ isSubscribed }: { isSubscribed: boolean }) {
 
 export default function AgentsPage() {
   const { user, getAccessToken } = usePrivy();
-  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
   const [agents, setAgents] = useState<AttributeMap[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
@@ -155,19 +135,9 @@ export default function AgentsPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold">My Agents</h1>
-          {user && <CreateAgentButton isSubscribed={isSubscribed} />}
+          {user && <CreateAgentButton />}
         </div>
 
-        {!isSubscribed && !subscriptionLoading && (
-          <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-zinc-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-zinc-300">
-              You need an active subscription to create custom agents.&nbsp;
-              <Link href="/account" className="text-indigo-400">Subscribe now.</Link>
-              &nbsp;You can still use the Rhun Capital agent view template agents.
-            </p>
-          </div>
-        )}
 
         <div className="flex gap-4 mb-6 flex-col sm:flex-row">
           <button
@@ -205,7 +175,7 @@ export default function AgentsPage() {
         {loading ? <LoadingIndicator/> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {user && activeFilter !== 'templates' && (
-              <CreateAgentCard isSubscribed={isSubscribed} />
+              <CreateAgentCard />
             )}
                 
             {filteredAgents.map((agent) => (

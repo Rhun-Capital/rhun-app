@@ -1,152 +1,153 @@
+// app/api/knowledge/[agentId]/route.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { 
+  DynamoDBDocumentClient, 
+  QueryCommand,
+  DeleteCommand,
+  GetCommand
+} from "@aws-sdk/lib-dynamodb";
 import { NextResponse } from 'next/server';
-import { initPinecone } from '@/utils/embeddings';
+import { Pinecone } from "@pinecone-database/pinecone";
 
+const ddbClient = new DynamoDBClient({ 
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+  }
+});
+
+const docClient = DynamoDBDocumentClient.from(ddbClient);
+
+const pinecone = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY!
+});
+
+// GET handler for fetching knowledge
 export async function GET(
-  req: Request,
+  request: Request,
   { params }: { params: { agentId: string } }
 ) {
+  const { agentId } = params;
+
   try {
-    const pinecone = initPinecone();
-    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-    
-    // Use namespace instead of filter
-    const namespace = params.agentId;
-    const namespaceIndex = index.namespace(namespace);
-
-    // Get stats to verify namespace exists
-    const stats = await index.describeIndexStats();
-    const namespaces = stats.namespaces || {};
-    
-    // Create a random vector to query the index so that we don't cache
-    const randomVector = new Array(1536).fill(0).map(x => Math.random() * 0.0001);
-
-    // Query within the namespace - no need for agentId filter anymore
-    const queryResponse = await namespaceIndex.query({
-      vector: randomVector,
-      topK: 100,
-      includeMetadata: true,
-      includeValues: false,
+    const command = new QueryCommand({
+      TableName: "Knowledge",
+      KeyConditionExpression: "agentId = :agentId",
+      ExpressionAttributeValues: {
+        ":agentId": agentId
+      },
+      ScanIndexForward: false, // This will sort by SK in descending order (newest first)
+      // Optionally project only the attributes we need
+      ProjectionExpression: "SK, fileName, fileType, uploadedAt, metadata, vectorIds"
     });
 
-    // Create a Map to handle duplicate sources (keyed by source+type)
-    const sourcesMap = new Map<string, { source: string; type: string }>();
+    const response = await docClient.send(command);
     
-    for (const match of queryResponse.matches) {
-      if (match.metadata) {
-        const source = String(match.metadata.source) || 'unknown';
-        const type = String(match.metadata.type) || 'unknown';
-        
-        // Use source+type as key to prevent duplicates
-        const key = `${source}-${type}`;
-        if (!sourcesMap.has(key)) {
-          sourcesMap.set(key, { source, type });
-        }
-      }
-    }
+    // Transform the data to a more frontend-friendly format
+    const items = response.Items?.map(item => {
+      // Extract timestamp from SK
+      const skParts = item.SK.split('#');
+      const timestamp = skParts[3];
 
-    // Convert Map to array and sort by source then type
-    const uniqueSources = Array.from(sourcesMap.values())
-      .sort((a, b) => {
-        if (a.source === b.source) {
-          return a.type.localeCompare(b.type);
-        }
-        return a.source.localeCompare(b.source);
-      })
-      .map(item => JSON.stringify(item));
-
-    return NextResponse.json({ 
-      knowledge: uniqueSources,
-      total: queryResponse.matches.length
+      return {
+        id: item.SK,
+        fileName: item.fileName,
+        fileType: item.fileType,
+        uploadedAt: timestamp,
+        metadata: item.metadata || {},
+        vectorCount: item.vectorIds?.length || 0
+      };
     });
-  } catch (error: any) {
-    console.error('Error fetching knowledge:', error);
+
+    return NextResponse.json({
+      items: items || [],
+      count: response.Count || 0
+    });
+
+  } catch (error) {
+    console.error('Error querying DynamoDB:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch knowledge' },
+      { error: 'Failed to fetch knowledge base data' },
       { status: 500 }
     );
   }
 }
 
-
+// DELETE handler for removing knowledge
 export async function DELETE(
-  req: Request,
+  request: Request,
   { params }: { params: { agentId: string } }
 ) {
+  const { agentId } = params;
+  const { searchParams } = new URL(request.url);
+  const fileName = searchParams.get('fileName');
+  const timestamp = searchParams.get('timestamp');
+
+  if (!fileName || !timestamp) {
+    return NextResponse.json(
+      { error: 'fileName and timestamp are required' },
+      { status: 400 }
+    );
+  }
+
+  const sk = `fileName#${fileName}#timestamp#${timestamp}`;
+
   try {
-    const { source, type } = await req.json();
-    
-    if (!source || !type) {
+    // First, get the item to retrieve vectorIds
+    const getResult = await docClient.send(
+      new GetCommand({
+        TableName: "Knowledge",
+        Key: {
+          agentId,
+          SK: sk
+        }
+      })
+    );
+
+    if (!getResult.Item) {
       return NextResponse.json(
-        { error: 'Source and type are required' },
-        { status: 400 }
-      );
-    }
-
-    const pinecone = initPinecone();
-    const index = pinecone.Index(process.env.PINECONE_INDEX_NAME!);
-    const namespace = params.agentId;
-
-    // Check if namespace exists
-    const stats = await index.describeIndexStats();
-
-    // Create a random vector to query the index
-    const randomVector = new Array(1536).fill(0).map(x => Math.random() * 0.0001);
-
-    // Use the namespace-specific query method
-    const namespaceIndex = index.namespace(namespace);
-    const queryResponse = await namespaceIndex.query({
-      vector: randomVector,
-      topK: 1000,
-      filter: {
-        source: source,
-        type: type
-      },
-      includeMetadata: false,
-      includeValues: false,
-    });
-
-    if (queryResponse.matches.length === 0) {
-      return NextResponse.json(
-        { error: 'No matching vectors found' },
+        { error: 'Knowledge entry not found' },
         { status: 404 }
       );
     }
 
-    // Get all IDs
-    const ids = queryResponse.matches.map(match => match.id);
-    
-    // Perform individual deletions which is the most compatible approach
-    // Process in smaller batches to avoid overwhelming the API
-    const batchSize = 100;
-    let deletedCount = 0;
-    
-    for (let i = 0; i < ids.length; i += batchSize) {
-      const batchIds = ids.slice(i, i + batchSize);
-      const deletePromises = batchIds.map(id => {
-        // Delete using the namespace-specific method
-        return namespaceIndex.deleteOne(id);
-      });
-      
-      try {
-        await Promise.all(deletePromises);
-        deletedCount += batchIds.length;
-        console.log(`Deleted batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(ids.length/batchSize)}`);
-      } catch (batchError) {
-        console.error(`Error deleting batch ${Math.floor(i/batchSize) + 1}:`, batchError);
-        // Continue with next batch despite errors
+    const vectorIds = getResult.Item.vectorIds || [];
+
+    // Delete vectors from Pinecone if there are any
+    if (vectorIds.length > 0) {
+      const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
+      const namespaceIndex = index.namespace(agentId);
+
+      // Delete vectors in batches of 100 (Pinecone's limit)
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < vectorIds.length; i += BATCH_SIZE) {
+        const batch = vectorIds.slice(i, i + BATCH_SIZE);
+        await namespaceIndex.deleteMany(batch);
       }
     }
 
+    // Delete from DynamoDB
+    await docClient.send(
+      new DeleteCommand({
+        TableName: "Knowledge",
+        Key: {
+          agentId,
+          SK: sk
+        }
+      })
+    );
+
     return NextResponse.json({
-      success: true,
-      method: 'individual_id_delete',
-      deletedCount: deletedCount
+      message: 'Successfully deleted knowledge entry and vectors',
+      fileName,
+      vectorsDeleted: vectorIds.length
     });
-    
-  } catch (error: any) {
+
+  } catch (error) {
     console.error('Error deleting knowledge:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to delete knowledge' },
+      { error: 'Failed to delete knowledge entry' },
       { status: 500 }
     );
   }

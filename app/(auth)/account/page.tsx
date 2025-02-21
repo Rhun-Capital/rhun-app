@@ -10,17 +10,25 @@ import CopyButton from "@/components/copy-button";
 import SubscriptionManagement from "@/components/manage-subscription";
 import { useSearchParams } from 'next/navigation';
 import {useRouter} from 'next/navigation';
+import { useSubscription } from "@/hooks/use-subscription";
 
 export default function SettingsPage() {
   const { user, logout, authenticated, getAccessToken } = usePrivy();
   const { exportWallet, createWallet } = useSolanaWallets();
   const [loading, setLoading] = useState(false);
   const [walletLoading, setWalletLoading] = useState(false);
-  const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
-  const searchParams = useSearchParams();
+  // const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
+  // const searchParams = useSearchParams();
   const [exportLoading, setExportLoading] = useState(false);
   const [isAdvancedOptionsOpen, setIsAdvancedOptionsOpen] = useState(false);  
-  const router = useRouter();
+  const router = useRouter();  
+  const { 
+      isLoading, 
+      error: subscriptionError, 
+      subscriptionType,
+      subscriptionDetails,
+      isSubscribed  
+    } = useSubscription();
 
   //   looks for wallet creation on the user
   useEffect(() => {
@@ -29,20 +37,20 @@ export default function SettingsPage() {
     }
   }, [user]);
 
-  useEffect(() => {
-    // Check for requiresSub query parameter
-    const requiresSub = searchParams.get('requiresSub');
+  // useEffect(() => {
+  //   // Check for requiresSub query parameter
+  //   const requiresSub = searchParams.get('requiresSub');
     
-    if (requiresSub === 'true') {
-      scrollTo(0, 0);
-      setShowSubscriptionBanner(true);
+  //   if (requiresSub === 'true') {
+  //     scrollTo(0, 0);
+  //     setShowSubscriptionBanner(true);
       
-      // Remove the query parameter from the URL
-      const currentUrl = new URL(window.location.href);
-      currentUrl.searchParams.delete('requiresSub');
-      window.history.replaceState({}, '', currentUrl.toString());
-    }
-  }, [searchParams]);
+  //     // Remove the query parameter from the URL
+  //     const currentUrl = new URL(window.location.href);
+  //     currentUrl.searchParams.delete('requiresSub');
+  //     window.history.replaceState({}, '', currentUrl.toString());
+  //   }
+  // }, [searchParams]);
 
   function MfaEnrollmentButton() {
     const {showMfaEnrollmentModal} = useMfaEnrollment();
@@ -106,14 +114,14 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-zinc-900 text-gray-100">
       <div className="max-w-4xl mx-auto p-4 sm:p-6">
-        {showSubscriptionBanner && (
+        {/* {showSubscriptionBanner && (
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg mb-6">
             <div className="flex items-center gap-2">
               <AlertCircleIcon />
               <p>A subscription is required to access this feature. Start your subscription below.</p>
             </div>
           </div>
-        )}
+        )} */}
 
         <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Account</h1>
 
@@ -141,12 +149,12 @@ export default function SettingsPage() {
           </section>
 
           {/* Subscriptions */}
-          <section>
+          {isSubscribed && <section>
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Subscription</h2>
             <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">            
               <SubscriptionManagement wallet={user?.wallet?.address || ''} userId={user?.id || ''}/>
             </div>
-          </section>
+          </section> }
 
           {/* Connected Wallets */}
           <section>

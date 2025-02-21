@@ -331,7 +331,7 @@ const WatcherCard = ({ watcher, onDelete, onClick }: {
         <Header />
         <div className="p-4 bg-zinc-800 rounded-lg mt-4">
           <div className="text-zinc-400 flex items-center gap-2">
-            <span>No watchers found. Create a new watcher to get started.</span>
+            <span>No watchers found. Add a new watcher to get started.</span>
           </div>
         </div>
           <AddWatcherModal
