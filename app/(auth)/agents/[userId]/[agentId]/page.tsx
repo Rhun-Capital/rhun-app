@@ -235,11 +235,14 @@ export default function Home() {
   }, [newChatId, chatId]);
 
   // if new message is added, scroll to the bottom
-  // useEffect(() => {
-  //   if (topRef.current) {
-  //     topRef.current.scrollIntoView({ behavior: 'smooth' });
-  //   }
-  // }, [topRef.current]);
+  useEffect(() => {
+    if (topRef.current) {
+      const rect = topRef.current.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight || rect.top < 0) {
+        topRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [topRef.current]);
 
   useEffect(() => {
     if (window.innerWidth < 1024) {
