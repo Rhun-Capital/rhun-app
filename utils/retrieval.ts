@@ -100,6 +100,7 @@ interface NftImage {
 export interface DexScreenerToken {
   tokenAddress: string;
   chainId: string;
+  createdAt?: string;
   name?: string;
   symbol?: string;
   url?: string;
@@ -803,8 +804,6 @@ export async function retrieveCoinsWithFilters(
   }
 }
 
-
-
 export async function retrieveDexScreenerTokens(
   semanticQuery?: string,
   filters?: DexScreenerTokenFilters,
@@ -969,6 +968,7 @@ function mapResponseToTokens(queryResponse: QueryResponse<RecordMetadata>): DexS
     const token: DexScreenerToken = {
       tokenAddress: match.metadata?.tokenAddress as string,
       chainId: match.metadata?.chainId as string,
+      createdAt: match.metadata?.created_at ? new Date(match.metadata.created_at as number).toISOString() : undefined,
       name: match.metadata?.token_name_lower as string || match.metadata?.header as string,
       symbol: match.metadata?.token_symbol_lower as string,
       url: match.metadata?.dexScreenerUrl as string,
