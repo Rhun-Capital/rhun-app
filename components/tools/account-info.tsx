@@ -80,7 +80,6 @@ interface AccountInfoProps {
 const PAGE_SIZE = 10;
 
 const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation }) => {
-  // All hooks at the top
   const { getAccessToken, user } = usePrivy();
   const [activities, setActivities] = useState<ActivityResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +87,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
   const [error, setError] = useState<string | null>(null);
   const [isTracked, setIsTracked] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const { isSubscribed, isLoading: subscriptionLoading } = useSubscription();
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
 
 
@@ -276,8 +274,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
       <div className="p-6 border-b border-zinc-700 flex justify-between items-center">
   <h2 className="text-lg font-semibold text-white">Wallet Details</h2>
   <div className="flex items-center gap-4">
-    {isSubscribed ? (
-      isTracked ? (
+     {isTracked ? (
         <div className="flex items-center gap-2 text-green-400">
           <span className="w-2 h-2 rounded-full bg-green-400"></span>
           <span>Wallet Tracked</span>
@@ -289,15 +286,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
         >
           Track Wallet
         </button>
-      )
-    ) : (
-      <button
-        onClick={() => toast.error('You need an active subscription to track wallets')}
-        className="px-3 py-1 text-zinc-300 rounded-lg transition w-full sm:w-auto justify-center sm:justify-start group hover:bg-zinc-600"
-      >
-        Track Wallet (Subscription Required) 
-      </button>
-    )}
+      )}
   </div>
 </div>
 
@@ -545,7 +534,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
         </div>
       </div>
 
-      {isSubscribed && accountData && (
+      {accountData && (
   <TrackWalletModal
     isOpen={isTrackModalOpen}
     onClose={() => setIsTrackModalOpen(false)}

@@ -1,4 +1,3 @@
-// components/TopHoldersDisplay.tsx
 import React, { useEffect } from 'react';
 import { ChevronLeftIcon } from '@/components/icons';
 import { usePrivy } from '@privy-io/react-auth';
@@ -6,6 +5,9 @@ import _ from 'lodash';
 import { AlertCircleIcon } from '@/components/icons';
 import LoadingIndicator from '@/components/loading-indicator';
 import CopyButton from '@/components/copy-button';
+import TrackWalletModal from '@/components/tools/track-wallet-modal';
+import { toast } from 'sonner';
+import Image from 'next/image';
 
 interface TokenHolder {
   owner: string;
@@ -55,6 +57,15 @@ interface FilterState {
   token: string;
 }
 
+interface TopHoldersDisplayProps {
+  toolCallId: string;
+  toolInvocation: {
+    toolName: string;
+    args: { message: string };
+    result?: TokenHolder[];
+  };
+}
+
 const ACTIVITY_TYPES = [
   'ACTIVITY_TOKEN_SWAP',
   'ACTIVITY_AGG_TOKEN_SWAP',
@@ -66,25 +77,18 @@ const ACTIVITY_TYPES = [
   'ACTIVITY_SPL_INIT_MINT'
 ] as const;
 
-interface TopHoldersDisplayProps {
-  toolCallId: string;
-  toolInvocation: {
-    toolName: string;
-    args: { message: string };
-    result?: TokenHolder[];
-  };
-}
-
 const PAGE_SIZE = 10;
 
 const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolInvocation }) => {
-  const { getAccessToken } = usePrivy();
+  const { getAccessToken, user } = usePrivy();
   const [selectedHolder, setSelectedHolder] = React.useState<string | null>(null);
   const [activities, setActivities] = React.useState<ActivityResponse | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [showFilters, setShowFilters] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [isTrackModalOpen, setIsTrackModalOpen] = React.useState(false);
+  const [trackedWallets, setTrackedWallets] = React.useState<Set<string>>(new Set());
   const [filters, setFilters] = React.useState<FilterState>({
     startTime: '',
     endTime: '',
@@ -95,15 +99,15 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     token: ''
   });
 
-  useEffect(() => {
-    if (selectedHolder && currentPage > 0) {
-      fetchActivities(selectedHolder);
-    }
-  }, [selectedHolder, currentPage]);
+  const formatAmount = (amount: number, decimals: number) => {
+    return (amount / Math.pow(10, decimals)).toFixed(decimals > 6 ? 6 : decimals);
+  };
 
-  // const totalItems = activities?.total || 0;
-  // const totalPages = Math.ceil(totalItems / PAGE_SIZE);
-  const paginatedActivities = activities?.data || [];
+  const handleTrackSuccess = (walletAddress: string) => {
+    setTrackedWallets(prev => new Set([...prev, walletAddress]));
+    setIsTrackModalOpen(false);
+    toast.success('Wallet tracking started successfully');
+  };
 
   const fetchActivities = React.useCallback(async (address: string) => {
     try {
@@ -144,11 +148,87 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     }
   }, [filters, getAccessToken, currentPage]);
 
-  const formatAmount = (amount: number, decimals: number) => {
-    return (amount / Math.pow(10, decimals)).toFixed(decimals > 6 ? 6 : decimals);
-  };
+  useEffect(() => {
+    if (selectedHolder && currentPage > 0) {
+      fetchActivities(selectedHolder);
+    }
+  }, [selectedHolder, currentPage, fetchActivities]);
 
-  const PaginationControls = () => (
+  const HolderCard: React.FC<{ holder: TokenHolder; index: number }> = ({ holder, index }) => (
+    <div 
+      className="flex items, start border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg 
+               hover:border-indigo-400 hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer"
+      onClick={() => fetchActivities(holder.owner)}
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400">
+          #{index + 1}
+        </div>
+        <div>
+          <div className="font-medium font-mono">
+            {holder.owner.slice(0, 4)}...{holder.owner.slice(-4)}
+          </div>
+          <div className="text-sm text-zinc-400">
+            {holder.amount.toLocaleString()} tokens
+          </div>
+        </div>
+      </div>
+      <CopyButton text={holder.owner} />
+    </div>
+  );
+
+  const ActivityCard: React.FC<{ activity: Activity; token1: TokenMetadata; token2: TokenMetadata }> = ({ activity, token1, token2 }) => (
+    <div className="border border-zinc-900 p-4 bg-zinc-900 rounded-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-2">
+        <span className="text-sm font-medium mb-1 sm:mb-0">
+          {activity.activity_type.replace('ACTIVITY_', '')}
+        </span>
+        <span className="text-xs text-zinc-400">
+          {new Date(activity.time).toLocaleString()}
+        </span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            {token1?.token_icon ? (
+              <img 
+                src={token1.token_icon} 
+                alt={token1.token_symbol} 
+                className="w-5 h-5 rounded-full"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">?</div>
+            )}
+            <span className="text-sm">
+              {formatAmount(activity.routers.amount1, activity.routers.token1_decimals)} {token1?.token_symbol}
+            </span>
+          </div>
+          <span className="text-zinc-500 hidden sm:block">→</span>
+          <span className="text-zinc-500 block sm:hidden">↓</span>
+          <div className="flex items-center gap-2">
+            {token2?.token_icon ? (
+              <img 
+                src={token2.token_icon} 
+                alt={token2.token_symbol} 
+                className="w-5 h-5 rounded-full"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">?</div>
+            )}
+            <span className="text-sm">
+              {formatAmount(activity.routers.amount2, activity.routers.token2_decimals)} {token2?.token_symbol}
+            </span>
+          </div>
+        </div>
+        <div className="text-sm text-zinc-400 w-full sm:w-auto text-left sm:text-right mt-2 sm:mt-0">
+          ${activity.value.toFixed(2)}
+        </div>
+      </div>
+    </div>
+  );
+
+  const PaginationControls: React.FC = () => (
     <div className="flex justify-between items-center mt-4 px-2">
       <button
         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -157,12 +237,10 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       >
         Previous
       </button>
-      <span className="text-zinc-400">
-        Page {currentPage}
-      </span>
+      <span className="text-zinc-400">Page {currentPage}</span>
       <button
         onClick={() => setCurrentPage(p => p + 1)}
-        disabled={!activities?.data || activities.data.length < 10}
+        disabled={!activities?.data || activities.data.length < PAGE_SIZE}
         className="px-3 py-1 rounded bg-zinc-700 text-zinc-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-600 transition-colors"
       >
         Next
@@ -170,14 +248,9 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     </div>
   );
 
-  // Define literal types for input field names
-  type FilterInputName = 'startTime' | 'endTime' | 'from' | 'token' | 'platforms' | 'sources';
-
   const FiltersPanel = React.memo(() => {
-    // Local state for filter values
     const [localFilters, setLocalFilters] = React.useState<FilterState>(filters);
     
-    // Debounced update function
     const debouncedSetFilters = React.useCallback(
       _.debounce((newFilters: FilterState) => {
         setFilters(newFilters);
@@ -185,30 +258,26 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       []
     );
 
-    FiltersPanel.displayName = 'FiltersPanel';
-
-    // Handle input changes with proper typing
-    const handleLocalFilterChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      const name = e.target.name as FilterInputName;
-      const value = e.target.value;
-      
+    const handleLocalFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
       setLocalFilters(prev => {
         const newFilters = { ...prev };
-        
         if (name === 'platforms' || name === 'sources') {
           const addresses = value.split(',').map(addr => addr.trim()).filter(Boolean);
-          newFilters[name] = addresses;
-        } else if (name === 'startTime' || name === 'endTime' || name === 'from' || name === 'token') {
-          newFilters[name] = value;
+          (newFilters[name as keyof FilterState] as string[]) = addresses;
+        } else {
+          if (name === 'platforms' || name === 'sources') {
+            (newFilters[name as keyof FilterState] as string[]) = value.split(',').map(addr => addr.trim()).filter(Boolean);
+          } else {
+            (newFilters[name as keyof FilterState] as string) = value;
+          }
         }
-        
         debouncedSetFilters(newFilters);
         return newFilters;
       });
-    }, [debouncedSetFilters]);
+    };
 
-    // Handle activity type toggle with proper typing
-    const handleActivityTypeToggle = React.useCallback((type: typeof ACTIVITY_TYPES[number]) => {
+    const handleActivityTypeToggle = (type: typeof ACTIVITY_TYPES[number]) => {
       setLocalFilters(prev => {
         const newFilters = {
           ...prev,
@@ -219,11 +288,10 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         debouncedSetFilters(newFilters);
         return newFilters;
       });
-    }, [debouncedSetFilters]);
-  
+    };
+
     return (
       <div className="bg-zinc-900 p-4 rounded-lg mb-4 space-y-4">
-        {/* Time Range Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-zinc-400 mb-1">Start Time</label>
@@ -247,63 +315,6 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
           </div>
         </div>
 
-        {/* Address Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">From Address</label>
-            <input
-              type="text"
-              name="from"
-              value={localFilters.from}
-              onChange={handleLocalFilterChange}
-              placeholder="Solana address"
-              className="w-full bg-zinc-800 rounded p-2 text-sm border border-zinc-700 focus:border-indigo-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">Token Address</label>
-            <input
-              type="text"
-              name="token"
-              value={localFilters.token}
-              onChange={handleLocalFilterChange}
-              placeholder="Token address"
-              className="w-full bg-zinc-800 rounded p-2 text-sm border border-zinc-700 focus:border-indigo-500 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Platform and Source Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">
-              Platform Addresses (max 5, comma-separated)
-            </label>
-            <input
-              type="text"
-              name="platforms"
-              value={localFilters.platforms.join(', ')}
-              onChange={handleLocalFilterChange}
-              placeholder="addr1, addr2, ..."
-              className="w-full bg-zinc-800 rounded p-2 text-sm border border-zinc-700 focus:border-indigo-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">
-              Source Addresses (max 5, comma-separated)
-            </label>
-            <input
-              type="text"
-              name="sources"
-              value={localFilters.sources.join(', ')}
-              onChange={handleLocalFilterChange}
-              placeholder="addr1, addr2, ..."
-              className="w-full bg-zinc-800 rounded p-2 text-sm border border-zinc-700 focus:border-indigo-500 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Activity Types */}
         <div>
           <label className="block text-sm text-zinc-400 mb-2">Activity Types</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -327,11 +338,10 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
           </div>
         </div>
 
-        {/* Apply Filters Button */}
         <div className="flex justify-end">
           <button
             onClick={() => selectedHolder && fetchActivities(selectedHolder)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm transition-colors w-full sm:w-auto"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded text-sm transition-colors"
           >
             Apply Filters
           </button>
@@ -340,61 +350,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     );
   });
 
-  const ActivityCard: React.FC<{ activity: Activity; token1: TokenMetadata; token2: TokenMetadata }> = ({ activity, token1, token2 }) => (
-    <div className="border border-zinc-900 p-4 bg-zinc-900 rounded-lg">
-      <div className="flex flex-col sm:flex-row justify-between items-start mb-2">
-        <span className="text-sm font-medium mb-1 sm:mb-0">
-          {activity.activity_type.replace('ACTIVITY_', '')}
-        </span>
-        <span className="text-xs text-zinc-400">
-          {new Date(activity.time).toLocaleString()}
-        </span>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2">
-            {token1?.token_icon ? (
-              <img 
-                src={token1.token_icon} 
-                alt={token1.token_symbol} 
-                className="w-5 h-5 rounded-full"
-              />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
-                ?
-              </div>
-            )}
-            <span className="text-sm">
-              {formatAmount(activity.routers.amount1, activity.routers.token1_decimals)} {token1?.token_symbol}
-            </span>
-          </div>
-          <span className="text-zinc-500 hidden sm:block">→</span>
-          <span className="text-zinc-500 block sm:hidden">↓</span>
-          <div className="flex items-center gap-2">
-            {token2?.token_icon ? (
-              <img 
-                src={token2.token_icon} 
-                alt={token2.token_symbol} 
-                className="w-5 h-5 rounded-full"
-              />
-            ) : (
-              <div className="w-5 h-5 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
-                ?
-              </div>
-            )}
-            <span className="text-sm">
-              {formatAmount(activity.routers.amount2, activity.routers.token2_decimals)} {token2?.token_symbol}
-            </span>
-          </div>
-        </div>
-        <div className="text-sm text-zinc-400 w-full sm:w-auto text-left sm:text-right mt-2 sm:mt-0">
-          ${activity.value.toFixed(2)}
-        </div>
-      </div>
-    </div>
-  );  
-
+  FiltersPanel.displayName = 'FiltersPanel';
 
   if (isLoading) {
     return (
@@ -406,11 +362,24 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6 bg-zinc-800 rounded-lg">
+        <div className="flex items-center gap-2 text-red-500">
+          <AlertCircleIcon />
+          <span>{error}</span>
+        </div>
+      </div>
+    );
+  }
+
   if (selectedHolder && activities) {
+    const isTracked = trackedWallets.has(selectedHolder);
+    
     return (
       <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg space-y-4">
         {/* Header with back button */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+        <div className="flex items-center justify-between mb-6">
           <button 
             onClick={() => setSelectedHolder(null)}
             className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
@@ -420,7 +389,7 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
           </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors w-full sm:w-auto justify-center sm:justify-start"
+            className="flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
           >
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
@@ -442,24 +411,40 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
         {/* Filters */}
         {showFilters && <FiltersPanel />}
 
-        {/* Holder header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start mb-6">
+        {/* Wallet Info Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-zinc-900 rounded-lg border border-zinc-700">
           <div>
-            <h2 className="text-xl font-bold">Wallet Activities</h2>
-            <div className="flex items-center gap-2 mt-2">
-              <p className="text-zinc-400 font-mono text-sm">
-                {selectedHolder.slice(0, 4)}...{selectedHolder.slice(-4)}
-              </p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold">Wallet Activities</h2>
               <CopyButton text={selectedHolder}/>
             </div>
+            <p className="text-zinc-400 font-mono text-sm mt-1">
+              {selectedHolder.slice(0, 4)}...{selectedHolder.slice(-4)}
+            </p>
+          </div>
+          
+          <div className="mt-4 sm:mt-0">
+            {isTracked ? (
+              <div className="flex items-center gap-2 text-green-400">
+                <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                <span>Wallet Tracked</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsTrackModalOpen(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              >
+                Track Wallet
+              </button>
+            )}
           </div>
         </div>
 
         {/* Activity list */}
         <div className="space-y-3">
-          {paginatedActivities.length > 0 ? (
+          {activities.data.length > 0 ? (
             <>
-              {paginatedActivities.map((activity, index) => (
+              {activities.data.map((activity, index) => (
                 <ActivityCard
                   key={index}
                   activity={activity}
@@ -475,48 +460,28 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
             </div>
           )}
         </div>
+
+        {/* Track Wallet Modal */}
+        <TrackWalletModal
+          isOpen={isTrackModalOpen}
+          onClose={() => setIsTrackModalOpen(false)}
+          onSuccess={() => handleTrackSuccess(selectedHolder)}
+          walletAddress={selectedHolder}
+          userId={user?.id || ''}
+        />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-6 bg-zinc-800 rounded-lg">
-        <div className="flex items-center gap-2 text-red-500">
-          <AlertCircleIcon />
-          <span>{error}</span>
-        </div>
-      </div>
-    );
-  }
-
+  // Default view - holders list
   return (
     <div key={toolCallId} className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
       <h3 className="text-lg font-semibold mb-4">Top Token Holders</h3>
-      <p className="mb-4">Click the holder to see recent activities like token swaps, staking, and more.</p>
+      <p className="mb-4">Click on a holder to view their recent activities like token swaps, staking, and more.</p>
 
       <div className="space-y-3">
         {toolInvocation.result && toolInvocation.result.map((holder, index) => (
-          <div 
-            key={holder.owner}
-            onClick={() => fetchActivities(holder.owner)}
-            className="flex flex-col sm:flex-row items-start sm:items-center border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg 
-                     hover:border-indigo-400 hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer gap-3"
-          >
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400">
-                #{index + 1}
-              </div>
-              <div>
-                <div className="font-medium font-mono">
-                  {holder.owner.slice(0, 4)}...{holder.owner.slice(-4)}
-                </div>
-                <div className="text-sm text-zinc-400">
-                  {holder.amount.toLocaleString()} tokens
-                </div>
-              </div>
-            </div>
-          </div>
+          <HolderCard key={holder.owner} holder={holder} index={index} />
         ))}
       </div>
     </div>
