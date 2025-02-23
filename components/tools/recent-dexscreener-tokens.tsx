@@ -72,6 +72,20 @@ const safeArrayAccess = <T,>(arr: T[] | undefined | null): T[] => {
   return Array.isArray(arr) ? arr : [];
 };
 
+const formatTimeAgo = (timestamp: number): string => {
+  const now = Date.now();
+  const diffMs = now - timestamp;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+};
+
+
 const RecentDexScreenerTokens: React.FC<RecentDexScreenerProps> = ({ toolInvocation }) => {
   const [selectedToken, setSelectedToken] = useState<DexScreenerToken | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -84,8 +98,6 @@ const RecentDexScreenerTokens: React.FC<RecentDexScreenerProps> = ({ toolInvocat
       topRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [selectedToken, topRef]);
-
-  console.log(toolInvocation.state)
 
   // if loading show loading state
   if (!tokens.length && toolInvocation.state === 'call') {
@@ -150,6 +162,10 @@ const RecentDexScreenerTokens: React.FC<RecentDexScreenerProps> = ({ toolInvocat
                   {label}
                 </span>
               ))}
+
+            {selectedToken.details?.createdAt && (
+              <span className="text-xs text-zinc-500 ">Created {formatTimeAgo(new Date(selectedToken.details.createdAt).getTime())}</span>
+              )}                  
             </div>
           </div>
         </div>
@@ -160,7 +176,7 @@ const RecentDexScreenerTokens: React.FC<RecentDexScreenerProps> = ({ toolInvocat
             <div className="text-xs text-zinc-400">Price</div>
             <div className="text-lg font-semibold text-white">
               {selectedToken.price?.formatted || (selectedToken.price?.value ? `$${selectedToken.price.value.toFixed(6)}` : 'N/A')}
-            </div>
+            </div>        
           </div>
           
           <div className="bg-zinc-700 p-3 rounded-lg">
@@ -245,7 +261,7 @@ const RecentDexScreenerTokens: React.FC<RecentDexScreenerProps> = ({ toolInvocat
                 <div>
                   <span className="text-xs text-zinc-400">Listed on:</span>
                   <span className="text-sm text-zinc-300 ml-2">
-                    {new Date(selectedToken.details.createdAt).toLocaleDateString()}
+                    {new Date(selectedToken.details.createdAt).toLocaleDateString()} {new Date(selectedToken.details.createdAt).toLocaleTimeString()}
                   </span>
                 </div>
               )}
@@ -387,9 +403,12 @@ const RecentDexScreenerTokens: React.FC<RecentDexScreenerProps> = ({ toolInvocat
                         ${token.price.formatted || token.price.value.toFixed(6)}
                       </span>
                     )}
-                    {token.details?.ageDays !== undefined && (
+                  {token.details?.createdAt && (
+                    <span>Created {formatTimeAgo(new Date(token.details.createdAt).getTime())}</span>
+                    )}                           
+                    {/* {token.details?.ageDays !== undefined && (
                       <span>{token.details.ageDays}d old</span>
-                    )}
+                    )} */}
                   </div>
                 </div>
                 <div className="text-right">
