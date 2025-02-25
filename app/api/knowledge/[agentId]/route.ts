@@ -23,6 +23,14 @@ const pinecone = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY!
 });
 
+// Helper function to determine knowledge type from SK
+const getKnowledgeTypeFromSK = (sk: string): 'file' | 'url' | 'text' => {
+  if (sk.startsWith('fileName#')) return 'file';
+  if (sk.startsWith('url#')) return 'url';
+  if (sk.startsWith('text#')) return 'text';
+  return 'file'; // Default fallback
+};
+
 // GET handler for fetching knowledge
 export async function GET(
   request: Request,
@@ -38,8 +46,6 @@ export async function GET(
         ":agentId": agentId
       },
       ScanIndexForward: false, // This will sort by SK in descending order (newest first)
-      // Optionally project only the attributes we need
-      ProjectionExpression: "SK, fileName, fileType, uploadedAt, metadata, vectorIds"
     });
 
     const response = await docClient.send(command);
@@ -48,16 +54,40 @@ export async function GET(
     const items = response.Items?.map(item => {
       // Extract timestamp from SK
       const skParts = item.SK.split('#');
-      const timestamp = skParts[3];
+      const timestamp = skParts[3] || '';
+      const knowledgeType = getKnowledgeTypeFromSK(item.SK);
 
-      return {
+      // Base item with common properties
+      const baseItem = {
         id: item.SK,
-        fileName: item.fileName,
-        fileType: item.fileType,
         uploadedAt: timestamp,
+        type: knowledgeType,
         metadata: item.metadata || {},
         vectorCount: item.vectorIds?.length || 0
       };
+
+      // Add type-specific properties
+      if (knowledgeType === 'file') {
+        return {
+          ...baseItem,
+          fileName: item.fileName,
+          fileType: item.fileType
+        };
+      } else if (knowledgeType === 'url') {
+        return {
+          ...baseItem,
+          url: item.url,
+          title: item.metadata?.title
+        };
+      } else if (knowledgeType === 'text') {
+        return {
+          ...baseItem,
+          title: item.title,
+          textPreview: item.textPreview
+        };
+      }
+
+      return baseItem;
     });
 
     return NextResponse.json({
@@ -74,6 +104,27 @@ export async function GET(
   }
 }
 
+// Helper function to determine SK format based on knowledge type
+const constructSK = (params: {
+  type: 'file' | 'url' | 'text';
+  fileName?: string;
+  url?: string;
+  textId?: string;
+  timestamp: string;
+}): string => {
+  const { type, fileName, url, textId, timestamp } = params;
+  
+  if (type === 'file' && fileName) {
+    return `fileName#${fileName}#timestamp#${timestamp}`;
+  } else if (type === 'url' && url) {
+    return `url#${encodeURIComponent(url)}#timestamp#${timestamp}`;
+  } else if (type === 'text' && textId) {
+    return `text#${textId}#timestamp#${timestamp}`;
+  }
+  
+  throw new Error('Invalid parameters for SK construction');
+};
+
 // DELETE handler for removing knowledge
 export async function DELETE(
   request: Request,
@@ -81,17 +132,46 @@ export async function DELETE(
 ) {
   const { agentId } = params;
   const { searchParams } = new URL(request.url);
+  
+  // Get parameters based on knowledge type
   const fileName = searchParams.get('fileName');
+  const url = searchParams.get('url');
+  const textId = searchParams.get('textId');
   const timestamp = searchParams.get('timestamp');
 
-  if (!fileName || !timestamp) {
+  if (!timestamp) {
     return NextResponse.json(
-      { error: 'fileName and timestamp are required' },
+      { error: 'timestamp is required' },
       { status: 400 }
     );
   }
 
-  const sk = `fileName#${fileName}#timestamp#${timestamp}`;
+  // Determine which type of knowledge we're deleting
+  let sk: string;
+  let knowledgeType: string;
+  
+  try {
+    if (fileName) {
+      sk = constructSK({ type: 'file', fileName, timestamp });
+      knowledgeType = 'file';
+    } else if (url) {
+      sk = constructSK({ type: 'url', url, timestamp });
+      knowledgeType = 'url';
+    } else if (textId) {
+      sk = constructSK({ type: 'text', textId, timestamp });
+      knowledgeType = 'text';
+    } else {
+      return NextResponse.json(
+        { error: 'One of fileName, url, or textId is required' },
+        { status: 400 }
+      );
+    }
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Invalid parameters for knowledge deletion' },
+      { status: 400 }
+    );
+  }
 
   try {
     // First, get the item to retrieve vectorIds
@@ -113,6 +193,7 @@ export async function DELETE(
     }
 
     const vectorIds = getResult.Item.vectorIds || [];
+    const itemIdentifier = getResult.Item.fileName || getResult.Item.url || getResult.Item.title || 'Unknown';
 
     // Delete vectors from Pinecone if there are any
     if (vectorIds.length > 0) {
@@ -139,8 +220,9 @@ export async function DELETE(
     );
 
     return NextResponse.json({
-      message: 'Successfully deleted knowledge entry and vectors',
-      fileName,
+      message: `Successfully deleted ${knowledgeType} knowledge entry and vectors`,
+      identifier: itemIdentifier,
+      type: knowledgeType,
       vectorsDeleted: vectorIds.length
     });
 
