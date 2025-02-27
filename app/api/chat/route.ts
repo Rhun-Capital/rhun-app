@@ -394,15 +394,18 @@ export async function POST(req: Request) {
     },
  
     getRecentlyLaunchedCoins: {
-      description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, and more.",
+      description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, volume, and more.",
       parameters: z.object({ 
         query: z.string().describe('Search query for finding recent cryptocurrencies'),
         filters: z.object({
           minPrice: z.number().optional(),
           maxPrice: z.number().optional(),
           categories: z.array(z.string()).optional(),
-          // nameContains: z.string().optional(),
           marketCap: z.object({
+            min: z.number().optional(),
+            max: z.number().optional()
+          }).optional(),
+          volume: z.object({  // Added volume filter
             min: z.number().optional(),
             max: z.number().optional()
           }).optional(),
@@ -412,7 +415,27 @@ export async function POST(req: Request) {
           }).optional()
         }).optional()
       }),
-      execute: async ({ query, filters }: { query: string; filters?: { minPrice?: number; maxPrice?: number; categories?: string[]; nameContains?: string; marketCap?: { min?: number; max?: number }; timeRange?: { hours?: number; days?: number } } }) => {
+      execute: async ({ query, filters }: { 
+        query: string; 
+        filters?: { 
+          minPrice?: number; 
+          maxPrice?: number; 
+          categories?: string[]; 
+          nameContains?: string; 
+          marketCap?: { 
+            min?: number; 
+            max?: number 
+          }; 
+          volume?: {  // Added volume filter
+            min?: number;
+            max?: number;
+          };
+          timeRange?: { 
+            hours?: number; 
+            days?: number 
+          } 
+        } 
+      }) => {
         if (filters) {
           const results = await retrieveCoinsWithFilters(filters);
           return results;
