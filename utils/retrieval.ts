@@ -717,8 +717,11 @@ export async function retrieveCoinsWithFilters(
     minPrice?: number;
     maxPrice?: number;
     categories?: string[];
-    // nameContains?: string;
     marketCap?: {
+      min?: number;
+      max?: number;
+    };
+    volume?: {
       min?: number;
       max?: number;
     };
@@ -742,6 +745,14 @@ export async function retrieveCoinsWithFilters(
     }
     if (filters.marketCap?.max !== undefined) {
       filterConditions.push({ market_cap_usd: { $lte: filters.marketCap.max } });
+    }
+
+    // Add volume filters
+    if (filters.volume?.min !== undefined) {
+      filterConditions.push({ total_volume_usd: { $gte: filters.volume.min } });
+    }
+    if (filters.volume?.max !== undefined) {
+      filterConditions.push({ total_volume_usd: { $lte: filters.volume.max } });
     }
 
     if (filters.timeRange) {
