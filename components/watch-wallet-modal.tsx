@@ -59,6 +59,8 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [lastKey, setLastKey] = useState<string | null>(null);
+
   
   // New state for editing name and tags
   const [isEditing, setIsEditing] = useState(false);
@@ -77,6 +79,17 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
     setTags(watcher.tags || []);
   }, [watcher]);
 
+  useEffect(() => {
+    setLastKey(null);
+    setCurrentPage(1);
+    setActivities([]);
+  }, [watcher.walletAddress]);
+
+  // When loading more, just increment the page but don't reset the activities
+const loadMore = () => {
+  setCurrentPage(p => p + 1);
+};
+
   const fetchActivities = async () => {
     if (!watcher || !watcher.filters) return;
     
@@ -86,24 +99,34 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent((watcher.filters as Record<string, any>)[key])}`)
         .join('&');        
       const token = await getAccessToken();
+      
+      // Add the lastKey to the URL if it exists and we're not on the first page
+      const lastKeyParam = (currentPage > 1 && lastKey) ? `&lastKey=${lastKey}` : '';
+      
       const response = await fetch(
-        `/api/watchers/activities?walletAddress=${watcher.walletAddress}&userId=${user?.id}&page=${currentPage}&pageSize=${PAGE_SIZE}&${queryString}`,
+        `/api/watchers/activities?walletAddress=${watcher.walletAddress}&userId=${user?.id}&pageSize=${PAGE_SIZE}${lastKeyParam}&${queryString}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         }
       );
-
+  
       if (!response.ok) {
         throw new Error('Failed to fetch activities');
       }
-
+  
       const data = await response.json();
+      
+      // Store the new lastKey for the next pagination request
+      setLastKey(data.lastKey);
+      
       setActivities(prev => 
         currentPage === 1 ? data.activities : [...prev, ...data.activities]
       );
-      setHasMore(data.activities.length === PAGE_SIZE);
+      
+      // Set hasMore based on whether there's a lastKey in the response
+      setHasMore(!!data.lastKey);
     } catch (err) {
       setError('Failed to load activities');
       console.error('Error fetching activities:', err);
@@ -542,7 +565,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
               {/* Load More Button */}
               {hasMore && !isLoading && (
                 <button
-                  onClick={() => setCurrentPage(p => p + 1)}
+                  onClick={loadMore}
                   className="w-full py-2 px-4 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors text-sm"
                 >
                   Load More
