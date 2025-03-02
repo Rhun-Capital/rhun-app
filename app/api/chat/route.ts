@@ -1,8 +1,7 @@
 import { openai } from "@ai-sdk/openai";
-import { convertToCoreMessages, streamText, tool } from "ai";
+import { streamText } from "ai";
 import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveNfts, retrieveTrendingSolanaTokens, retrieveDexScreenerTokens } from '@/utils/retrieval';
 import { z } from 'zod';
-import { getSolanaBalance } from '@/utils/solana';
 import { TokenHolding } from "@/types";
 import { 
   getAgentConfig, 
@@ -724,13 +723,15 @@ Only when using the getTopNfts tool, show the image of the NFT.
 When using the swap tool, make sure to only say the swap has been submitted and to check the results above. you can mention the details of the swap. If the user doesn't specifiy a slippage, use the default of 1.0. Always ask to confirm the swap before executing it.
 When the users asks to get recent tokens ask them if thy'd like to get recent tokens on DexScreener, or recent coins listed on CoinGecko.
 If the user asks to see trending tokens, ask them if they'd like to see trending tokens on Solscan or trending tokens on CoinGecko.
-If the user wants to search for a token ask them if they'd like to search for a token listed on CoinGecko or recent tokens on DexScreener. If they say CoinGecko use the searchTokens tool. If they DexScreener use the getRecentDexScreenerTokens tool.
+If the user wants to search for a token ask them if they'd like to search for a token listed on CoinGecko or recent tokens on DexScreener. If they say CoinGecko use the searchTokens tool. If they DexScreener use the getRecentDexScreenerTokens tool. If they dont specify which one to use, use the searchTokens tool.
+if the user uses the searchTokens tool, and no results are found tell them they can try searching for the token on CoinGecko or DexScreener which might have different results.
+When a user uses a tool, recommend other tools that they might find useful based on the tool they used.
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
 
-  const result = await streamText({
-    model: openai("gpt-4o"),
+  const result = streamText({
+    model: openai("gpt-4-turbo") as any,
     system: systemPrompt,
-    messages: convertToCoreMessages(messages),
+    messages: messages,
     // async onFinish({ response }) {
     // },    
     tools: availableTools 
