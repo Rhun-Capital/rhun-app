@@ -38,6 +38,7 @@ import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
 import ExecuteSwap from "@/components/tools/execute-swap";
 import RecentDexScreenerTokens from "@/components/tools/recent-dexscreener-tokens";
+import RecentNews from "@/components/tools/recent-news";
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
 
@@ -946,6 +947,14 @@ export default function Home() {
                             return <div className="max-w-[100%] sm:max-w-[75%]"><ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
                           case 'getRecentDexScreenerTokens':
                             return <div className="max-w-[100%] sm:max-w-[75%]"><RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
+                            case 'getCryptoNews':
+                              return <div className="max-w-[100%] sm:max-w-[75%]">
+                                <RecentNews 
+                                  key={tool.toolCallId} 
+                                  toolCallId={tool.toolCallId} 
+                                  toolInvocation={tool} 
+                                />
+                              </div>;                      
                         }
                       })}
 
