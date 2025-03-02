@@ -40,6 +40,8 @@ interface WatcherData {
     specificToken?: string;
     activityTypes?: string[];
   };
+  lastReadTimestamp?: number;
+  hasUnreadActivities?: boolean;  
 }
 
 interface WatchersResponse {
@@ -168,11 +170,14 @@ const handleWatcherUpdate = (updatedWatcher: WatcherData) => {
     }
   };
 
+  // Fetch watchers with read status data
   const fetchWatchers = async () => {
     try {
       if (!ready) return;
       if (!user && ready) throw new Error('User not found');
       const token = await getAccessToken();
+      
+      // Fetch watchers
       const response = await fetch(`/api/watchers?userId=${encodeURIComponent(user?.id || '')}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -182,7 +187,39 @@ const handleWatcherUpdate = (updatedWatcher: WatcherData) => {
       if (!response.ok) throw new Error('Failed to fetch watchers');
       const responseData: WatchersResponse = await response.json();
       
-      setWatchers(responseData.watchers);
+      // Fetch read status information
+      const unreadResponse = await fetch(`/api/watchers/unread-counts?userId=${encodeURIComponent(user?.id || '')}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (unreadResponse.ok) {
+        const unreadData = await unreadResponse.json();
+        
+        // Merge read status with watcher data
+        const watchersWithReadStatus = responseData.watchers.map(watcher => {
+          // Extract queryString from the watcher's sk
+          const watcherParts = watcher.sk.split('#');
+          const walletAddress = watcherParts[1];
+          const queryString = watcherParts.slice(2).join('#');
+          
+          // Find matching read status
+          const readStatus = unreadData.watcherDetails.find(
+            (detail: { walletAddress: string; queryString: string }) => detail.walletAddress === walletAddress && detail.queryString === queryString
+          );
+          
+          return {
+            ...watcher,
+            lastReadTimestamp: readStatus?.lastReadTimestamp || 0,
+            hasUnreadActivities: readStatus?.hasUnread || false
+          };
+        });
+        
+        setWatchers(watchersWithReadStatus);
+      } else {
+        setWatchers(responseData.watchers);
+      }
     } catch (error) {
       setError('Failed to load wallet watchers');
       console.error('Error fetching watchers:', error);
@@ -190,6 +227,67 @@ const handleWatcherUpdate = (updatedWatcher: WatcherData) => {
       setIsLoading(false);
     }
   };
+
+  // Mark a watcher as read when viewed
+  const markWatcherAsRead = async (watcher: WatcherData) => {
+    try {
+      if (!user?.id) return;
+      
+      const token = await getAccessToken();
+      
+      // Extract queryString from the watcher's sk
+      const watcherParts = watcher.sk.split('#');
+      const walletAddress = watcherParts[1];
+      const queryString = watcherParts.slice(2).join('#');
+      
+      const response = await fetch('/api/watchers/mark-read', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          walletAddress,
+          queryString
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update watcher in state to reflect read status
+        setWatchers(prevWatchers => 
+          prevWatchers.map(w => 
+            w.walletAddress === watcher.walletAddress &&
+            w.sk === watcher.sk ? 
+            {
+              ...w,
+              lastReadTimestamp: data.timestamp,
+              hasUnreadActivities: false
+            } : 
+            w
+          )
+        );
+        
+        // Also update selected watcher if it's the same one
+        if (selectedWatcher && selectedWatcher.sk === watcher.sk) {
+          setSelectedWatcher({
+            ...selectedWatcher,
+            lastReadTimestamp: data.timestamp,
+            hasUnreadActivities: false
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error marking watcher as read:', error);
+    }
+  };
+
+  const handleWatcherSelect = (watcher: WatcherData) => {
+    setSelectedWatcher(watcher);
+    markWatcherAsRead(watcher);
+  };  
 
   useEffect(() => {
     if (user?.id)
@@ -205,17 +303,19 @@ const WatcherCard = ({ watcher, onDelete, onClick }: {
 }) => (
   <div 
     onClick={onClick}
-    className="bg-zinc-800 rounded-lg p-4 space-y-3 hover:bg-zinc-700 transition-colors cursor-pointer"
+    className={`bg-zinc-800 rounded-lg p-4 space-y-3 hover:bg-zinc-700 transition-colors cursor-pointer ${
+      watcher.hasUnreadActivities ? 'border-l-4 border-indigo-500' : ''
+    }`}
   >
     <div className="flex justify-between items-start">
       <div>
         {watcher.name ? (
-          <div className="font-medium text-white hover:text-indigo-300 transition-colors">
-            {watcher.name}
+          <div className="font-medium text-white hover:text-indigo-300 transition-colors flex items-center">
+            {watcher.name}         
           </div>
         ) : (
           <div className="font-medium text-white hover:text-indigo-300 transition-colors">
-            {`${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
+            {`${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}          
           </div>
         )}
         
@@ -389,9 +489,11 @@ const WatcherCard = ({ watcher, onDelete, onClick }: {
         <tbody>
           {filteredAndSortedWatchers.map((watcher) => (
             <tr 
-              onClick={() => setSelectedWatcher(watcher)}
+              onClick={() => handleWatcherSelect(watcher)}
               key={watcher.walletAddress + watcher.createdAt}
-              className="border-b border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+              className={`border-b border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer ${
+                watcher.hasUnreadActivities ? 'border-l-4 border-l-indigo-500' : ''
+              }`}
             >
               <td className="p-4">
                 {watcher.name ? (

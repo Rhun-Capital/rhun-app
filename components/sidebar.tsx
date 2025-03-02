@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MenuIcon, CloseIcon} from './icons';
 import {HomeIcon, EyeIcon, CircleUser, ChartArea, BotIcon, LayoutGrid, BookIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -17,12 +17,49 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { isAnyModalOpen } = useModal();
+  const [unreadWatcherCount, setUnreadWatcherCount] = useState(0);
+
+  const fetchUnreadCounts = async () => {
+    if (!authenticated || !user?.id) return;
+    
+    try {
+      const accessToken = await getAccessToken();
+      const response = await fetch(`/api/watchers/unread-counts?userId=${encodeURIComponent(user.id)}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadWatcherCount(data.unreadCount);
+      }
+    } catch (error) {
+      console.error('Error fetching unread counts:', error);
+    }
+  };  
+
+  
+  // Fetch unread counts for notification badges
+  useEffect(() => {
+    fetchUnreadCounts();
+    // Set up polling to check for new notifications every minute
+    const intervalId = setInterval(fetchUnreadCounts, 60000);
+    return () => clearInterval(intervalId);
+  }, [authenticated, user]);  
+
+
+  useEffect(() => {
+    if (authenticated && user?.id) {
+      fetchUnreadCounts();
+    }
+  }, [pathname]);
 
   const navigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
     ...(authenticated ? [
       { name: 'Agents', href: '/agents', icon: BotIcon },
-      { name: 'Watchers', href: '/watchers', icon: EyeIcon },
+      { name: 'Watchers', href: '/watchers', icon: EyeIcon, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
       // { name: 'Portfolio', href: '/portfolio', icon: ChartArea },
       { name: 'Apps', href: '/marketplace', icon: LayoutGrid },
       { name: 'Account', href: '/account', icon: CircleUser },
@@ -85,14 +122,20 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
                   }`}
                 >
                   <div className="text-zinc-400"> 
-                    <item.icon className="h-5 w-5"/>
+                    <item.icon className="h-5 w-5"/>                  
                   </div>
                   <span className={`${ 
                     pathname === item.href
                       ? 'text-white'
                       : 'text-white hover:text-white'
                   } ml-3`}>
-                    {item.name}
+                    
+                    {item.badge ? (
+                    <div className="flex items-center gap-2">
+                       {item.name}
+                      <div className="-top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </div></div>): item.name}                      
                   </span>
                 </Link>
               </li>
