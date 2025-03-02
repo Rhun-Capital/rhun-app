@@ -301,6 +301,13 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isPro: false,
       isNew: false
     },
+    { 
+      name: 'Get Latest News', 
+      description: 'Stay up-to-date with the latest news in the cryptocurrency space.',
+      command: 'Show me the latest news',
+      isPro: false,
+      isNew: true
+    },       
     {
       name: 'Get Recent Tokens on DexScreener',
       description: 'Discover the latest tokens listed on DexScreener. Filter by market cap, volume, age and more.',

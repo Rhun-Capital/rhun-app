@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveNfts, retrieveTrendingSolanaTokens, retrieveDexScreenerTokens } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveNfts, retrieveTrendingSolanaTokens, retrieveDexScreenerTokens, retrieveCryptoNews } from '@/utils/retrieval';
 import { z } from 'zod';
 import { TokenHolding } from "@/types";
 import { 
@@ -81,6 +81,7 @@ export interface DexScreenerTokenFilters {
   network?: string;
   searchText?: string; // Text search filter for name/symbol
 }
+
 
 function formatNumber(num: number): string {
   if (Math.abs(num) >= 1000000000) {
@@ -622,7 +623,100 @@ export async function POST(req: Request) {
     
         return trendingTokens;
       }
-    }
+    },
+
+    getCryptoNews: {
+      description: "Get recent cryptocurrency news with optional filters and semantic search",
+      parameters: z.object({
+        query: z.string().optional()
+          .describe("Semantic search query - find articles related to this topic"),
+        sentiment: z.enum(['POSITIVE', 'NEUTRAL', 'NEGATIVE', 'ALL'])
+          .describe("Filter news by sentiment")
+          .default('ALL'),
+        category: z.enum(['BTC', 'ETH', 'BUSINESS', 'MARKET', 'REGULATION', 'FIAT', 'BLOCKCHAIN', 'ALTCOIN', 'EXCHANGE', 'ALL'])
+          .describe("Filter news by category")
+          .default('ALL'),
+        source: z.string().optional()
+          .describe("Filter by news source (e.g., 'CoinDesk', 'Forbes Digital Assets')"),
+        keywords: z.array(z.string()).optional()
+          .describe("Include articles containing these keywords"),
+        excludeKeywords: z.array(z.string()).optional()
+          .describe("Exclude articles containing these keywords"),
+        maxResults: z.number().optional()
+          .describe("Maximum number of articles to return")
+          .default(10),
+        sortBy: z.enum(['relevance', 'recency'])
+          .describe("How to sort the results")
+          .default('relevance'),
+      }),
+      execute: async ({ 
+        query, 
+        sentiment, 
+        category, 
+        source, 
+        keywords, 
+        excludeKeywords, 
+        maxResults, 
+        sortBy 
+      }) => {
+        // Prepare filters
+        const filters: any = {};
+        
+        // Apply sentiment filter if not ALL
+        if (sentiment !== 'ALL') {
+          filters.sentiment = sentiment;
+        }
+        
+        // Apply category filter if not ALL
+        if (category !== 'ALL') {
+          filters.categories = [category];
+        }
+        
+        // Add source filter if provided
+        if (source) {
+          filters.source = source;
+        }
+        
+        // Add keyword filters
+        if (keywords && keywords.length > 0) {
+          filters.includeKeywords = keywords;
+        }
+        
+        if (excludeKeywords && excludeKeywords.length > 0) {
+          filters.excludeKeywords = excludeKeywords;
+        }
+        
+        // Retrieve news articles
+        let newsArticles = await retrieveCryptoNews(
+          query, // Semantic query
+          filters,
+          maxResults || 10
+        );
+        
+        // Apply sorting
+        if (sortBy === 'recency') {
+          newsArticles = newsArticles.sort((a, b) => {
+            return b.published_on - a.published_on;
+          });
+        }
+        // Default is relevance, which is already sorted by Pinecone
+        
+        // Format the results for display
+        return newsArticles.map(article => ({
+          id: article.id,
+          title: article.title,
+          summary: article.body.length > 150 ? `${article.body.substring(0, 150)}...` : article.body,
+          full_text: article.body,
+          url: article.url,
+          published_date: article.published_date,
+          source: article.source_name || "Unknown",
+          sentiment: article.sentiment || "NEUTRAL",
+          categories: article.categories || [],
+          image_url: article.image_url,
+          score: article.score
+        }));
+      }
+    }, 
       
   }
 
@@ -647,6 +741,7 @@ export async function POST(req: Request) {
     getTopNfts: allTools.getTopNfts,
     swap: allTools.swap,
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
+    getCryptoNews: allTools.getCryptoNews,
   };
 
 // Format context for the prompt
