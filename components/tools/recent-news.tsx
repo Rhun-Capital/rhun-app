@@ -184,15 +184,11 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
                 rel="noopener noreferrer"
                 className="text-blue-400 hover:text-blue-300 flex items-center justify-center py-2"
               >
-                Read Original Article
+                Read Article
               </a>
             </div>
           )}
 
-          {/* Article score */}
-          <div className="text-xs text-zinc-500 text-center mt-4">
-            Relevance score: {selectedArticle.score.toFixed(2)}
-          </div>
         </div>
       </div>
     );
