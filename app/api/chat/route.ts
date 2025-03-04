@@ -513,10 +513,10 @@ export async function POST(req: Request) {
     },
   
     swap: {
-      description: "execute the swap. the fromToken, toToken, amount, slippage are passed in but the user does supply those. they just supply the names and the amount",
+      description: "Execute the swap. The fromToken, toToken, amount, slippage are passed in but the user does not supply those, they just supply the names or contract address and the amount",
       parameters: z.object({
-        fromToken: z.string().describe('Input token object or contract address'),
-        toToken: z.string().describe('Output token object or contract address'),
+        fromToken: z.string().describe('Input token name or contract address'),
+        toToken: z.string().describe('Output token name or contract address'),
         amount: z.string().describe('Amount to swap '),
         slippage: z.number().optional().default(1.0).describe('Slippage tolerance in percentage') 
       }),
@@ -815,7 +815,7 @@ You only have token data on for the Solana blockchain. If the user asks for toke
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
 When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
 Only when using the getTopNfts tool, show the image of the NFT.
-When using the swap tool, make sure to only say the swap has been submitted and to check the results above. you can mention the details of the swap. If the user doesn't specifiy a slippage, use the default of 1.0. Always ask to confirm the swap before executing it.
+When using the swap tool, make sure to only say the swap has been submitted and to check the results above. you can mention the details of the swap. If the user doesn't specifiy a slippage, use the default of 1.0. Always ask to confirm the swap before executing it. They only need to confirm the slippage and the execution of the swap, nothign else.
 When the users asks to get recent tokens ask them if thy'd like to get recent tokens on DexScreener, or recent coins listed on CoinGecko.
 If the user asks to see trending tokens, ask them if they'd like to see trending tokens on Solscan or trending tokens on CoinGecko.
 If the user wants to search for a token ask them if they'd like to search for a token listed on CoinGecko or recent tokens on DexScreener. If they say CoinGecko use the searchTokens tool. If they DexScreener use the getRecentDexScreenerTokens tool. If they dont specify which one to use, use the searchTokens tool.
