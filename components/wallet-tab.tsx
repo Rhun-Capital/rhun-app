@@ -10,6 +10,7 @@ import FundingModal from '@/components/funding-amount-modal';
 import LoadingIndicator from '@/components/loading-indicator';
 import dynamic from 'next/dynamic';
 import {useFundWallet} from '@privy-io/react-auth/solana';
+import { useModal } from '@/contexts/modal-context'; // Adjust path as needed
 
 
 const TransferModal = dynamic(() => import('@/components/send-button'), {
@@ -40,6 +41,8 @@ export default function WalletTab({ agentId }: { agentId: string }) {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [showFundingModal, setShowFundingModal] = useState(false);
+  const { openModal, closeModal } = useModal();
+
   const params = useParams();
   const { fundWallet } = useFundWallet();
 
@@ -320,7 +323,10 @@ useEffect(() => {
               
               <button 
                 disabled={!totalValue || tokens.data.length === 0}
-                onClick={() => setIsTransferModalOpen(true)}
+                onClick={() => {
+                  setIsTransferModalOpen(true)
+                  openModal();
+                }}
                 className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <SendIcon className="w-5 h-5 mb-1" />
@@ -467,7 +473,10 @@ useEffect(() => {
 
       <FundingModal
           isOpen={showFundingModal}
-          onClose={() => setShowFundingModal(false)}
+          onClose={() => {
+            setShowFundingModal(false)
+            closeModal();
+          }}
           onConfirm={handleFundingConfirm}
           defaultAmount={0.1}
         />
