@@ -39,6 +39,9 @@ import { debounce, DebouncedFunc } from 'lodash';
 import ExecuteSwap from "@/components/tools/execute-swap";
 import RecentDexScreenerTokens from "@/components/tools/recent-dexscreener-tokens";
 import RecentNews from "@/components/tools/recent-news";
+import StockAnalysis from "@/components/tools/stock-analysis";
+import OptionsAnalysis from "@/components/tools/options-analysis";
+import NewsAnalysis from "@/components/tools/news-analysis";
 // import { ChartComponent } from "@/components/line-chart";
 // import { PieChart } from "@/components/pie-chart";
 
@@ -320,7 +323,7 @@ export default function Home() {
     useChat({
       headers,
       body: { agent, user },
-      maxSteps: 20,
+      maxSteps: 23,
       initialMessages,
       sendExtraMessageFields: true,
       id: chatId || newChatId,
@@ -947,14 +950,28 @@ export default function Home() {
                             return <div className="max-w-[100%] sm:max-w-[75%]"><ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
                           case 'getRecentDexScreenerTokens':
                             return <div className="max-w-[100%] sm:max-w-[75%]"><RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
-                            case 'getCryptoNews':
-                              return <div className="max-w-[100%] sm:max-w-[75%]">
-                                <RecentNews 
-                                  key={tool.toolCallId} 
-                                  toolCallId={tool.toolCallId} 
-                                  toolInvocation={tool} 
-                                />
-                              </div>;                      
+                          case 'getCryptoNews':
+                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                              <RecentNews 
+                                key={tool.toolCallId} 
+                                toolCallId={tool.toolCallId} 
+                                toolInvocation={tool} 
+                              />
+                            </div>;      
+                          case 'stockAnalysis':
+                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                              <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                            </div>;
+                          
+                          case 'optionsAnalysis':
+                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                              <OptionsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                            </div>;
+                          
+                          case 'newsAnalysis':
+                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                              <NewsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                            </div>;                                            
                         }
                       })}
 

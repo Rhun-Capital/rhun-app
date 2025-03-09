@@ -43,13 +43,13 @@ dependencies:
     version: 3.744.0(@aws-sdk/client-dynamodb@3.734.0)
   '@crossmint/client-sdk-react-ui':
     specifier: ^1.13.3
-    version: 1.13.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react-dom@18.3.5)(@types/react@18.3.18)(@vercel/kv@2.0.0)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3)
+    version: 1.13.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react-dom@18.3.5)(@types/react@18.3.18)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3)
   '@pinecone-database/pinecone':
     specifier: ^4.1.0
     version: 4.1.0
   '@privy-io/react-auth':
     specifier: ^2.0.8
-    version: 2.0.8(@solana/web3.js@1.98.0)(@types/react@18.3.18)(@vercel/kv@2.0.0)(bs58@6.0.0)(permissionless@0.1.36)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3)(zod@3.24.1)
+    version: 2.0.8(@solana/web3.js@1.98.0)(@types/react@18.3.18)(bs58@6.0.0)(permissionless@0.1.36)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3)(zod@3.24.1)
   '@privy-io/server-auth':
     specifier: ^1.18.2
     version: 1.18.2(viem@2.17.5)
@@ -68,9 +68,6 @@ dependencies:
   '@vercel/analytics':
     specifier: ^1.4.1
     version: 1.4.1(next@14.2.5)(react@18.3.1)
-  '@vercel/kv':
-    specifier: ^2.0.0
-    version: 2.0.0
   ai:
     specifier: ^4.1.9
     version: 4.1.9(react@18.3.1)(zod@3.24.1)
@@ -1896,7 +1893,7 @@ packages:
       - '@datadog/browser-rum'
     dev: false
 
-  /@crossmint/client-sdk-react-ui@1.13.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react-dom@18.3.5)(@types/react@18.3.18)(@vercel/kv@2.0.0)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3):
+  /@crossmint/client-sdk-react-ui@1.13.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react-dom@18.3.5)(@types/react@18.3.18)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3):
     resolution: {integrity: sha512-sNeS5WAcVQRAa2XyOQjIVDLN5AO6QlTGznQKxxSn08HRxAlLfAQCXtOaUVulXXEVFfNz/yn37SQvtZEDLvWBoQ==}
     peerDependencies:
       react: '>=17.0.2'
@@ -1908,7 +1905,7 @@ packages:
       '@crossmint/client-sdk-window': 0.2.2
       '@crossmint/common-sdk-auth': 1.0.9
       '@crossmint/common-sdk-base': 0.3.1
-      '@dynamic-labs/ethereum': 2.6.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react@18.3.18)(@vercel/kv@2.0.0)(react-dom@18.3.1)(react@18.3.1)(viem@2.17.5)
+      '@dynamic-labs/ethereum': 2.6.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react@18.3.18)(react-dom@18.3.1)(react@18.3.1)(viem@2.17.5)
       '@dynamic-labs/sdk-react-core': 2.6.3(@types/react@18.3.18)(react-dom@18.3.1)(react@18.3.1)(viem@2.17.5)
       '@dynamic-labs/solana': 2.6.3(@dynamic-labs/logger@2.6.3)(react-dom@18.3.1)(react@18.3.1)(viem@2.17.5)
       '@ethersproject/transactions': 5.7.0
@@ -2021,7 +2018,7 @@ packages:
       '@datadog/browser-core': 4.42.2
     dev: false
 
-  /@dynamic-labs/ethereum@2.6.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react@18.3.18)(@vercel/kv@2.0.0)(react-dom@18.3.1)(react@18.3.1)(viem@2.17.5):
+  /@dynamic-labs/ethereum@2.6.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@types/react@18.3.18)(react-dom@18.3.1)(react@18.3.1)(viem@2.17.5):
     resolution: {integrity: sha512-0KUZdX+KL18qKvcPGEIKSBmjcLs69lCGgt/GP6b7+n80sDZqiQQNnfrQIdOWYz5u+misDuSZV7YNvNzQjd+2jA==}
     peerDependencies:
       viem: ^2.7.6
@@ -2035,7 +2032,7 @@ packages:
       '@dynamic-labs/viem-utils': 2.6.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/types@2.6.3)(@dynamic-labs/utils@2.6.3)(@dynamic-labs/wallet-book@2.6.3)(@dynamic-labs/wallet-connector-core@2.6.3)(viem@2.17.5)
       '@dynamic-labs/wallet-book': 2.6.3(eventemitter3@5.0.1)(react-dom@18.3.1)(react@18.3.1)(viem@2.17.5)
       '@dynamic-labs/wallet-connector-core': 2.6.3(@dynamic-labs/logger@2.6.3)(@dynamic-labs/rpc-providers@2.6.3)(@dynamic-labs/types@2.6.3)(@dynamic-labs/utils@2.6.3)(@dynamic-labs/wallet-book@2.6.3)(eventemitter3@5.0.1)
-      '@walletconnect/ethereum-provider': 2.11.2(@types/react@18.3.18)(@vercel/kv@2.0.0)(react@18.3.1)
+      '@walletconnect/ethereum-provider': 2.11.2(@types/react@18.3.18)(react@18.3.1)
       buffer: 6.0.3
       eventemitter3: 5.0.1
       stream: 0.0.2
@@ -3612,7 +3609,7 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@privy-io/react-auth@2.0.8(@solana/web3.js@1.98.0)(@types/react@18.3.18)(@vercel/kv@2.0.0)(bs58@6.0.0)(permissionless@0.1.36)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3)(zod@3.24.1):
+  /@privy-io/react-auth@2.0.8(@solana/web3.js@1.98.0)(@types/react@18.3.18)(bs58@6.0.0)(permissionless@0.1.36)(react-dom@18.3.1)(react@18.3.1)(typescript@5.7.3)(zod@3.24.1):
     resolution: {integrity: sha512-I6mMjrHC0LY0QLGHRfW/0T6pcGlXYBcKHYEV/SbCUYpvwozu6U5qOCv+USMdjHcl5mXoeLquX8Nrip5fpMN+PQ==}
     peerDependencies:
       '@abstract-foundation/agw-client': ^1.0.0
@@ -3641,7 +3638,7 @@ packages:
       '@solana/wallet-standard-wallet-adapter-react': 1.1.4(@solana/wallet-adapter-base@0.9.23)(@solana/web3.js@1.98.0)(bs58@6.0.0)(react@18.3.1)
       '@solana/web3.js': 1.98.0
       '@wallet-standard/app': 1.1.0
-      '@walletconnect/ethereum-provider': 2.17.5(@types/react@18.3.18)(@vercel/kv@2.0.0)(encoding@0.1.13)(react@18.3.1)
+      '@walletconnect/ethereum-provider': 2.17.5(@types/react@18.3.18)(encoding@0.1.13)(react@18.3.1)
       '@walletconnect/modal': 2.7.0(@types/react@18.3.18)(react@18.3.1)
       base64-js: 1.5.1
       dotenv: 16.4.7
@@ -5658,12 +5655,6 @@ packages:
   /@ungap/structured-clone@1.3.0:
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
 
-  /@upstash/redis@1.34.3:
-    resolution: {integrity: sha512-VT25TyODGy/8ljl7GADnJoMmtmJ1F8d84UXfGonRRF8fWYJz7+2J6GzW+a6ETGtk4OyuRTt7FRSvFG5GvrfSdQ==}
-    dependencies:
-      crypto-js: 4.2.0
-    dev: false
-
   /@vanilla-extract/css@1.17.0:
     resolution: {integrity: sha512-W6FqVFDD+C71ZlKsuj0MxOXSvHb1tvQ9h/+79aYfi097wLsALrnnBzd0by8C///iurrpQ3S+SH74lXd7Lr9MvA==}
     dependencies:
@@ -5715,13 +5706,6 @@ packages:
     dependencies:
       next: 14.2.5(react-dom@18.3.1)(react@18.3.1)
       react: 18.3.1
-    dev: false
-
-  /@vercel/kv@2.0.0:
-    resolution: {integrity: sha512-zdVrhbzZBYo5d1Hfn4bKtqCeKf0FuzW8rSHauzQVMUgv1+1JOwof2mWcBuI+YMJy8s0G0oqAUfQ7HgUDzb8EbA==}
-    engines: {node: '>=14.6'}
-    dependencies:
-      '@upstash/redis': 1.34.3
     dev: false
 
   /@wallet-standard/app@1.0.1:
@@ -5776,7 +5760,7 @@ packages:
       '@wallet-standard/base': 1.1.0
     dev: false
 
-  /@walletconnect/core@2.11.2(@vercel/kv@2.0.0):
+  /@walletconnect/core@2.11.2:
     resolution: {integrity: sha512-bB4SiXX8hX3/hyBfVPC5gwZCXCl+OPj+/EDVM71iAO3TDsh78KPbrVAbDnnsbHzZVHlsMohtXX3j5XVsheN3+g==}
     dependencies:
       '@walletconnect/heartbeat': 1.2.1
@@ -5784,14 +5768,14 @@ packages:
       '@walletconnect/jsonrpc-types': 1.0.3
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/jsonrpc-ws-connection': 1.0.14
-      '@walletconnect/keyvaluestorage': 1.1.1(@vercel/kv@2.0.0)
+      '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/logger': 2.1.2
       '@walletconnect/relay-api': 1.0.11
       '@walletconnect/relay-auth': 1.0.4
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.11.2(@vercel/kv@2.0.0)
-      '@walletconnect/utils': 2.11.2(@vercel/kv@2.0.0)
+      '@walletconnect/types': 2.11.2
+      '@walletconnect/utils': 2.11.2
       events: 3.3.0
       isomorphic-unfetch: 3.1.0
       lodash.isequal: 4.5.0
@@ -5820,7 +5804,7 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/core@2.17.5(@vercel/kv@2.0.0):
+  /@walletconnect/core@2.17.5:
     resolution: {integrity: sha512-m4rcW7QbO7pTV1C+UwOlTpUT9sjGxMs3DcFQ/QmayGPh1MYCC2S42ZTRswMWWqoHIhRjfxlNpO14UD3j0ya6sg==}
     engines: {node: '>=18'}
     dependencies:
@@ -5829,14 +5813,14 @@ packages:
       '@walletconnect/jsonrpc-types': 1.0.4
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/jsonrpc-ws-connection': 1.0.16
-      '@walletconnect/keyvaluestorage': 1.1.1(@vercel/kv@2.0.0)
+      '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/logger': 2.1.2
       '@walletconnect/relay-api': 1.0.11
       '@walletconnect/relay-auth': 1.0.4
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.17.5(@vercel/kv@2.0.0)
-      '@walletconnect/utils': 2.17.5(@vercel/kv@2.0.0)
+      '@walletconnect/types': 2.17.5
+      '@walletconnect/utils': 2.17.5
       '@walletconnect/window-getters': 1.0.1
       events: 3.3.0
       lodash.isequal: 4.5.0
@@ -5870,7 +5854,7 @@ packages:
       tslib: 1.14.1
     dev: false
 
-  /@walletconnect/ethereum-provider@2.11.2(@types/react@18.3.18)(@vercel/kv@2.0.0)(react@18.3.1):
+  /@walletconnect/ethereum-provider@2.11.2(@types/react@18.3.18)(react@18.3.1):
     resolution: {integrity: sha512-BUDqee0Uy2rCZVkW5Ao3q6Ado/3fePYnFdryVF+YL6bPhj+xQZ5OfKodl+uvs7Rwq++O5wTX2RqOTzpW7+v+Mg==}
     dependencies:
       '@walletconnect/jsonrpc-http-connection': 1.0.8(encoding@0.1.13)
@@ -5878,10 +5862,10 @@ packages:
       '@walletconnect/jsonrpc-types': 1.0.4
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/modal': 2.7.0(@types/react@18.3.18)(react@18.3.1)
-      '@walletconnect/sign-client': 2.11.2(@vercel/kv@2.0.0)
-      '@walletconnect/types': 2.11.2(@vercel/kv@2.0.0)
-      '@walletconnect/universal-provider': 2.11.2(@vercel/kv@2.0.0)
-      '@walletconnect/utils': 2.11.2(@vercel/kv@2.0.0)
+      '@walletconnect/sign-client': 2.11.2
+      '@walletconnect/types': 2.11.2
+      '@walletconnect/universal-provider': 2.11.2
+      '@walletconnect/utils': 2.11.2
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -5909,19 +5893,19 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/ethereum-provider@2.17.5(@types/react@18.3.18)(@vercel/kv@2.0.0)(encoding@0.1.13)(react@18.3.1):
+  /@walletconnect/ethereum-provider@2.17.5(@types/react@18.3.18)(encoding@0.1.13)(react@18.3.1):
     resolution: {integrity: sha512-oypmy5OXyyHaNzsMNIBBzq9xk930PoO6WQ52Kl9e85OBaLYZ8tK4/ZCPfREPEoRQbvKYBV9+ClB2L2Ox7m3Sgw==}
     dependencies:
       '@walletconnect/jsonrpc-http-connection': 1.0.8(encoding@0.1.13)
       '@walletconnect/jsonrpc-provider': 1.0.14
       '@walletconnect/jsonrpc-types': 1.0.4
       '@walletconnect/jsonrpc-utils': 1.0.8
-      '@walletconnect/keyvaluestorage': 1.1.1(@vercel/kv@2.0.0)
+      '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/modal': 2.7.0(@types/react@18.3.18)(react@18.3.1)
-      '@walletconnect/sign-client': 2.17.5(@vercel/kv@2.0.0)
-      '@walletconnect/types': 2.17.5(@vercel/kv@2.0.0)
-      '@walletconnect/universal-provider': 2.17.5(@vercel/kv@2.0.0)(encoding@0.1.13)
-      '@walletconnect/utils': 2.17.5(@vercel/kv@2.0.0)
+      '@walletconnect/sign-client': 2.17.5
+      '@walletconnect/types': 2.17.5
+      '@walletconnect/universal-provider': 2.17.5(encoding@0.1.13)
+      '@walletconnect/utils': 2.17.5
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -6045,7 +6029,7 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/keyvaluestorage@1.1.1(@vercel/kv@2.0.0):
+  /@walletconnect/keyvaluestorage@1.1.1:
     resolution: {integrity: sha512-V7ZQq2+mSxAq7MrRqDxanTzu2RcElfK1PfNYiaVnJgJ7Q7G7hTVwF8voIBx92qsRyGHZihrwNPHuZd1aKkd0rA==}
     peerDependencies:
       '@react-native-async-storage/async-storage': 1.x
@@ -6055,7 +6039,7 @@ packages:
     dependencies:
       '@walletconnect/safe-json': 1.0.2
       idb-keyval: 6.2.1
-      unstorage: 1.14.4(@vercel/kv@2.0.0)(idb-keyval@6.2.1)
+      unstorage: 1.14.4(idb-keyval@6.2.1)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6137,17 +6121,17 @@ packages:
       tslib: 1.14.1
     dev: false
 
-  /@walletconnect/sign-client@2.11.2(@vercel/kv@2.0.0):
+  /@walletconnect/sign-client@2.11.2:
     resolution: {integrity: sha512-MfBcuSz2GmMH+P7MrCP46mVE5qhP0ZyWA0FyIH6/WuxQ6G+MgKsGfaITqakpRPsykWOJq8tXMs3XvUPDU413OQ==}
     dependencies:
-      '@walletconnect/core': 2.11.2(@vercel/kv@2.0.0)
+      '@walletconnect/core': 2.11.2
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.1
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/logger': 2.1.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.11.2(@vercel/kv@2.0.0)
-      '@walletconnect/utils': 2.11.2(@vercel/kv@2.0.0)
+      '@walletconnect/types': 2.11.2
+      '@walletconnect/utils': 2.11.2
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -6173,17 +6157,17 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/sign-client@2.17.5(@vercel/kv@2.0.0):
+  /@walletconnect/sign-client@2.17.5:
     resolution: {integrity: sha512-5NJ8/BAOlP3runG0++YqWdiNygd0LtHls0LfBa/I+sYpYDMjQaMc18ISqKK9wlIws7rI+UZIGxZphg2N050V7A==}
     dependencies:
-      '@walletconnect/core': 2.17.5(@vercel/kv@2.0.0)
+      '@walletconnect/core': 2.17.5
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.2
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/logger': 2.1.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.17.5(@vercel/kv@2.0.0)
-      '@walletconnect/utils': 2.17.5(@vercel/kv@2.0.0)
+      '@walletconnect/types': 2.17.5
+      '@walletconnect/utils': 2.17.5
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -6214,13 +6198,13 @@ packages:
       tslib: 1.14.1
     dev: false
 
-  /@walletconnect/types@2.11.2(@vercel/kv@2.0.0):
+  /@walletconnect/types@2.11.2:
     resolution: {integrity: sha512-p632MFB+lJbip2cvtXPBQslpUdiw1sDtQ5y855bOlAGquay+6fZ4h1DcDePeKQDQM3P77ax2a9aNPZxV6y/h1Q==}
     dependencies:
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.1
       '@walletconnect/jsonrpc-types': 1.0.3
-      '@walletconnect/keyvaluestorage': 1.1.1(@vercel/kv@2.0.0)
+      '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/logger': 2.1.2
       events: 3.3.0
     transitivePeerDependencies:
@@ -6244,13 +6228,13 @@ packages:
       - uploadthing
     dev: false
 
-  /@walletconnect/types@2.17.5(@vercel/kv@2.0.0):
+  /@walletconnect/types@2.17.5:
     resolution: {integrity: sha512-fFddisuI7B58bY8GKA2e1jZ/o+kh7aQDFohERA1Rot6s9lRepG2w4eR0UDVSldS9hdJS9l7MzCAvEZeHksMaRg==}
     dependencies:
       '@walletconnect/events': 1.0.1
       '@walletconnect/heartbeat': 1.2.2
       '@walletconnect/jsonrpc-types': 1.0.4
-      '@walletconnect/keyvaluestorage': 1.1.1(@vercel/kv@2.0.0)
+      '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/logger': 2.1.2
       events: 3.3.0
     transitivePeerDependencies:
@@ -6274,7 +6258,7 @@ packages:
       - uploadthing
     dev: false
 
-  /@walletconnect/universal-provider@2.11.2(@vercel/kv@2.0.0):
+  /@walletconnect/universal-provider@2.11.2:
     resolution: {integrity: sha512-cNtIn5AVoDxKAJ4PmB8m5adnf5mYQMUamEUPKMVvOPscfGtIMQEh9peKsh2AN5xcRVDbgluC01Id545evFyymw==}
     dependencies:
       '@walletconnect/jsonrpc-http-connection': 1.0.8(encoding@0.1.13)
@@ -6282,9 +6266,9 @@ packages:
       '@walletconnect/jsonrpc-types': 1.0.4
       '@walletconnect/jsonrpc-utils': 1.0.8
       '@walletconnect/logger': 2.1.2
-      '@walletconnect/sign-client': 2.11.2(@vercel/kv@2.0.0)
-      '@walletconnect/types': 2.11.2(@vercel/kv@2.0.0)
-      '@walletconnect/utils': 2.11.2(@vercel/kv@2.0.0)
+      '@walletconnect/sign-client': 2.11.2
+      '@walletconnect/types': 2.11.2
+      '@walletconnect/utils': 2.11.2
       events: 3.3.0
     transitivePeerDependencies:
       - '@azure/app-configuration'
@@ -6310,7 +6294,7 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/universal-provider@2.17.5(@vercel/kv@2.0.0)(encoding@0.1.13):
+  /@walletconnect/universal-provider@2.17.5(encoding@0.1.13):
     resolution: {integrity: sha512-opxFdJWzOZz6LwKAXk5gxqzPT7kdgNH5fyjQ45Q2cseLr5f9uR1JREAQA2stSNCPY4Yk7bxCxSLN6djzpfykgA==}
     dependencies:
       '@walletconnect/events': 1.0.1
@@ -6318,11 +6302,11 @@ packages:
       '@walletconnect/jsonrpc-provider': 1.0.14
       '@walletconnect/jsonrpc-types': 1.0.4
       '@walletconnect/jsonrpc-utils': 1.0.8
-      '@walletconnect/keyvaluestorage': 1.1.1(@vercel/kv@2.0.0)
+      '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/logger': 2.1.2
-      '@walletconnect/sign-client': 2.17.5(@vercel/kv@2.0.0)
-      '@walletconnect/types': 2.17.5(@vercel/kv@2.0.0)
-      '@walletconnect/utils': 2.17.5(@vercel/kv@2.0.0)
+      '@walletconnect/sign-client': 2.17.5
+      '@walletconnect/types': 2.17.5
+      '@walletconnect/utils': 2.17.5
       events: 3.3.0
       lodash: 4.17.21
     transitivePeerDependencies:
@@ -6349,7 +6333,7 @@ packages:
       - utf-8-validate
     dev: false
 
-  /@walletconnect/utils@2.11.2(@vercel/kv@2.0.0):
+  /@walletconnect/utils@2.11.2:
     resolution: {integrity: sha512-LyfdmrnZY6dWqlF4eDrx5jpUwsB2bEPjoqR5Z6rXPiHJKUOdJt7az+mNOn5KTSOlRpd1DmozrBrWr+G9fFLYVw==}
     dependencies:
       '@stablelib/chacha20poly1305': 1.0.1
@@ -6360,7 +6344,7 @@ packages:
       '@walletconnect/relay-api': 1.0.11
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.11.2(@vercel/kv@2.0.0)
+      '@walletconnect/types': 2.11.2
       '@walletconnect/window-getters': 1.0.1
       '@walletconnect/window-metadata': 1.0.1
       detect-browser: 5.3.0
@@ -6387,7 +6371,7 @@ packages:
       - uploadthing
     dev: false
 
-  /@walletconnect/utils@2.17.5(@vercel/kv@2.0.0):
+  /@walletconnect/utils@2.17.5:
     resolution: {integrity: sha512-3qBeAuEeYw/xbonhK1wC+j1y5I9Fn5qX3D5jW5SuTd1d4SsRSzgUi7SFCFwU1u4LitkEae16FNmTOk4lrrXY3g==}
     dependencies:
       '@ethersproject/hash': 5.7.0
@@ -6398,12 +6382,12 @@ packages:
       '@stablelib/sha256': 1.0.1
       '@stablelib/x25519': 1.0.3
       '@walletconnect/jsonrpc-utils': 1.0.8
-      '@walletconnect/keyvaluestorage': 1.1.1(@vercel/kv@2.0.0)
+      '@walletconnect/keyvaluestorage': 1.1.1
       '@walletconnect/relay-api': 1.0.11
       '@walletconnect/relay-auth': 1.0.4
       '@walletconnect/safe-json': 1.0.2
       '@walletconnect/time': 1.0.2
-      '@walletconnect/types': 2.17.5(@vercel/kv@2.0.0)
+      '@walletconnect/types': 2.17.5
       '@walletconnect/window-getters': 1.0.1
       '@walletconnect/window-metadata': 1.0.1
       detect-browser: 5.3.0
@@ -7256,10 +7240,6 @@ packages:
 
   /crypt@0.0.2:
     resolution: {integrity: sha512-mCxBlsHFYh9C+HVpiEacem8FEBnMXgU9gy4zmNC+SXAZNB/1idgp/aulFJ4FgCi7GPEVbfyng092GqL2k2rmow==}
-    dev: false
-
-  /crypto-js@4.2.0:
-    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
     dev: false
 
   /css-color-keywords@1.0.0:
@@ -12424,7 +12404,7 @@ packages:
     engines: {node: '>= 0.8'}
     dev: false
 
-  /unstorage@1.14.4(@vercel/kv@2.0.0)(idb-keyval@6.2.1):
+  /unstorage@1.14.4(idb-keyval@6.2.1):
     resolution: {integrity: sha512-1SYeamwuYeQJtJ/USE1x4l17LkmQBzg7deBJ+U9qOBoHo15d1cDxG4jM31zKRgF7pG0kirZy4wVMX6WL6Zoscg==}
     peerDependencies:
       '@azure/app-configuration': ^1.8.0
@@ -12483,7 +12463,6 @@ packages:
       uploadthing:
         optional: true
     dependencies:
-      '@vercel/kv': 2.0.0
       anymatch: 3.1.3
       chokidar: 3.6.0
       destr: 2.0.3

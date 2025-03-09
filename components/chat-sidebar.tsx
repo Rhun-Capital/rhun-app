@@ -302,6 +302,13 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isNew: false
     },
     { 
+      name: 'Stock Analysis', 
+      description: 'Get comprehensive financial data, news sentiment, and options analysis for any stock.',
+      command: 'Analyze stock data',
+      isPro: false,
+      isNew: true
+    },    
+    { 
       name: 'Get Latest News', 
       description: 'Stay up-to-date with the latest news in the cryptocurrency space.',
       command: 'Show me the latest news',

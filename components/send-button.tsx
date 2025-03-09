@@ -81,7 +81,6 @@ const TransferModal = ({
       setTransactionStatus('pending');
       try {
         const status = await connection.getSignatureStatus(signature);
-        console.log('Transaction status:', status?.value);
         if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
           setTransactionStatus('confirmed');
           setSuccess(signature);

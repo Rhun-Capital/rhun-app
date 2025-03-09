@@ -15,9 +15,11 @@ import {
   getMarketCategories,
   getDerivativesExchanges,
   getTopHolders,
-  getTokenHoldings
+  getTokenHoldings,
+  getFinancialData
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
+
 
 export interface DexScreenerToken {
   tokenAddress: string;
@@ -102,7 +104,6 @@ function formatNumber(num: number): string {
 
 function metricsToText(metricsArray: any[]): string {
   // Get the latest data entry
-  console.log(metricsArray)
   const latestMetrics = metricsArray.find(item => 
     typeof item.metadata.Price === 'number'
   )?.metadata;
@@ -717,7 +718,59 @@ export async function POST(req: Request) {
         }));
       }
     }, 
-      
+
+    // Add these to your allTools object
+    stockAnalysis: {
+      description: "Analyze financial stock data using yfinance, showing comprehensive analysis of financials, news sentiment, and technical indicators",
+      parameters: z.object({ 
+        ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
+      }),
+      execute: async ({ ticker }: { ticker: string }) => {
+        try {
+          // Use your existing getFinancialData function
+          const result = await getFinancialData([ticker], 'comprehensive');
+          return result;
+        } catch (error) {
+          console.error('Error in stock analysis:', error);
+          return { 
+            error: 'Failed to analyze stock data',
+            ticker 
+          };
+        }
+      }
+    },
+
+    // optionsAnalysis: {
+    //   description: "Analyze options data for a given stock ticker, showing call/put ratios, implied volatility, and upcoming expirations",
+    //   parameters: z.object({ 
+    //     ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
+    //   }),
+    //   execute: async ({ ticker }: { ticker: string }) => {
+    //     try {
+    //       const response = await getFinancialData([ticker], 'options');
+    //       return response;
+    //     } catch (error) {
+    //       console.error('Error in options analysis:', error);
+    //       return { error: 'Failed to analyze options data' };
+    //     }
+    //   }
+    // },
+
+    // newsAnalysis: {
+    //   description: "Analyze recent news for a stock and provide sentiment analysis",
+    //   parameters: z.object({ 
+    //     ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
+    //   }),
+    //   execute: async ({ ticker }: { ticker: string }) => {
+    //     try {
+    //       const response = await getFinancialData([ticker], 'news')
+    //       return response;
+    //     } catch (error) {
+    //       console.error('Error in news analysis:', error);
+    //       return { error: 'Failed to analyze news data' };
+    //     }
+    //   }
+    // }      
   }
 
   // Define tool sets for different user tiers
@@ -742,6 +795,9 @@ export async function POST(req: Request) {
     swap: allTools.swap,
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
     getCryptoNews: allTools.getCryptoNews,
+    stockAnalysis: allTools.stockAnalysis,
+    // optionsAnalysis: allTools.optionsAnalysis,
+    // newsAnalysis: allTools.newsAnalysis,    
   };
 
 // Format context for the prompt
@@ -805,6 +861,12 @@ ${agentConfig.userId === 'template' ? `
  If the users runs the Get Agent Portfolio tool (getAgentPortfolioValue), tell them this is a template agent and does not have a wallet. 
  Template agents do no have access to wallets and therefore cannot execute swaps. If they run the swap tool, tell them template agents cannot execute swaps and to create a new agent, fund the agent wallet to use this functionality.
 `: ''}
+
+
+## Traditional Financial Analysis Capabilities
+This agent can analyze stock market data using comprehensive financial tools:
+- Stock Analysis: Get detailed financial data including ratios, price targets, and sentiment
+- When users ask about stocks, the agent should use the stockAnalysis tool
 
 # Chatbot Tool Special Instructions:
 When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.

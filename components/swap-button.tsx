@@ -153,7 +153,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
       
       try {
         const status = await connection.getSignatureStatus(signature);
-        console.log('Transaction status:', status?.value);
         if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
           setTransactionStatus('confirmed');
           setSuccess(signature);
@@ -197,16 +196,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
   };  
 
   const handleSwap = async () => {
-    console.log("Starting handleSwap function");
-    console.log("Token balances:", {
-      fromToken: {
-        symbol: fromToken?.token_symbol,
-        balance: fromToken?.formatted_amount,
-        decimals: fromToken?.token_decimals
-      },
-      swapAmount: amount,
-      hasEnoughBalance: fromToken ? parseFloat(amount) <= fromToken.formatted_amount : false
-    });
+
   
     // Check balance before proceeding
     if (fromToken && parseFloat(amount) > fromToken.formatted_amount) {
@@ -215,7 +205,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
     }
   
     if (!fromToken || !toToken || !amount || parseFloat(amount) <= 0) {
-      console.log("Validation failed:", { fromToken, toToken, amount });
       setError('Invalid swap parameters');
       return;
     }
@@ -223,7 +212,6 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
     try {
       setLoading(true);
       setError('');
-      console.log("Proceeding with swap...");
       const signature = await executeSwap(
         {
           fromToken,

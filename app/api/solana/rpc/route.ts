@@ -6,14 +6,6 @@ const HELIUS_RPC = `${process.env.HELIUS_RPC_URL}/?api-key=${process.env.HELIUS_
 export async function POST(request: NextRequest) {
     try {
       const body = await request.json();
-      
-      // Enhanced request logging
-      console.log('Incoming RPC request:', {
-        method: body.method,
-        params: body.params,
-        id: body.id,
-        url: HELIUS_RPC.split('?')[0] // Log URL without API key
-      });
   
       const rpcRequest = {
         jsonrpc: '2.0',
@@ -21,8 +13,6 @@ export async function POST(request: NextRequest) {
         method: body.method,
         params: body.params || []
       };
-
-      console.log('Forwarding to Helius:', rpcRequest);
 
       const response = await fetch(HELIUS_RPC, {
         method: 'POST',
@@ -46,14 +36,6 @@ export async function POST(request: NextRequest) {
       }
   
       const data = await response.json();
-      
-      // Log successful responses too
-      console.log('Helius response:', {
-        method: body.method,
-        success: !data.error,
-        error: data.error,
-        resultType: data.result ? typeof data.result : null
-      });
   
       return NextResponse.json(data);
     } catch (error: any) {
