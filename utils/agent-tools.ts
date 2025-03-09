@@ -1,10 +1,12 @@
-import { DynamoDB } from 'aws-sdk';
+import AWS, { DynamoDB } from 'aws-sdk';
 import { getSolanaConnection } from '@/utils/solana';
 import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { getBulkPriceData } from '@/utils/prices';
 import { getTokenMetadata } from '@/utils/tokens';
 import { getTransactionCount, getTransactionVolume } from '@/utils/network-activity';
+
+const lambda = new AWS.Lambda();
 const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
 const COINGECKO_BASE_URL = process.env.COINGECKO_BASE_URL;
 const JUPITER_API_URL = process.env.NEXT_PUBLIC_JUPITER_API_URL;
@@ -18,6 +20,16 @@ const STABLECOIN_ADDRESSES = new Set([
   'USDH1SM1ojwWUga67PGrgFWUHibbjqMvuMaDkRJTgkX',  // USDH
   // Add more stablecoins as needed
 ])
+
+// Table name for financial data
+const FINANCIAL_DATA_TABLE = 'financial-data-requests';
+
+// Configure AWS SDK
+AWS.config.update({
+  region: process.env.AWS_REGION,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
 
 const dynamodb = new DynamoDB.DocumentClient({
   region: process.env.AWS_REGION,
@@ -899,5 +911,58 @@ export async function fetchAccountActivitiesInTool(address: string) {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
     };
+  }
+}
+
+export async function storeFinancialData(requestId: string, data: any, ttlSeconds: number = 3600) {
+  try {
+    // Calculate expiry time (TTL) in seconds since epoch
+    const ttl = Math.floor(Date.now() / 1000) + ttlSeconds;
+    
+    // Store data in DynamoDB
+    await dynamodb.put({
+      TableName: FINANCIAL_DATA_TABLE,
+      Item: {
+        requestId,
+        data,
+        ttl
+      }
+    }).promise();
+    
+    return true;
+  } catch (error) {
+    console.error('Error storing data in DynamoDB:', error);
+    return false;
+  }
+}
+
+export async function getFinancialData(tickers: string[], analysisType: string) {
+  try {
+    // Generate a request ID
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    
+    const params = {
+      FunctionName: 'financial-data-collector',
+      InvocationType: 'Event', // Asynchronous invocation
+      Payload: JSON.stringify({ 
+        tickers, 
+        analysisType, 
+        requestId
+      })
+    };
+
+    // Invoke Lambda (returns immediately)
+    await lambda.invoke(params).promise();
+    
+    // Return the request ID so we can check the status later
+    return {
+      status: 'processing',
+      requestId,
+      ticker: tickers[0], // Assuming single ticker for now
+      message: 'Analysis has been initiated'
+    };
+  } catch (error) {
+    console.error('Error invoking Lambda:', error);
+    return { error: 'Failed to fetch financial data' };
   }
 }

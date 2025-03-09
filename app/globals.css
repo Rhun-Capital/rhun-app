@@ -29,6 +29,10 @@ li::marker {
   display: flex;
 }
 
+p {
+  margin-bottom: 1rem;
+}
+
 
 @layer utilities {
   .text-balance {
@@ -36,7 +40,3 @@ li::marker {
   }
 }
 
-/* Class for ReactMarkdown */
-/* .rhun-markdown {
-  white-space: pre-wrap;
-} */

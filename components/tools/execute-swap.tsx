@@ -102,7 +102,6 @@ const ExecuteSwap: React.FC<{
 
   useEffect(() => {
     if (activeWallet && !hasExecuted) {
-        console.log("executing swap")
       executeTokenSwap();
     }
   }, [activeWallet]);
@@ -274,7 +273,6 @@ const ExecuteSwap: React.FC<{
       if (!activeWallet) {
         throw new Error('No wallet connected');
       }
-      console.log("Finding tokens for:", fromTokenName, toTokenName);
       
       // Find tokens
       setStatus('searching');
@@ -290,23 +288,6 @@ const ExecuteSwap: React.FC<{
       if (amountToSwap <= 0) {
         throw new Error('Invalid swap amount');
       }
-    
-  
-      console.log("Swap Parameters:", {
-        fromToken: {
-          symbol: fromToken.token_symbol,
-          address: fromToken.token_address,
-          balance: fromToken.formatted_amount,
-          decimals: fromToken.token_decimals
-        },
-        toToken: {
-          symbol: toToken.token_symbol,
-          address: toToken.token_address,
-          decimals: toToken.token_decimals
-        },
-        amount,
-        slippage
-      });
   
       // Execute swap
       setStatus('swapping');

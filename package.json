@@ -30,7 +30,6 @@
     "@solana/web3.js": "^1.98.0",
     "@types/papaparse": "^5.3.15",
     "@vercel/analytics": "^1.4.1",
-    "@vercel/kv": "^2.0.0",
     "ai": "^4.1.9",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.7.9",

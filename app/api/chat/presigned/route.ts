@@ -17,8 +17,6 @@ export async function POST(request: Request) {
     const { fileName, contentType, chatId, messageId } = await request.json();
     
     const fileKey = `chat-attachments/${chatId}/${messageId}/${uuidv4()}-${fileName}`;
-
-    console.log(process.env.S3_BUCKET_NAME)
     
     const { url, fields } = await createPresignedPost(s3Client, {
       Bucket: process.env.S3_BUCKET_NAME!,
