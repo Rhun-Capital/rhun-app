@@ -65,7 +65,7 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
           clearInterval(pollInterval);
           setIsPolling(false);
         }
-      }, 10000); // Check every 10 second
+      }, 3000); // Check every 3 seconds
       
       return () => clearInterval(pollInterval);
     }
