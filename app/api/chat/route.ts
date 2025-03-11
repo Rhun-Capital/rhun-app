@@ -19,6 +19,7 @@ import {
   getFinancialData
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
+import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
 
 
 export interface DexScreenerToken {
@@ -82,6 +83,26 @@ export interface DexScreenerTokenFilters {
   minBuySellRatio?: number;
   network?: string;
   searchText?: string; // Text search filter for name/symbol
+}
+
+// Types for task results
+export interface BrowserUseTaskResult {
+  id: string;
+  task: string;
+  live_url?: string;
+  output: string;
+  status: 'created' | 'running' | 'paused' | 'finished' | 'failed' | 'stopped';
+  created_at: string;
+  finished_at?: string;
+  steps?: {
+    id: string;
+    step: number;
+    evaluation_previous_goal?: string;
+    next_goal?: string;
+  }[];
+  browser_data?: {
+    cookies?: any[];
+  };
 }
 
 
@@ -771,6 +792,54 @@ export async function POST(req: Request) {
     //     }
     //   }
     // }      
+
+    webResearch: {
+      description: "Perform web research on cryptocurrency topics using browser automation",
+      parameters: z.object({
+        query: z.string().describe("Research query describing what information to find"),
+        sites: z.array(z.string()).optional().describe("Specific websites to search (e.g., ['coinmarketcap.com', 'defillama.com'])"),
+        dataFormat: z.enum(['text', 'json']).optional().default('text').describe("Format for the output data")
+      }),
+      execute: async ({ query, sites, dataFormat }: { 
+        query: string;
+        sites?: string[];
+        dataFormat?: 'text' | 'json';
+      }) => {
+        try {
+          // Construct research instructions
+          let instructions = `Research the following about cryptocurrencies: ${query}`;
+          
+          if (sites && sites.length > 0) {
+            instructions += `. Focus your research on these sites: ${sites.join(', ')}`;
+          }
+          
+          if (dataFormat === 'json') {
+            instructions += `. Return the results in a structured JSON format with key information.`;
+          } else {
+            instructions += `. Summarize your findings in a well-organized report.`;
+          }
+          
+          // Create the task and return immediately
+          const taskResponse = await createTask(instructions);
+          
+          // Return task details for the client to start polling
+          return {
+            taskId: taskResponse.id,
+            status: taskResponse.status || 'created',
+            liveUrl: taskResponse.live_url,
+            output: "Research in progress...",
+            steps: taskResponse.steps || []
+          };
+        } catch (error: any) {
+          console.error('Error in web research:', error);
+          return {
+            error: error.message,
+            query
+          };
+        }
+      }
+    },
+
   }
 
   // Define tool sets for different user tiers
@@ -796,8 +865,7 @@ export async function POST(req: Request) {
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
     getCryptoNews: allTools.getCryptoNews,
     stockAnalysis: allTools.stockAnalysis,
-    // optionsAnalysis: allTools.optionsAnalysis,
-    // newsAnalysis: allTools.newsAnalysis,    
+    webResearch: allTools.webResearch
   };
 
 // Format context for the prompt
@@ -862,6 +930,10 @@ ${agentConfig.userId === 'template' ? `
  Template agents do no have access to wallets and therefore cannot execute swaps. If they run the swap tool, tell them template agents cannot execute swaps and to create a new agent, fund the agent wallet to use this functionality.
 `: ''}
 
+## Browser Use Tools
+When the user runs the tool from the chat side bar it will say "Research crypto topics for me." Please confirm with the user what they'd liek to reseaech first. 
+Your AI agent can now perform browser automation tasks to gather real-time finance and cryptocurrency data:
+- Web Research: Search and extract information from crypto, finance and economics websites
 
 ## Traditional Financial Analysis Capabilities
 This agent can analyze stock market data using comprehensive financial tools:

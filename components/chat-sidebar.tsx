@@ -302,6 +302,13 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isNew: false
     },
     { 
+      name: 'Web Research',
+      description: 'Perform real-time web research on cryptocurrency and finance using browser automation.',
+      command: 'Research crypto topics for me.',
+      isPro: false,
+      isNew: true
+    },    
+    { 
       name: 'Stock Analysis', 
       description: 'Get comprehensive financial data, news sentiment, and options analysis for any stock.',
       command: 'Analyze stock data',
@@ -320,7 +327,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       description: 'Discover the latest tokens listed on DexScreener. Filter by market cap, volume, age and more.',
       command: 'Search for recently listed tokens on DexScreener.',
       isPro: false,
-      isNew: true
+      isNew: false
     },    
     { 
       name: 'Get Trending Tokens', 
@@ -334,14 +341,14 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       description: 'Discover trending tokens on Solana. Filter by market cap, volume, and more.',
       command: 'Search for trending tokens on Solana',
       isPro: false,
-      isNew: true
+      isNew: false
     },      
     {
       name: 'Get Top NFTs',
       description: 'Discover the top NFTs. Filter by volume, floor price, and more.',
       command: 'Show me the top NFTs',
       isPro: false,
-      isNew: true
+      isNew: false
     },        
     { 
       name: 'Get Token Info', 

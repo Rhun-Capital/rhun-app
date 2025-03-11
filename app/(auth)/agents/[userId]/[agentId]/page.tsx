@@ -42,8 +42,7 @@ import RecentNews from "@/components/tools/recent-news";
 import StockAnalysis from "@/components/tools/stock-analysis";
 import OptionsAnalysis from "@/components/tools/options-analysis";
 import NewsAnalysis from "@/components/tools/news-analysis";
-// import { ChartComponent } from "@/components/line-chart";
-// import { PieChart } from "@/components/pie-chart";
+import WebResearch from "@/components/tools/web-research";
 
 const getTextFromDataUrl = (dataUrl: string) => {
   try {
@@ -971,7 +970,12 @@ export default function Home() {
                           case 'newsAnalysis':
                             return <div className="max-w-[100%] sm:max-w-[75%]">
                               <NewsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            </div>;                                            
+                            </div>;     
+                            
+                          case 'webResearch':
+                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                              <WebResearch key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                            </div>;
                         }
                       })}
 
