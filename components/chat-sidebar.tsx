@@ -302,8 +302,8 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isNew: false
     },
     { 
-      name: 'Web Research',
-      description: 'Perform real-time web research on cryptocurrency and finance using browser automation.',
+      name: 'Deep Research',
+      description: 'Perform deep research on cryptocurrency and finance using browser automation.',
       command: 'Research crypto topics for me.',
       isPro: false,
       isNew: true
