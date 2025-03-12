@@ -126,7 +126,20 @@ export async function stopTask(taskId: string) {
   return response.json();
 }
 
-// Update the waitForTaskCompletion function in utils/browser-use.ts:
+// Get task media (screenshots, video) for a given task
+export async function getTaskMedia(taskId: string) {
+  const response = await fetch(`${BASE_URL}/task/${taskId}/media`, {
+    method: 'GET',
+    headers,
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to get task media: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  return data;
+}
 
 // Helper function to wait for task completion with polling
 export async function waitForTaskCompletion(taskId: string, timeoutMs = 300000, intervalMs = 5000) {
@@ -164,3 +177,5 @@ export async function waitForTaskCompletion(taskId: string, timeoutMs = 300000, 
     
     throw new Error('Task execution timed out');
   }
+
+  

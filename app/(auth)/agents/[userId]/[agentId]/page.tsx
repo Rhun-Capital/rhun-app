@@ -217,11 +217,9 @@ export default function Home() {
   const [agent, setAgent] = useState<any>();
   const [headers, setHeaders] = useState<any>();
   const [files, setFiles] = useState<FileList | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null); // Reference for the hidden file input
   const [isDragging, setIsDragging] = useState(false);
-  const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
   const [savedInput, setSavedInput] = useState("");
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [newChatId] = useState<string>(`chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`);
@@ -359,6 +357,32 @@ export default function Home() {
         debouncedSave.cancel();
       };
     }, [messages, agent]);
+
+    // Add this useEffect to handle auto-resizing of the textarea
+    useEffect(() => {
+      const resizeTextarea = () => {
+        if (inputRef.current) {
+          // Reset height to auto to get the correct scrollHeight
+          inputRef.current.style.height = 'auto';
+          // Set the height to match the scrollHeight (content height)
+          const scrollHeight = inputRef.current.scrollHeight;
+          inputRef.current.style.height = `${Math.min(scrollHeight, 150)}px`;
+        }
+      };
+      
+      resizeTextarea();
+      
+      // Create a debounced version of the resize function
+      const debouncedResize = debounce(resizeTextarea, 50);
+      
+      // Add event listener for window resize
+      window.addEventListener('resize', debouncedResize);
+      
+      return () => {
+        window.removeEventListener('resize', debouncedResize);
+        debouncedResize.cancel();
+      };
+    }, [input]); // Re-run when input changes      
   
   // Add this useEffect for cleanup
   useEffect(() => {
@@ -384,41 +408,6 @@ export default function Home() {
       });
     };
   }, [messages]);    
-
-
-  // Add this handler function
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-      event.preventDefault();
-      
-      if (commandHistory.length === 0) return;
-  
-      if (event.key === 'ArrowUp') {
-        // Save current input if we're just starting to look through history
-        if (historyIndex === -1) {
-          setSavedInput(input);
-        }
-  
-        // Move back through history
-        const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
-        setHistoryIndex(newIndex);
-        handleInputChange({ target: { value: commandHistory[commandHistory.length - 1 - newIndex] } } as any);
-      } else if (event.key === 'ArrowDown') {
-        if (historyIndex === -1) return;
-  
-        // Move forward through history
-        const newIndex = historyIndex - 1;
-        setHistoryIndex(newIndex);
-        
-        if (newIndex === -1) {
-          // Restore the saved input when we reach the bottom
-          handleInputChange({ target: { value: savedInput } } as any);
-        } else {
-          handleInputChange({ target: { value: commandHistory[commandHistory.length - 1 - newIndex] } } as any);
-        }
-      }
-    }
-  };
 
   const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
     const lastMessage = messages[messages.length - 1];
@@ -586,12 +575,6 @@ export default function Home() {
   // Make sure your handleFormSubmit function looks like this:
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
-    
-      // Only add to history if it's different from the last command
-      if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== input.trim()) {
-        setCommandHistory(prev => [...prev, input.trim()]);
-      }
-      setHistoryIndex(-1); // Reset history index
       setSavedInput(""); // Reset saved input
     }
     handleSubmit(event, options);
@@ -943,8 +926,7 @@ export default function Home() {
                               : <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
                           case 'getTopNfts':
                             return <TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
-                          default:
-                            return null;
+
                           case 'swap':
                             return <div className="max-w-[100%] sm:max-w-[75%]"><ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
                           case 'getRecentDexScreenerTokens':
@@ -976,6 +958,8 @@ export default function Home() {
                             return <div className="max-w-[100%] sm:max-w-[75%]">
                               <WebResearch key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
                             </div>;
+                          default:
+                            return null;                            
                         }
                       })}
 
@@ -1074,7 +1058,7 @@ export default function Home() {
                 onChange={handleFileChange}
               />
               
-              <div className="flex-1 flex items-center bg-zinc-800 rounded-full px-4">
+              <div className="flex-1 flex items-center bg-zinc-800 rounded-lg px-4">
                 <button
                   type="button"
                   onClick={handleUploadClick}
@@ -1083,14 +1067,25 @@ export default function Home() {
                   <AttachmentIcon />
                 </button>
                 
-                <input
+                <textarea
                   ref={inputRef}
-                  className="flex-1 bg-transparent py-2 px-2 text-white outline-none"
+                  className="flex-1 bg-transparent py-2 px-2 text-white outline-none resize-none overflow-y-auto pb-2"
                   placeholder="Send a message..."
                   value={input}
                   onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={(event) => {
+                    // Handle Shift+Enter to create a new line
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      if (input.trim()) {
+                        const options = files ? { experimental_attachments: files } : {};
+                        handleFormSubmit(event, options);
+                      }
+                    }
+                  }}
                   onPaste={handlePaste}
+                  rows={1} // Start with one row
+                  style={{ minHeight: '40px', maxHeight: '150px' }} // Set min and max height
                 />
                 <button type="submit" className="p-2 text-zinc-400 hover:text-white">
                   Submit
