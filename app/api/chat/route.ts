@@ -648,80 +648,23 @@ export async function POST(req: Request) {
     },
 
     getCryptoNews: {
-      description: "Get recent cryptocurrency news with optional filters and semantic search",
+      description: "Get recent cryptocurrency news with semantic search",
       parameters: z.object({
-        query: z.string().optional()
+        query: z.string()
           .describe("Semantic search query - find articles related to this topic"),
-        sentiment: z.enum(['POSITIVE', 'NEUTRAL', 'NEGATIVE', 'ALL'])
-          .describe("Filter news by sentiment")
-          .default('ALL'),
-        category: z.enum(['BTC', 'ETH', 'BUSINESS', 'MARKET', 'REGULATION', 'FIAT', 'BLOCKCHAIN', 'ALTCOIN', 'EXCHANGE', 'ALL'])
-          .describe("Filter news by category")
-          .default('ALL'),
-        source: z.string().optional()
-          .describe("Filter by news source (e.g., 'CoinDesk', 'Forbes Digital Assets')"),
-        keywords: z.array(z.string()).optional()
-          .describe("Include articles containing these keywords"),
-        excludeKeywords: z.array(z.string()).optional()
-          .describe("Exclude articles containing these keywords"),
         maxResults: z.number().optional()
           .describe("Maximum number of articles to return")
           .default(10),
-        sortBy: z.enum(['relevance', 'recency'])
-          .describe("How to sort the results")
-          .default('relevance'),
       }),
-      execute: async ({ 
-        query, 
-        sentiment, 
-        category, 
-        source, 
-        keywords, 
-        excludeKeywords, 
-        maxResults, 
-        sortBy 
-      }) => {
-        // Prepare filters
-        const filters: any = {};
-        
-        // Apply sentiment filter if not ALL
-        if (sentiment !== 'ALL') {
-          filters.sentiment = sentiment;
-        }
-        
-        // Apply category filter if not ALL
-        if (category !== 'ALL') {
-          filters.categories = [category];
-        }
-        
-        // Add source filter if provided
-        if (source) {
-          filters.source = source;
-        }
-        
-        // Add keyword filters
-        if (keywords && keywords.length > 0) {
-          filters.includeKeywords = keywords;
-        }
-        
-        if (excludeKeywords && excludeKeywords.length > 0) {
-          filters.excludeKeywords = excludeKeywords;
-        }
+      execute: async ({ query, maxResults }) => {
+        console.log('Query:', query, 'Max:', maxResults);
         
         // Retrieve news articles
         let newsArticles = await retrieveCryptoNews(
           query, // Semantic query
-          filters,
+          {},    // No filters
           maxResults || 10
         );
-        
-        // Apply sorting
-        if (sortBy === 'recency') {
-          newsArticles = newsArticles.sort((a, b) => {
-            return b.published_on - a.published_on;
-          });
-        }
-        // Default is relevance, which is already sorted by Pinecone
         
         // Format the results for display
         return newsArticles.map(article => ({
@@ -738,7 +681,7 @@ export async function POST(req: Request) {
           score: article.score
         }));
       }
-    }, 
+    },
 
     // Add these to your allTools object
     stockAnalysis: {
@@ -874,6 +817,21 @@ const contextText = context
 .join('\n\n');   
 
 
+// Generate tool documentation
+function generateToolDocumentation(tools: { [key: string]: { description: string; parameters: any; execute: (args: any) => Promise<any> } }) {
+  let documentation = "## Available Tools\n\n";
+  
+  // Loop through all tools and add their descriptions
+  for (const [toolName, toolInfo] of Object.entries(tools)) {
+    documentation += `### ${toolName}\n`;
+    documentation += `${toolInfo.description}\n\n`;
+  }
+  
+  return documentation;
+}
+const toolsDocumentation = generateToolDocumentation(availableTools);
+
+
 const systemPrompt = `
 ## User Information (the user that's interacting with the agent):
 - User's ID: ${user.id}
@@ -921,6 +879,9 @@ ${agentConfig.specialInstructions}
 
 ## Style Guide
 ${agentConfig.styleGuide}
+
+# Tool Documentation
+${toolsDocumentation}
 
 # Relevant Context for This Query:
 ${contextText}

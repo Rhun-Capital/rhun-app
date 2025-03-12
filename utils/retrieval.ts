@@ -946,7 +946,7 @@ export async function retrieveDexScreenerTokens(
           ]
         });
       }
-
+      
       // Search by name or symbol if searchText is provided
       if (filters.searchText && filters.searchText.trim().length > 0) {
         const searchText = filters.searchText.trim().toLowerCase();
@@ -1085,21 +1085,21 @@ function mapResponseToTokens(queryResponse: QueryResponse<RecordMetadata>): DexS
   }) || []);
 }
 
-
 /**
  * Retrieves crypto news articles from Pinecone with optional semantic search and filtering
  * 
  * @param semanticQuery - Natural language query for semantic search
- * @param filters - Optional filters to apply to the search
  * @param maxResults - Maximum number of results to return
- * @returns Array of news articles matching the query and filters
+ * @returns Array of news articles matching the query 
  */
 export async function retrieveCryptoNews(
-  semanticQuery?: string,
-  filters?: NewsFilters,
+  semanticQuery: string,
+  filters?: any, // Kept for compatibility but not used
   maxResults: number = 20
 ): Promise<CryptoNewsArticle[]> {
   try {
+    console.log('Retrieving crypto news articles with semantic query:', semanticQuery);
+    
     // Initialize Pinecone
     const pinecone = initPinecone();
     const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
@@ -1110,91 +1110,16 @@ export async function retrieveCryptoNews(
     
     console.log(`Querying news namespace: ${namespace}`);
 
-    // Build filter conditions
-    const filterConditions: any[] = [];
-
-    // Apply optional filters
-    if (filters) {
-      // Filter by sentiment
-      if (filters.sentiment) {
-        filterConditions.push({ sentiment: { $eq: filters.sentiment } });
-      }
-
-      // Filter by source
-      if (filters.source) {
-        filterConditions.push({ source_name: { $eq: filters.source } });
-      }
-
-      // Filter by publication date range
-      if (filters.minPublishedDate) {
-        const minDate = new Date(filters.minPublishedDate).toISOString();
-        filterConditions.push({ published_date: { $gte: minDate } });
-      }
-
-      if (filters.maxPublishedDate) {
-        const maxDate = new Date(filters.maxPublishedDate).toISOString();
-        filterConditions.push({ published_date: { $lte: maxDate } });
-      }
-
-      // Filter by categories if provided
-      if (filters.categories && filters.categories.length > 0) {
-        const categoryConditions = filters.categories.map(category => ({
-          categories: { $in: [category] }
-        }));
-        
-        filterConditions.push({ $or: categoryConditions });
-      }
-
-      // Include keywords
-      if (filters.includeKeywords && filters.includeKeywords.length > 0) {
-        const keywordConditions = filters.includeKeywords.map(keyword => ({
-          keywords: { $in: [keyword] }
-        }));
-        
-        filterConditions.push({ $or: keywordConditions });
-      }
-
-      // Exclude keywords
-      if (filters.excludeKeywords && filters.excludeKeywords.length > 0) {
-        filters.excludeKeywords.forEach(keyword => {
-          filterConditions.push({ 
-            $or: [
-              { keywords: { $exists: false } },
-              { keywords: { $nin: [keyword] } }
-            ]
-          });
-        });
-      }
-
-      // Search by title or body if searchText is provided
-      if (filters.searchText && filters.searchText.trim().length > 0) {
-        const searchText = filters.searchText.trim().toLowerCase();
-        // This is a simple text match - for better results, you would typically
-        // use the semanticQuery parameter with embeddings
-        filterConditions.push({
-          $or: [
-            { title: { $containsPhrase: searchText } },
-            { body: { $containsPhrase: searchText } }
-          ]
-        });
-      }
-    }
-
-    // Prepare query vector (use default if no semantic query provided)
-    const defaultVector = Array(1536).fill(0.1);
+    // Create embedding from semantic query
+    const queryVector = await createEmbedding(semanticQuery);
     
-    const queryParams: any = {
-      vector: semanticQuery 
-        ? await createEmbedding(semanticQuery) // Convert query to embedding
-        : defaultVector,
-      topK: maxResults,
-      includeMetadata: true,
+    // Fixed query parameters format
+    // The error indicates topK should be a scalar value, not an object
+    const queryParams = {
+      vector: queryVector,
+      topK: parseInt(String(maxResults)), // Ensure topK is a number
+      includeMetadata: true
     };
-
-    // Only add filter if we have conditions
-    if (filterConditions.length > 0) {
-      queryParams.filter = { $and: filterConditions };
-    }
 
     // Query the namespace
     const queryResponse = await namespaceIndex.query(queryParams);
@@ -1203,6 +1128,10 @@ export async function retrieveCryptoNews(
 
   } catch (error) {
     console.error('Error retrieving crypto news:', error);
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+    }
     return [];
   }
 }
