@@ -746,17 +746,6 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
                 <div key={index} className="border border-zinc-700 rounded-lg overflow-hidden">
                   <div className="bg-zinc-800 px-4 py-2 flex justify-between items-center">
                     <span className="font-medium">Recording {index + 1}</span>
-                    <a 
-                      href={recordingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-zinc-400 hover:text-zinc-300 text-sm flex items-center"
-                    >
-                      <span>Download media</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v12m0 0l-4-4m4 4l4-4m-4 4V4" />
-                        </svg>
-                    </a>
                   </div>
                   
                   {/* Embedding the video */}
