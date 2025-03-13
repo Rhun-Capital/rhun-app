@@ -29,11 +29,6 @@ li::marker {
   display: flex;
 }
 
-p {
-  margin-bottom: 1rem;
-}
-
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;

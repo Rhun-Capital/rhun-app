@@ -702,39 +702,7 @@ export async function POST(req: Request) {
           };
         }
       }
-    },
-
-    // optionsAnalysis: {
-    //   description: "Analyze options data for a given stock ticker, showing call/put ratios, implied volatility, and upcoming expirations",
-    //   parameters: z.object({ 
-    //     ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
-    //   }),
-    //   execute: async ({ ticker }: { ticker: string }) => {
-    //     try {
-    //       const response = await getFinancialData([ticker], 'options');
-    //       return response;
-    //     } catch (error) {
-    //       console.error('Error in options analysis:', error);
-    //       return { error: 'Failed to analyze options data' };
-    //     }
-    //   }
-    // },
-
-    // newsAnalysis: {
-    //   description: "Analyze recent news for a stock and provide sentiment analysis",
-    //   parameters: z.object({ 
-    //     ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
-    //   }),
-    //   execute: async ({ ticker }: { ticker: string }) => {
-    //     try {
-    //       const response = await getFinancialData([ticker], 'news')
-    //       return response;
-    //     } catch (error) {
-    //       console.error('Error in news analysis:', error);
-    //       return { error: 'Failed to analyze news data' };
-    //     }
-    //   }
-    // }      
+    },   
 
     webResearch: {
       description: "Perform web research on cryptocurrency topics using browser automation",
