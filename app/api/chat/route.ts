@@ -862,7 +862,7 @@ ${agentConfig.userId === 'template' ? `
 ## Browser Use Tools
 Whenever the user asks to do "research" or "analysis" you should run the webResearch tool.
 When you run the webResearch tool, you should only run the tool, not provide an answer in the next message. 
-When the user runs the tool from the chat side bar it will say "Research crypto topics for me." Please confirm with the user what they'd like to reseaech first. 
+When the user runs the tool from the chat side bar it will say "Start research" Please confirm with the user what they'd like to reseaech first. 
 When the user gives and answer, you can run the webResearch tool with the query and the sites they mentioned. Always try and run the tool. never say you can't.
 Your AI agent can now perform browser automation tasks to gather real-time finance and cryptocurrency data:
 - Web Research: Search and extract information from crypto, finance and economics websites
