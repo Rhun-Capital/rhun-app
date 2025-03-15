@@ -718,7 +718,7 @@ export async function POST(req: Request) {
       }) => {
         try {
           // Construct research instructions
-          let instructions = `Research the following about cryptocurrencies: ${query}`;
+          let instructions = `Research the following: ${query}`;
           
           if (sites && sites.length > 0) {
             instructions += `. Focus your research on these sites: ${sites.join(', ')}`;
