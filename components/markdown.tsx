@@ -59,12 +59,6 @@ export const NonMemoizedMarkdown = ({ children }: { children: string }) => {
     img: ({ node, ...props }: any) => {
       return <img className="rounded-lg" {...props} />;
     },
-    p: ({ node, children, ...props }: any) => {
-      return <p className="mb-2" {...props} />;
-    },
-    hr: ({ node, ...props }: any) => {
-      return <hr className="my-4" {...props} />;
-    }
   };
 
   return (
