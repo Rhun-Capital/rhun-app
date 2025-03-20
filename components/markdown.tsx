@@ -39,7 +39,7 @@ export const NonMemoizedMarkdown = ({ children }: { children: string }) => {
     },
     ul: ({ node, children, ...props }: any) => {
       return (
-        <ul className="list-revert ml-4" {...props}>
+        <ul className="list-revert ml-4 mb-2" {...props}>
           {children}
         </ul>
       );
@@ -59,6 +59,12 @@ export const NonMemoizedMarkdown = ({ children }: { children: string }) => {
     img: ({ node, ...props }: any) => {
       return <img className="rounded-lg" {...props} />;
     },
+    p: ({ node, children, ...props }: any) => {
+      return <p className="mb-2" {...props} />;
+    },
+    hr: ({ node, ...props }: any) => {
+      return <hr className="my-4" {...props} />;
+    }
   };
 
   return (
