@@ -35,3 +35,6 @@ li::marker {
   }
 }
 
+p {
+  margin-bottom: 1rem;
+}

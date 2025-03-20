@@ -705,30 +705,56 @@ export async function POST(req: Request) {
     },   
 
     webResearch: {
-      description: "Perform web research on cryptocurrency topics using browser automation",
+      description: "Perform comprehensive web research using browser automation",
       parameters: z.object({
         query: z.string().describe("Research query describing what information to find"),
         sites: z.array(z.string()).optional().describe("Specific websites to search (e.g., ['coinmarketcap.com', 'defillama.com'])"),
-        dataFormat: z.enum(['text', 'json']).optional().default('text').describe("Format for the output data")
+        dataFormat: z.enum(['text', 'json']).optional().default('text').describe("Format for the output data"),
+        depth: z.enum(['basic', 'detailed', 'comprehensive']).optional().default('detailed').describe("Level of detail for the research"),
+        includeSources: z.boolean().optional().default(true).describe("Whether to include source URLs in the report")
       }),
-      execute: async ({ query, sites, dataFormat }: { 
+      execute: async ({ query, sites, dataFormat, depth, includeSources }: {
         query: string;
         sites?: string[];
         dataFormat?: 'text' | 'json';
+        depth?: 'basic' | 'detailed' | 'comprehensive';
+        includeSources?: boolean;
       }) => {
         try {
-          // Construct research instructions
-          let instructions = `Research the following: ${query}`;
+          // Construct improved research instructions
+          let instructions = `Research the following topic thoroughly: ${query}`;
+          
+          // Add depth instructions
+          if (depth === 'comprehensive') {
+            instructions += `. Conduct exhaustive research and provide an in-depth analysis with multiple perspectives, historical context, latest developments, technical details, market implications, and expert opinions where available.`;
+          } else if (depth === 'detailed') {
+            instructions += `. Provide detailed information including key facts, recent developments, relevant statistics, and different viewpoints on the topic.`;
+          } else {
+            instructions += `. Focus on the most essential information and key points.`;
+          }
           
           if (sites && sites.length > 0) {
-            instructions += `. Focus your research on these sites: ${sites.join(', ')}`;
+            instructions += ` Focus your research on these sites: ${sites.join(', ')}.`;
           }
           
+          // Guide the format and structure of the report
           if (dataFormat === 'json') {
-            instructions += `. Return the results in a structured JSON format with key information.`;
+            instructions += ` Return the results in a structured JSON format with the following sections: summary, keyPoints, marketData, technicalDetails, opinions, trends, and risks.`;
           } else {
-            instructions += `. Summarize your findings in a well-organized report.`;
+            instructions += ` Structure your report with clear sections including: Executive Summary, Background, Current State, Technical Analysis, Market Implications, Expert Opinions, and Future Outlook. Use bullet points for key information and include numerical data where relevant.`;
+            instructions += ` Add a space between paragraphs and use headings to separate different sections for clarity.`;
           }
+          
+          // Request sources if needed
+          if (includeSources) {
+            instructions += ` Include all source URLs for each piece of information to ensure traceability and verification.`;
+          }
+          
+          // Additional guidance for thoroughness
+          instructions += ` Don't limit your research to just the first few search results. Explore multiple pages and sources to ensure comprehensive coverage. Compare and contrast different viewpoints and provide context for conflicting information.`;
+
+          // Instruct the agent to create a multi-parapgraph research paper type response
+          instructions += ` Write a detailed research report with multiple paragraphs, each focusing on a different aspect of the topic. Include a summary at the beginning and a conclusion at the end.`;
           
           // Create the task and return immediately
           const taskResponse = await createTask(instructions);
@@ -738,7 +764,7 @@ export async function POST(req: Request) {
             taskId: taskResponse.id,
             status: taskResponse.status || 'created',
             liveUrl: taskResponse.live_url,
-            output: "Research in progress...",
+            output: "Comprehensive research in progress...",
             steps: taskResponse.steps || []
           };
         } catch (error: any) {
