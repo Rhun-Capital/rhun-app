@@ -79,7 +79,7 @@ export default function HomePage() {
             </Link>
             </div>
 
-          <div  className="w-lg sm:w-auto">
+          <div  className="w-full sm:w-auto">
             <Link 
               href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
