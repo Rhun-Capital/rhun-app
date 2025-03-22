@@ -63,7 +63,7 @@ export default function HomePage() {
         <div className="text-center space-y-4 py-16">
             <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
             <h1 className="text-4xl font-bold">Welcome to</h1>
-            <Image src="/images/rhun-logo-white.svg" alt="Rhun Capital" height={155} width={155} className="mt-1 ml-2 antialiased"/>
+            <Image src="https://d1olseq3j3ep4p.cloudfront.net/images/rhun-logo-white.svg" alt="Rhun Capital" height={155} width={155} className="mt-1 ml-2 antialiased"/>
             </div>
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
           Build and deploy AI agents that track, analyze, and surface market opportunities for you.

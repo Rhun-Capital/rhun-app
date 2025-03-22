@@ -41,7 +41,7 @@ const SolanaTransactionVolume: React.FC<SolanaTransactionVolumeProps> = ({ toolI
           <div className="bg-zinc-900 p-4 rounded-lg">
             <div className="text-sm text-zinc-400 mb-1">Volume (SOL)</div>
             <div className="text-lg font-bold flex items-center gap-2">
-              <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
+              <Image src="https://d1olseq3j3ep4p.cloudfront.net/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
               {toolInvocation.result ? 
                 toolInvocation.result.volume.volumeSOL.toLocaleString(undefined, {
                   maximumFractionDigits: 2

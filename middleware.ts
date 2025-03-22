@@ -162,7 +162,7 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const user = await privy.verifyAuthToken(privyToken);
+    const user = await privy.verifyAuthToken(privyToken, process.env.PRIVY_VERIFICATION_KEY);
     if (!user?.userId) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
@@ -200,7 +200,11 @@ export async function middleware(request: NextRequest) {
 
     return NextResponse.next();
   } catch (error) {
-    console.error('Middleware error:', error);
+    if (error instanceof Error) {
+      console.error('Middleware error:', error.message);
+    } else {
+      console.error('Middleware error:', error);
+    }
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }

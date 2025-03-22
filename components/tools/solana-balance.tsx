@@ -20,7 +20,7 @@ interface BalanceProps {
         <div className="bg-zinc-800 rounded-lg border border-zinc-700 overflow-hidden">
           <div className="flex items-center gap-2 sm:gap-3 bg-zinc-900 p-3 sm:p-4">
             <Image 
-              src="/images/chains/solana.svg" 
+              src="https://d1olseq3j3ep4p.cloudfront.net/images/chains/solana.svg" 
               alt="Solana Logo" 
               width={12} 
               height={12}

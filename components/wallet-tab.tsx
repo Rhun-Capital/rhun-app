@@ -254,7 +254,7 @@ useEffect(() => {
     <div className="space-y-6">
       <div className="border-b border-zinc-700 pb-4">
         <div className="flex items-center gap-3">
-          <Image src="/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
+          <Image src="https://d1olseq3j3ep4p.cloudfront.net/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
           <h2 className="text-lg font-semibold">Agent Wallet</h2>
         </div>
         <p className="text-sm text-zinc-400">Manage your agent&apos;s Solana wallet</p>

@@ -434,7 +434,7 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
           <div className="bg-zinc-900 p-4 rounded-lg">
             <div className="text-sm text-zinc-400">Balance</div>
             <div className="text-lg font-semibold text-white flex gap-2 items-center">
-              <div><Image src="/images/chains/solana.svg" alt="SOL" width={15} height={15}/></div>
+              <div><Image src="http://d1olseq3j3ep4p.cloudfront.net/images/chains/solana.svg" alt="SOL" width={15} height={15}/></div>
               <div>{accountData ? formatSolBalance(accountData.lamports) : '0'} SOL</div>
             </div>
           </div>
