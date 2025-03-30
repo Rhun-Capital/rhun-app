@@ -24,7 +24,8 @@ import RecentCoinsResults from "@/components/tools/recent-coins";
 // import AnalyzeSolanaTokenHolders from "@/components/analyze-solana-token-holders";
 import TopHoldersDisplay from "@/components/tools/get-top-holders";
 import { Message } from 'ai'; // Use the AI SDK Message type
-import  ChatSidebar  from "@/components/chat-sidebar";
+import React from 'react';
+import ChatSidebar from '@/components/chat-sidebar';
 import SolanaBalance  from "@/components/tools/solana-balance";
 import PortfolioValue  from "@/components/tools/portfolio-value";
 import TokenHoldings  from "@/components/tools/token-holdings";
@@ -43,6 +44,9 @@ import StockAnalysis from "@/components/tools/stock-analysis";
 import OptionsAnalysis from "@/components/tools/options-analysis";
 import NewsAnalysis from "@/components/tools/news-analysis";
 import WebResearch from "@/components/tools/web-research";
+import TradingViewChart from "@/components/tools/tradingview-chart";
+import TechnicalAnalysis from '@/components/tools/technical-analysis';
+import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 
 const getTextFromDataUrl = (dataUrl: string) => {
   try {
@@ -958,6 +962,14 @@ export default function Home() {
                             return <div className="max-w-[100%] sm:max-w-[75%]">
                               <WebResearch key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
                             </div>;
+                          case 'getTradingViewChart':
+                            return <TradingViewChart key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
+                          case 'getTechnicalAnalysis':
+                            return "result" in tool ? (
+                              <div className="p-4">
+                                <TechnicalAnalysis data={tool.result} />
+                              </div>
+                            ) : null;
                           default:
                             return null;                            
                         }

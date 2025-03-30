@@ -301,6 +301,20 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isPro: false,
       isNew: false
     },
+    {
+      name: 'TradingView Chart',
+      description: 'Display an interactive TradingView chart for any cryptocurrency or stock symbol.',
+      command: 'Show me a TradingView chart',
+      isPro: false,
+      isNew: true
+    },   
+    {
+      name: "Technical Analysis",
+      description: "Get detailed technical analysis and market insights for any cryptocurrency using real-time data.",
+      command: "Show me a technical analysis for",
+      isPro: false,
+      isNew: true
+    },     
     { 
       name: 'Deep Research',
       description: 'Perform deep research on cryptocurrency and finance using browser automation.',
@@ -426,7 +440,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       command: 'What is the current fear and greed index?',
       isPro: false,
       isNew: false
-    }
+    },
   ];
 
   // get portfolio value and tokens every 10 seconds
@@ -568,7 +582,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       {/* Toggle Button */}
       <button 
         onClick={onToggle}
-        className="absolute -left-10 top-1/2 -translate-y-1/2 p-2 bg-zinc-800 rounded-l-lg border-l border-t border-b border-zinc-700 hover:bg-zinc-700 transition-colors"
+        className="absolute -left-6 top-1/2 -translate-y-1/2 p-2 bg-zinc-800 rounded-l-lg border-l border-t border-b border-zinc-700 hover:bg-zinc-700 transition-colors"
       >
         {isOpen ? <div>&raquo;</div> : <div>&laquo;</div>}
       </button>

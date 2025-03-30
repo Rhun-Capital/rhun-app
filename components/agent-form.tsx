@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import KnowledgeTab from "./knowledge-tab";
 import WalletTab from "./wallet-tab";
 import AppMarketplaceTab from "./app-marketplace-tab";
+import TokenTab from "./token-tab";
 import { CloseIcon, ChatIcon } from "./icons";
 import { AlertCircle } from 'lucide-react';
 
@@ -433,6 +434,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     { id: "knowledge", label: "Knowledge Base" },
     { id: "wallet", label: "Wallet" },
     { id: "apps", label: "App Marketplace" },
+    // { id: "token", label: "Create Token" },
   ];
 
   const goToChat = () => {
@@ -682,6 +684,11 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         )}
         {activeTab === "apps" && (
           <AppMarketplaceTab
+            agentId={initialData?.id || (Array.isArray(params?.agentId) ? params.agentId[0] : params?.agentId) || ""}
+          />
+        )}
+        {activeTab === "token" && (
+          <TokenTab
             agentId={initialData?.id || (Array.isArray(params?.agentId) ? params.agentId[0] : params?.agentId) || ""}
           />
         )}

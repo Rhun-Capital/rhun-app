@@ -777,6 +777,344 @@ export async function POST(req: Request) {
       }
     },
 
+    getTradingViewChart: {
+      description: "Display a TradingView chart widget for a given symbol with customizable settings. By default, no technical indicators are shown. You can optionally specify indicators using natural language (e.g., 'Ichimoku Cloud', 'RSI', 'MACD') or their exact TradingView identifiers.",
+      parameters: z.object({
+        symbol: z.string().optional().describe('The trading symbol (e.g., BINANCE:BTCUSDT). If not provided, defaults to BINANCE:BTCUSDT'),
+        interval: z.string().optional().describe('The chart interval (e.g., 1, 5, 15, 30, 60, 240, D, W, M)'),
+        timezone: z.string().optional().describe('Chart timezone'),
+        allow_symbol_change: z.boolean().optional().describe('Allow symbol change'),
+        container_id: z.string().optional().describe('Container ID for the chart'),
+        height: z.number().optional().describe('Chart height in pixels'),
+        width: z.string().optional().describe('Chart width (e.g., "100%", "800px")'),
+        studies: z.array(z.string()).optional().describe('Array of technical indicators to display. If not specified, no indicators will be shown. Can use natural language names (e.g., "Ichimoku Cloud", "RSI", "MACD") or exact TradingView identifiers.'),
+      }),
+      execute: async (params) => {
+        // Mapping of natural language names to TradingView study identifiers
+        const indicatorMap: { [key: string]: string } = {
+          // Moving Averages
+          "ema": "STD;EMA",
+          "sma": "STD;SMA",
+          "wma": "STD;WMA",
+          "hull ma": "STD;Hull%1MA",
+          "dem": "STD;DEMA",
+          "tema": "STD;TEMA",
+          "vwma": "STD;VWMA",
+          "alma": "STD;Arnaud%1Legoux%1Moving%1Average",
+          "lsma": "STD;Least%1Squares%1Moving%1Average",
+          "mcginley dynamic": "STD;McGinley%1Dynamic",
+          "ma ribbon": "STD;MA%Ribbon",
+          "ma cross": "STD;MA%1Cross",
+          
+          // Momentum Indicators
+          "rsi": "STD;RSI",
+          "macd": "STD;MACD",
+          "stochastic": "STD;Stochastic",
+          "stochastic rsi": "STD;Stochastic_RSI",
+          "cci": "STD;CCI",
+          "momentum": "STD;Momentum",
+          "roc": "STD;ROC",
+          "mfi": "STD;Money_Flow",
+          "ultimate oscillator": "STD;Ultimate_Oscillator",
+          "awesome oscillator": "STD;Awesome_Oscillator",
+          "bull bear power": "STD;Bull%Bear%Power",
+          "klinger oscillator": "STD;Klinger%1Oscillator",
+          "true strength indicator": "STD;True%1Strength%1Indicator",
+          "williams r": "STD;Willams_R",
+          "woodies cci": "STD;Woodies%1CCI",
+          
+          // Volatility Indicators
+          "bollinger bands": "STD;Bollinger_Bands",
+          "bollinger bands b": "STD;Bollinger_Bands_B",
+          "bollinger bands width": "STD;Bollinger_Bands_Width",
+          "bollinger bars": "STD;Bollinger%1Bars",
+          "atr": "STD;Average_True_Range",
+          "keltner channels": "STD;Keltner_Channels",
+          "donchian channels": "STD;Donchian_Channels",
+          "volatility stop": "STD;Volatility_Stop",
+          "historical volatility": "STD;Historical_Volatility",
+          "chop zone": "STD;Chop%1Zone",
+          "choppiness index": "STD;Choppiness_Index",
+          
+          // Volume Indicators
+          "volume": "STD;Volume%1Delta",
+          "volume oscillator": "STD;Volume%1Oscillator",
+          "obv": "STD;On_Balance_Volume",
+          "vwap": "STD;VWAP",
+          "chaikin money flow": "STD;Chaikin_Money_Flow",
+          "chaikin oscillator": "STD;Chaikin_Oscillator",
+          "money flow": "STD;Money_Flow",
+          "net volume": "STD;Net%1Volume",
+          "volume delta": "STD;Volume%1Delta",
+          "24h volume": "STD;24h%Volume",
+          "cumulative volume delta": "STD;Cumulative%1Volume%1Delta",
+          "cumulative volume index": "STD;Cumulative%1Volume%1Index",
+          "up down volume": "STD;UP_DOWN_Volume",
+          
+          // Trend Indicators
+          "adx": "STD;Average%1Directional%1Index",
+          "dmi": "STD;DMI",
+          "ichimoku cloud": "STD;Ichimoku%1Cloud",
+          "parabolic sar": "STD;PSAR",
+          "supertrend": "STD;Supertrend",
+          "williams alligator": "STD;Williams_Alligator",
+          "williams fractals": "STD;Whilliams_Fractals",
+          "trend strength index": "STD;Trend%1Strength%1Index",
+          "bb trend": "STD;BBTrend",
+          "linear regression": "STD;Linear_Regression",
+          "price oscillator": "STD;Price_Oscillator",
+          "price target": "STD;Price%1Target",
+          "price volume trend": "STD;Price_Volume_Trend",
+          "trix": "STD;TRIX",
+          "vortex indicator": "STD;Vortex%1Indicator",
+          
+          // Pivot Points
+          "pivot points standard": "STD;Pivot%1Points%1Standard",
+          "pivot points high low": "STD;Pivot%1Points%1High%1Low",
+          "pivot points fibonacci": "STD;Pivot%1Points%1Fibonacci",
+          "pivot points camarilla": "STD;Pivot%1Points%1Camarilla",
+          "pivot points woodie": "STD;Pivot%1Points%1Woodie",
+          "pivot points demark": "STD;Pivot%1Points%1Demark",
+          
+          // Other Indicators
+          "aroon": "STD;Aroon",
+          "average day range": "STD;Average%Day%Range",
+          "balance of power": "STD;Balance%1of%1Power",
+          "chande kroll stop": "STD;Chande%1Kroll%1Stop",
+          "chande momentum oscillator": "STD;Chande_Momentum_Oscillator",
+          "coppock curve": "STD;Coppock%1Curve",
+          "dpo": "STD;DPO",
+          "eom": "STD;EOM",
+          "efi": "STD;EFI",
+          "env": "STD;ENV",
+          "fisher transform": "STD;Fisher_Transform",
+          "gaps": "STD;Gaps",
+          "know sure thing": "STD;Know_Sure_Thing",
+          "mass index": "STD;Mass%1Index",
+          "median": "STD;Median",
+          "moon phases": "STD;Moon%1Phases",
+          "performance": "STD;Performance",
+          "rank correlation index": "STD;Rank_Correlation_Index",
+          "rci ribbon": "STD;RCI_Ribbon",
+          "relative vigor index": "STD;Relative_Vigor_Index",
+          "relative volatility index": "STD;Relative_Volatility_Index",
+          "relative volume at time": "STD;Relative%1Volume%1at%1Time",
+          "seasonality": "STD;Seasonality",
+          "smi": "STD;SMI",
+          "smi ergodic indicator oscillator": "STD;SMI_Ergodic_Indicator_Oscillator",
+          "smi ergodic oscillator": "STD;SMI_Ergodic_Oscillator",
+          "smoothed moving average": "STD;Smoothed%1Moving%1Average",
+          "technical ratings": "STD;Technical%1Ratings",
+          "time weighted average price": "STD;Time%1Weighted%1Average%1Price",
+          "trading sessions": "STD;Trading%1Sessions",
+          "visible average price": "STD;Visible%1Average%1Price"
+        };
+
+        // Convert natural language indicator names to TradingView identifiers
+        const convertedStudies = params.studies?.map((study: string) => {
+          // If the study already starts with "STD;" or ends with "@tv-basicstudies", return as is
+          if (study.startsWith("STD;") || study.endsWith("@tv-basicstudies")) {
+            return study;
+          }
+          
+          // Try to find a match in the indicator map (case-insensitive)
+          const normalizedStudy = study.toLowerCase().trim();
+          return indicatorMap[normalizedStudy] || study;
+        });
+
+        return {
+          symbol: params.symbol || 'BINANCE:BTCUSDT',
+          interval: params.interval,
+          timezone: params.timezone,
+          allow_symbol_change: params.allow_symbol_change,
+          container_id: params.container_id,
+          height: params.height,
+          width: params.width,
+          studies: convertedStudies || [], // Only include studies if they are specified
+        };
+      }
+    },
+
+    getTechnicalAnalysis: {
+      description: "Get technical analysis and insights for a given trading symbol using CoinGecko data. This tool provides current price data, technical indicators, and market sentiment analysis.",
+      parameters: z.object({
+        symbol: z.string().describe('The trading symbol (e.g., bitcoin, ethereum, solana)'),
+        days: z.number().optional().describe('Number of days of historical data to analyze (default: 30)'),
+        interval: z.enum(['daily', 'hourly']).optional().describe('Data interval for analysis (default: daily)'),
+        indicators: z.array(z.string()).optional().describe('Array of technical indicators to analyze. Available indicators: sma, ema, rsi, macd, bollinger_bands, stoch_rsi, adx, ichimoku, volume, obv, aroon, cci, mfi, dmi, parabolic_sar, supertrend, williams_alligator, williams_fractals, pivot_points, fibonacci_retracement'),
+        timeframe: z.string().optional().describe('Analysis timeframe (e.g., 1h, 4h, 1d, 1w)'),
+      }),
+      execute: async ({ symbol, days = 30, interval = 'daily', indicators, timeframe }) => {
+        try {
+          // First, try to get the coin ID from CoinGecko
+          const searchResponse = await fetch(`https://api.coingecko.com/api/v3/search?query=${symbol}`);
+          const searchData = await searchResponse.json();
+
+          if (!searchResponse.ok) {
+            throw new Error(`CoinGecko API error: ${searchData.error || 'Failed to search for coin'}`);
+          }
+
+          if (!searchData.coins || searchData.coins.length === 0) {
+            return {
+              error: 'Coin not found',
+              message: `Could not find any coin matching "${symbol}". Please check the symbol and try again.`,
+              suggestions: [
+                'Make sure you are using the correct coin symbol (e.g., "bitcoin" instead of "BTC")',
+                'Try searching for the coin on CoinGecko to find the correct symbol',
+                'Check if the coin is listed on CoinGecko'
+              ]
+            };
+          }
+
+          // Get the first matching coin's ID
+          const coinId = searchData.coins[0].id;
+
+          // Get market data using the coin ID
+          const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=${interval}`);
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(`CoinGecko API error: ${data.error || 'Failed to fetch market data'}`);
+          }
+
+          // Extract price data
+          const prices = data.prices.map(([timestamp, price]: [number, number]) => ({
+            timestamp: new Date(timestamp),
+            price
+          }));
+
+          // Calculate basic price metrics
+          const currentPrice = prices[prices.length - 1].price;
+          const priceChange24h = ((currentPrice - prices[prices.length - 2].price) / prices[prices.length - 2].price) * 100;
+          const priceChange7d = ((currentPrice - prices[prices.length - 8].price) / prices[prices.length - 8].price) * 100;
+          const priceChange30d = ((currentPrice - prices[0].price) / prices[0].price) * 100;
+
+          // Calculate various technical indicators based on requested indicators
+          const technicalIndicators: any = {};
+
+          // Moving Averages
+          if (!indicators || indicators.includes('sma')) {
+            technicalIndicators.sma = {
+              '20': calculateSMA(prices, 20),
+              '50': calculateSMA(prices, 50),
+              '200': calculateSMA(prices, 200)
+            };
+          }
+
+          if (!indicators || indicators.includes('ema')) {
+            technicalIndicators.ema = {
+              '9': calculateEMA(prices, 9),
+              '21': calculateEMA(prices, 21),
+              '50': calculateEMA(prices, 50)
+            };
+          }
+
+          // Momentum Indicators
+          if (!indicators || indicators.includes('rsi')) {
+            technicalIndicators.rsi = calculateRSI(prices);
+          }
+
+          if (!indicators || indicators.includes('macd')) {
+            technicalIndicators.macd = calculateMACD(prices);
+          }
+
+          if (!indicators || indicators.includes('stoch_rsi')) {
+            technicalIndicators.stochRSI = calculateStochRSI(prices);
+          }
+
+          if (!indicators || indicators.includes('cci')) {
+            technicalIndicators.cci = calculateCCI(prices);
+          }
+
+          if (!indicators || indicators.includes('mfi')) {
+            technicalIndicators.mfi = calculateMFI(prices);
+          }
+
+          // Trend Indicators
+          if (!indicators || indicators.includes('adx')) {
+            technicalIndicators.adx = calculateADX(prices);
+          }
+
+          if (!indicators || indicators.includes('dmi')) {
+            technicalIndicators.dmi = calculateDMI(prices);
+          }
+
+          if (!indicators || indicators.includes('ichimoku')) {
+            technicalIndicators.ichimoku = calculateIchimoku(prices);
+          }
+
+          if (!indicators || indicators.includes('aroon')) {
+            technicalIndicators.aroon = calculateAroon(prices);
+          }
+
+          // Volatility Indicators
+          if (!indicators || indicators.includes('bollinger_bands')) {
+            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
+          }
+
+          if (!indicators || indicators.includes('atr')) {
+            technicalIndicators.atr = calculateATR(prices);
+          }
+
+          // Volume Indicators
+          if (!indicators || indicators.includes('volume')) {
+            technicalIndicators.volume = calculateVolumeMetrics(prices);
+          }
+
+          if (!indicators || indicators.includes('obv')) {
+            technicalIndicators.obv = calculateOBV(prices);
+          }
+
+          // Support/Resistance
+          if (!indicators || indicators.includes('pivot_points')) {
+            technicalIndicators.pivotPoints = calculatePivotPoints(prices);
+          }
+
+          if (!indicators || indicators.includes('fibonacci_retracement')) {
+            technicalIndicators.fibonacciRetracement = calculateFibonacciRetracement(prices);
+          }
+
+          // Calculate support and resistance levels
+          const supportResistance = calculateSupportResistance(prices);
+
+          // Calculate market sentiment
+          const sentiment = calculateMarketSentiment(prices, technicalIndicators.rsi, technicalIndicators.bollingerBands);
+
+          return {
+            symbol: searchData.coins[0].symbol.toUpperCase(),
+            name: searchData.coins[0].name,
+            image: searchData.coins[0].large,
+            currentPrice,
+            priceChange: {
+              '24h': priceChange24h,
+              '7d': priceChange7d,
+              '30d': priceChange30d
+            },
+            technicalIndicators,
+            supportResistance,
+            marketSentiment: sentiment,
+            lastUpdated: new Date().toISOString(),
+            analysisPeriod: {
+              days,
+              interval
+            }
+          };
+        } catch (error: any) {
+          console.error('Error in technical analysis:', error);
+          return {
+            error: 'Failed to analyze chart data',
+            message: error.message || 'An unexpected error occurred while analyzing the chart data.',
+            suggestions: [
+              'Check if the coin symbol is correct',
+              'Try using the full coin name instead of the symbol',
+              'Verify that the coin is listed on CoinGecko',
+              'Check your internet connection and try again'
+            ]
+          };
+        }
+      }
+    },
+
   }
 
   // Define tool sets for different user tiers
@@ -802,7 +1140,9 @@ export async function POST(req: Request) {
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
     getCryptoNews: allTools.getCryptoNews,
     stockAnalysis: allTools.stockAnalysis,
-    webResearch: allTools.webResearch
+    webResearch: allTools.webResearch,
+    getTradingViewChart: allTools.getTradingViewChart,
+    getTechnicalAnalysis: allTools.getTechnicalAnalysis
   };
 
 // Format context for the prompt
@@ -902,6 +1242,7 @@ This agent can analyze stock market data using comprehensive financial tools:
 # Chatbot Tool Special Instructions:
 When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
 Dont add links to markdown. 
+When using the getTradingViewChart tool do not show and image.
 If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 When your listing token holdings do not add the token image to the list.
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
@@ -926,4 +1267,298 @@ Remember to use both the general context and cryptocurrency data when relevant t
 
 
   return result.toDataStreamResponse();
+}
+
+// Helper functions for technical analysis
+function calculateSMA(prices: { timestamp: Date; price: number }[], period: number): number {
+  if (prices.length < period) return 0;
+  const sum = prices.slice(-period).reduce((acc, curr) => acc + curr.price, 0);
+  return sum / period;
+}
+
+function calculateRSI(prices: { timestamp: Date; price: number }[], period: number = 14): number {
+  if (prices.length < period + 1) return 0;
+  
+  let gains = 0;
+  let losses = 0;
+  
+  for (let i = 1; i <= period; i++) {
+    const difference = prices[prices.length - i].price - prices[prices.length - i - 1].price;
+    if (difference >= 0) {
+      gains += difference;
+    } else {
+      losses -= difference;
+    }
+  }
+  
+  const avgGain = gains / period;
+  const avgLoss = losses / period;
+  const rs = avgGain / avgLoss;
+  
+  return 100 - (100 / (1 + rs));
+}
+
+function calculateEMA(prices: { timestamp: Date; price: number }[], period: number): number {
+  if (prices.length < period + 1) return 0;
+  
+  const multiplier = 2 / (period + 1);
+  let ema = calculateSMA(prices.slice(0, period), period);
+  
+  for (let i = period; i < prices.length; i++) {
+    ema = (prices[i].price - ema) * multiplier + ema;
+  }
+  
+  return ema;
+}
+
+function calculateMACD(prices: { timestamp: Date; price: number }[]): { macd: number; signal: number; histogram: number } {
+  const ema12 = calculateEMA(prices, 12);
+  const ema26 = calculateEMA(prices, 26);
+  const macd = ema12 - ema26;
+  const signal = calculateEMA(prices.map((p, i) => ({ timestamp: p.timestamp, price: macd })), 9);
+  const histogram = macd - signal;
+  
+  return { macd, signal, histogram };
+}
+
+function calculateStochRSI(prices: { timestamp: Date; price: number }[], period: number = 14): number {
+  const rsi = calculateRSI(prices, period);
+  const rsiValues = prices.map((_, i) => calculateRSI(prices.slice(0, i + 1), period));
+  const minRSI = Math.min(...rsiValues);
+  const maxRSI = Math.max(...rsiValues);
+  
+  return ((rsi - minRSI) / (maxRSI - minRSI)) * 100;
+}
+
+function calculateCCI(prices: { timestamp: Date; price: number }[], period: number = 20): number {
+  if (prices.length < period) return 0;
+  
+  const typicalPrices = prices.map(p => (p.price + p.price + p.price) / 3);
+  const sma = calculateSMA(prices, period);
+  const meanDeviation = prices.slice(-period).reduce((acc, curr) => 
+    acc + Math.abs(curr.price - sma), 0) / period;
+  
+  return (prices[prices.length - 1].price - sma) / (0.015 * meanDeviation);
+}
+
+function calculateMFI(prices: { timestamp: Date; price: number }[], period: number = 14): number {
+  if (prices.length < period + 1) return 0;
+  
+  let positiveFlow = 0;
+  let negativeFlow = 0;
+  
+  for (let i = 1; i <= period; i++) {
+    const typicalPrice = (prices[prices.length - i].price + prices[prices.length - i].price + prices[prices.length - i].price) / 3;
+    const prevTypicalPrice = (prices[prices.length - i - 1].price + prices[prices.length - i - 1].price + prices[prices.length - i - 1].price) / 3;
+    
+    if (typicalPrice > prevTypicalPrice) {
+      positiveFlow += typicalPrice;
+    } else {
+      negativeFlow += typicalPrice;
+    }
+  }
+  
+  return 100 - (100 / (1 + positiveFlow / negativeFlow));
+}
+
+function calculateADX(prices: { timestamp: Date; price: number }[], period: number = 14): number {
+  const dmi = calculateDMI(prices, period);
+  const dx = Math.abs(dmi.plus - dmi.minus) / (dmi.plus + dmi.minus) * 100;
+  return calculateEMA(prices.map((p, i) => ({ timestamp: p.timestamp, price: dx })), period);
+}
+
+function calculateDMI(prices: { timestamp: Date; price: number }[], period: number = 14): { plus: number; minus: number } {
+  if (prices.length < period + 1) return { plus: 0, minus: 0 };
+  
+  let plusDM = 0;
+  let minusDM = 0;
+  
+  for (let i = 1; i <= period; i++) {
+    const highDiff = prices[prices.length - i].price - prices[prices.length - i - 1].price;
+    const lowDiff = prices[prices.length - i - 1].price - prices[prices.length - i].price;
+    
+    if (highDiff > lowDiff && highDiff > 0) {
+      plusDM += highDiff;
+    } else if (lowDiff > highDiff && lowDiff > 0) {
+      minusDM += lowDiff;
+    }
+  }
+  
+  return {
+    plus: (plusDM / period) * 100,
+    minus: (minusDM / period) * 100
+  };
+}
+
+function calculateIchimoku(prices: { timestamp: Date; price: number }[]): {
+  tenkan: number;
+  kijun: number;
+  senkouA: number;
+  senkouB: number;
+} {
+  const tenkanPeriod = 9;
+  const kijunPeriod = 26;
+  const senkouBPeriod = 52;
+  
+  const tenkan = (Math.max(...prices.slice(-tenkanPeriod).map(p => p.price)) + 
+                  Math.min(...prices.slice(-tenkanPeriod).map(p => p.price))) / 2;
+  const kijun = (Math.max(...prices.slice(-kijunPeriod).map(p => p.price)) + 
+                 Math.min(...prices.slice(-kijunPeriod).map(p => p.price))) / 2;
+  const senkouA = (tenkan + kijun) / 2;
+  const senkouB = (Math.max(...prices.slice(-senkouBPeriod).map(p => p.price)) + 
+                   Math.min(...prices.slice(-senkouBPeriod).map(p => p.price))) / 2;
+  
+  return { tenkan, kijun, senkouA, senkouB };
+}
+
+function calculateAroon(prices: { timestamp: Date; price: number }[], period: number = 14): { up: number; down: number } {
+  if (prices.length < period + 1) return { up: 0, down: 0 };
+  
+  const up = ((period - prices.slice(-period).findIndex(p => p.price === Math.max(...prices.slice(-period).map(p => p.price)))) / period) * 100;
+  const down = ((period - prices.slice(-period).findIndex(p => p.price === Math.min(...prices.slice(-period).map(p => p.price)))) / period) * 100;
+  
+  return { up, down };
+}
+
+function calculateATR(prices: { timestamp: Date; price: number }[], period: number = 14): number {
+  if (prices.length < period + 1) return 0;
+  
+  const trueRanges = prices.slice(-period).map((p, i) => {
+    const prev = prices[prices.length - period + i - 1];
+    return Math.max(
+      p.price - prev.price,
+      Math.abs(p.price - prev.price),
+      prev.price - p.price
+    );
+  });
+  
+  return trueRanges.reduce((acc, curr) => acc + curr, 0) / period;
+}
+
+function calculateVolumeMetrics(prices: { timestamp: Date; price: number }[]): {
+  volume: number;
+  volumeSMA: number;
+  volumeEMA: number;
+} {
+  const volume = prices[prices.length - 1].price;
+  const volumeSMA = calculateSMA(prices, 20);
+  const volumeEMA = calculateEMA(prices, 20);
+  
+  return { volume, volumeSMA, volumeEMA };
+}
+
+function calculateOBV(prices: { timestamp: Date; price: number }[]): number {
+  let obv = 0;
+  
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i].price > prices[i - 1].price) {
+      obv += prices[i].price;
+    } else if (prices[i].price < prices[i - 1].price) {
+      obv -= prices[i].price;
+    }
+  }
+  
+  return obv;
+}
+
+function calculatePivotPoints(prices: { timestamp: Date; price: number }[]): {
+  pivot: number;
+  r1: number;
+  r2: number;
+  s1: number;
+  s2: number;
+} {
+  const high = Math.max(...prices.map(p => p.price));
+  const low = Math.min(...prices.map(p => p.price));
+  const close = prices[prices.length - 1].price;
+  
+  const pivot = (high + low + close) / 3;
+  const r1 = 2 * pivot - low;
+  const r2 = pivot + (high - low);
+  const s1 = 2 * pivot - high;
+  const s2 = pivot - (high - low);
+  
+  return { pivot, r1, r2, s1, s2 };
+}
+
+function calculateFibonacciRetracement(prices: { timestamp: Date; price: number }[]): {
+  level0: number;
+  level236: number;
+  level382: number;
+  level500: number;
+  level618: number;
+  level100: number;
+} {
+  const high = Math.max(...prices.map(p => p.price));
+  const low = Math.min(...prices.map(p => p.price));
+  const diff = high - low;
+  
+  return {
+    level0: low,
+    level236: low + diff * 0.236,
+    level382: low + diff * 0.382,
+    level500: low + diff * 0.500,
+    level618: low + diff * 0.618,
+    level100: high
+  };
+}
+
+function calculateBollingerBands(prices: { timestamp: Date; price: number }[], period: number = 20): { upper: number; middle: number; lower: number } {
+  if (prices.length < period) return { upper: 0, middle: 0, lower: 0 };
+  
+  const sma = calculateSMA(prices, period);
+  const squaredDiffs = prices.slice(-period).map(price => Math.pow(price.price - sma, 2));
+  const standardDeviation = Math.sqrt(squaredDiffs.reduce((acc, curr) => acc + curr, 0) / period);
+  
+  return {
+    upper: sma + (2 * standardDeviation),
+    middle: sma,
+    lower: sma - (2 * standardDeviation)
+  };
+}
+
+function calculateSupportResistance(prices: { timestamp: Date; price: number }[]): { support: number[]; resistance: number[] } {
+  const pricePoints = prices.map(p => p.price);
+  const sortedPrices = [...pricePoints].sort((a, b) => a - b);
+  
+  // Simple support/resistance calculation using price clusters
+  const support = sortedPrices.slice(0, 3);
+  const resistance = sortedPrices.slice(-3).reverse();
+  
+  return { support, resistance };
+}
+
+function calculateMarketSentiment(
+  prices: { timestamp: Date; price: number }[], 
+  rsi: number, 
+  bollingerBands: { upper: number; middle: number; lower: number }
+): { trend: string; strength: number; confidence: number } {
+  const currentPrice = prices[prices.length - 1].price;
+  const sma20 = calculateSMA(prices, 20);
+  const sma50 = calculateSMA(prices, 50);
+  
+  // Determine trend
+  let trend = 'neutral';
+  if (currentPrice > sma20 && sma20 > sma50) trend = 'bullish';
+  else if (currentPrice < sma20 && sma20 < sma50) trend = 'bearish';
+  
+  // Calculate trend strength (-100 to 100)
+  const priceChange = ((currentPrice - prices[prices.length - 2].price) / prices[prices.length - 2].price) * 100;
+  const strength = Math.min(Math.max(priceChange * 10, -100), 100);
+  
+  // Calculate confidence (0 to 100)
+  let confidence = 50;
+  
+  // Adjust confidence based on RSI
+  if (rsi > 70) confidence += 20;
+  else if (rsi < 30) confidence -= 20;
+  
+  // Adjust confidence based on Bollinger Bands
+  if (currentPrice > bollingerBands.upper) confidence += 15;
+  else if (currentPrice < bollingerBands.lower) confidence -= 15;
+  
+  // Ensure confidence stays within bounds
+  confidence = Math.min(Math.max(confidence, 0), 100);
+  
+  return { trend, strength, confidence };
 }
