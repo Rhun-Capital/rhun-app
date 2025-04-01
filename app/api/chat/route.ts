@@ -1004,7 +1004,13 @@ export async function POST(req: Request) {
           // Calculate various technical indicators based on requested indicators
           const technicalIndicators: any = {};
 
-          // Moving Averages
+          // Calculate pivot points first since other indicators might depend on them
+          const pivotPoints = calculatePivotPoints(prices);
+          if (pivotPoints) {
+            technicalIndicators.pivotPoints = pivotPoints;
+          }
+
+          // Calculate other indicators based on request
           if (!indicators || indicators.includes('sma')) {
             technicalIndicators.sma = {
               '20': calculateSMA(prices, 20),
@@ -1015,13 +1021,12 @@ export async function POST(req: Request) {
 
           if (!indicators || indicators.includes('ema')) {
             technicalIndicators.ema = {
-              '9': calculateEMA(prices, 9),
-              '21': calculateEMA(prices, 21),
-              '50': calculateEMA(prices, 50)
+              '20': calculateEMA(prices, 20),
+              '50': calculateEMA(prices, 50),
+              '200': calculateEMA(prices, 200)
             };
           }
 
-          // Momentum Indicators
           if (!indicators || indicators.includes('rsi')) {
             technicalIndicators.rsi = calculateRSI(prices);
           }
@@ -1030,56 +1035,28 @@ export async function POST(req: Request) {
             technicalIndicators.macd = calculateMACD(prices);
           }
 
+          if (!indicators || indicators.includes('bollingerBands')) {
+            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
+          }
+
           if (!indicators || indicators.includes('stoch_rsi')) {
             technicalIndicators.stochRSI = calculateStochRSI(prices);
-          }
-
-          if (!indicators || indicators.includes('cci')) {
-            technicalIndicators.cci = calculateCCI(prices);
-          }
-
-          if (!indicators || indicators.includes('mfi')) {
-            technicalIndicators.mfi = calculateMFI(prices);
-          }
-
-          // Trend Indicators
-          if (!indicators || indicators.includes('adx')) {
-            technicalIndicators.adx = calculateADX(prices);
-          }
-
-          if (!indicators || indicators.includes('dmi')) {
-            technicalIndicators.dmi = calculateDMI(prices);
-          }
-
-          if (!indicators || indicators.includes('ichimoku')) {
-            technicalIndicators.ichimoku = calculateIchimoku(prices);
-          }
-
-          if (!indicators || indicators.includes('aroon')) {
-            technicalIndicators.aroon = calculateAroon(prices);
-          }
-
-          // Volatility Indicators
-          if (!indicators || indicators.includes('bollinger_bands')) {
-            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
           }
 
           if (!indicators || indicators.includes('atr')) {
             technicalIndicators.atr = calculateATR(prices);
           }
 
-          // Volume Indicators
-          if (!indicators || indicators.includes('volume')) {
-            technicalIndicators.volume = calculateVolumeMetrics(prices);
-          }
-
           if (!indicators || indicators.includes('obv')) {
             technicalIndicators.obv = calculateOBV(prices);
           }
 
-          // Support/Resistance
-          if (!indicators || indicators.includes('pivot_points')) {
-            technicalIndicators.pivotPoints = calculatePivotPoints(prices);
+          if (!indicators || indicators.includes('adx')) {
+            technicalIndicators.adx = calculateADX(prices);
+          }
+
+          if (!indicators || indicators.includes('ichimoku')) {
+            technicalIndicators.ichimoku = calculateIchimoku(prices);
           }
 
           if (!indicators || indicators.includes('fibonacci_retracement')) {

@@ -99,13 +99,14 @@ interface IndicatorAnalysis {
 }
 
 const analyzeIndicator = (indicator: string, value: any, data: TechnicalAnalysisProps['data']): IndicatorAnalysis => {
-  const currentPrice = data.currentPrice;
+  const currentPrice = data?.currentPrice || 0;
+  const technicalIndicators = data?.technicalIndicators || {};
   
   switch (indicator) {
     case 'SMA':
-      const sma20 = data.technicalIndicators.sma['20'];
-      const sma50 = data.technicalIndicators.sma['50'];
-      const sma200 = data.technicalIndicators.sma['200'];
+      const sma20 = technicalIndicators?.sma?.['20'] || 0;
+      const sma50 = technicalIndicators?.sma?.['50'] || 0;
+      const sma200 = technicalIndicators?.sma?.['200'] || 0;
       
       if (currentPrice > sma20 && sma20 > sma50 && sma50 > sma200) {
         return {
@@ -140,14 +141,14 @@ const analyzeIndicator = (indicator: string, value: any, data: TechnicalAnalysis
       };
 
     case 'RSI':
-      const rsi = data.technicalIndicators.rsi;
+      const rsi = technicalIndicators?.rsi || 0;
       if (rsi > 70) {
         return {
           status: 'bearish',
           summary: 'Overbought conditions',
           details: [
-            `RSI at ${rsi.toFixed(2)} indicates overbought conditions`,
-            'Potential for price reversal or pullback'
+            `RSI (${rsi.toFixed(2)}) is above 70`,
+            'Potential reversal point'
           ]
         };
       } else if (rsi < 30) {
@@ -155,164 +156,190 @@ const analyzeIndicator = (indicator: string, value: any, data: TechnicalAnalysis
           status: 'bullish',
           summary: 'Oversold conditions',
           details: [
-            `RSI at ${rsi.toFixed(2)} indicates oversold conditions`,
-            'Potential for price bounce or recovery'
+            `RSI (${rsi.toFixed(2)}) is below 30`,
+            'Potential reversal point'
           ]
         };
       }
       return {
         status: 'neutral',
-        summary: 'RSI in neutral territory',
+        summary: 'Neutral RSI conditions',
         details: [
-          `RSI at ${rsi.toFixed(2)} is in neutral range`,
-          'No strong overbought or oversold signals'
+          `RSI (${rsi.toFixed(2)}) is between 30 and 70`,
+          'No extreme conditions'
         ]
       };
 
     case 'MACD':
-      const macd = data.technicalIndicators.macd;
-      if (macd.macd > macd.signal && macd.histogram > 0) {
+      const macd = technicalIndicators?.macd || { macd: 0, signal: 0, histogram: 0 };
+      if (macd.macd > macd.signal) {
         return {
           status: 'bullish',
-          summary: 'MACD showing bullish momentum',
+          summary: 'MACD above signal line',
           details: [
-            `MACD line (${macd.macd.toFixed(2)}) is above signal line (${macd.signal.toFixed(2)})`,
-            `Positive histogram (${macd.histogram.toFixed(2)}) indicates increasing momentum`
+            `MACD (${macd.macd.toFixed(2)}) is above Signal (${macd.signal.toFixed(2)})`,
+            `Histogram: ${macd.histogram.toFixed(2)}`
           ]
         };
-      } else if (macd.macd < macd.signal && macd.histogram < 0) {
+      } else if (macd.macd < macd.signal) {
         return {
           status: 'bearish',
-          summary: 'MACD showing bearish momentum',
+          summary: 'MACD below signal line',
           details: [
-            `MACD line (${macd.macd.toFixed(2)}) is below signal line (${macd.signal.toFixed(2)})`,
-            `Negative histogram (${macd.histogram.toFixed(2)}) indicates decreasing momentum`
+            `MACD (${macd.macd.toFixed(2)}) is below Signal (${macd.signal.toFixed(2)})`,
+            `Histogram: ${macd.histogram.toFixed(2)}`
           ]
         };
       }
       return {
         status: 'neutral',
-        summary: 'MACD showing neutral momentum',
+        summary: 'MACD crossing signal line',
         details: [
-          `MACD line: ${macd.macd.toFixed(2)}`,
-          `Signal line: ${macd.signal.toFixed(2)}`,
+          `MACD (${macd.macd.toFixed(2)}) is near Signal (${macd.signal.toFixed(2)})`,
           `Histogram: ${macd.histogram.toFixed(2)}`
         ]
       };
 
     case 'Bollinger Bands':
-      const bb = data.technicalIndicators.bollingerBands;
+      const bb = technicalIndicators?.bollingerBands || { upper: 0, middle: 0, lower: 0 };
       if (currentPrice > bb.upper) {
         return {
           status: 'bearish',
-          summary: 'Price above upper Bollinger Band',
+          summary: 'Price above upper band',
           details: [
             `Price (${currentPrice.toFixed(2)}) is above upper band (${bb.upper.toFixed(2)})`,
-            'Potential for price reversal or pullback'
+            'Potential overbought condition'
           ]
         };
       } else if (currentPrice < bb.lower) {
         return {
           status: 'bullish',
-          summary: 'Price below lower Bollinger Band',
+          summary: 'Price below lower band',
           details: [
             `Price (${currentPrice.toFixed(2)}) is below lower band (${bb.lower.toFixed(2)})`,
-            'Potential for price bounce or recovery'
+            'Potential oversold condition'
           ]
         };
       }
       return {
         status: 'neutral',
-        summary: 'Price within Bollinger Bands',
+        summary: 'Price within bands',
         details: [
           `Price (${currentPrice.toFixed(2)}) is between bands`,
-          `Upper: ${bb.upper.toFixed(2)}`,
-          `Middle: ${bb.middle.toFixed(2)}`,
-          `Lower: ${bb.lower.toFixed(2)}`
-        ]
-      };
-
-    case 'ADX':
-      const adx = data.technicalIndicators.adx;
-      if (adx > 25) {
-        return {
-          status: 'bullish',
-          summary: 'Strong trend strength',
-          details: [
-            `ADX at ${adx.toFixed(2)} indicates strong trend`,
-            'Current trend is likely to continue'
-          ]
-        };
-      } else if (adx < 20) {
-        return {
-          status: 'neutral',
-          summary: 'Weak trend strength',
-          details: [
-            `ADX at ${adx.toFixed(2)} indicates weak trend`,
-            'Market may be ranging or consolidating'
-          ]
-        };
-      }
-      return {
-        status: 'neutral',
-        summary: 'Moderate trend strength',
-        details: [
-          `ADX at ${adx.toFixed(2)} indicates moderate trend`,
-          'Trend direction should be confirmed with other indicators'
+          `Upper: ${bb.upper.toFixed(2)}, Lower: ${bb.lower.toFixed(2)}`
         ]
       };
 
     case 'Ichimoku':
-      const ichimoku = data.technicalIndicators.ichimoku;
-      if (currentPrice > ichimoku.senkouA && currentPrice > ichimoku.senkouB) {
+      const ichimoku = technicalIndicators?.ichimoku || { tenkan: 0, kijun: 0, senkouA: 0, senkouB: 0 };
+      if (currentPrice > ichimoku.tenkan && ichimoku.tenkan > ichimoku.kijun) {
         return {
           status: 'bullish',
-          summary: 'Price above Ichimoku Cloud',
+          summary: 'Strong uptrend',
           details: [
-            `Price (${currentPrice.toFixed(2)}) is above cloud`,
-            `Tenkan: ${ichimoku.tenkan.toFixed(2)}`,
-            `Kijun: ${ichimoku.kijun.toFixed(2)}`,
-            'Strong bullish trend'
+            `Price (${currentPrice.toFixed(2)}) is above Tenkan (${ichimoku.tenkan.toFixed(2)})`,
+            `Tenkan is above Kijun (${ichimoku.kijun.toFixed(2)})`
           ]
         };
-      } else if (currentPrice < ichimoku.senkouA && currentPrice < ichimoku.senkouB) {
+      } else if (currentPrice < ichimoku.tenkan && ichimoku.tenkan < ichimoku.kijun) {
         return {
           status: 'bearish',
-          summary: 'Price below Ichimoku Cloud',
+          summary: 'Strong downtrend',
           details: [
-            `Price (${currentPrice.toFixed(2)}) is below cloud`,
-            `Tenkan: ${ichimoku.tenkan.toFixed(2)}`,
-            `Kijun: ${ichimoku.kijun.toFixed(2)}`,
-            'Strong bearish trend'
+            `Price (${currentPrice.toFixed(2)}) is below Tenkan (${ichimoku.tenkan.toFixed(2)})`,
+            `Tenkan is below Kijun (${ichimoku.kijun.toFixed(2)})`
           ]
         };
       }
       return {
         status: 'neutral',
-        summary: 'Price within Ichimoku Cloud',
+        summary: 'Mixed signals',
         details: [
-          `Price (${currentPrice.toFixed(2)}) is within cloud`,
-          'Trend is weakening or changing'
+          `Price (${currentPrice.toFixed(2)}) is between Tenkan and Kijun`,
+          `Tenkan: ${ichimoku.tenkan.toFixed(2)}, Kijun: ${ichimoku.kijun.toFixed(2)}`
+        ]
+      };
+
+    case 'Pivot Points':
+      const pivotPoints = technicalIndicators?.pivotPoints || { pivot: 0, r1: 0, r2: 0, s1: 0, s2: 0 };
+      if (currentPrice > pivotPoints.pivot) {
+        return {
+          status: 'bullish',
+          summary: 'Price above pivot',
+          details: [
+            `Price (${currentPrice.toFixed(2)}) is above pivot (${pivotPoints.pivot.toFixed(2)})`,
+            `Next resistance: ${pivotPoints.r1.toFixed(2)}`
+          ]
+        };
+      } else if (currentPrice < pivotPoints.pivot) {
+        return {
+          status: 'bearish',
+          summary: 'Price below pivot',
+          details: [
+            `Price (${currentPrice.toFixed(2)}) is below pivot (${pivotPoints.pivot.toFixed(2)})`,
+            `Next support: ${pivotPoints.s1.toFixed(2)}`
+          ]
+        };
+      }
+      return {
+        status: 'neutral',
+        summary: 'Price at pivot',
+        details: [
+          `Price (${currentPrice.toFixed(2)}) is near pivot (${pivotPoints.pivot.toFixed(2)})`,
+          'Potential reversal point'
+        ]
+      };
+
+    case 'Fibonacci':
+      const fib = technicalIndicators?.fibonacciRetracement || { level0: 0, level236: 0, level382: 0, level500: 0, level618: 0, level100: 0 };
+      if (currentPrice > fib.level618) {
+        return {
+          status: 'bearish',
+          summary: 'Price above 61.8% retracement',
+          details: [
+            `Price (${currentPrice.toFixed(2)}) is above 61.8% level (${fib.level618.toFixed(2)})`,
+            'Potential reversal point'
+          ]
+        };
+      } else if (currentPrice < fib.level382) {
+        return {
+          status: 'bullish',
+          summary: 'Price below 38.2% retracement',
+          details: [
+            `Price (${currentPrice.toFixed(2)}) is below 38.2% level (${fib.level382.toFixed(2)})`,
+            'Potential reversal point'
+          ]
+        };
+      }
+      return {
+        status: 'neutral',
+        summary: 'Price within Fibonacci levels',
+        details: [
+          `Price (${currentPrice.toFixed(2)}) is between 38.2% and 61.8% levels`,
+          `38.2%: ${fib.level382.toFixed(2)}, 61.8%: ${fib.level618.toFixed(2)}`
         ]
       };
 
     case 'Volume':
-      const volume = data.technicalIndicators.volume;
-      if (volume.volume > volume.volumeSMA) {
+      const volume = technicalIndicators?.volume || { volume: 0, volumeSMA: 0, volumeEMA: 0 };
+      const volumeValue = volume?.volume || 0;
+      const volumeSMAValue = volume?.volumeSMA || 0;
+      
+      if (volumeValue > volumeSMAValue) {
         return {
           status: 'bullish',
-          summary: 'Above average volume',
+          summary: 'High volume above average',
           details: [
-            `Current volume (${volume.volume.toFixed(2)}) is above SMA (${volume.volumeSMA.toFixed(2)})`,
+            `Current volume (${volumeValue.toFixed(2)}) is above SMA (${volumeSMAValue.toFixed(2)})`,
             'Strong buying pressure'
           ]
         };
-      } else if (volume.volume < volume.volumeSMA) {
+      } else if (volumeValue < volumeSMAValue) {
         return {
           status: 'bearish',
-          summary: 'Below average volume',
+          summary: 'Low volume below average',
           details: [
-            `Current volume (${volume.volume.toFixed(2)}) is below SMA (${volume.volumeSMA.toFixed(2)})`,
+            `Current volume (${volumeValue.toFixed(2)}) is below SMA (${volumeSMAValue.toFixed(2)})`,
             'Weak buying pressure'
           ]
         };
@@ -321,81 +348,8 @@ const analyzeIndicator = (indicator: string, value: any, data: TechnicalAnalysis
         status: 'neutral',
         summary: 'Average volume',
         details: [
-          `Current volume (${volume.volume.toFixed(2)}) is near SMA (${volume.volumeSMA.toFixed(2)})`,
-          'Normal market activity'
-        ]
-      };
-
-    case 'Pivot Points':
-      const pivot = data.technicalIndicators.pivotPoints;
-      if (currentPrice > pivot.r1) {
-        return {
-          status: 'bullish',
-          summary: 'Price above R1, showing strong upward momentum',
-          details: [
-            `Current price (${currentPrice.toFixed(2)}) is above R1 (${pivot.r1.toFixed(2)})`,
-            `Next resistance at R2: ${pivot.r2.toFixed(2)}`,
-            `Support levels: S1 (${pivot.s1.toFixed(2)}), S2 (${pivot.s2.toFixed(2)})`,
-            'Strong bullish momentum with potential for further gains'
-          ]
-        };
-      } else if (currentPrice < pivot.s1) {
-        return {
-          status: 'bearish',
-          summary: 'Price below S1, showing strong downward momentum',
-          details: [
-            `Current price (${currentPrice.toFixed(2)}) is below S1 (${pivot.s1.toFixed(2)})`,
-            `Next support at S2: ${pivot.s2.toFixed(2)}`,
-            `Resistance levels: R1 (${pivot.r1.toFixed(2)}), R2 (${pivot.r2.toFixed(2)})`,
-            'Strong bearish momentum with potential for further losses'
-          ]
-        };
-      }
-      return {
-        status: 'neutral',
-        summary: 'Price between pivot levels, showing consolidation',
-        details: [
-          `Current price (${currentPrice.toFixed(2)}) is between S1 and R1`,
-          `Pivot point: ${pivot.pivot.toFixed(2)}`,
-          `Support: S1 (${pivot.s1.toFixed(2)}), S2 (${pivot.s2.toFixed(2)})`,
-          `Resistance: R1 (${pivot.r1.toFixed(2)}), R2 (${pivot.r2.toFixed(2)})`,
-          'Market is in a consolidation phase'
-        ]
-      };
-
-    case 'Fibonacci':
-      const fib = data.technicalIndicators.fibonacciRetracement;
-      const range = fib.level100 - fib.level0;
-      const currentPosition = ((currentPrice - fib.level0) / range) * 100;
-
-      if (currentPrice > fib.level618) {
-        return {
-          status: 'bullish',
-          summary: 'Price above 61.8% retracement, showing strong recovery',
-          details: [
-            `Current price (${currentPrice.toFixed(2)}) is above 61.8% retracement level`,
-            `Price has recovered ${currentPosition.toFixed(1)}% of the total range`,
-            'Strong bullish momentum with potential for full recovery'
-          ]
-        };
-      } else if (currentPrice < fib.level382) {
-        return {
-          status: 'bearish',
-          summary: 'Price below 38.2% retracement, showing significant pullback',
-          details: [
-            `Current price (${currentPrice.toFixed(2)}) is below 38.2% retracement level`,
-            `Price has retraced ${(100 - currentPosition).toFixed(1)}% of the total range`,
-            'Significant bearish momentum with potential for further decline'
-          ]
-        };
-      }
-      return {
-        status: 'neutral',
-        summary: 'Price in middle retracement zone',
-        details: [
-          `Current price (${currentPrice.toFixed(2)}) is between 38.2% and 61.8% retracement levels`,
-          `Price has retraced ${currentPosition.toFixed(1)}% of the total range`,
-          'Market is in a balanced retracement zone'
+          `Current volume (${volumeValue.toFixed(2)}) is near SMA (${volumeSMAValue.toFixed(2)})`,
+          'Normal trading activity'
         ]
       };
 
@@ -403,7 +357,7 @@ const analyzeIndicator = (indicator: string, value: any, data: TechnicalAnalysis
       return {
         status: 'neutral',
         summary: 'No analysis available',
-        details: ['Indicator analysis not implemented']
+        details: ['Indicator not implemented']
       };
   }
 };
@@ -422,15 +376,23 @@ const getStatusColor = (status: 'bullish' | 'bearish' | 'neutral'): string => {
 };
 
 const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
+  if (!data) {
+    return (
+      <div className="p-6 bg-zinc-800 rounded-lg">
+        <div className="text-center text-zinc-400">No data available</div>
+      </div>
+    );
+  }
+
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(num);
+    }).format(num || 0);
   };
 
   const formatPercentage = (num: number) => {
-    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`;
+    return `${num >= 0 ? '+' : ''}${(num || 0).toFixed(2)}%`;
   };
 
   const getTrendColor = (trend: string) => {
@@ -444,6 +406,24 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
     }
   };
 
+  const technicalIndicators = data?.technicalIndicators || {};
+  const sma = technicalIndicators?.sma || { '20': 0, '50': 0, '200': 0 };
+  const ema = technicalIndicators?.ema || { '9': 0, '21': 0, '50': 0 };
+  const priceChange = data.priceChange || { '24h': 0, '7d': 0, '30d': 0 };
+  const supportResistance = data.supportResistance || { support: [], resistance: [] };
+  const marketSentiment = data.marketSentiment || { trend: 'neutral', strength: 0, confidence: 0 };
+  const analysisPeriod = data.analysisPeriod || { days: 0, interval: '1d' };
+  const lastUpdated = data.lastUpdated || new Date().toISOString();
+
+  const volume = technicalIndicators?.volume || { volume: 0, volumeSMA: 0, volumeEMA: 0 };
+  const macd = technicalIndicators?.macd || { macd: 0, signal: 0, histogram: 0 };
+  const dmi = technicalIndicators?.dmi || { plus: 0, minus: 0 };
+  const aroon = technicalIndicators?.aroon || { up: 0, down: 0 };
+  const bollingerBands = technicalIndicators?.bollingerBands || { upper: 0, middle: 0, lower: 0 };
+  const pivotPoints = technicalIndicators?.pivotPoints || { pivot: 0, r1: 0, r2: 0, s1: 0, s2: 0 };
+  const fibonacciRetracement = technicalIndicators?.fibonacciRetracement || { level0: 0, level236: 0, level382: 0, level500: 0, level618: 0, level100: 0 };
+  const ichimoku = technicalIndicators?.ichimoku || { tenkan: 0, kijun: 0, senkouA: 0, senkouB: 0 };
+
   return (
     <div className="p-6 bg-zinc-800 rounded-lg">
       {/* Price Section */}
@@ -452,14 +432,14 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           {data.image && (
             <img 
               src={data.image} 
-              alt={`${data.symbol} icon`}
+              alt={`${data.symbol || 'Unknown'} icon`}
               className="w-12 h-12 rounded-full"
             />
           )}
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-2xl font-bold">
-                {data.symbol.toUpperCase()}
+                {(data.symbol || 'Unknown').toUpperCase()}
               </h3>
               {data.name && (
                 <span className="text-lg text-zinc-400">
@@ -476,20 +456,20 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
         <div className="flex gap-4 mt-2">
           <div className="flex items-center gap-1">
             <span className="text-sm text-zinc-400">24h:</span>
-            <span className={`text-sm ${data.priceChange['24h'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {formatPercentage(data.priceChange['24h'])}
+            <span className={`text-sm ${priceChange['24h'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {formatPercentage(priceChange['24h'])}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-sm text-zinc-400">7d:</span>
-            <span className={`text-sm ${data.priceChange['7d'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {formatPercentage(data.priceChange['7d'])}
+            <span className={`text-sm ${priceChange['7d'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {formatPercentage(priceChange['7d'])}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-sm text-zinc-400">30d:</span>
-            <span className={`text-sm ${data.priceChange['30d'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {formatPercentage(data.priceChange['30d'])}
+            <span className={`text-sm ${priceChange['30d'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {formatPercentage(priceChange['30d'])}
             </span>
           </div>
         </div>
@@ -511,11 +491,11 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">24h High</span>
-                <span className="text-sm text-zinc-300">${formatNumber(data.currentPrice * (1 + Math.abs(data.priceChange['24h'] / 100)))}</span>
+                <span className="text-sm text-zinc-300">${formatNumber(data.currentPrice * (1 + Math.abs(priceChange['24h'] / 100)))}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">24h Low</span>
-                <span className="text-sm text-zinc-300">${formatNumber(data.currentPrice * (1 - Math.abs(data.priceChange['24h'] / 100)))}</span>
+                <span className="text-sm text-zinc-300">${formatNumber(data.currentPrice * (1 - Math.abs(priceChange['24h'] / 100)))}</span>
               </div>
             </div>
           </div>
@@ -526,15 +506,15 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">Nearest Support</span>
-                <span className="text-sm text-zinc-300">${formatNumber(data.supportResistance.support[0])}</span>
+                <span className="text-sm text-zinc-300">${formatNumber(supportResistance.support[0])}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">Nearest Resistance</span>
-                <span className="text-sm text-zinc-300">${formatNumber(data.supportResistance.resistance[0])}</span>
+                <span className="text-sm text-zinc-300">${formatNumber(supportResistance.resistance[0])}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">Pivot Point</span>
-                <span className="text-sm text-zinc-300">${formatNumber(data.technicalIndicators.pivotPoints.pivot)}</span>
+                <span className="text-sm text-zinc-300">${formatNumber(pivotPoints.pivot)}</span>
               </div>
             </div>
           </div>
@@ -545,15 +525,15 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">Volatility (ATR)</span>
-                <span className="text-sm text-zinc-300">{formatNumber(data.technicalIndicators.atr)}</span>
+                <span className="text-sm text-zinc-300">{formatNumber(technicalIndicators.atr)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">Volume 24h</span>
-                <span className="text-sm text-zinc-300">{formatNumber(data.technicalIndicators.volume.volume)}</span>
+                <span className="text-sm text-zinc-300">{formatNumber(volume.volume)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-zinc-400">Trend Strength (ADX)</span>
-                <span className="text-sm text-zinc-300">{formatNumber(data.technicalIndicators.adx)}</span>
+                <span className="text-sm text-zinc-300">{formatNumber(technicalIndicators.adx)}</span>
               </div>
             </div>
           </div>
@@ -608,27 +588,27 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">SMA 20</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.sma['20'])}</span>
+                <span className="font-medium">{formatNumber(sma['20'])}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">SMA 50</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.sma['50'])}</span>
+                <span className="font-medium">{formatNumber(sma['50'])}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">SMA 200</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.sma['200'])}</span>
+                <span className="font-medium">{formatNumber(sma['200'])}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">EMA 9</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.ema['9'])}</span>
+                <span className="font-medium">{formatNumber(ema['9'])}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">EMA 21</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.ema['21'])}</span>
+                <span className="font-medium">{formatNumber(ema['21'])}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">EMA 50</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.ema['50'])}</span>
+                <span className="font-medium">{formatNumber(ema['50'])}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -656,19 +636,19 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">RSI</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.rsi)}</span>
+                <span className="font-medium">{formatNumber(technicalIndicators.rsi)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">StochRSI</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.stochRSI)}</span>
+                <span className="font-medium">{formatNumber(technicalIndicators.stochRSI)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">CCI</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.cci)}</span>
+                <span className="font-medium">{formatNumber(technicalIndicators.cci)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">MFI</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.mfi)}</span>
+                <span className="font-medium">{formatNumber(technicalIndicators.mfi)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -696,23 +676,23 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">ADX</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.adx)}</span>
+                <span className="font-medium">{formatNumber(technicalIndicators.adx)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">+DI</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.dmi.plus)}</span>
+                <span className="font-medium">{formatNumber(dmi.plus)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">-DI</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.dmi.minus)}</span>
+                <span className="font-medium">{formatNumber(dmi.minus)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Aroon Up</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.aroon.up)}</span>
+                <span className="font-medium">{formatNumber(aroon.up)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Aroon Down</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.aroon.down)}</span>
+                <span className="font-medium">{formatNumber(aroon.down)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -740,15 +720,15 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">MACD Line</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.macd.macd)}</span>
+                <span className="font-medium">{formatNumber(macd.macd)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Signal Line</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.macd.signal)}</span>
+                <span className="font-medium">{formatNumber(macd.signal)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Histogram</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.macd.histogram)}</span>
+                <span className="font-medium">{formatNumber(macd.histogram)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -776,19 +756,19 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Tenkan</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.ichimoku.tenkan)}</span>
+                <span className="font-medium">{formatNumber(ichimoku.tenkan)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Kijun</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.ichimoku.kijun)}</span>
+                <span className="font-medium">{formatNumber(ichimoku.kijun)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Senkou A</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.ichimoku.senkouA)}</span>
+                <span className="font-medium">{formatNumber(ichimoku.senkouA)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Senkou B</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.ichimoku.senkouB)}</span>
+                <span className="font-medium">{formatNumber(ichimoku.senkouB)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -816,19 +796,19 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Volume</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.volume.volume)}</span>
+                <span className="font-medium">{formatNumber(volume.volume)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Volume SMA</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.volume.volumeSMA)}</span>
+                <span className="font-medium">{formatNumber(volume.volumeSMA)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Volume EMA</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.volume.volumeEMA)}</span>
+                <span className="font-medium">{formatNumber(volume.volumeEMA)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">OBV</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.obv)}</span>
+                <span className="font-medium">{formatNumber(technicalIndicators.obv)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -856,19 +836,19 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Upper Band</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.bollingerBands.upper)}</span>
+                <span className="font-medium">{formatNumber(bollingerBands.upper)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Middle Band</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.bollingerBands.middle)}</span>
+                <span className="font-medium">{formatNumber(bollingerBands.middle)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Lower Band</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.bollingerBands.lower)}</span>
+                <span className="font-medium">{formatNumber(bollingerBands.lower)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">ATR</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.atr)}</span>
+                <span className="font-medium">{formatNumber(technicalIndicators.atr)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -896,23 +876,23 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Pivot</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.pivotPoints.pivot)}</span>
+                <span className="font-medium">{formatNumber(pivotPoints.pivot)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">R1</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.pivotPoints.r1)}</span>
+                <span className="font-medium">{formatNumber(pivotPoints.r1)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">R2</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.pivotPoints.r2)}</span>
+                <span className="font-medium">{formatNumber(pivotPoints.r2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">S1</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.pivotPoints.s1)}</span>
+                <span className="font-medium">{formatNumber(pivotPoints.s1)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">S2</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.pivotPoints.s2)}</span>
+                <span className="font-medium">{formatNumber(pivotPoints.s2)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -940,27 +920,27 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Level 0%</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.fibonacciRetracement.level0)}</span>
+                <span className="font-medium">{formatNumber(fibonacciRetracement.level0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Level 23.6%</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.fibonacciRetracement.level236)}</span>
+                <span className="font-medium">{formatNumber(fibonacciRetracement.level236)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Level 38.2%</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.fibonacciRetracement.level382)}</span>
+                <span className="font-medium">{formatNumber(fibonacciRetracement.level382)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Level 50%</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.fibonacciRetracement.level500)}</span>
+                <span className="font-medium">{formatNumber(fibonacciRetracement.level500)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Level 61.8%</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.fibonacciRetracement.level618)}</span>
+                <span className="font-medium">{formatNumber(fibonacciRetracement.level618)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm">Level 100%</span>
-                <span className="font-medium">{formatNumber(data.technicalIndicators.fibonacciRetracement.level100)}</span>
+                <span className="font-medium">{formatNumber(fibonacciRetracement.level100)}</span>
               </div>
               <div className="mt-3 pt-3 border-t border-zinc-800">
                 {(() => {
@@ -993,7 +973,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           <div className="bg-zinc-900 p-4 rounded-lg">
             <div className="text-sm text-zinc-400 mb-2">Support Levels</div>
             <div className="space-y-2">
-              {data.supportResistance.support.map((level, index) => (
+              {supportResistance.support.map((level, index) => (
                 <div key={index} className="flex justify-between">
                   <span className="text-sm">Level {index + 1}</span>
                   <span className="font-medium">{formatNumber(level)}</span>
@@ -1004,7 +984,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           <div className="bg-zinc-900 p-4 rounded-lg">
             <div className="text-sm text-zinc-400 mb-2">Resistance Levels</div>
             <div className="space-y-2">
-              {data.supportResistance.resistance.map((level, index) => (
+              {supportResistance.resistance.map((level, index) => (
                 <div key={index} className="flex justify-between">
                   <span className="text-sm">Level {index + 1}</span>
                   <span className="font-medium">{formatNumber(level)}</span>
@@ -1064,8 +1044,8 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
                   </div>
                 </div>
               </span>
-              <span className={`font-medium ${getStatusColor(data.marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
-                {data.marketSentiment.trend.charAt(0).toUpperCase() + data.marketSentiment.trend.slice(1)}
+              <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
+                {marketSentiment.trend.charAt(0).toUpperCase() + marketSentiment.trend.slice(1)}
               </span>
             </div>
             <div className="flex justify-between items-center">
@@ -1087,14 +1067,14 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
                   </div>
                 </div>
               </span>
-              <span className={`font-medium ${getStatusColor(data.marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
-                {data.marketSentiment.strength.toFixed(1)}%
+              <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
+                {marketSentiment.strength.toFixed(1)}%
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm">Confidence</span>
-              <span className={`font-medium ${getStatusColor(data.marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
-                {data.marketSentiment.confidence.toFixed(1)}%
+              <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
+                {marketSentiment.confidence.toFixed(1)}%
               </span>
             </div>
           </div>
@@ -1105,9 +1085,9 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-zinc-400 gap-2">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4" />
-          <span>Analysis Period: {data.analysisPeriod.days} days ({data.analysisPeriod.interval})</span>
+          <span>Analysis Period: {analysisPeriod.days} days ({analysisPeriod.interval})</span>
         </div>
-        <div>Last Updated: {new Date(data.lastUpdated).toLocaleString()}</div>
+        <div>Last Updated: {new Date(lastUpdated).toLocaleString()}</div>
       </div>
     </div>
   );
