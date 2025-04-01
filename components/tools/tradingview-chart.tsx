@@ -105,7 +105,9 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
   }, [toolInvocation, containerId]);
 
   return (
-    <div className="p-4" style={{ 
+    <div
+    className="p-4"
+    style={{ 
       height: "600px", 
       width: "100%",
       minHeight: "500px"

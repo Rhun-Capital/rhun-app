@@ -945,10 +945,13 @@ export async function POST(req: Request) {
         timeframe: z.string().optional().describe('Analysis timeframe (e.g., 1h, 4h, 1d, 1w)'),
       }),
       execute: async ({ symbol, days = 30, interval = 'daily', indicators, timeframe }) => {
+        console.log('symbol', symbol);
         try {
           // First, try to get the coin ID from CoinGecko
           const searchResponse = await fetch(`https://api.coingecko.com/api/v3/search?query=${symbol}`);
           const searchData = await searchResponse.json();
+          // time.sleep ahaalf second 
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           if (!searchResponse.ok) {
             throw new Error(`CoinGecko API error: ${searchData.error || 'Failed to search for coin'}`);
@@ -972,6 +975,7 @@ export async function POST(req: Request) {
           // Get market data using the coin ID
           const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=${interval}`);
           const data = await response.json();
+          console.log('data', data);  
 
           if (!response.ok) {
             throw new Error(`CoinGecko API error: ${data.error || 'Failed to fetch market data'}`);
@@ -1236,7 +1240,7 @@ This agent can analyze stock market data using comprehensive financial tools:
 # Chatbot Tool Special Instructions:
 When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
 Dont add links to markdown. 
-When using the getTradingViewChart tool do not show and image.
+When using the getTradingViewChart tool do not show the coingecko image.
 If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 When your listing token holdings do not add the token image to the list.
 When you're replying to the user and the reponses in not a tool, do not add images to the response.
@@ -1535,7 +1539,7 @@ function calculateSupportResistance(prices: { timestamp: Date; price: number }[]
 function calculateMarketSentiment(
   prices: { timestamp: Date; price: number }[], 
   rsi: number, 
-  bollingerBands: { upper: number; middle: number; lower: number }
+  bollingerBands?: { upper: number; middle: number; lower: number }
 ): { trend: string; strength: number; confidence: number } {
   const currentPrice = prices[prices.length - 1].price;
   const sma20 = calculateSMA(prices, 20);
@@ -1557,9 +1561,11 @@ function calculateMarketSentiment(
   if (rsi > 70) confidence += 20;
   else if (rsi < 30) confidence -= 20;
   
-  // Adjust confidence based on Bollinger Bands
-  if (currentPrice > bollingerBands.upper) confidence += 15;
-  else if (currentPrice < bollingerBands.lower) confidence -= 15;
+  // Adjust confidence based on Bollinger Bands if available
+  if (bollingerBands) {
+    if (currentPrice > bollingerBands.upper) confidence += 15;
+    else if (currentPrice < bollingerBands.lower) confidence -= 15;
+  }
   
   // Ensure confidence stays within bounds
   confidence = Math.min(Math.max(confidence, 0), 100);
