@@ -939,13 +939,12 @@ export async function POST(req: Request) {
       description: "Get technical analysis and insights for a given trading symbol using CoinGecko data. This tool provides current price data, technical indicators, and market sentiment analysis.",
       parameters: z.object({
         symbol: z.string().describe('The trading symbol (e.g., bitcoin, ethereum, solana)'),
-        days: z.number().optional().describe('Number of days of historical data to analyze (default: 30)'),
+        days: z.number().optional().describe('Number of days of historical data to analyze (default: 200)'),
         interval: z.enum(['daily', 'hourly']).optional().describe('Data interval for analysis (default: daily)'),
         indicators: z.array(z.string()).optional().describe('Array of technical indicators to analyze. Available indicators: sma, ema, rsi, macd, bollinger_bands, stoch_rsi, adx, ichimoku, volume, obv, aroon, cci, mfi, dmi, parabolic_sar, supertrend, williams_alligator, williams_fractals, pivot_points, fibonacci_retracement'),
         timeframe: z.string().optional().describe('Analysis timeframe (e.g., 1h, 4h, 1d, 1w)'),
       }),
-      execute: async ({ symbol, days = 30, interval = 'daily', indicators, timeframe }) => {
-        console.log('symbol', symbol);
+      execute: async ({ symbol, days = 200, interval = 'daily', indicators, timeframe }) => {
         try {
           // First, try to get the coin ID from CoinGecko
           const searchResponse = await fetch(`https://api.coingecko.com/api/v3/search?query=${symbol}`);
@@ -975,22 +974,9 @@ export async function POST(req: Request) {
           // Get market data using the coin ID
           const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=${interval}`);
           const data = await response.json();
-          console.log('data', data);  
 
           if (!response.ok) {
             throw new Error(`CoinGecko API error: ${data.error || 'Failed to fetch market data'}`);
-          }
-
-          if (!data.prices || !Array.isArray(data.prices) || data.prices.length === 0) {
-            return {
-              error: 'No price data available',
-              message: `No price data available for ${symbol}. The coin might be delisted or have no trading activity.`,
-              suggestions: [
-                'Check if the coin is still listed on CoinGecko',
-                'Try a different time period',
-                'Verify the coin symbol is correct'
-              ]
-            };
           }
 
           // Extract price data
@@ -1001,20 +987,14 @@ export async function POST(req: Request) {
 
           // Calculate basic price metrics
           const currentPrice = prices[prices.length - 1].price;
-          const priceChange24h = prices.length >= 2 ? ((currentPrice - prices[prices.length - 2].price) / prices[prices.length - 2].price) * 100 : 0;
-          const priceChange7d = prices.length >= 8 ? ((currentPrice - prices[prices.length - 8].price) / prices[prices.length - 8].price) * 100 : 0;
+          const priceChange24h = ((currentPrice - prices[prices.length - 2].price) / prices[prices.length - 2].price) * 100;
+          const priceChange7d = ((currentPrice - prices[prices.length - 8].price) / prices[prices.length - 8].price) * 100;
           const priceChange30d = ((currentPrice - prices[0].price) / prices[0].price) * 100;
 
           // Calculate various technical indicators based on requested indicators
           const technicalIndicators: any = {};
 
-          // Calculate pivot points first since other indicators might depend on them
-          const pivotPoints = calculatePivotPoints(prices);
-          if (pivotPoints) {
-            technicalIndicators.pivotPoints = pivotPoints;
-          }
-
-          // Calculate other indicators based on request
+          // Moving Averages
           if (!indicators || indicators.includes('sma')) {
             technicalIndicators.sma = {
               '20': calculateSMA(prices, 20),
@@ -1025,12 +1005,13 @@ export async function POST(req: Request) {
 
           if (!indicators || indicators.includes('ema')) {
             technicalIndicators.ema = {
-              '20': calculateEMA(prices, 20),
-              '50': calculateEMA(prices, 50),
-              '200': calculateEMA(prices, 200)
+              '9': calculateEMA(prices, 9),
+              '21': calculateEMA(prices, 21),
+              '50': calculateEMA(prices, 50)
             };
           }
 
+          // Momentum Indicators
           if (!indicators || indicators.includes('rsi')) {
             technicalIndicators.rsi = calculateRSI(prices);
           }
@@ -1039,28 +1020,56 @@ export async function POST(req: Request) {
             technicalIndicators.macd = calculateMACD(prices);
           }
 
-          if (!indicators || indicators.includes('bollingerBands')) {
-            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
-          }
-
           if (!indicators || indicators.includes('stoch_rsi')) {
             technicalIndicators.stochRSI = calculateStochRSI(prices);
+          }
+
+          if (!indicators || indicators.includes('cci')) {
+            technicalIndicators.cci = calculateCCI(prices);
+          }
+
+          if (!indicators || indicators.includes('mfi')) {
+            technicalIndicators.mfi = calculateMFI(prices);
+          }
+
+          // Trend Indicators
+          if (!indicators || indicators.includes('adx')) {
+            technicalIndicators.adx = calculateADX(prices);
+          }
+
+          if (!indicators || indicators.includes('dmi')) {
+            technicalIndicators.dmi = calculateDMI(prices);
+          }
+
+          if (!indicators || indicators.includes('ichimoku')) {
+            technicalIndicators.ichimoku = calculateIchimoku(prices);
+          }
+
+          if (!indicators || indicators.includes('aroon')) {
+            technicalIndicators.aroon = calculateAroon(prices);
+          }
+
+          // Volatility Indicators
+          if (!indicators || indicators.includes('bollinger_bands')) {
+            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
           }
 
           if (!indicators || indicators.includes('atr')) {
             technicalIndicators.atr = calculateATR(prices);
           }
 
+          // Volume Indicators
+          if (!indicators || indicators.includes('volume')) {
+            technicalIndicators.volume = calculateVolumeMetrics(prices);
+          }
+
           if (!indicators || indicators.includes('obv')) {
             technicalIndicators.obv = calculateOBV(prices);
           }
 
-          if (!indicators || indicators.includes('adx')) {
-            technicalIndicators.adx = calculateADX(prices);
-          }
-
-          if (!indicators || indicators.includes('ichimoku')) {
-            technicalIndicators.ichimoku = calculateIchimoku(prices);
+          // Support/Resistance
+          if (!indicators || indicators.includes('pivot_points')) {
+            technicalIndicators.pivotPoints = calculatePivotPoints(prices);
           }
 
           if (!indicators || indicators.includes('fibonacci_retracement')) {
@@ -1070,18 +1079,13 @@ export async function POST(req: Request) {
           // Calculate support and resistance levels
           const supportResistance = calculateSupportResistance(prices);
 
-          // Ensure bollingerBands is calculated for market sentiment
-          if (!technicalIndicators.bollingerBands) {
-            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
-          }
-
           // Calculate market sentiment
           const sentiment = calculateMarketSentiment(prices, technicalIndicators.rsi, technicalIndicators.bollingerBands);
 
           return {
-            symbol: searchData.coins[0]?.symbol?.toUpperCase() || symbol.toUpperCase(),
-            name: searchData.coins[0]?.name || symbol,
-            image: searchData.coins[0]?.large || null,
+            symbol: searchData.coins[0].symbol.toUpperCase(),
+            name: searchData.coins[0].name,
+            image: searchData.coins[0].large,
             currentPrice,
             priceChange: {
               '24h': priceChange24h,
@@ -1466,16 +1470,6 @@ function calculatePivotPoints(prices: { timestamp: Date; price: number }[]): {
   s1: number;
   s2: number;
 } {
-  if (!prices || prices.length === 0) {
-    return {
-      pivot: 0,
-      r1: 0,
-      r2: 0,
-      s1: 0,
-      s2: 0
-    };
-  }
-
   const high = Math.max(...prices.map(p => p.price));
   const low = Math.min(...prices.map(p => p.price));
   const close = prices[prices.length - 1].price;
@@ -1539,7 +1533,7 @@ function calculateSupportResistance(prices: { timestamp: Date; price: number }[]
 function calculateMarketSentiment(
   prices: { timestamp: Date; price: number }[], 
   rsi: number, 
-  bollingerBands?: { upper: number; middle: number; lower: number }
+  bollingerBands: { upper: number; middle: number; lower: number }
 ): { trend: string; strength: number; confidence: number } {
   const currentPrice = prices[prices.length - 1].price;
   const sma20 = calculateSMA(prices, 20);
@@ -1561,11 +1555,9 @@ function calculateMarketSentiment(
   if (rsi > 70) confidence += 20;
   else if (rsi < 30) confidence -= 20;
   
-  // Adjust confidence based on Bollinger Bands if available
-  if (bollingerBands) {
-    if (currentPrice > bollingerBands.upper) confidence += 15;
-    else if (currentPrice < bollingerBands.lower) confidence -= 15;
-  }
+  // Adjust confidence based on Bollinger Bands
+  if (currentPrice > bollingerBands.upper) confidence += 15;
+  else if (currentPrice < bollingerBands.lower) confidence -= 15;
   
   // Ensure confidence stays within bounds
   confidence = Math.min(Math.max(confidence, 0), 100);
