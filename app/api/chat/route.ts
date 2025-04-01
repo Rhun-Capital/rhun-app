@@ -977,6 +977,18 @@ export async function POST(req: Request) {
             throw new Error(`CoinGecko API error: ${data.error || 'Failed to fetch market data'}`);
           }
 
+          if (!data.prices || !Array.isArray(data.prices) || data.prices.length === 0) {
+            return {
+              error: 'No price data available',
+              message: `No price data available for ${symbol}. The coin might be delisted or have no trading activity.`,
+              suggestions: [
+                'Check if the coin is still listed on CoinGecko',
+                'Try a different time period',
+                'Verify the coin symbol is correct'
+              ]
+            };
+          }
+
           // Extract price data
           const prices = data.prices.map(([timestamp, price]: [number, number]) => ({
             timestamp: new Date(timestamp),
@@ -985,8 +997,8 @@ export async function POST(req: Request) {
 
           // Calculate basic price metrics
           const currentPrice = prices[prices.length - 1].price;
-          const priceChange24h = ((currentPrice - prices[prices.length - 2].price) / prices[prices.length - 2].price) * 100;
-          const priceChange7d = ((currentPrice - prices[prices.length - 8].price) / prices[prices.length - 8].price) * 100;
+          const priceChange24h = prices.length >= 2 ? ((currentPrice - prices[prices.length - 2].price) / prices[prices.length - 2].price) * 100 : 0;
+          const priceChange7d = prices.length >= 8 ? ((currentPrice - prices[prices.length - 8].price) / prices[prices.length - 8].price) * 100 : 0;
           const priceChange30d = ((currentPrice - prices[0].price) / prices[0].price) * 100;
 
           // Calculate various technical indicators based on requested indicators
@@ -1077,13 +1089,18 @@ export async function POST(req: Request) {
           // Calculate support and resistance levels
           const supportResistance = calculateSupportResistance(prices);
 
+          // Ensure bollingerBands is calculated for market sentiment
+          if (!technicalIndicators.bollingerBands) {
+            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
+          }
+
           // Calculate market sentiment
           const sentiment = calculateMarketSentiment(prices, technicalIndicators.rsi, technicalIndicators.bollingerBands);
 
           return {
-            symbol: searchData.coins[0].symbol.toUpperCase(),
-            name: searchData.coins[0].name,
-            image: searchData.coins[0].large,
+            symbol: searchData.coins[0]?.symbol?.toUpperCase() || symbol.toUpperCase(),
+            name: searchData.coins[0]?.name || symbol,
+            image: searchData.coins[0]?.large || null,
             currentPrice,
             priceChange: {
               '24h': priceChange24h,
@@ -1468,6 +1485,16 @@ function calculatePivotPoints(prices: { timestamp: Date; price: number }[]): {
   s1: number;
   s2: number;
 } {
+  if (!prices || prices.length === 0) {
+    return {
+      pivot: 0,
+      r1: 0,
+      r2: 0,
+      s1: 0,
+      s2: 0
+    };
+  }
+
   const high = Math.max(...prices.map(p => p.price));
   const low = Math.min(...prices.map(p => p.price));
   const close = prices[prices.length - 1].price;
