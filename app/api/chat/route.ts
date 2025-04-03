@@ -979,6 +979,14 @@ export async function POST(req: Request) {
             throw new Error(`CoinGecko API error: ${data.error || 'Failed to fetch market data'}`);
           }
 
+          // Get additional market data including price change percentages
+          const marketDataResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`);
+          const marketData = await marketDataResponse.json();
+
+          if (!marketDataResponse.ok) {
+            throw new Error(`CoinGecko API error: ${marketData.error || 'Failed to fetch market data'}`);
+          }
+
           // Extract price data
           const prices = data.prices.map(([timestamp, price]: [number, number]) => ({
             timestamp: new Date(timestamp),
@@ -987,9 +995,9 @@ export async function POST(req: Request) {
 
           // Calculate basic price metrics
           const currentPrice = prices[prices.length - 1].price;
-          const priceChange24h = ((currentPrice - prices[prices.length - 2].price) / prices[prices.length - 2].price) * 100;
-          const priceChange7d = ((currentPrice - prices[prices.length - 8].price) / prices[prices.length - 8].price) * 100;
-          const priceChange30d = ((currentPrice - prices[0].price) / prices[0].price) * 100;
+          const priceChange24h = marketData.market_data.price_change_percentage_24h;
+          const priceChange7d = marketData.market_data.price_change_percentage_7d;
+          const priceChange30d = marketData.market_data.price_change_percentage_30d;
 
           // Calculate various technical indicators based on requested indicators
           const technicalIndicators: any = {};
@@ -1259,7 +1267,7 @@ When a user uses a tool, recommend other tools that they might find useful based
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
 
   const result = streamText({
-    model: openai("gpt-4-turbo") as any,
+    model: openai("gpt-4o") as any,
     system: systemPrompt,
     messages: messages,
     // async onFinish({ response }) {
