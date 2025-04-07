@@ -355,54 +355,43 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Create Agent Card */}
           <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
-          <Link 
-                    href="/agents/create"
-                  >            
-            <div className="group cursor-pointer h-full">
-              <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-indigo-500/20 group-hover:border-indigo-500/40">
-                {/* Gradient background */}
-                <GradientBackground type="create-agent" />
-                
-                {/* Card image */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden">
-                    <Image
-                      src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/hero.png"
-                      alt="Create Agent"
-                      fill
-                      className="object-cover transition-transform duration-300 hover:scale-105 opacity-60"
-                      priority
-                      quality={100}
-                    />
+            <Link href="/agents/create">
+              <div className="group cursor-pointer h-full">
+                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-zinc-700/50 group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                  {/* Gradient background */}
+                  <GradientBackground type="create-agent" />
+                  
+                  {/* 3D Grid Pattern */}
+                  <Grid3D />
+                  
+                  {/* Card image */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden">
+                      <Image
+                        src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/hero.png"
+                        alt="Create Agent"
+                        fill
+                        className="object-cover transition-transform duration-300 hover:scale-105 opacity-60"
+                        priority
+                        quality={100}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Content Section */}
+                  <div className="absolute inset-x-0 bottom-0 p-6">
+                    <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Create Your Own Agent</h2>
+                    <p className="text-zinc-400 text-base mb-6">Build and customize your own AI trading agent with specific strategies and tools.</p>
+                    <Link 
+                      href="/agents/create"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-500/50 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10  w-fit"
+                    >
+                      <span>Create Agent</span>
+                      <ArrowUpRight className="w-5 h-5" />
+                    </Link>
                   </div>
                 </div>
-                
-                {/* Animated gradient border */}
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
-                {/* Holographic overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
-                
-                {/* Content gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-zinc-900/50 to-transparent" />
-                
-                {/* Indigo gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-indigo-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                {/* Content Section */}
-                <div className="absolute inset-x-0 bottom-0 p-6">
-                  <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Create Your Own Agent</h2>
-                  <p className="text-zinc-400 text-base mb-6">Build and customize your own AI trading agent with specific strategies and tools.</p>
-                  <Link 
-                    href="/agents/create"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-500/50 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10  w-fit"
-                  >
-                    <span>Create Agent</span>
-                    <ArrowUpRight className="w-5 h-5" />
-                  </Link>
-                </div>
               </div>
-            </div>
             </Link>
           </HolographicCard>
 
@@ -410,9 +399,12 @@ export default function HomePage() {
           <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
             <Link href="https://jup.ag/swap/SOL-Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump" target="_blank">
               <div className="group cursor-pointer h-full">
-                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-indigo-500/20 group-hover:border-indigo-500/40">
+                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-zinc-700/50 group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                   {/* Gradient background */}
                   <GradientBackground type="buy-rhun" />
+                  
+                  {/* 3D Grid Pattern */}
+                  <Grid3D />
                   
                   {/* Card image */}
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -428,18 +420,6 @@ export default function HomePage() {
                     </div>
                   </div>
                   
-                  {/* Animated gradient border */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  
-                  {/* Holographic overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
-                  
-                  {/* Content gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-zinc-900/50 to-transparent" />
-                  
-                  {/* Indigo gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-indigo-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
                   {/* Content Section */}
                   <div className="absolute inset-x-0 bottom-0 p-6">
                     <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Buy $RHUN Token</h2>
