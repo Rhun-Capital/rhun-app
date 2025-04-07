@@ -47,6 +47,7 @@ import WebResearch from "@/components/tools/web-research";
 import TradingViewChart from "@/components/tools/tradingview-chart";
 import TechnicalAnalysis from '@/components/tools/technical-analysis';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
+import { getToolCommand } from '@/app/config/tool-commands';
 
 const getTextFromDataUrl = (dataUrl: string) => {
   try {
@@ -267,59 +268,6 @@ export default function Home() {
     setupHeaders();
   }, [getAccessToken]);
 
-  useEffect(() => {
-    const loadInitialMessages = async (): Promise<void> => {
-      if (!chatId || !params.userId) return;
-      
-      try {
-        const token = await getAccessToken();
-        const response = await fetch(
-          `/api/chat/${chatId}?userId=${encodeURIComponent(user?.id as string)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-  
-        if (!response.ok) throw new Error('Failed to load chat history');
-        
-        const data = await response.json()
-        
-        if (data.messages && data.messages.length > 0) {
-          // Convert string dates to Date objects and preserve all tool data
-          const formattedMessages: Message[] = data.messages.map((msg: any) => ({
-            id: msg.messageId,
-            createdAt: new Date(msg.createdAt),
-            role: msg.role,
-            content: msg.content,
-            // Include attachments in the formatted messages
-            experimental_attachments: msg.attachments?.map((attachment: any) => ({
-              name: attachment.name,
-              url: attachment.url,
-              contentType: attachment.contentType,
-            })),            
-            toolInvocations: msg.toolInvocations?.map((tool: any) => ({
-              ...tool, // Preserve all tool properties
-              toolName: tool.toolName,
-              toolCallId: tool.toolCallId,
-              args: tool.args,
-              result: tool.result
-            }))
-          }));
-          
-          setInitialMessages(formattedMessages);
-
-        }
-      } catch (error) {
-        console.error('Error loading chat history:', error);
-        toast.error('Failed to load chat history');
-      }
-    };
-  
-    loadInitialMessages();
-  }, [chatId, params.userId, getAccessToken]);
-
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } =
     useChat({
       headers,
@@ -328,216 +276,15 @@ export default function Home() {
       initialMessages,
       sendExtraMessageFields: true,
       id: chatId || newChatId,
-
-      // onToolCall: async ({ toolCall }) => {
-
-      // },
-      
       onError: () => {
         toast.error('Failed to send message. Please try again.')
       },
-      // onToolCall: async ({ toolCall }) => {},
       onFinish: async (message) => {   
         // const currentMessages = [...messages, message];  // Include the final message
         // await updateChatInDB(currentMessages);
       },
     });
 
-    useEffect(() => {
-      if (!agent) return;
-      if (messages.length === 0) return;
-      
-      const lastMessage = messages[messages.length - 1];
-      if (!lastMessage) return;
-      
-      // Create a new debounced function for each message
-      const debouncedSave = debounce(async () => {
-        await updateChatInDB(messages);
-      }, 1000);
-    
-      debouncedSave();
-    
-      return () => {
-        debouncedSave.cancel();
-      };
-    }, [messages, agent]);
-
-    // Add this useEffect to handle auto-resizing of the textarea
-    useEffect(() => {
-      const resizeTextarea = () => {
-        if (inputRef.current) {
-          // Reset height to auto to get the correct scrollHeight
-          inputRef.current.style.height = 'auto';
-          // Set the height to match the scrollHeight (content height)
-          const scrollHeight = inputRef.current.scrollHeight;
-          inputRef.current.style.height = `${Math.min(scrollHeight, 150)}px`;
-        }
-      };
-      
-      resizeTextarea();
-      
-      // Create a debounced version of the resize function
-      const debouncedResize = debounce(resizeTextarea, 50);
-      
-      // Add event listener for window resize
-      window.addEventListener('resize', debouncedResize);
-      
-      return () => {
-        window.removeEventListener('resize', debouncedResize);
-        debouncedResize.cancel();
-      };
-    }, [input]); // Re-run when input changes      
-  
-  // Add this useEffect for cleanup
-  useEffect(() => {
-    const blobUrls: string[] = [];
-    
-    // Collect all blob URLs created
-    messages.forEach(message => {
-      message.experimental_attachments?.forEach(attachment => {
-        if (attachment.url?.startsWith('blob:')) {
-          blobUrls.push(attachment.url);
-        }
-      });
-    });
-    
-    // Cleanup function
-    return () => {
-      blobUrls.forEach(url => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch (error) {
-          console.error('Error cleaning up blob URL:', error);
-        }
-      });
-    };
-  }, [messages]);    
-
-  const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
-    const lastMessage = messages[messages.length - 1];
-  
-    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !params.userId) {
-      return [];
-    }
-  
-    const token = await getAccessToken();
-    const currentChatId = chatId || newChatId;
-    
-    try {
-      // Update chat metadata
-      await fetch(`/api/chat/${currentChatId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          chatId: currentChatId,
-          userId: user?.id,
-          agentId,
-          agentName: agent?.name,
-          lastMessage: lastMessage.content,
-          lastUpdated: new Date().toISOString(),
-          isTemplate: params.userId === 'template'
-        })
-      });
-
-      // Process attachments if they exist
-      let processedAttachments = [] as any[];
-      if (lastMessage.experimental_attachments?.length) {
-        processedAttachments = await Promise.all(
-          lastMessage.experimental_attachments.map(async (attachment) => {
-            // Only process data URLs
-            if (attachment.url.startsWith('data:')) {
-              // Create blob from data URL
-              const blob = await fetch(attachment.url).then(r => r.blob());
-              
-              // Get presigned URL
-              const presignedResponse = await fetch(`/api/chat/presigned`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  fileName: attachment.name,
-                  contentType: attachment.contentType,
-                  chatId: currentChatId,
-                  messageId: lastMessage.id
-                })
-              });
-
-              if (!presignedResponse.ok) {
-                throw new Error('Failed to get upload URL');
-              }
-
-              const { url, fields, fileUrl } = await presignedResponse.json();
-
-              // Create FormData and append fields
-              const formData = new FormData();
-              Object.entries(fields).forEach(([key, value]) => {
-                formData.append(key, value as string);
-              });
-              formData.append('file', blob, attachment.name);
-
-              // Upload to S3
-              const uploadResponse = await fetch(url, {
-                method: 'POST',
-                body: formData
-              });
-
-              if (!uploadResponse.ok) {
-                throw new Error('Failed to upload file');
-              }
-
-              // Return processed attachment with S3 URL
-              return {
-                name: attachment.name,
-                contentType: attachment.contentType,
-                url: fileUrl
-              };
-            }
-            
-            // Return non-data URLs as-is
-            return attachment;
-          })
-        );
-      }
-  
-      // Store the message with processed attachments
-      await fetch('/api/chat/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          chatId: currentChatId,
-          messageId: lastMessage.id,
-          userId: user?.id,
-          isTemplate: params.userId === 'template',
-          role: lastMessage.role,
-          content: lastMessage.content,
-          createdAt: lastMessage.createdAt,
-          attachments: processedAttachments,
-          toolInvocations: lastMessage.toolInvocations?.map(tool => ({
-            toolName: tool.toolName,
-            toolCallId: tool.toolCallId,
-            args: tool.args,
-            result: 'result' in tool ? tool.result : undefined
-          }))
-        })
-      });
-  
-      await refreshRecentChats();
-    } catch (error) {
-      console.error('Error updating chat:', error);
-      toast.error('Failed to save chat message');
-    }
-    
-    return [];
-  };
-  
   const handleToolSelect = useCallback(async (command: string) => {
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
@@ -584,7 +331,24 @@ export default function Home() {
     handleSubmit(event, options);
     setFiles(null);
   };
-  
+
+  // Handle tool query parameter
+  const hasTriggeredTool = useRef(false);
+  useEffect(() => {
+    const tool = searchParams.get('tool');
+    if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect) {
+      // Add a small delay to ensure everything is initialized
+      const timeoutId = setTimeout(() => {
+        const toolCommand = getToolCommand(tool);
+        if (toolCommand) {
+          handleToolSelect(toolCommand);
+          hasTriggeredTool.current = true;
+        }
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchParams, messages.length, handleToolSelect]);
 
   useEffect(() => {
     // get agent and sey agent name
@@ -996,20 +760,18 @@ export default function Home() {
                     </div>
                   </motion.div>
                 ))
-              ) : (
+              ) : searchParams.get('tool') ? null : (
                 <div>
-                <div className={`flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
-                <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-0 sm:pt-40 ">
-                  <EmptyState 
-                    agent={agent}
-                    userId={decodeURIComponent(params.userId as string)}
-                    agentId={agentId}
-                    onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
-                  />
-                  </motion.div>
-
-                </div>
-
+                  <div className={`flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
+                    <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-0 sm:pt-40 ">
+                      <EmptyState 
+                        agent={agent}
+                        userId={decodeURIComponent(params.userId as string)}
+                        agentId={agentId}
+                        onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
+                      />
+                    </motion.div>
+                  </div>
                 </div>
               )}                       
   
