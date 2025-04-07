@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { useModal } from '@/contexts/modal-context';
 import FundingModal from './funding-amount-modal';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { getToolCommand } from '@/app/config/tool-commands';
 
 
 interface Tool {
@@ -269,175 +270,175 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     { 
       name: 'Get My Portfolio Value', 
       description: 'View the current value of your connected wallet portfolio.',
-      command: 'Show me my portfolio value',
+      command: getToolCommand('portfolio-value') || 'Show me my portfolio value',
       isPro: false,
       isNew: false
     },
     { 
       name: "Get Agent's Portfolio Value", 
       description: "View the current value of the agent's embedded wallet portfolio.",
-      command: "Show me your portfolio value",
+      command: getToolCommand('agent-portfolio-value') || "Show me your portfolio value",
       isPro: false,
       isNew: false
     },
     { 
       name: 'Get My Token Holdings', 
       description: 'See a detailed breakdown of all tokens in your connected wallet.',
-      command: 'Show me my token holdings',
+      command: getToolCommand('token-holdings') || 'Show me my token holdings',
       isPro: false,
       isNew: false
     },
     { 
       name: "Get Agent's Token Holdings", 
       description: "See a detailed breakdown of all tokens in the agent's wallet.",
-      command: "Show me your token holdings",
+      command: getToolCommand('agent-token-holdings') || "Show me your token holdings",
       isPro: false, 
       isNew: false
     },
     { 
       name: 'Get Solana Transaction Volume', 
       description: 'Check the current transaction volume across the Solana network.',
-      command: 'Show me the transaction volume on Solana',
+      command: getToolCommand('solana-transaction-volume') || 'Show me the transaction volume on Solana',
       isPro: false,
       isNew: false
     },
     {
       name: 'TradingView Chart',
       description: 'Display an interactive TradingView chart for any cryptocurrency or stock symbol.',
-      command: 'Show me a TradingView chart',
+      command: getToolCommand('tradingview-chart') || 'Show me a TradingView chart',
       isPro: false,
       isNew: true
     },   
     {
       name: "Technical Analysis",
       description: "Get detailed technical analysis and market insights for any cryptocurrency using real-time data.",
-      command: "Show me a technical analysis for",
+      command: getToolCommand('technical-analysis') || "Show me a technical analysis for",
       isPro: false,
       isNew: true
     },     
     { 
       name: 'Deep Research',
       description: 'Perform deep research on cryptocurrency and finance using browser automation.',
-      command: 'Start research',
+      command: getToolCommand('web-research') || 'Start research',
       isPro: false,
       isNew: true
     },    
     { 
       name: 'Stock Analysis', 
       description: 'Get comprehensive financial data, news sentiment, and options analysis for any stock.',
-      command: 'Analyze stock data',
+      command: getToolCommand('stock-analysis') || 'Analyze stock data',
       isPro: false,
       isNew: true
     },    
     { 
       name: 'Get Latest News', 
       description: 'Stay up-to-date with the latest news in the cryptocurrency space.',
-      command: 'Show me the latest news',
+      command: getToolCommand('news-analysis') || 'Show me the latest news',
       isPro: false,
       isNew: true
     },       
     {
       name: 'Get Recent Tokens on DexScreener',
       description: 'Discover the latest tokens listed on DexScreener. Filter by market cap, volume, age and more.',
-      command: 'Search for recently listed tokens on DexScreener.',
+      command: getToolCommand('recent-dexscreener-tokens') || 'Search for recently listed tokens on DexScreener.',
       isPro: false,
       isNew: false
     },    
     { 
       name: 'Get Trending Tokens', 
       description: 'Discover trending tokens on CoinGecko across all chains. Filter by market cap, volume, and more.',
-      command: 'Search for trending tokens',
+      command: getToolCommand('trending-tokens') || 'Search for trending tokens',
       isPro: false,
       isNew: false
     },    
     { 
       name: 'Get Solana Trending Tokens', 
       description: 'Discover trending tokens on Solana. Filter by market cap, volume, and more.',
-      command: 'Search for trending tokens on Solana',
+      command: getToolCommand('trending-solana-tokens') || 'Search for trending tokens on Solana',
       isPro: false,
       isNew: false
     },      
     {
       name: 'Get Top NFTs',
       description: 'Discover the top NFTs. Filter by volume, floor price, and more.',
-      command: 'Show me the top NFTs',
+      command: getToolCommand('top-nfts') || 'Show me the top NFTs',
       isPro: false,
       isNew: false
     },        
     { 
       name: 'Get Token Info', 
       description: 'Access comprehensive information about any specific token.',
-      command: 'Show me information about the token',
+      command: getToolCommand('token-info') || 'Show me information about the token',
       isPro: false,
       isNew: false
     },
     { 
       name: 'Get Wallet Info', 
       description: 'Examine detailed information about any Solana wallet address.',
-      command: 'Show me information about a solana account',
+      command: getToolCommand('wallet-info') || 'Show me information about a solana account',
       isPro: false,
       isNew: false
     },    
     { 
       name: 'Track Wallet Activity', 
       description: 'Track wallet activity for any Solana wallet address',
-      command: 'Show me information about a solana account and track activity',
+      command: getToolCommand('wallet-activity') || 'Show me information about a solana account and track activity',
       isPro: false, 
       isNew: false
     },     
     { 
       name: 'Get Latest Tokens', 
       description: 'Discover newly listed tokens on CoinGecko.',
-      command: 'Search for recently listed tokens',
+      command: getToolCommand('recent-tokens') || 'Search for recently listed tokens',
       isPro: false,
       isNew: false
     },      
     { 
       name: 'Search Tokens', 
       description: 'Search through the complete database of tokens.',
-      command: 'Search for tokens',
+      command: getToolCommand('search-tokens') || 'Search for tokens',
       isPro: false,
       isNew: false
     },
     { 
       name: 'Get Top Token Holders', 
       description: 'Identify the largest holders of any specific token.',
-      command: 'Show me the top token holders',
+      command: getToolCommand('top-holders') || 'Show me the top token holders',
       isPro: false,
       isNew: false
     },
     { 
       name: 'Get Market Movers', 
       description: 'Track the biggest price movers in the market.',
-      command: 'Show me the top market movers today',
+      command: getToolCommand('market-movers') || 'Show me the top market movers today',
       isPro: false,
       isNew: false
     },    
     { 
       name: 'Get Total Crypto Market Cap', 
       description: 'View the total market capitalization of all cryptocurrencies.',
-      command: 'Show me the total crypto market cap',
+      command: getToolCommand('total-market-cap') || 'Show me the total crypto market cap',
       isPro: false,
       isNew: false
     },
     { 
       name: 'Get Market Categories', 
       description: 'Explore different categories of tokens and their performance.',
-      command: 'Show me the market categories',
+      command: getToolCommand('market-categories') || 'Show me the market categories',
       isPro: false,
       isNew: false
     },
     { 
       name: 'Get Derivatives Exchanges', 
       description: 'View comprehensive data about cryptocurrency derivatives exchanges.',
-      command: 'Show me derivatives exchanges',
+      command: getToolCommand('derivatives-exchanges') || 'Show me derivatives exchanges',
       isPro: false,
       isNew: false
     },
     { 
       name: 'Fear & Greed Index', 
       description: 'Check the current market sentiment using the Fear and Greed Index.',
-      command: 'What is the current fear and greed index?',
+      command: getToolCommand('fear-greed-index') || 'What is the current fear and greed index?',
       isPro: false,
       isNew: false
     },

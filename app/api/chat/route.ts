@@ -218,6 +218,15 @@ function metricsToText(metricsArray: any[]): string {
 
 export async function POST(req: Request) {
   const { messages, user, agent } = await req.json();
+
+  // Validate required fields
+  if (!agent || !agent.id || !agent.userId) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid agent data' }),
+      { status: 400 }
+    );
+  }
+
   // Get the latest user message
   const latestMessage = messages[messages.length - 1];
 
