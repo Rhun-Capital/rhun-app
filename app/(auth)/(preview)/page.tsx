@@ -336,14 +336,14 @@ export default function HomePage() {
             <Link 
               href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
-              className="inline-flex items-center justify-center gap-2 px-6 py-2 bg-zinc-700 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-600"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-zinc-700 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-600 sm:px-6 sm:py-2 sm:text-base"
             >
               <span>Read Docs</span>
               <BookOpenIcon className="w-5 h-5"/>
             </Link>
             <Link 
               href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
-              className="inline-flex items-center justify-center gap-2 px-6 py-2 bg-indigo-500 text-white rounded-lg font-semibold transition-colors hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-indigo-500 text-white rounded-lg font-semibold transition-colors hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] sm:px-6 sm:py-2 sm:text-base"
             >
               <span>Start Chatting</span>
               <MessageSquare className="w-5 h-5"/>
