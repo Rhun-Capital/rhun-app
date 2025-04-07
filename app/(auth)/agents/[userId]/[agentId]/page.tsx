@@ -344,7 +344,7 @@ export default function Home() {
           handleToolSelect(toolCommand);
           hasTriggeredTool.current = true;
         }
-      }, 300);
+      }, 1000);
 
       return () => clearTimeout(timeoutId);
     }
