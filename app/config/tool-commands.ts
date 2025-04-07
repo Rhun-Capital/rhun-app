@@ -24,7 +24,7 @@ export const toolCommands: { [key: string]: string } = {
   'total-market-cap': 'Show me the total crypto market cap',
   'market-categories': 'Show me the market categories',
   'derivatives-exchanges': 'Show me derivatives exchanges',
-  'fear-greed-index': 'What is the current fear and greed index?'
+  'fear-greed': 'What is the current fear and greed index?'
 };
 
 export const getToolCommand = (tool: string): string | undefined => {
