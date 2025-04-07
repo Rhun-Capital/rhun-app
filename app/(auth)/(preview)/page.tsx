@@ -332,7 +332,7 @@ export default function HomePage() {
           <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
             Access powerful trading tools and analysis directly from your chat interface.
           </p>
-          <div className="flex justify-center gap-4 pt-5">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-5">
             <Link 
               href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
@@ -531,7 +531,7 @@ export default function HomePage() {
                   </div>
 
                   {/* Bottom card section with holographic effect */}
-                  <div className="p-4 bg-zinc-800/50 rounded-b-lg border border-zinc-700/50 transition-all duration-200 ease-in-out group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] backdrop-blur-sm">
+                  <div className="p-4 dark:bg-zinc-800/50 rounded-b-lg border border-zinc-700/50 transition-all duration-200 ease-in-out group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] backdrop-blur-sm">
                     <p className="text-zinc-400 text-sm">{tool.description}</p>
                     <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center text-sm text-zinc-500 group-hover:text-indigo-400 transition-colors">
