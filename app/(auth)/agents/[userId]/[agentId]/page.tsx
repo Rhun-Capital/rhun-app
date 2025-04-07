@@ -217,7 +217,7 @@ export default function Home() {
   const searchParams = useSearchParams(); 
   const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
 
-  const { user, getAccessToken } = usePrivy();
+  const { user, getAccessToken, ready } = usePrivy();
   const { refreshRecentChats } = useRecentChats();
   const [agent, setAgent] = useState<any>();
   const [headers, setHeaders] = useState<any>();
@@ -336,7 +336,7 @@ export default function Home() {
   const hasTriggeredTool = useRef(false);
   useEffect(() => {
     const tool = searchParams.get('tool');
-    if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect) {
+    if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect && ready && user?.id) {
       // Add a small delay to ensure everything is initialized
       const timeoutId = setTimeout(() => {
         const toolCommand = getToolCommand(tool);
@@ -348,7 +348,7 @@ export default function Home() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [searchParams, messages.length, handleToolSelect]);
+  }, [searchParams, messages.length, handleToolSelect, ready, user?.id]);
 
   useEffect(() => {
     // get agent and sey agent name

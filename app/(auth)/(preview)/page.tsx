@@ -82,7 +82,7 @@ const HolographicCard = ({ children, className = '' }: { children: React.ReactNo
     >
       {/* Holographic effect */}
       <div 
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        className="absolute inset-0 opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
         style={{
           background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, 
             rgba(59, 130, 246, 0.2) 0%, 
@@ -102,7 +102,7 @@ const Grid3D = () => {
   return (
     <div className="absolute inset-0">
       {/* Main 3D grid */}
-      <div className="absolute inset-0 opacity-30 group-hover:opacity-50 transition-opacity duration-300"
+      <div className="absolute inset-0 opacity-30 sm:group-hover:opacity-50 transition-opacity duration-300"
         style={{
           backgroundImage: `
             linear-gradient(to right, rgba(255,255,255,0.2) 1px, transparent 1px),
@@ -115,7 +115,7 @@ const Grid3D = () => {
       />
       
       {/* Diagonal grid lines */}
-      <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-300"
+      <div className="absolute inset-0 opacity-20 sm:group-hover:opacity-30 transition-opacity duration-300"
         style={{
           backgroundImage: `
             linear-gradient(45deg, rgba(255,255,255,0.1) 1px, transparent 1px),
@@ -131,7 +131,7 @@ const Grid3D = () => {
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
       
       {/* Animated grid lines */}
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500"
+      <div className="absolute inset-0 opacity-0 sm:group-hover:opacity-20 transition-opacity duration-500"
         style={{
           backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
           animation: 'shimmer 3s infinite',
@@ -318,7 +318,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-zinc-900 text-white sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-16">
         {/* Hero Section */}
-        <div className="text-center space-y-4 py-16">
+        <div className="text-center space-y-4 py-8 sm:py-16">
           <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
             <h1 className="text-4xl font-bold">Welcome to</h1>
             <Image 
@@ -359,7 +359,7 @@ export default function HomePage() {
                     href="/agents/create"
                   >            
             <div className="group cursor-pointer h-full">
-              <div className="relative h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-indigo-500/20 group-hover:border-indigo-500/40">
+              <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-indigo-500/20 group-hover:border-indigo-500/40">
                 {/* Gradient background */}
                 <GradientBackground type="create-agent" />
                 
@@ -410,7 +410,7 @@ export default function HomePage() {
           <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
             <Link href="https://jup.ag/swap/SOL-Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump" target="_blank">
               <div className="group cursor-pointer h-full">
-                <div className="relative h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-indigo-500/20 group-hover:border-indigo-500/40">
+                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-indigo-500/20 group-hover:border-indigo-500/40">
                   {/* Gradient background */}
                   <GradientBackground type="buy-rhun" />
                   
