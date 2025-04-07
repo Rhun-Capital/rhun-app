@@ -241,7 +241,7 @@ const ToolCard: React.FC<{
 };
 
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent }) => {
-  const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('wallet');
+  const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
   const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
   const { user, getAccessToken } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
