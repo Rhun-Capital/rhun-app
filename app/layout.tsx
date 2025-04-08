@@ -4,6 +4,7 @@ import PrivyWrapper from '@/components/privy-provider';
 import { Toaster } from 'sonner';
 import { Analytics } from "@vercel/analytics/react"
 import { ModalProvider } from '@/contexts/modal-context';
+import { SolanaProvider } from '@/contexts/solana-context';
 
 export default function RootLayout({
   children,
@@ -16,7 +17,9 @@ export default function RootLayout({
         <PrivyWrapper>
           <AuthWrapper>
             <ModalProvider>
-              {children}
+              <SolanaProvider>
+                {children}
+              </SolanaProvider>
             </ModalProvider>
           </AuthWrapper>
         </PrivyWrapper>
