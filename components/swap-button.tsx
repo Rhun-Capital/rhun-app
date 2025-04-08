@@ -456,12 +456,16 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                   <Image src={token.token_icon} alt={token.token_symbol} width={32} height={32} className="rounded-full"/>
                   <div>
                     <div className="text-white">{token.token_name}</div>
-                    <div className="text-sm text-zinc-400">{token.formatted_amount} {token.token_symbol}</div>
+                    <div className="text-sm text-zinc-400">
+                      <div>{token.formatted_amount} {token.token_symbol}</div>
+                      <div className="text-xs text-zinc-500 truncate max-w-[200px]">
+                        {token.token_address.slice(0, 4)}...{token.token_address.slice(-4)}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="text-sm text-zinc-400">${token.usd_value.toFixed(2)}</div>
               </div>
-
               </div>
             ))
           ) : (
@@ -478,7 +482,12 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                       <Image src={token.logoURI} alt={token.name} width={32} height={32} className="rounded-full"/>
                       <div>
                         <div className="text-white">{token.name}</div>
-                        <div className="text-sm text-zinc-400">{token.symbol}</div>
+                        <div className="text-sm text-zinc-400">
+                          <div>{token.symbol}</div>
+                          <div className="text-xs text-zinc-500 truncate max-w-[200px]">
+                            {token.address.slice(0, 4)}...{token.address.slice(-4)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
