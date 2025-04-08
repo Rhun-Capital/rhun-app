@@ -20,6 +20,8 @@ import {
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
+import { parseQueryToSchema } from '@/utils/solana-schema';
+import { makeSolscanRequest } from '@/utils/solscan';
 
 
 export interface DexScreenerToken {
@@ -1134,6 +1136,42 @@ export async function POST(req: Request) {
       }
     },
 
+  //   parseSolanaQuery: {
+  //     description: "PRIMARY TOOL FOR SOLANA QUERIES: Parse natural language queries about Solana blockchain data and fetch from Solscan. Use this for ALL Solana-related queries including transactions, token holdings, DeFi activities, and account details. Handles time-based queries, filters, and sorting.",
+  //     parameters: z.object({
+  //       query: z.string().describe('The natural language query about Solana to parse'),
+  //       addresses: z.array(z.string()).optional().describe('Optional array of Solana addresses to query')
+  //     }),
+  //     execute: async ({ query, addresses }: { query: string; addresses?: string[] }) => {
+  //       try {
+  //         // Parse the query using the schema
+  //         const structuredQuery = await parseQueryToSchema(query);
+  //         console.log('Parsed structured query:', structuredQuery);
+          
+  //         // If addresses are provided, query each one
+  //         if (addresses && addresses.length > 0) {
+  //           const results = await Promise.all(
+  //             addresses.map(async (address) => {
+  //               const endpoint = getEndpointFromIntent(structuredQuery.intent);
+  //               const params = mapQueryToParams(structuredQuery);
+  //               console.log('Making Solscan request with:');
+  //               console.log('Endpoint:', endpoint);
+  //               console.log('Params:', { ...params, address });
+  //               const response = await makeSolscanRequest(endpoint, { ...params, address });
+  //               return { address, data: response };
+  //             })
+  //           );
+  //           return results;
+  //         }
+          
+  //         return { query: structuredQuery };
+  //       } catch (error) {
+  //         console.error('Error parsing Solana query:', error);
+  //         throw error;
+  //       }
+  //     }
+  //   },
+
   }
 
   // Define tool sets for different user tiers
@@ -1161,7 +1199,8 @@ export async function POST(req: Request) {
     stockAnalysis: allTools.stockAnalysis,
     webResearch: allTools.webResearch,
     getTradingViewChart: allTools.getTradingViewChart,
-    getTechnicalAnalysis: allTools.getTechnicalAnalysis
+    getTechnicalAnalysis: allTools.getTechnicalAnalysis,
+    // parseSolanaQuery: allTools.parseSolanaQuery
   };
 
 // Format context for the prompt
@@ -1197,8 +1236,21 @@ const systemPrompt = `
 - Agent's Description: ${agentConfig.description}
 - Agent's Wallet: ${agentConfig.wallets?.solana || 'N/A'}
 
-## Agent's Solana Wallet Address:
-${agentConfig.wallets?.solana || 'N/A'}
+## Solana Query Handling
+When a user asks about Solana data (transactions, tokens, DeFi activities, etc.), you MUST use the parseSolanaQuery tool first. This tool will:
+1. Parse the natural language query into a structured format
+2. Handle time-based queries (e.g., "last 3 days", "past week")
+3. Apply filters (e.g., specific tokens, platforms)
+4. Sort results as requested
+5. Return data from Solscan
+
+Examples of queries that should use parseSolanaQuery:
+- "Show me transactions from the last 3 days for [address]"
+- "What tokens does this wallet hold: [address]"
+- "Get all Raydium transactions for [address]"
+- "Show me USDC transactions sorted by amount for [address]"
+
+DO NOT use other tools like getAccountDetails for Solana-specific queries. Always use parseSolanaQuery first.
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
@@ -1580,4 +1632,51 @@ function calculateMarketSentiment(
   confidence = Math.min(Math.max(confidence, 0), 100);
   
   return { trend, strength, confidence };
+}
+
+function getEndpointFromIntent(intent: string): string {
+  const endpointMap: Record<string, string> = {
+    get_transactions: 'v2.0/account/transactions',
+    get_token_holdings: 'v2.0/account/token-accounts',
+    get_account_details: 'v2.0/account/detail',
+    get_token_holders: 'v2.0/token/holders',
+    get_defi_activities: 'v2.0/account/defi-activities'
+  };
+  return endpointMap[intent] || 'v2.0/account/detail';
+}
+
+function mapQueryToParams(query: any): Record<string, any> {
+  const params: Record<string, any> = {
+    page: 1,
+    page_size: query.limit || 10,
+    hide_zero: 'true'
+  };
+
+  if (query.timeFrame?.type === 'last_days' && typeof query.timeFrame.value === 'number') {
+    const fromDate = new Date(Date.now() - query.timeFrame.value * 24 * 60 * 60 * 1000);
+    params.from = fromDate.toISOString();
+    params.to = new Date().toISOString();
+  }
+
+  if (query.sortBy) {
+    params.sort_by = query.sortBy;
+  }
+
+  if (query.sortOrder) {
+    params.sort_order = query.sortOrder;
+  }
+
+  if (query.filters) {
+    if (query.filters.token) {
+      params.token = query.filters.token;
+    }
+    if (query.filters.platform?.length) {
+      params['platform[]'] = query.filters.platform;
+    }
+    if (query.filters.activityType?.length) {
+      params['activity_type[]'] = query.filters.activityType;
+    }
+  }
+
+  return params;
 }

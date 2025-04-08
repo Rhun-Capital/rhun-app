@@ -56,10 +56,11 @@ export const RecentChatsPage = () => {
   }, [user?.id, getAccessToken]);
 
   // Filter chats based on search query
-  const filteredChats = chats.filter(chat => 
-    chat.agentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredChats = chats.filter(chat => { 
+    const agentNameMatch = chat.agentName ? chat.agentName.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+    const lastMessageMatch = chat.lastMessage ? chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()) : false;
+    return agentNameMatch || lastMessageMatch;
+  });
 
   if (loading) {
     return (

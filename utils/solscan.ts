@@ -35,3 +35,36 @@ export async function getAccountDetails(address: string) {
     throw error;
   }
 }
+
+export async function makeSolscanRequest(endpoint: string, params: Record<string, any>): Promise<any> {
+  const baseUrl = 'https://pro-api.solscan.io';
+  const queryString = new URLSearchParams(params).toString();
+  const url = `${baseUrl}/${endpoint}?${queryString}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'token': process.env.SOLSCAN_API_KEY as string
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Solscan API error: ${errorData.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Check if the API returned a success status
+    if (data.success === false) {
+      throw new Error(`Solscan API error: ${data.message || 'Unknown error'}`);
+    }
+
+    return data.data; // Return the actual data from the response
+  } catch (error) {
+    console.error('Error making Solscan request:', error);
+    throw error;
+  }
+}
