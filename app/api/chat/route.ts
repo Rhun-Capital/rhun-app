@@ -1136,41 +1136,41 @@ export async function POST(req: Request) {
       }
     },
 
-  //   parseSolanaQuery: {
-  //     description: "PRIMARY TOOL FOR SOLANA QUERIES: Parse natural language queries about Solana blockchain data and fetch from Solscan. Use this for ALL Solana-related queries including transactions, token holdings, DeFi activities, and account details. Handles time-based queries, filters, and sorting.",
-  //     parameters: z.object({
-  //       query: z.string().describe('The natural language query about Solana to parse'),
-  //       addresses: z.array(z.string()).optional().describe('Optional array of Solana addresses to query')
-  //     }),
-  //     execute: async ({ query, addresses }: { query: string; addresses?: string[] }) => {
-  //       try {
-  //         // Parse the query using the schema
-  //         const structuredQuery = await parseQueryToSchema(query);
-  //         console.log('Parsed structured query:', structuredQuery);
+    // parseSolanaQuery: {
+    //   description: "PRIMARY TOOL FOR SOLANA QUERIES: Parse natural language queries about Solana blockchain data and fetch from Solscan. Use this for ALL Solana-related queries including transactions, token holdings, DeFi activities, and account details. Handles time-based queries, filters, and sorting.",
+    //   parameters: z.object({
+    //     query: z.string().describe('The natural language query about Solana to parse'),
+    //     addresses: z.array(z.string()).optional().describe('Optional array of Solana addresses to query')
+    //   }),
+    //   execute: async ({ query, addresses }: { query: string; addresses?: string[] }) => {
+    //     try {
+    //       // Parse the query using the schema
+    //       const structuredQuery = await parseQueryToSchema(query);
+    //       console.log('Parsed structured query:', structuredQuery);
           
-  //         // If addresses are provided, query each one
-  //         if (addresses && addresses.length > 0) {
-  //           const results = await Promise.all(
-  //             addresses.map(async (address) => {
-  //               const endpoint = getEndpointFromIntent(structuredQuery.intent);
-  //               const params = mapQueryToParams(structuredQuery);
-  //               console.log('Making Solscan request with:');
-  //               console.log('Endpoint:', endpoint);
-  //               console.log('Params:', { ...params, address });
-  //               const response = await makeSolscanRequest(endpoint, { ...params, address });
-  //               return { address, data: response };
-  //             })
-  //           );
-  //           return results;
-  //         }
+    //       // If addresses are provided, query each one
+    //       if (addresses && addresses.length > 0) {
+    //         const results = await Promise.all(
+    //           addresses.map(async (address) => {
+    //             const endpoint = getEndpointFromIntent(structuredQuery.intent);
+    //             const params = mapQueryToParams(structuredQuery);
+    //             console.log('Making Solscan request with:');
+    //             console.log('Endpoint:', endpoint);
+    //             console.log('Params:', { ...params, address });
+    //             const response = await makeSolscanRequest(endpoint, { ...params, address });
+    //             return { address, data: response };
+    //           })
+    //         );
+    //         return results;
+    //       }
           
-  //         return { query: structuredQuery };
-  //       } catch (error) {
-  //         console.error('Error parsing Solana query:', error);
-  //         throw error;
-  //       }
-  //     }
-  //   },
+    //       return { query: structuredQuery };
+    //     } catch (error) {
+    //       console.error('Error parsing Solana query:', error);
+    //       throw error;
+    //     }
+    //   }
+    // },
 
   }
 
