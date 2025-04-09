@@ -1,7 +1,7 @@
 // components/chat-sidebar.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { WalletIcon, ToolsIcon } from '@/components/icons';
-import { SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw } from 'lucide-react';
+import { SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart } from 'lucide-react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import {useFundWallet} from '@privy-io/react-auth/solana';
@@ -239,6 +239,69 @@ const ToolCard: React.FC<{
     </div>
   );
 };
+
+const fredTools: Tool[] = [
+  {
+    name: 'GDP Analysis',
+    description: 'View and analyze Gross Domestic Product data',
+    command: getToolCommand('fred-gdp') || 'Show me the latest GDP data from FRED',
+    isNew: true
+  },
+  {
+    name: 'Unemployment Rate',
+    description: 'Track unemployment rate trends',
+    command: getToolCommand('fred-unemployment') || 'Show me the latest unemployment rate from FRED',
+    isNew: true
+  },
+  {
+    name: 'Inflation Data',
+    description: 'Monitor CPI and inflation metrics',
+    command: getToolCommand('fred-inflation') || 'Show me recent CPI data from FRED',
+    isNew: true
+  },
+  {
+    name: 'Interest Rates',
+    description: 'View Federal Funds Rate and other interest rates',
+    command: getToolCommand('fred-interest-rates') || 'What\'s the current Fed Funds Rate from FRED?',
+    isNew: true
+  },
+  {
+    name: 'Market Data',
+    description: 'Access S&P 500 and other market indicators',
+    command: getToolCommand('fred-market') || 'Show me the S&P 500 index from FRED',
+    isNew: true
+  },
+  {
+    name: 'Exchange Rates',
+    description: 'Track currency exchange rates',
+    command: getToolCommand('fred-exchange') || 'Show me the Euro exchange rate from FRED',
+    isNew: true
+  },
+  {
+    name: 'Housing Data',
+    description: 'Monitor housing market indicators',
+    command: getToolCommand('fred-housing') || 'Show me housing starts from FRED',
+    isNew: true
+  },
+  {
+    name: 'Money Supply',
+    description: 'View M2 money supply data',
+    command: getToolCommand('fred-money') || 'Show me the M2 money supply from FRED',
+    isNew: true
+  },
+  {
+    name: 'Federal Debt',
+    description: 'Track total federal debt',
+    command: getToolCommand('fred-debt') || 'What\'s the total federal debt from FRED?',
+    isNew: true
+  },
+  {
+    name: 'Retail Sales',
+    description: 'Monitor retail sales trends',
+    command: getToolCommand('fred-retail') || 'What\'s the current retail sales from FRED?',
+    isNew: true
+  }
+];
 
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent }) => {
   const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
@@ -785,6 +848,25 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                     onClick={() => handleToolClick(tool)}
                   />
                 ))}
+
+                {/* FRED Tools Section */}
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 my-4">
+                    <LineChart className="w-5 h-5 text-indigo-500" />
+                    <h3 className="text-lg font-semibold text-white">FRED Economic Data</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {fredTools.map((tool) => (
+                      <ToolCard
+                        key={tool.command}
+                        tool={tool}
+                        isSubscribed={isSubscribed}
+                        isDisabled={false}
+                        onClick={() => handleToolClick(tool)}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>

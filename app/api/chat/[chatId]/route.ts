@@ -48,8 +48,6 @@ export async function GET(
       return await getCloudFrontSignedUrl(url);
     };
     
-
-    
     const messages = await Promise.all(
       result.Items
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -68,13 +66,38 @@ export async function GET(
               }))
             )
           }),
-          toolInvocations: item.toolInvocations ? item.toolInvocations.map((tool: any) => ({
-            ...tool,
-            toolName: tool.toolName,
-            toolCallId: tool.toolCallId,
-            args: tool.args,
-            result: tool.result
-          })) : []
+          toolInvocations: item.toolInvocations ? item.toolInvocations.map((tool: any) => {
+            // Check if the tool result is stored in S3 and preserve its reference
+            if (tool.result && tool.result._storedInS3) {
+              return {
+                ...tool,
+                toolName: tool.toolName,
+                toolCallId: tool.toolCallId,
+                args: tool.args,
+                result: {
+                  ...tool.result,
+                  // Make sure to include the S3 reference
+                  _storedInS3: true,
+                  _s3Reference: tool.result._s3Reference,
+                  _originalSize: tool.result._originalSize,
+                  // Ensure we include preview data if available
+                  ...(tool.result.seriesId && { seriesId: tool.result.seriesId }),
+                  ...(tool.result.metadata && { metadata: tool.result.metadata }),
+                  ...(tool.result.title && { title: tool.result.title }),
+                  ...(tool.result.observations && { observations: tool.result.observations })
+                }
+              };
+            }
+            
+            // Regular tool invocation result
+            return {
+              ...tool,
+              toolName: tool.toolName,
+              toolCallId: tool.toolCallId,
+              args: tool.args,
+              result: tool.result
+            };
+          }) : []
         }))
     );
 

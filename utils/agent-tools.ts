@@ -966,3 +966,123 @@ export async function getFinancialData(tickers: string[], analysisType: string) 
     return { error: 'Failed to fetch financial data' };
   }
 }
+
+// FRED series mapping for common economic indicators
+const FRED_SERIES_MAPPING: { [key: string]: string } = {
+  'unemployment': 'UNRATE',
+  'unemployment rate': 'UNRATE',
+  'gdp': 'GDP',
+  'gross domestic product': 'GDP',
+  'inflation': 'CPIAUCSL',
+  'consumer price index': 'CPIAUCSL',
+  'interest rate': 'DFF',
+  'federal funds rate': 'DFF',
+  'housing starts': 'HOUST',
+  'retail sales': 'RRSFS',
+  'industrial production': 'INDPRO',
+  'personal income': 'PI',
+  'personal consumption': 'PCE',
+  'trade balance': 'BOPGSTB',
+  'trade deficit': 'BOPGSTB',
+  'trade surplus': 'BOPGSTB',
+  'money supply': 'M2',
+  'm2 money supply': 'M2',
+  'consumer confidence': 'UMCSENT',
+  'consumer sentiment': 'UMCSENT',
+  'manufacturing': 'IPMAN',
+  'industrial production manufacturing': 'IPMAN',
+  'capacity utilization': 'TCU',
+  'capacity utilization rate': 'TCU',
+  'new home sales': 'HSN1F',
+  'existing home sales': 'EXHOSLUSM495S',
+  'building permits': 'BPPRIV',
+  'construction spending': 'TTLCONS',
+  'durable goods': 'DGORDER',
+  'durable goods orders': 'DGORDER',
+  'factory orders': 'AMTMNO',
+  'business inventories': 'BUSINV',
+  'retail inventories': 'RETAILIMSA',
+  'wholesale inventories': 'WHLSLRIMSA',
+  'job openings': 'JTSJOL',
+  'job openings rate': 'JTSJOL',
+  'quits rate': 'JTSQUR',
+  'layoffs rate': 'JTSLDR',
+  'hires rate': 'JTSHIR',
+  'average hourly earnings': 'CES0500000003',
+  'average weekly hours': 'AWHAETP',
+  'labor force participation': 'CIVPART',
+  'labor force participation rate': 'CIVPART',
+  'employment population ratio': 'EMRATIO',
+  'employment to population ratio': 'EMRATIO',
+  'real gdp': 'GDPC1',
+  'real gross domestic product': 'GDPC1',
+  'real personal income': 'RPI',
+  'real personal consumption': 'PCECC96',
+  'real retail sales': 'RRSFS',
+  'real disposable income': 'DSPIC96',
+  'real disposable personal income': 'DSPIC96',
+  'real average hourly earnings': 'CES0500000003',
+  'real average weekly earnings': 'CES0500000003',
+  'real median household income': 'MEHOINUSA672N',
+  'real median family income': 'MEFAINUSA672N',
+  'real median personal income': 'MEPAINUSA672N',
+  'real median earnings': 'LES1252881600Q',
+  'real median weekly earnings': 'LES1252881600Q',
+  'real median hourly earnings': 'LES1252881600Q',
+  'real median weekly wages': 'LES1252881600Q',
+  'real median hourly wages': 'LES1252881600Q',
+  'real median weekly income': 'LES1252881600Q',
+  'real median hourly income': 'LES1252881600Q',
+  'real median weekly salary': 'LES1252881600Q',
+  'real median hourly salary': 'LES1252881600Q',
+  'real median weekly pay': 'LES1252881600Q',
+  'real median hourly pay': 'LES1252881600Q',
+  'real median weekly compensation': 'LES1252881600Q',
+  'real median hourly compensation': 'LES1252881600Q'
+};
+
+export async function getFredSeries(seriesId: string) {
+  try {
+    // Check if the input is a natural language query
+    const normalizedQuery = seriesId.toLowerCase().trim();
+    const seriesIdToUse = FRED_SERIES_MAPPING[normalizedQuery] || seriesId;
+
+    // Fetch observations data
+    const obsResponse = await fetch(`https://api.stlouisfed.org/fred/series/observations?series_id=${seriesIdToUse}&api_key=${process.env.FRED_API_KEY}&file_type=json`);
+    const obsData = await obsResponse.json();
+    
+    if (obsData.error) {
+      return { 
+        error: `Failed to fetch data for "${seriesId}". Please try a different economic indicator or check the series ID.` 
+      };
+    }
+    
+    // Also fetch series metadata to get units and other info
+    const seriesResponse = await fetch(`https://api.stlouisfed.org/fred/series?series_id=${seriesIdToUse}&api_key=${process.env.FRED_API_KEY}&file_type=json`);
+    const seriesData = await seriesResponse.json();
+    
+    // Extract series metadata from the response
+    const metadata = seriesData.seriess?.[0] || {};
+    
+    return {
+      seriesId: seriesIdToUse,
+      title: metadata.title || '',
+      metadata: {
+        id: metadata.id || seriesIdToUse,
+        title: metadata.title || '',
+        units: metadata.units || '',
+        units_short: metadata.units_short || '',
+        frequency: metadata.frequency || '',
+        seasonal_adjustment: metadata.seasonal_adjustment || '',
+        last_updated: metadata.last_updated || new Date().toISOString(),
+        notes: metadata.notes || ''
+      },
+      ...obsData
+    };
+  } catch (error) {
+    console.error('Error fetching FRED series:', error);
+    return { 
+      error: `Failed to fetch FRED series data for "${seriesId}". Please try again later.` 
+    };
+  }
+}

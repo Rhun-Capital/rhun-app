@@ -1,7 +1,30 @@
 import { NextResponse } from 'next/server';
 import { DynamoDB } from 'aws-sdk';
 
-const dynamodb = new DynamoDB.DocumentClient();
+// For aws-sdk v2, we use different options format than v3
+const dynamodb = new DynamoDB.DocumentClient({
+  region: process.env.AWS_REGION,
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  convertEmptyValues: true
+});
+
+// Utility function to remove undefined values from objects
+const removeUndefined = (obj: any): any => {
+  if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined).filter(item => item !== undefined);
+  }
+  
+  return Object.entries(obj).reduce((acc: any, [key, value]) => {
+    const processedValue = removeUndefined(value);
+    if (processedValue !== undefined) {
+      acc[key] = processedValue;
+    }
+    return acc;
+  }, {});
+};
 
 export async function POST(request: Request) {
   try {
@@ -43,18 +66,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Process the result to remove any undefined values
+    const sanitizedResult = removeUndefined(result);
+
     // Update the specific tool invocation
     const updatedToolInvocations = message.toolInvocations.map((tool: any) => {
       if (tool.toolCallId === toolCallId) {
-        return {
+        const updatedTool = {
           ...tool,
           status,
           result: {
-            ...tool.result,
-            ...result,
+            ...removeUndefined(tool.result || {}),
+            ...sanitizedResult,
             updatedAt: new Date().toISOString()
           }
         };
+        return removeUndefined(updatedTool);
       }
       return tool;
     });
@@ -73,9 +100,12 @@ export async function POST(request: Request) {
       ReturnValues: 'ALL_NEW'
     };
 
-    await dynamodb.update(updateParams).promise();
+    const updatedMessage = await dynamodb.update(updateParams).promise();
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: updatedMessage.Attributes
+    });
   } catch (error) {
     console.error('Error updating tool invocation:', error);
     return NextResponse.json(

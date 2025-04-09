@@ -16,7 +16,8 @@ import {
   getDerivativesExchanges,
   getTopHolders,
   getTokenHoldings,
-  getFinancialData
+  getFinancialData,
+  getFredSeries
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
@@ -545,6 +546,17 @@ export async function POST(req: Request) {
       }
     },
   
+    getFredSeries: {
+      description: "Get economic data series from FRED (Federal Reserve Economic Data) by series ID",
+      parameters: z.object({ 
+        seriesId: z.string().describe('The FRED series ID to fetch data for (e.g. GDP, UNRATE, CPIAUCSL)')
+      }),
+      execute: async ({ seriesId }: { seriesId: string }) => {
+        const seriesData = await getFredSeries(seriesId);
+        return seriesData;
+      }
+    },
+  
     swap: {
       description: "Execute the swap. The fromToken, toToken, amount, slippage are passed in but the user does not supply those, they just supply the names or contract address and the amount",
       parameters: z.object({
@@ -668,7 +680,6 @@ export async function POST(req: Request) {
           .default(10),
       }),
       execute: async ({ query, maxResults }) => {
-        console.log('Query:', query, 'Max:', maxResults);
         
         // Retrieve news articles
         let newsArticles = await retrieveCryptoNews(
@@ -1200,6 +1211,7 @@ export async function POST(req: Request) {
     webResearch: allTools.webResearch,
     getTradingViewChart: allTools.getTradingViewChart,
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
+    getFredSeries: allTools.getFredSeries,
     // parseSolanaQuery: allTools.parseSolanaQuery
   };
 
