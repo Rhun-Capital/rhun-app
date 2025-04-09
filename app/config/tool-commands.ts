@@ -35,7 +35,9 @@ export const toolCommands: { [key: string]: string } = {
   'fred-housing': 'Show me housing starts from FRED',
   'fred-money': 'Show me the M2 money supply from FRED',
   'fred-debt': 'What\'s the total federal debt from FRED?',
-  'fred-retail': 'What\'s the current retail sales from FRED?'
+  'fred-retail': 'What\'s the current retail sales from FRED?',
+  'fred-industrial': 'Show me the latest industrial production from FRED',
+  'fred-confidence': 'Show me the latest consumer confidence from FRED'
 };
 
 export const getToolCommand = (tool: string): string | undefined => {
