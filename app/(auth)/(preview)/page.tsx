@@ -398,15 +398,15 @@ export default function HomePage() {
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/fear-greed.png'
     },
     {
-      title: 'Consumer Confidence',
-      description: 'Track consumer sentiment and confidence indicators from FRED.',
-      icon: MessageSquare,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-confidence',
+      title: 'S&P 500 Index',
+      description: 'Track the S&P 500 index and its historical performance with FRED data.',
+      icon: LineChartIcon,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-sandp500',
       color: 'text-indigo-500',
-      type: 'fred-confidence',
+      type: 'fred-sandp500',
       isNew: true,
-      stats: 'Sentiment',
-      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/market-movers.png'
+      stats: 'Stock Market',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/fear-greed.png'
     }
   ];
 
