@@ -461,8 +461,8 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
       ref={containerRef} 
       className={`relative bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2 ${isFullscreen ? 'w-screen h-screen' : ''}`}
     >
-      <div className="flex justify-between items-start mb-4">
-        <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+        <div className="w-full sm:w-auto">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-white">{seriesId}</h3>
             <div className="group relative inline-block">
@@ -482,7 +482,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
           </div>
           <div className="text-sm text-zinc-400 mt-1">{displayTitle}</div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
           <button 
             onClick={toggleFullscreen}
             className="p-2 rounded-md bg-zinc-700 hover:bg-zinc-600 text-sm flex items-center gap-1"
@@ -498,7 +498,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
             ) : (
               <>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2 2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
                 </svg>
                 <span className="hidden sm:inline">Fullscreen</span>
               </>
@@ -522,7 +522,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-3 gap-4">
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
           <div className="text-sm text-zinc-400">Latest Value</div>
           <div className="text-xl font-semibold text-white">
@@ -543,8 +543,16 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         </div>
       </div>
 
+      {/* Mobile View */}
+      <div className="sm:hidden mb-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+        <div className="flex flex-col items-center gap-2 text-zinc-400 text-center">
+          <span className="text-sm">View chart on desktop for better visualization</span>
+        </div>
+      </div>
+
+      {/* Desktop Chart View */}
       <div 
-        className="w-full relative" 
+        className="hidden sm:block w-full relative" 
         style={{ height: `${height}px`, transition: 'height 0.3s ease-in-out' }}
       >
         <ParentSize>
