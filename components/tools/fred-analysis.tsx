@@ -9,6 +9,7 @@ import { useTooltip, TooltipWithBounds, defaultStyles } from '@visx/tooltip';
 import { localPoint } from '@visx/event';
 import { bisector } from 'd3-array';
 import axios from 'axios';
+import { Maximize, Minimize } from 'lucide-react';
 
 interface FredMetadata {
   frequency?: string;
@@ -471,7 +472,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                 </svg>
               </div>
-              <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity bg-zinc-900 text-sm text-zinc-200 rounded-lg p-3 absolute left-0 top-6 w-64 shadow-lg border border-zinc-700 z-50">
+              <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity bg-zinc-900 text-sm text-zinc-200 rounded-lg p-3 absolute left-0 sm:left-auto sm:right-0 top-6 w-64 shadow-lg border border-zinc-700 z-50">
                 <div className="space-y-2">
                   <p><span className="font-semibold">Frequency:</span> {additionalMetadata?.frequency_short || metadata?.frequency || 'N/A'}</p>
                   <p><span className="font-semibold">Units:</span> {additionalMetadata?.units || metadata?.units || 'N/A'}</p>
@@ -485,22 +486,18 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
           <button 
             onClick={toggleFullscreen}
-            className="p-2 rounded-md bg-zinc-700 hover:bg-zinc-600 text-sm flex items-center gap-1"
+            className="hidden sm:flex p-2 rounded-md bg-zinc-700 hover:bg-zinc-600 text-sm items-center gap-1"
             aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
             {isFullscreen ? (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
-                </svg>
-                <span className="hidden sm:inline">Exit Fullscreen</span>
+                <Minimize className="w-4 h-4" />
+                <span>Exit Fullscreen</span>
               </>
             ) : (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2 2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-                </svg>
-                <span className="hidden sm:inline">Fullscreen</span>
+                <Maximize className="w-4 h-4" />
+                <span>Fullscreen</span>
               </>
             )}
           </button>
