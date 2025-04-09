@@ -46,6 +46,7 @@ import NewsAnalysis from "@/components/tools/news-analysis";
 import WebResearch from "@/components/tools/web-research";
 import TradingViewChart from "@/components/tools/tradingview-chart";
 import TechnicalAnalysis from '@/components/tools/technical-analysis';
+import FredAnalysis from '@/components/tools/fred-analysis';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import { getToolCommand } from '@/app/config/tool-commands';
 
@@ -330,9 +331,7 @@ export default function Home() {
 
   useEffect(() => {
     const loadInitialMessages = async (): Promise<void> => {
-      console.log("here?")
       if (!chatId || !params.userId) return;
-      console.log("THEN here?")
       
       try {
         const token = await getAccessToken();
@@ -361,17 +360,30 @@ export default function Home() {
               url: attachment.url,
               contentType: attachment.contentType,
             })),            
-            toolInvocations: msg.toolInvocations?.map((tool: any) => ({
-              ...tool, 
-              toolName: tool.toolName,
-              toolCallId: tool.toolCallId,
-              args: tool.args,
-              result: tool.result
-            }))
+            toolInvocations: msg.toolInvocations?.map((tool: any) => {
+              // Ensure we preserve all S3 references and metadata for tool results
+              const mappedTool = {
+                ...tool, 
+                toolName: tool.toolName,
+                toolCallId: tool.toolCallId,
+                args: tool.args,
+                result: tool.result
+              };
+              
+              // Make sure we keep the special fields for S3 references intact
+              if (mappedTool.result && mappedTool.result._storedInS3) {
+                mappedTool.result = {
+                  ...mappedTool.result,
+                  _storedInS3: true,
+                  _s3Reference: mappedTool.result._s3Reference
+                };
+              }
+              
+              return mappedTool;
+            })
           }));
           
           setInitialMessages(formattedMessages);
-
         }
       } catch (error) {
         console.error('Error loading chat history:', error);
@@ -981,6 +993,10 @@ export default function Home() {
                                 <TechnicalAnalysis data={tool.result} />
                               </div>
                             ) : null;
+                          case 'getFredSeries':
+                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                              <FredAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                            </div>;
                           default:
                             return null;                            
                         }

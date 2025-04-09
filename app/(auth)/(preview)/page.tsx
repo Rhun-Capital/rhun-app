@@ -22,7 +22,14 @@ import {
   ArrowUpRight,
   MessageSquare,
   Gauge,
-  TrendingUp as TrendingUpIcon2
+  TrendingUp as TrendingUpIcon2,
+  LineChart as LineChartIcon,
+  DollarSign,
+  Building2,
+  Banknote,
+  Home,
+  ShoppingCart,
+  Scale
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -300,6 +307,105 @@ export default function HomePage() {
       color: 'text-indigo-500',
       type: 'market-movers',
       stats: 'Real-time Updates',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/market-movers.png'
+    },
+    {
+      title: 'GDP Analysis',
+      description: 'Access real-time GDP data and analysis from FRED with interactive charts and historical trends.',
+      icon: DollarSign,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-gdp',
+      color: 'text-indigo-500',
+      type: 'fred-gdp',
+      isNew: true,
+      stats: 'Economic Data',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/technical-analysis-2+Background+Removed.png'
+    },
+    {
+      title: 'Unemployment Rate',
+      description: 'Track unemployment trends with FRED data, including interactive visualizations and analysis.',
+      icon: Building2,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-unemployment',
+      color: 'text-indigo-500',
+      type: 'fred-unemployment',
+      isNew: true,
+      stats: 'Labor Market',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/stocks-wire.png'
+    },
+    {
+      title: 'Inflation Data',
+      description: 'Monitor inflation metrics with FRED data, including CPI and PCE price indices.',
+      icon: Banknote,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-inflation',
+      color: 'text-indigo-500',
+      type: 'fred-inflation',
+      isNew: true,
+      stats: 'Price Trends',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/chart-wire.png'
+    },
+    {
+      title: 'Interest Rates',
+      description: 'Track Federal Reserve interest rates and bond yields with FRED data.',
+      icon: LineChartIcon,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-interest-rates',
+      color: 'text-indigo-500',
+      type: 'fred-interest-rates',
+      isNew: true,
+      stats: 'Rate Data',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/swap-wire.png'
+    },
+    {
+      title: 'Housing Market',
+      description: 'Analyze housing market indicators including starts, permits, and prices.',
+      icon: Home,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-housing',
+      color: 'text-indigo-500',
+      type: 'fred-housing',
+      isNew: true,
+      stats: 'Real Estate',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/web-search.png'
+    },
+    {
+      title: 'Retail Sales',
+      description: 'Monitor consumer spending trends with FRED retail sales data.',
+      icon: ShoppingCart,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-retail',
+      color: 'text-indigo-500',
+      type: 'fred-retail',
+      isNew: true,
+      stats: 'Consumer Data',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/asset-search.png'
+    },
+    {
+      title: 'Money Supply',
+      description: 'Track M2 money supply and other monetary aggregates from FRED.',
+      icon: Scale,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-money',
+      color: 'text-indigo-500',
+      type: 'fred-money',
+      isNew: true,
+      stats: 'Monetary Data',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/news-2.png'
+    },
+    {
+      title: 'Industrial Production',
+      description: 'Monitor manufacturing output and industrial activity with FRED data.',
+      icon: Activity,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-industrial',
+      color: 'text-indigo-500',
+      type: 'fred-industrial',
+      isNew: true,
+      stats: 'Manufacturing',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/fear-greed.png'
+    },
+    {
+      title: 'Consumer Confidence',
+      description: 'Track consumer sentiment and confidence indicators from FRED.',
+      icon: MessageSquare,
+      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-confidence',
+      color: 'text-indigo-500',
+      type: 'fred-confidence',
+      isNew: true,
+      stats: 'Sentiment',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/market-movers.png'
     }
   ];

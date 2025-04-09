@@ -1,0 +1,1 @@
+export const FRED_API_KEY = process.env.FRED_APIKEY || ''; 
