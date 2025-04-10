@@ -1047,8 +1047,15 @@ export async function getFredSeries(seriesId: string) {
     const normalizedQuery = seriesId.toLowerCase().trim();
     const seriesIdToUse = FRED_SERIES_MAPPING[normalizedQuery] || seriesId;
 
-    // Fetch observations data
-    const obsResponse = await fetch(`https://api.stlouisfed.org/fred/series/observations?series_id=${seriesIdToUse}&api_key=${process.env.FRED_API_KEY}&file_type=json`);
+    // Calculate date 10 years ago from today
+    const tenYearsAgo = new Date();
+    tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+    const observationStart = tenYearsAgo.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
+    // Fetch observations data with 10-year limit
+    const obsResponse = await fetch(
+      `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesIdToUse}&api_key=${process.env.FRED_API_KEY}&file_type=json&observation_start=${observationStart}`
+    );
     const obsData = await obsResponse.json();
     
     if (obsData.error) {
