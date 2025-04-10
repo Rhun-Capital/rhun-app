@@ -87,7 +87,6 @@ interface TechnicalAnalysisProps {
     lastUpdated: string;
     analysisPeriod: {
       days: number;
-      interval: string;
     };
   };
 }
@@ -412,7 +411,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
   const priceChange = data.priceChange || { '24h': 0, '7d': 0, '30d': 0 };
   const supportResistance = data.supportResistance || { support: [], resistance: [] };
   const marketSentiment = data.marketSentiment || { trend: 'neutral', strength: 0, confidence: 0 };
-  const analysisPeriod = data.analysisPeriod || { days: 0, interval: '1d' };
+  const analysisPeriod = data.analysisPeriod || { days: 0 };
   const lastUpdated = data.lastUpdated || new Date().toISOString();
 
   const volume = technicalIndicators?.volume || { volume: 0, volumeSMA: 0, volumeEMA: 0 };
@@ -1149,7 +1148,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-zinc-400 gap-2">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4" />
-          <span>Analysis Period: {analysisPeriod.days} days ({analysisPeriod.interval})</span>
+          <span>Analysis Period: {analysisPeriod.days} days</span>
         </div>
         <div>Last Updated: {new Date(lastUpdated).toLocaleString()}</div>
       </div>
