@@ -961,12 +961,9 @@ export async function POST(req: Request) {
       description: "Get technical analysis and insights for a given trading symbol using CoinGecko data. This tool provides current price data, technical indicators, and market sentiment analysis.",
       parameters: z.object({
         symbol: z.string().describe('The trading symbol (e.g., bitcoin, ethereum, solana)'),
-        days: z.number().optional().describe('Number of days of historical data to analyze (default: 200)'),
-        interval: z.enum(['daily', 'hourly']).optional().describe('Data interval for analysis (default: daily)'),
-        indicators: z.array(z.string()).optional().describe('Array of technical indicators to analyze. Available indicators: sma, ema, rsi, macd, bollinger_bands, stoch_rsi, adx, ichimoku, volume, obv, aroon, cci, mfi, dmi, parabolic_sar, supertrend, williams_alligator, williams_fractals, pivot_points, fibonacci_retracement'),
-        timeframe: z.string().optional().describe('Analysis timeframe (e.g., 1h, 4h, 1d, 1w)'),
+        days: z.number().optional().describe('Number of days of historical data to analyze (default: 200)')
       }),
-      execute: async ({ symbol, days = 200, interval = 'daily', indicators, timeframe }) => {
+      execute: async ({ symbol, days = 200 }) => {
         try {
           // First, try to get the coin ID from CoinGecko
           const searchResponse = await fetch(`https://api.coingecko.com/api/v3/search?query=${symbol}`);
@@ -994,7 +991,7 @@ export async function POST(req: Request) {
           const coinId = searchData.coins[0].id;
 
           // Get market data using the coin ID
-          const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=${interval}`);
+          const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`);
           const data = await response.json();
 
           if (!response.ok) {
@@ -1021,90 +1018,34 @@ export async function POST(req: Request) {
           const priceChange7d = marketData.market_data.price_change_percentage_7d;
           const priceChange30d = marketData.market_data.price_change_percentage_30d;
 
-          // Calculate various technical indicators based on requested indicators
-          const technicalIndicators: any = {};
-
-          // Moving Averages
-          if (!indicators || indicators.includes('sma')) {
-            technicalIndicators.sma = {
+          // Calculate various technical indicators
+          const technicalIndicators: any = {
+            sma: {
               '20': calculateSMA(prices, 20),
               '50': calculateSMA(prices, 50),
               '200': calculateSMA(prices, 200)
-            };
-          }
-
-          if (!indicators || indicators.includes('ema')) {
-            technicalIndicators.ema = {
+            },
+            ema: {
               '9': calculateEMA(prices, 9),
               '21': calculateEMA(prices, 21),
               '50': calculateEMA(prices, 50)
-            };
-          }
-
-          // Momentum Indicators
-          if (!indicators || indicators.includes('rsi')) {
-            technicalIndicators.rsi = calculateRSI(prices);
-          }
-
-          if (!indicators || indicators.includes('macd')) {
-            technicalIndicators.macd = calculateMACD(prices);
-          }
-
-          if (!indicators || indicators.includes('stoch_rsi')) {
-            technicalIndicators.stochRSI = calculateStochRSI(prices);
-          }
-
-          if (!indicators || indicators.includes('cci')) {
-            technicalIndicators.cci = calculateCCI(prices);
-          }
-
-          if (!indicators || indicators.includes('mfi')) {
-            technicalIndicators.mfi = calculateMFI(prices);
-          }
-
-          // Trend Indicators
-          if (!indicators || indicators.includes('adx')) {
-            technicalIndicators.adx = calculateADX(prices);
-          }
-
-          if (!indicators || indicators.includes('dmi')) {
-            technicalIndicators.dmi = calculateDMI(prices);
-          }
-
-          if (!indicators || indicators.includes('ichimoku')) {
-            technicalIndicators.ichimoku = calculateIchimoku(prices);
-          }
-
-          if (!indicators || indicators.includes('aroon')) {
-            technicalIndicators.aroon = calculateAroon(prices);
-          }
-
-          // Volatility Indicators
-          if (!indicators || indicators.includes('bollinger_bands')) {
-            technicalIndicators.bollingerBands = calculateBollingerBands(prices);
-          }
-
-          if (!indicators || indicators.includes('atr')) {
-            technicalIndicators.atr = calculateATR(prices);
-          }
-
-          // Volume Indicators
-          if (!indicators || indicators.includes('volume')) {
-            technicalIndicators.volume = calculateVolumeMetrics(prices);
-          }
-
-          if (!indicators || indicators.includes('obv')) {
-            technicalIndicators.obv = calculateOBV(prices);
-          }
-
-          // Support/Resistance
-          if (!indicators || indicators.includes('pivot_points')) {
-            technicalIndicators.pivotPoints = calculatePivotPoints(prices);
-          }
-
-          if (!indicators || indicators.includes('fibonacci_retracement')) {
-            technicalIndicators.fibonacciRetracement = calculateFibonacciRetracement(prices);
-          }
+            },
+            rsi: calculateRSI(prices),
+            macd: calculateMACD(prices),
+            stochRSI: calculateStochRSI(prices),
+            cci: calculateCCI(prices),
+            mfi: calculateMFI(prices),
+            adx: calculateADX(prices),
+            dmi: calculateDMI(prices),
+            ichimoku: calculateIchimoku(prices),
+            aroon: calculateAroon(prices),
+            bollingerBands: calculateBollingerBands(prices),
+            atr: calculateATR(prices),
+            volume: calculateVolumeMetrics(prices),
+            obv: calculateOBV(prices),
+            pivotPoints: calculatePivotPoints(prices),
+            fibonacciRetracement: calculateFibonacciRetracement(prices)
+          };
 
           // Calculate support and resistance levels
           const supportResistance = calculateSupportResistance(prices);
@@ -1127,8 +1068,7 @@ export async function POST(req: Request) {
             marketSentiment: sentiment,
             lastUpdated: new Date().toISOString(),
             analysisPeriod: {
-              days,
-              interval
+              days
             }
           };
         } catch (error: any) {
