@@ -471,13 +471,13 @@ const WatcherCard = ({ watcher, onDelete, onClick }: {
           placeholder="Search by name, address, or tag..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full my-4 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-indigo-500 transition-colors"
+          className="w-full my-4 px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:outline-none focus:border-indigo-500 transition-colors relative z-10"
         />
       </div>      
       <div className="hidden md:block overflow-x-auto">
       <table className="w-full bg-zinc-800 rounded-lg">
         <thead>
-          <tr className="text-left border-b border-zinc-700">
+          <tr className="text-left border-b border-zinc-700 sticky top-0 bg-zinc-800 z-20">
             <th className="p-4 text-sm font-medium text-zinc-400">Name/Address</th>
             <th className="p-4 text-sm font-medium text-zinc-400">Status</th>
             <SortableHeader />

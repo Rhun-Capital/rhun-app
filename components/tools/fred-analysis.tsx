@@ -68,6 +68,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
   const [error, setError] = useState<string | null>(null);
   const [additionalMetadata, setAdditionalMetadata] = useState<FredMetadata | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [timeframe, setTimeframe] = useState<'1Y' | '5Y' | '10Y' | 'MAX'>('10Y');
 
   // Fetch complete data from S3 if stored there
   useEffect(() => {
@@ -184,6 +185,26 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
     );
   }
 
+  // Filter observations based on selected timeframe
+  const filterObservationsByTimeframe = (allObservations: Observation[]) => {
+    if (timeframe === 'MAX' || allObservations.length === 0) {
+      return allObservations;
+    }
+    
+    const now = new Date();
+    const cutoffDate = new Date();
+    
+    if (timeframe === '1Y') {
+      cutoffDate.setFullYear(now.getFullYear() - 1);
+    } else if (timeframe === '5Y') {
+      cutoffDate.setFullYear(now.getFullYear() - 5);
+    } else if (timeframe === '10Y') {
+      cutoffDate.setFullYear(now.getFullYear() - 10);
+    }
+    
+    return allObservations.filter(obs => new Date(obs.date) >= cutoffDate);
+  };
+
   // Find the latest observation with a valid value
   const latestObservation = observations[observations.length - 1];
   const previousObservation = observations.length > 1 ? observations[observations.length - 2] : null;
@@ -204,6 +225,9 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
                         unitsLabel.toLowerCase().includes('rate'));
   
   
+  // Filter observations based on timeframe
+  const filteredObservations = filterObservationsByTimeframe(observations);
+  
   // Format value based on type
   const formatValue = (value: number) => {
     if (isPercentage) {
@@ -211,7 +235,18 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
       return `${value.toFixed(1)}%`;
     } else if (unitsLabel.toLowerCase().includes('dollar')) {
       // Add dollar sign and commas for dollar values
-      return `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+      const formattedValue = `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+      // Since GDP is in billions, we need to divide by 1000 to get trillions
+      const trillionAmount = value / 1000;
+      if (trillionAmount >= 1) { // Only show if >= 1 trillion
+        return (
+          <div className="flex flex-col">
+            <span>{formattedValue}</span>
+            <span className="text-zinc-400 text-sm">({trillionAmount.toFixed(2)}T)</span>
+          </div>
+        );
+      }
+      return formattedValue;
     } else {
       // Format other numbers with commas
       return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -241,7 +276,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
   };
   
   // Prepare data for chart with actual values - no conversion
-  const chartData = observations.map((obs: Observation) => ({
+  const chartData = filteredObservations.map((obs: Observation) => ({
     date: obs.date,
     value: obs.value
   }));
@@ -376,6 +411,21 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
                 fontSize: 12,
                 textAnchor: 'middle',
               })}
+              numTicks={timeframe === '1Y' ? 6 : timeframe === '5Y' ? 5 : 10}
+              tickFormat={(value) => {
+                const date = new Date(Number(value));
+                
+                if (timeframe === '1Y') {
+                  // For 1-year timeframe, use short month names only
+                  return date.toLocaleDateString(undefined, { month: 'short' });
+                } else if (timeframe === '5Y') {
+                  // For 5-year timeframe, use just the year
+                  return date.getFullYear().toString();
+                } else {
+                  // For 10Y and MAX, just show the year
+                  return date.getFullYear().toString();
+                }
+              }}
               label="Date"
               labelProps={{
                 fill: '#9ca3af',
@@ -444,7 +494,16 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
               <strong>Value:</strong> {isPercentage 
                 ? `${tooltipData.value.toFixed(1)}%` 
                 : unitsLabel.toLowerCase().includes('dollar')
-                  ? `$${tooltipData.value.toFixed(2)}`
+                  ? (
+                      <div className="flex flex-col">
+                        <span>${tooltipData.value.toFixed(2)}</span>
+                        {tooltipData.value >= 1000 && (
+                          <span className="text-sm text-zinc-400">
+                            ({(tooltipData.value / 1000).toFixed(2)}T)
+                          </span>
+                        )}
+                      </div>
+                    )
                   : tooltipData.value.toFixed(2)
               }
             </div>
@@ -484,6 +543,23 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
           <div className="text-sm text-zinc-400 mt-1">{displayTitle}</div>
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-1 mr-2">
+            <div className="flex rounded-md overflow-hidden">
+              {(['1Y', '5Y', '10Y', 'MAX'] as const).map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => setTimeframe(tf)}
+                  className={`px-2 py-1 text-xs ${
+                    timeframe === tf
+                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500 z-10'
+                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600 border border-zinc-700'
+                  } ${tf !== '1Y' ? '-ml-px' : ''}`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+          </div>
           <button 
             onClick={toggleFullscreen}
             className="hidden sm:flex p-2 rounded-md bg-zinc-700 hover:bg-zinc-600 text-sm items-center gap-1"
@@ -523,13 +599,23 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
           <div className="text-sm text-zinc-400">Latest Value</div>
           <div className="text-xl font-semibold text-white">
-            {formatValue(latestObservation.value)}
+            {isPercentage 
+              ? `${latestObservation.value.toFixed(1)}%`
+              : unitsLabel.toLowerCase().includes('dollar') && latestObservation.value >= 1000
+                ? `$${(latestObservation.value / 1000).toFixed(2)}T`
+                : `$${latestObservation.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+            }
           </div>
         </div>
         <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
           <div className="text-sm text-zinc-400">Change</div>
           <div className={`text-xl font-semibold ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {formatValue(change)}
+            {isPercentage 
+              ? `${change.toFixed(1)}%`
+              : unitsLabel.toLowerCase().includes('dollar') && Math.abs(change) >= 1000
+                ? `$${(change / 1000).toFixed(2)}T`
+                : `$${change.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+            }
           </div>
         </div>
         <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
@@ -562,17 +648,33 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         <div className="overflow-x-auto">
           <div className="max-h-[200px] overflow-y-auto">
             <table className="min-w-full text-sm">
-              <thead className="sticky top-0 bg-zinc-800 z-10">
+              <thead className="sticky top-0 bg-zinc-800 z-[5]">
                 <tr className="text-left border-b border-zinc-700">
                   <th className="py-2">Date</th>
-                  <th className="py-2">Value</th>
+                  <th className="py-2">{getYAxisLabel()}</th>
                 </tr>
               </thead>
               <tbody>
-                {observations.slice(-10).reverse().map((obs: Observation, index: number) => (
+                {filteredObservations.slice(-10).reverse().map((obs: Observation, index: number) => (
                   <tr key={index} className="border-b border-zinc-700">
                     <td className="py-2">{new Date(obs.date).toLocaleDateString()}</td>
-                    <td className="py-2">{formatValue(obs.value)}</td>
+                    <td className="py-2">
+                      {isPercentage 
+                        ? `${obs.value.toFixed(1)}%`
+                        : unitsLabel.toLowerCase().includes('dollar')
+                          ? (
+                              <div className="flex flex-col">
+                                <span>${obs.value.toFixed(2)}</span>
+                                {obs.value >= 1000 && (
+                                  <span className="text-xs text-zinc-400">
+                                    ({(obs.value / 1000).toFixed(2)}T)
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          : obs.value.toFixed(2)
+                      }
+                    </td>
                   </tr>
                 ))}
               </tbody>
