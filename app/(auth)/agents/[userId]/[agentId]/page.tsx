@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Markdown } from "@/components/markdown";
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { usePrivy } from "@privy-io/react-auth";
 import LoadingIndicator from "@/components/loading-indicator";
 import MarketMovers from "@/components/tools/market-movers";
@@ -396,6 +396,8 @@ export default function Home() {
 
   // Handle tool query parameter (Now placed after dependencies)
   const hasTriggeredTool = useRef(false);
+  const router = useRouter();
+  
   useEffect(() => {
     const tool = searchParams.get('tool');
     // Ensure all dependencies are ready and the tool hasn't been triggered yet
@@ -407,12 +409,17 @@ export default function Home() {
           console.log(`Triggering tool from URL parameter: ${tool} with command: ${toolCommand}`);
           handleToolSelect(toolCommand);
           hasTriggeredTool.current = true;
+          
+          // Remove the tool parameter from the URL
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('tool');
+          router.replace(`?${newSearchParams.toString()}`, { scroll: false });
         }
       }, 500);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [searchParams, messages, handleToolSelect, ready, user?.id, agent]); // Use messages directly in dependency array
+  }, [searchParams, messages, handleToolSelect, ready, user?.id, agent, router]); // Add router to dependencies
 
   useEffect(() => {
     if (!agent) return;
