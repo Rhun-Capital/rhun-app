@@ -33,41 +33,6 @@ import {
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
-// Floating particles component
-const FloatingParticles = () => {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2 + 1,
-    delay: Math.random() * 2,
-    duration: 4 + Math.random() * 4,
-    xOffset: (Math.random() - 0.5) * 20,
-    yOffset: (Math.random() - 0.5) * 20,
-  }));
-
-  return (
-    <div className="absolute inset-0 overflow-hidden">
-      {particles.map((particle) => (
-        <div
-          key={particle.id}
-          className="absolute rounded-full bg-white/10 opacity-0 scale-0 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:scale-100 animate-glow"
-          style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            width: `${particle.size}px`,
-            height: `${particle.size}px`,
-            transitionDelay: `${particle.id * 50}ms`,
-            animation: `float ${particle.duration}s ease-in-out infinite ${particle.delay}s, glow 2s ease-in-out infinite ${particle.delay}s`,
-            '--x-offset': `${particle.xOffset}px`,
-            '--y-offset': `${particle.yOffset}px`,
-          } as React.CSSProperties}
-        />
-      ))}
-    </div>
-  );
-};
-
 // Holographic card component
 const HolographicCard = ({ children, className = '' }: { children: React.ReactNode, className?: string }) => {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -573,9 +538,6 @@ export default function HomePage() {
                       </div>
                     )}
                     
-                    {/* Floating particles */}
-                    <FloatingParticles />
-                    
                     {/* Animated gradient border */}
                     <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     
@@ -649,13 +611,6 @@ export default function HomePage() {
         @keyframes shimmer {
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
-        }
-        @keyframes float {
-          0% { transform: translate(0, 0); }
-          25% { transform: translate(var(--x-offset), var(--y-offset)); }
-          50% { transform: translate(calc(var(--x-offset) * -1), calc(var(--y-offset) * -1)); }
-          75% { transform: translate(calc(var(--x-offset) * 0.5), calc(var(--y-offset) * 0.5)); }
-          100% { transform: translate(0, 0); }
         }
         @keyframes glow {
           0%, 100% { 
