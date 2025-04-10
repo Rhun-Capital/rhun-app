@@ -523,7 +523,7 @@ export default function HomePage() {
         <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
           <Link href="https://www.meteora.ag/dlmm/2jxVjkPignEbR5pbGNtiRyCc6fAKZTKuFTf1MQED9pt5" target="_blank">
             <div className="group cursor-pointer w-full">
-              <div className="relative h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-zinc-700/50 group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+              <div className="relative h-[300px] sm:h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-zinc-700/50 group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                 {/* Gradient background */}
                 <GradientBackground type="meteora-staking" />
                 
@@ -531,36 +531,55 @@ export default function HomePage() {
                 <Grid3D />
                 
                 {/* Content layout */}
-                <div className="absolute inset-0 flex items-center justify-between p-8">
-                  {/* Left side - Text content */}
-                  <div className="flex-1 pr-8">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Sparkles className="w-6 h-6 text-indigo-400" />
-                      <h2 className="text-2xl font-bold text-white">Stake on Meteora</h2>
-                      <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        <span>New</span>
-                      </span>
-                    </div>
-                    <p className="text-zinc-300 text-lg mb-4">Stake your RHUN tokens in the Meteora liquidity pool to earn rewards and participate in DeFi.</p>
-                    <div className="flex items-center gap-2 text-sm text-zinc-400">
-                      <div className="px-3 py-1.5 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-2">
-                        <Activity className="w-4 h-4" />
-                        <span>Earn Rewards</span>
-                      </div>
+                <div className="absolute inset-0">
+                  {/* Card image - Only visible on mobile */}
+                  <div className="sm:hidden absolute inset-0 flex items-center justify-center pt-8">
+                    <div className="relative w-48 h-48">
+                      <Image
+                        src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/meteora-logo.svg"
+                        alt="Meteora"
+                        fill
+                        className="object-contain opacity-20 sm:opacity-40 transition-transform duration-300 group-hover:scale-105"
+                        priority
+                        quality={100}
+                      />
                     </div>
                   </div>
-                  
-                  {/* Right side - Logo */}
-                  <div className="relative w-32 h-32">
-                    <Image
-                      src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/meteora-logo.svg"
-                      alt="Meteora"
-                      fill
-                      className="object-contain transition-transform duration-300 group-hover:scale-105"
-                      priority
-                      quality={100}
-                    />
+
+                  {/* Content Section */}
+                  <div className="absolute inset-x-0 bottom-0 p-6 sm:relative sm:flex sm:items-center sm:justify-between sm:p-8 sm:h-full">
+                    {/* Left side - Text content */}
+                    <div className="flex-1 text-left sm:pr-8">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
+                          <h2 className="text-2xl font-semibold text-white drop-shadow-lg">Stake on Meteora</h2>
+                        </div>
+                        <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          <span>New</span>
+                        </span>
+                      </div>
+                      <p className="text-zinc-400 text-base mb-6">Stake your RHUN tokens in the Meteora liquidity pool to earn rewards and participate in DeFi.</p>
+                      <div className="flex items-start gap-2 text-sm text-zinc-400">
+                        <div className="px-3 py-1.5 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-2">
+                          <Activity className="w-4 h-4" />
+                          <span>Earn Rewards</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Right side - Logo (Only visible on desktop) */}
+                    <div className="hidden sm:block relative w-32 h-32">
+                      <Image
+                        src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/meteora-logo.svg"
+                        alt="Meteora"
+                        fill
+                        className="object-contain opacity-20 sm:opacity-40 transition-transform duration-300 group-hover:scale-105"
+                        priority
+                        quality={100}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
