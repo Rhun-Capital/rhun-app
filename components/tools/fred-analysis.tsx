@@ -68,7 +68,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
   const [error, setError] = useState<string | null>(null);
   const [additionalMetadata, setAdditionalMetadata] = useState<FredMetadata | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [timeframe, setTimeframe] = useState<'1Y' | '5Y' | '10Y' | 'MAX'>('10Y');
+  const [timeframe, setTimeframe] = useState<'1Y' | '5Y' | '10Y'>('10Y');
 
   // Fetch complete data from S3 if stored there
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
 
   // Filter observations based on selected timeframe
   const filterObservationsByTimeframe = (allObservations: Observation[]) => {
-    if (timeframe === 'MAX' || allObservations.length === 0) {
+    if (allObservations.length === 0) {
       return allObservations;
     }
     
@@ -543,17 +543,17 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
           <div className="text-sm text-zinc-400 mt-1">{displayTitle}</div>
         </div>
         <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
-          <div className="flex items-center gap-1 mr-2">
+          <div className="hidden sm:flex items-center gap-1 mr-2 relative z-0">
             <div className="flex rounded-md overflow-hidden">
-              {(['1Y', '5Y', '10Y', 'MAX'] as const).map((tf) => (
+              {(['1Y', '5Y', '10Y'] as const).map((tf) => (
                 <button
                   key={tf}
                   onClick={() => setTimeframe(tf)}
                   className={`px-2 py-1 text-xs ${
                     timeframe === tf
-                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500 z-10'
-                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600 border border-zinc-700'
-                  } ${tf !== '1Y' ? '-ml-px' : ''}`}
+                      ? 'bg-indigo-600/20 text-indigo-300 border-2 border-indigo-500 z-0'
+                      : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600 border-2 border-zinc-700'
+                  } ${tf !== '1Y' ? '-ml-[2px]' : ''}`}
                 >
                   {tf}
                 </button>
@@ -648,7 +648,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         <div className="overflow-x-auto">
           <div className="max-h-[200px] overflow-y-auto">
             <table className="min-w-full text-sm">
-              <thead className="sticky top-0 bg-zinc-800 z-[5]">
+              <thead className="sticky top-0 bg-zinc-800 z-0">
                 <tr className="text-left border-b border-zinc-700">
                   <th className="py-2">Date</th>
                   <th className="py-2">{getYAxisLabel()}</th>
