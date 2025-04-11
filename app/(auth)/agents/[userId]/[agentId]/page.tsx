@@ -816,13 +816,13 @@ export default function Home() {
               href={`/agents/${encodeURIComponent(userId)}/${agentId}/edit`}
               className="w-full sm:w-auto"
             >
-              <button className="w-full px-6 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition-colors text-sm sm:text-base">
+              <button className="w-full px-6 py-2.5 rounded-lg bg-indigo-400 text-white hover:bg-indigo-400 transition-colors text-sm sm:text-base">
                 {params.userId === 'template' ? 'View Agent' : 'Edit Agent'}
               </button>
             </Link>
             <button
               onClick={onDescribeTools}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
             >
               View Available Tools
             </button>

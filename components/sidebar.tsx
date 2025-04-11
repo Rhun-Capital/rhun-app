@@ -56,12 +56,12 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   }, [pathname]);
 
   const navigation = [
-    { name: 'Home', href: '/', icon: HomeIcon },
+    { name: 'Tools', href: '/', icon: LayoutGrid },
     ...(authenticated ? [
       { name: 'Agents', href: '/agents', icon: BotIcon },
       { name: 'Watchers', href: '/watchers', icon: EyeIcon, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
       // { name: 'Portfolio', href: '/portfolio', icon: ChartArea },
-      { name: 'Apps', href: '/marketplace', icon: LayoutGrid },
+      // { name: 'Apps', href: '/marketplace', icon: LayoutGrid },
       { name: 'Account', href: '/account', icon: CircleUser },
     ] : []),
   ];
