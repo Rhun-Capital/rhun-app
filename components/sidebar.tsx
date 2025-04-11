@@ -76,7 +76,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const handleLogout = async () => {
     await clearCookies(); // Clear access tokens
     await logout(); // Clear Privy state
-    window.location.href = '/login';
+    router.push('/login');
   }
 
   return (
@@ -111,16 +111,22 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
         <nav className="p-4 flex-1">
           <ul className="space-y-2 mb-5">
             <li>
-              <Link 
-                href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center p-2 rounded transition-colors hover:bg-zinc-800 bg-indigo-400/10 border-indigo-400 border-2"
+              <button 
+                key="new-chat"
+                onClick={() => {
+                  if (pathname.startsWith('/agents/template/')) {
+                    window.location.href = "/agents/template/cc425065-b039-48b0-be14-f8afa0704357";
+                  } else {
+                    router.push("/agents/template/cc425065-b039-48b0-be14-f8afa0704357");
+                  }
+                }}
+                className="w-full flex items-center p-2 rounded transition-colors hover:bg-zinc-800 bg-indigo-400/10 border-indigo-400 border-2"
               >
                 <div className="text-indigo-400">
                   <PlusCircle className="h-5 w-5"/>
                 </div>
                 <span className="text-white ml-3">New chat</span>
-              </Link>
+              </button>
             </li>
             {navigation.map((item) => (
               <li key={item.name}>
