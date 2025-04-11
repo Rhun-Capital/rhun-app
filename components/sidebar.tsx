@@ -114,7 +114,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
               <button 
                 key="new-chat"
                 onClick={() => {
-                  if (pathname.startsWith('/agents/template/')) {
+                  if (pathname.startsWith('/agents/template/cc425065-b039-48b0-be14-f8afa0704357')) {
                     window.location.href = "/agents/template/cc425065-b039-48b0-be14-f8afa0704357";
                   } else {
                     router.push("/agents/template/cc425065-b039-48b0-be14-f8afa0704357");
