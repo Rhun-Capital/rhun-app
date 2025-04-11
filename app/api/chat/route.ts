@@ -17,7 +17,8 @@ import {
   getTopHolders,
   getTokenHoldings,
   getFinancialData,
-  getFredSeries
+  getFredSeries,
+  searchFredSeries
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
@@ -543,6 +544,17 @@ export async function POST(req: Request) {
       execute: async ({ address }: { address: string }) => {
         const holders = await getTopHolders(address);
         return holders;
+      }
+    },
+
+    fredSearch: {
+      description: "Search for economic data series from FRED (Federal Reserve Economic Data)",
+      parameters: z.object({
+        query: z.string().describe('The search query for finding economic data series')
+      }),
+      execute: async ({ query }: { query: string }) => {
+        const results = await searchFredSeries(query);
+        return results;
       }
     },
   
@@ -1152,6 +1164,7 @@ export async function POST(req: Request) {
     getTradingViewChart: allTools.getTradingViewChart,
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
     getFredSeries: allTools.getFredSeries,
+    fredSearch: allTools.fredSearch,
     // parseSolanaQuery: allTools.parseSolanaQuery
   };
 

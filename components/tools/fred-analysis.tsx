@@ -10,6 +10,7 @@ import { localPoint } from '@visx/event';
 import { bisector } from 'd3-array';
 import axios from 'axios';
 import { Maximize, Minimize } from 'lucide-react';
+import LoadingIndicator from '../loading-indicator';
 
 interface FredMetadata {
   frequency?: string;
@@ -68,7 +69,9 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
   const [error, setError] = useState<string | null>(null);
   const [additionalMetadata, setAdditionalMetadata] = useState<FredMetadata | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [timeframe, setTimeframe] = useState<'1Y' | '5Y' | '10Y'>('10Y');
+  const [timeframe, setTimeframe] = useState<'1Y' | '5Y' | '10Y' | 'MAX'>('10Y');
+  const [isLoadingFullData, setIsLoadingFullData] = useState(false);
+  const [fullData, setFullData] = useState<any>(null);
 
   // Fetch complete data from S3 if stored there
   useEffect(() => {
@@ -132,6 +135,30 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
     };
   }, []);
 
+  // Function to fetch full data
+  const fetchFullData = async () => {
+    if (!toolInvocation?.result?.seriesId) return;
+    
+    setIsLoadingFullData(true);
+    try {
+      const response = await fetch(`/api/fred/series/${toolInvocation.result.seriesId}?full=true`);
+      if (!response.ok) throw new Error('Failed to fetch full data');
+      const data = await response.json();
+      setFullData(data);
+    } catch (error) {
+      console.error('Error fetching full data:', error);
+    } finally {
+      setIsLoadingFullData(false);
+    }
+  };
+
+  // Handle timeframe change
+  const handleTimeframeChange = (newTimeframe: '1Y' | '5Y' | '10Y' | 'MAX') => {
+    setTimeframe(newTimeframe);
+    if (newTimeframe === 'MAX') {
+      fetchFullData();
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -154,7 +181,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
   }
 
   // Determine which data to use - complete data from S3 or the preview data
-  const dataToUse = completeData || toolInvocation.result;
+  const dataToUse = timeframe === 'MAX' && fullData ? fullData : (completeData || toolInvocation.result);
   
   const { observations: rawObservations, metadata, seriesId, title } = dataToUse;
   
@@ -200,6 +227,9 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
       cutoffDate.setFullYear(now.getFullYear() - 5);
     } else if (timeframe === '10Y') {
       cutoffDate.setFullYear(now.getFullYear() - 10);
+    } else if (timeframe === 'MAX') {
+      // For MAX timeframe, use all available data
+      return allObservations;
     }
     
     return allObservations.filter(obs => new Date(obs.date) >= cutoffDate);
@@ -545,15 +575,16 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
           <div className="hidden sm:flex items-center gap-1 mr-2 relative z-0">
             <div className="flex rounded-md overflow-hidden">
-              {(['1Y', '5Y', '10Y'] as const).map((tf) => (
+              {(['1Y', '5Y', '10Y', 'MAX'] as const).map((tf) => (
                 <button
                   key={tf}
-                  onClick={() => setTimeframe(tf)}
+                  onClick={() => handleTimeframeChange(tf)}
                   className={`px-2 py-1 text-xs ${
                     timeframe === tf
                       ? 'bg-indigo-600/20 text-indigo-300 border-2 border-indigo-500 z-0'
                       : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600 border-2 border-zinc-700'
                   } ${tf !== '1Y' ? '-ml-[2px]' : ''}`}
+                  disabled={tf === 'MAX' && isLoadingFullData}
                 >
                   {tf}
                 </button>
@@ -638,6 +669,14 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         className="hidden sm:block w-full relative" 
         style={{ height: `${height}px`, transition: 'height 0.3s ease-in-out' }}
       >
+        {isLoadingFullData && (
+          <div className="absolute inset-0 bg-zinc-800/50 flex items-center justify-center z-10">
+            <div className="flex flex-col items-center gap-2">
+              <LoadingIndicator />
+              <span className="text-zinc-300 text-sm">Loading...</span>
+            </div>
+          </div>
+        )}
         <ParentSize>
           {({ width }) => <Chart width={width} />}
         </ParentSize>
