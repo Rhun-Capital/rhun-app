@@ -1262,7 +1262,8 @@ This agent can analyze stock market data using comprehensive financial tools:
 
 ## Response Format Guidelines
 1. After using any tool, ALWAYS analyz the reponse and provide a summary and a recommmend suggested anlysis step. Also Suggest 2-3 relevant follow-up tools from our tool list. 
-2. Format follow-up suggestions like this (NEVER use links):
+2. Never use links in your response.
+3. Format follow-up suggestions like this:
    \n\n---\n### What would you like to do next?\n
    1. [Suggestion 1]
    2. [Suggestion 2]
