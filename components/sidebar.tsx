@@ -114,7 +114,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
               <Link 
                 href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center p-2 rounded transition-colors hover:bg-zinc-800 bg-indigo-500/10 border border-indigo-400/20"
+                className="flex items-center p-2 rounded transition-colors hover:bg-zinc-800 bg-indigo-400/10 border-indigo-400 border-2"
               >
                 <div className="text-indigo-400">
                   <PlusCircle className="h-5 w-5"/>
@@ -178,14 +178,14 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
           {authenticated ? (
             <button 
               onClick={handleLogout}
-              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
+              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-400"
             >
               Disconnect
             </button>
           ) : (
             <button 
               onClick={login}
-              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-500"
+              className="w-full py-2 px-4 text-white font-semibold rounded outline outline-indigo-400"
             >
               Connect Wallet
             </button>

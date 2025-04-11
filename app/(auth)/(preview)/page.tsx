@@ -20,10 +20,10 @@ import {
   Activity,
   TrendingUp as TrendingUpIcon,
   ArrowUpRight,
-  MessageSquare,
+  PlusCircle,
   Gauge,
   TrendingUp as TrendingUpIcon2,
-  LineChart as LineChartIcon,
+  LineChartIcon,
   DollarSign,
   Building2,
   Banknote,
@@ -184,7 +184,7 @@ export default function HomePage() {
       description: 'Get detailed technical analysis for any asset with multiple indicators and market sentiment.',
       icon: BarChart2,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=technical-analysis',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'technical-analysis',
       isNew: true,
       stats: '20+ Indicators',
@@ -196,7 +196,7 @@ export default function HomePage() {
       icon: TrendingUp,
       isNew: true,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=stock-analysis',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'stock-analysis',
       stats: 'Real-time Data',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/stocks-wire.png'
@@ -207,7 +207,7 @@ export default function HomePage() {
       icon: LineChart,
       isNew: true,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=tradingview-chart',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'tradingview-chart',
       isPopular: true,
       stats: 'Live Charts',
@@ -218,7 +218,7 @@ export default function HomePage() {
       description: 'Execute token swaps with your agents directly from the chat interface with real-time quotes.',
       icon: ArrowLeftRight,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=swap',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'swap',
       isPopular: true,
       stats: '0.1% Slippage',
@@ -229,7 +229,7 @@ export default function HomePage() {
       description: 'Perform web research and get summarized insights from multiple sources.',
       icon: Globe,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=web-research',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'web-research',
       stats: 'Multi-source',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/web-search.png'
@@ -239,7 +239,7 @@ export default function HomePage() {
       description: 'Search and analyze any cryptocurrency or token with detailed market data.',
       icon: Search,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=search-tokens',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'asset-search',
       stats: '10K+ Assets',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/asset-search.png'
@@ -250,7 +250,7 @@ export default function HomePage() {
       description: 'Analyze market news and get sentiment analysis for better decision making.',
       icon: Newspaper,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=news-analysis',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'news-analysis',
       stats: 'AI-Powered',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/news-2.png'
@@ -260,7 +260,7 @@ export default function HomePage() {
       description: 'Track market sentiment with the Crypto Fear & Greed Index and historical data.',
       icon: Gauge,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fear-greed',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fear-greed',
       stats: 'Market Sentiment',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/fear-greed.png'
@@ -270,7 +270,7 @@ export default function HomePage() {
       description: 'Discover top gainers, losers, and trending assets across different timeframes.',
       icon: TrendingUpIcon2,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=market-movers',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'market-movers',
       stats: 'Real-time Updates',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/market-movers.png'
@@ -280,7 +280,7 @@ export default function HomePage() {
       description: 'Access real-time GDP data and analysis from FRED with interactive charts and historical trends.',
       icon: DollarSign,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-gdp',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-gdp',
       isNew: true,
       stats: 'Economic Data',
@@ -291,7 +291,7 @@ export default function HomePage() {
       description: 'Track unemployment trends with FRED data, including interactive visualizations and analysis.',
       icon: Building2,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-unemployment',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-unemployment',
       isNew: true,
       stats: 'Labor Market',
@@ -302,7 +302,7 @@ export default function HomePage() {
       description: 'Monitor inflation metrics with FRED data, including CPI and PCE price indices.',
       icon: Banknote,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-inflation',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-inflation',
       isNew: true,
       stats: 'Price Trends',
@@ -313,7 +313,7 @@ export default function HomePage() {
       description: 'Track Federal Reserve interest rates and bond yields with FRED data.',
       icon: LineChartIcon,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-interest-rates',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-interest-rates',
       isNew: true,
       stats: 'Rate Data',
@@ -324,7 +324,7 @@ export default function HomePage() {
       description: 'Analyze housing market indicators including starts, permits, and prices.',
       icon: Home,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-housing',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-housing',
       isNew: true,
       stats: 'Real Estate',
@@ -335,7 +335,7 @@ export default function HomePage() {
       description: 'Monitor consumer spending trends with FRED retail sales data.',
       icon: ShoppingCart,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-retail',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-retail',
       isNew: true,
       stats: 'Consumer Data',
@@ -346,7 +346,7 @@ export default function HomePage() {
       description: 'Track M2 money supply and other monetary aggregates from FRED.',
       icon: Scale,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-money',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-money',
       isNew: true,
       stats: 'Monetary Data',
@@ -357,7 +357,7 @@ export default function HomePage() {
       description: 'Monitor manufacturing output and industrial activity with FRED data.',
       icon: Activity,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-industrial',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-industrial',
       isNew: true,
       stats: 'Manufacturing',
@@ -368,7 +368,7 @@ export default function HomePage() {
       description: 'Track the S&P 500 index and its historical performance with FRED data.',
       icon: LineChartIcon,
       link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-sandp500',
-      color: 'text-indigo-500',
+      color: 'text-indigo-400',
       type: 'fred-sandp500',
       isNew: true,
       stats: 'Stock Market',
@@ -390,8 +390,15 @@ export default function HomePage() {
     <div className="min-h-screen bg-zinc-900 text-white sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-16">
         {/* Hero Section */}
-        <div className="text-center space-y-4 py-8 sm:py-16">
-          <div className="flex flex-col items-center justify-center gap-2 md:flex-row">
+        <div className="text-center space-y-4 py-8 sm:py-16 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black backdrop-blur-md text-white rounded-lg p-4 relative overflow-hidden border border-white/10">
+          {/* Stars background */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="stars-small"></div>
+            <div className="stars-medium"></div>
+            <div className="stars-large"></div>
+          </div>
+          
+          <div className="flex flex-col items-center justify-center gap-2 md:flex-row relative z-10">
             <h1 className="text-4xl font-bold">Welcome to</h1>
             <Image 
               src="https://d1olseq3j3ep4p.cloudfront.net/images/rhun-logo-white.svg" 
@@ -401,24 +408,24 @@ export default function HomePage() {
               className="mt-1 ml-2 antialiased"
             />
           </div>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto relative z-10">
             Access powerful trading tools and analysis directly from your chat interface.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-5">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-5 relative z-10">
             <Link 
               href="https://rhun-capital.gitbook.io/rhun"
               target='_blank'
               className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-zinc-700 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-600 sm:px-6 sm:py-2 sm:text-base"
             >
-              <span>Read Docs</span>
+              <span>Read docs</span>
               <BookOpenIcon className="w-5 h-5"/>
             </Link>
             <Link 
               href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-indigo-500 text-white rounded-lg font-semibold transition-colors hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] sm:px-6 sm:py-2 sm:text-base"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-indigo-400/10 border-2 border-indigo-400 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-800 sm:px-6 sm:py-2 sm:text-base"
             >
-              <span>Start Chatting</span>
-              <MessageSquare className="w-5 h-5"/>
+              <PlusCircle className="w-5 h-5 text-indigo-400"/>
+              <span>New chat</span>
             </Link>
           </div>
         </div>
@@ -429,7 +436,7 @@ export default function HomePage() {
           <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
             <Link href="/agents/create">
               <div className="group cursor-pointer h-full">
-                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-zinc-700/50 group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                   {/* Gradient background */}
                   <GradientBackground type="create-agent" />
                   
@@ -438,7 +445,7 @@ export default function HomePage() {
                   
                   {/* Card image */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative w-[300px] h-[300px] rounded-full overflow-hidden">
+                    <div className="relative w-60 h-60 rounded-full overflow-hidden">
                       <Image
                         src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/hero.png"
                         alt="Create Agent"
@@ -456,7 +463,7 @@ export default function HomePage() {
                     <p className="text-zinc-400 text-base mb-6">Build and customize your own AI trading agent with specific strategies and tools.</p>
                     <Link 
                       href="/agents/create"
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-500/50 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10  w-fit"
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10  w-fit"
                     >
                       <span>Create Agent</span>
                       <ArrowUpRight className="w-5 h-5" />
@@ -471,7 +478,7 @@ export default function HomePage() {
           <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
             <Link href="https://jup.ag/swap/SOL-Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump" target="_blank">
               <div className="group cursor-pointer h-full">
-                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-zinc-700/50 group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                   {/* Gradient background */}
                   <GradientBackground type="buy-rhun" />
                   
@@ -480,7 +487,7 @@ export default function HomePage() {
                   
                   {/* Card image */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative w-72 h-72 rounded-2xl overflow-hidden">
+                    <div className="relative w-60 h-60 rounded-2xl overflow-hidden">
                       <Image
                         src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/buy-rhun-wire.png"
                         alt="Buy RHUN"
@@ -498,7 +505,7 @@ export default function HomePage() {
                     <p className="text-zinc-400 text-base mb-6">Get access to premium features and participate in the RHUN ecosystem.</p>
                     <div className="flex items-center gap-2">
                       <div 
-                        className="inline-flex items-center justify-center gap-1 px-3 py-2.5 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-500/50 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10 w-fit"
+                        className="inline-flex items-center justify-center gap-1 px-3 py-2.5 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10 w-fit"
                       >
                         <div className="relative w-12 h-4">
                           <Image
@@ -523,7 +530,7 @@ export default function HomePage() {
         <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
           <Link href="https://www.meteora.ag/dlmm/2jxVjkPignEbR5pbGNtiRyCc6fAKZTKuFTf1MQED9pt5" target="_blank">
             <div className="group cursor-pointer w-full">
-              <div className="relative h-[300px] sm:h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-zinc-700/50 group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+              <div className="relative h-[300px] sm:h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                 {/* Gradient background */}
                 <GradientBackground type="meteora-staking" />
                 
@@ -658,7 +665,7 @@ export default function HomePage() {
                   </div>
 
                   {/* Bottom card section with holographic effect */}
-                  <div className="p-4 bg-zinc-800 rounded-b-lg border border-zinc-700/50 transition-all duration-200 ease-in-out group-hover:border-zinc-600 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] backdrop-blur-sm">
+                  <div className="p-4 bg-zinc-800 rounded-b-lg border border-transparent group-hover:shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-sm">
                     <p className="text-zinc-400 text-sm">{tool.description}</p>
                     <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center text-sm text-zinc-500 group-hover:text-indigo-400 transition-colors">
@@ -713,6 +720,48 @@ export default function HomePage() {
         }
         .group:hover .grid-3d {
           transform: perspective(1000px) rotateX(45deg) translateZ(20px);
+        }
+        
+        /* Stars animations */
+        @keyframes twinkle {
+          0%, 100% { opacity: 0.2; }
+          50% { opacity: 0.6; }
+        }
+        
+        .stars-small, .stars-medium, .stars-large {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 0;
+        }
+        
+        .stars-small {
+          background-image: radial-gradient(1px 1px at 30px 50px, white 50%, transparent 100%),
+                           radial-gradient(1px 1px at 150px 150px, white 50%, transparent 100%),
+                           radial-gradient(1px 1px at 300px 200px, white 50%, transparent 100%);
+          background-size: 400px 400px;
+          animation: twinkle 4s ease-in-out infinite;
+          opacity: 0.25;
+        }
+        
+        .stars-medium {
+          background-image: radial-gradient(1.2px 1.2px at 75px 75px, white 50%, transparent 100%),
+                           radial-gradient(1.2px 1.2px at 220px 220px, white 50%, transparent 100%);
+          background-size: 300px 300px;
+          animation: twinkle 5s ease-in-out infinite;
+          animation-delay: 2s;
+          opacity: 0.25;
+        }
+        
+        .stars-large {
+          background-image: radial-gradient(1.5px 1.5px at 120px 120px, white 50%, transparent 100%),
+                           radial-gradient(1.5px 1.5px at 260px 180px, white 50%, transparent 100%);
+          background-size: 400px 400px;
+          animation: twinkle 6s ease-in-out infinite;
+          animation-delay: 3s;
+          opacity: 0.25;
         }
       `}</style>
     </div>
