@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MenuIcon, CloseIcon} from './icons';
-import {HomeIcon, EyeIcon, CircleUser, ChartArea, BotIcon, LayoutGrid, BookIcon } from 'lucide-react';
+import {HomeIcon, EyeIcon, CircleUser, ChartArea, BotIcon, LayoutGrid, BookIcon, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { getAccessToken, usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
@@ -110,6 +110,18 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
         
         <nav className="p-4 flex-1">
           <ul className="space-y-2 mb-5">
+            <li>
+              <Link 
+                href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center p-2 rounded transition-colors hover:bg-zinc-800 bg-indigo-500/10 border border-indigo-400/20"
+              >
+                <div className="text-indigo-400">
+                  <PlusCircle className="h-5 w-5"/>
+                </div>
+                <span className="text-white ml-3">New chat</span>
+              </Link>
+            </li>
             {navigation.map((item) => (
               <li key={item.name}>
                 <Link 
