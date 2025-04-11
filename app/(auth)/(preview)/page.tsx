@@ -388,9 +388,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-zinc-900 text-white sm:p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-16">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Hero Section */}
-        <div className="text-center space-y-4 py-8 sm:py-16 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black backdrop-blur-md text-white rounded-lg p-4 relative overflow-hidden border border-white/10">
+        <div className="text-center py-8 sm:py-16 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black backdrop-blur-md text-white rounded-lg p-4 relative overflow-hidden border border-white/10">
           {/* Stars background */}
           <div className="absolute inset-0 overflow-hidden">
             <div className="stars-small"></div>
