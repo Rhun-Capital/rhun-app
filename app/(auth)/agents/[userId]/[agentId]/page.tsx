@@ -47,6 +47,7 @@ import WebResearch from "@/components/tools/web-research";
 import TradingViewChart from "@/components/tools/tradingview-chart";
 import TechnicalAnalysis from '@/components/tools/technical-analysis';
 import FredAnalysis from '@/components/tools/fred-analysis';
+import { FredSearch } from '@/components/tools/fred-search';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import { getToolCommand } from '@/app/config/tool-commands';
 
@@ -279,6 +280,13 @@ export default function Home() {
         role: 'user',
         content: command,
       });
+
+      // Scroll to bottom after appending message
+      if (topRef.current) {
+        setTimeout(() => {
+          topRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
       
     } catch (error) {
       console.error('Error in handleToolSelect:', error);
@@ -1003,6 +1011,15 @@ export default function Home() {
                           case 'getFredSeries':
                             return <div className="max-w-[100%] sm:max-w-[75%]">
                               <FredAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                            </div>;
+                          case 'fredSearch':
+                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                              <FredSearch 
+                                key={tool.toolCallId} 
+                                toolCallId={tool.toolCallId} 
+                                toolInvocation={tool}
+                                onShowChart={(seriesId) => handleToolSelect(`Show me the FRED series ${seriesId}`)}
+                              />
                             </div>;
                           default:
                             return null;                            
