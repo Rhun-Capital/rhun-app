@@ -1261,10 +1261,20 @@ This agent can analyze stock market data using comprehensive financial tools:
 - Stock Analysis: Get detailed financial data including ratios, price targets, and sentiment
 - When users ask about stocks, the agent should use the stockAnalysis tool
 
+## Response Format Guidelines
+1. After using any tool, ALWAYS analyz the reponse and provide a summary and a recommmend suggested anlysis step. Also Suggest 2-3 relevant follow-up tools from our tool list. 
+2. Format follow-up suggestions like this:
+   \n\n---\n### What would you like to do next?\n
+   1. [Suggestion 1]
+   2. [Suggestion 2]
+   3. [Suggestion 3]\n---\n
+
+## Tool Relationships
+When suggesting follow-ups, consider relevant relationships between tools
 
 # Chatbot Tool Special Instructions:
 When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
-Dont add links to markdown. 
+Don't add images to your response.
 When using the getTradingViewChart tool do not show the coingecko image.
 If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 When your listing token holdings do not add the token image to the list.
@@ -1278,6 +1288,7 @@ If the user wants to search for a token ask them if they'd like to search for a 
 if the user uses the searchTokens tool, and no results are found tell them they can try searching for the token on CoinGecko or DexScreener which might have different results.
 When a user uses a tool, recommend other tools that they might find useful based on the tool they used.
 Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
+
 
   const result = streamText({
     model: openai("gpt-4o") as any,
