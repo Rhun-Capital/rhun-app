@@ -9,12 +9,13 @@ import LoadingIndicator from './loading-indicator';
 import CopyButton from './copy-button';
 import dynamic from 'next/dynamic';
 import { useSubscription } from '@/hooks/use-subscription';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useModal } from '@/contexts/modal-context';
 import FundingModal from './funding-amount-modal';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { getToolCommand } from '@/app/config/tool-commands';
+import {useLogin} from '@privy-io/react-auth';
 
 
 interface Tool {
@@ -318,6 +319,8 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const [createWalletLoading, setCreateWalletLoading] = useState(false);
   const { fundWallet } = useFundWallet();
   const { createWallet, wallets } = useSolanaWallets();
+  const pathname = usePathname();
+  const {login} = useLogin();
 
   interface Token {
     token_address: string;
@@ -700,21 +703,32 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 </div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <div className="text-sm text-white w-full">
-                      {(agent.wallets?.solana && params.userId !== 'template') ?
+                      {(agent.wallets?.solana && (params.userId !== 'template' || pathname !== '/')) ?
                         <div className="text-sm text-zinc-500 mt-2">
                           {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
-                      </div> : params.userId === 'template' ? 
+                      </div> : !authenticated && pathname === '/' ? 
+                      <div className="w-full">
+                        <div className="text-sm text-zinc-500 mt-2 mb-4">Connect your wallet to access wallet features.</div>
+                        <button 
+                          onClick={() => login()}
+                          className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
+                        >
+                          Connect Wallet
+                        </button>
+                      </div> :
+
+                      params.userId === 'template' || pathname === '/' ? 
                       <div className="text-zinc-500 mt-2 mb-2 w-full">
                         <div>Template agents do no have access to wallets.</div>
                         <Link href={`/agents/create`}>
-                          <button className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
+                          <button className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base">
                             Create Your Agent
                           </button>
                         </Link>
                         </div> 
-                       : <div className="w-full">
+                        : <div className="w-full">
                           <div className="text-sm text-zinc-500 mt-2 mb-4">No agent wallet found. </div>
-                          <button disabled={createWalletLoading} onClick={handleCreateWallet} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">
+                          <button disabled={createWalletLoading} onClick={handleCreateWallet} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">
                             {createWalletLoading ? 'Creating...' : 'Create Agent Wallet'}
                           </button>                          
                         </div>
