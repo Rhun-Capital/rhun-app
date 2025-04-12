@@ -53,19 +53,36 @@ import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from 'uuid';
 import { usePrivy } from "@privy-io/react-auth";
 
-const TextFilePreview = ({ file }: { file: File }) => {
+const TextFilePreview = ({ file }: { file: File | string }) => {
   const [content, setContent] = useState<string>('');
   
   useEffect(() => {
-    const reader = new FileReader();
-    reader.onload = (e) => setContent(e.target?.result as string);
-    reader.readAsText(file);
+    if (typeof file === 'string') {
+      setContent(file);
+    } else if (file instanceof Blob) {
+      const reader = new FileReader();
+      reader.onload = (e) => setContent(e.target?.result as string);
+      reader.readAsText(file);
+    }
   }, [file]);
 
   return <pre className="whitespace-pre-wrap text-xs">{content}</pre>;
 };
 
+// Helper function to safely get URLs for attachments
+const getAttachmentUrl = (attachment: any): string => {
+  if (attachment.url) {
+    // If it's already a URL, return it
+    return attachment.url;
+  } else if (attachment.type?.startsWith('image/')) {
+    // If it's a fresh file upload, create object URL
+    return URL.createObjectURL(attachment);
+  }
+  return '';
+};
+
 const AttachmentDisplay = ({ attachment }: { attachment: any }) => {
+  // Handle fresh file uploads (experimental_attachments)
   if (attachment.type?.startsWith('image/')) {
     return (
       <img 
@@ -75,9 +92,38 @@ const AttachmentDisplay = ({ attachment }: { attachment: any }) => {
       />
     );
   }
+  
+  if (attachment.type?.startsWith('text/')) {
+    return (
+      <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+        <TextFilePreview file={attachment} />
+      </div>
+    );
+  }
+  
+  // Handle stored attachments from API (contentType and url structure)
+  if (attachment.contentType?.startsWith('image/') && attachment.url) {
+    return (
+      <img 
+        src={attachment.url} 
+        alt={attachment.name || 'Image attachment'} 
+        className="h-16 w-16 object-cover rounded-md"
+      />
+    );
+  }
+  
+  if (attachment.contentType?.startsWith('text/') && attachment.url) {
+    return (
+      <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+        <span className="text-xs truncate">{attachment.name || 'Text file'}</span>
+      </div>
+    );
+  }
+  
+  // Default fallback
   return (
-    <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
-      <TextFilePreview file={attachment} />
+    <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden flex items-center justify-center">
+      <span className="text-[8px] truncate">{attachment.name || 'Attachment'}</span>
     </div>
   );
 };
@@ -194,7 +240,7 @@ export default function Home() {
     maxSteps: 30,
     initialMessages,
     sendExtraMessageFields: true,
-    // id: chatId || newChatId,
+    id: chatId || newChatId,
     onError: () => {
       toast.error('Failed to send message. Please try again.')
     },
