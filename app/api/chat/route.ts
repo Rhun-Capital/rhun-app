@@ -1275,7 +1275,7 @@ Always suggest one FRED tool, one stock analysis tool, and one web research tool
 # Chatbot Tool Special Instructions:
 - When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
 
-- When using the getTradingViewChart tool do not show the coingecko image.
+- When using the getTradingViewChart tool do not show images in the response.
 - If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 - When your listing token holdings do not add the token image to the list.
 - When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
