@@ -53,6 +53,30 @@ import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from 'uuid';
 import { usePrivy } from "@privy-io/react-auth";
 
+interface Agent {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  userId: string;
+}
+
+const DEFAULT_AGENT: Agent = {
+  id: 'cc425065-b039-48b0-be14-f8afa0704357',
+  name: 'Rhun Capital',
+  description: 
+    'Meet Rhun Capital, your all-in-one crypto research partner equipped with a comprehensive ' +
+    'suite of tools to navigate the dynamic digital asset landscape. Rhun Capital enables you to explore ' +
+    'detailed token information, track the latest launches, and scrutinize token distributions—including ' +
+    'data on top token holders—to uncover valuable insights. Leverage market sentiment indicators to ' +
+    'understand prevailing market emotions and refine your investment strategies, while comparing market ' +
+    'categories and evaluating data from exchanges to reveal emerging opportunities and risks. Whether ' +
+    "you're managing your own portfolio or seeking an in-depth market analysis, our data-driven approach " +
+    'and specialized tools provide you with the insights needed for smarter crypto investing.',
+  imageUrl: 'https://d1olseq3j3ep4p.cloudfront.net/agents/cc425065-b039-48b0-be14-f8afa0704357/profile-1738538619696.jpg',
+  userId: 'template'
+};
+
 const TextFilePreview = ({ file }: { file: File | string }) => {
   const [content, setContent] = useState<string>('');
   
@@ -163,15 +187,13 @@ const EmptyState = ({ agent, onDescribeTools }: EmptyStateProps) => {
       <div className="border rounded-xl p-4 sm:p-8 flex flex-col items-center gap-4 sm:gap-6 text-zinc-400 border-zinc-700 bg-zinc-800/30">
         {/* Agent Image/Icon with responsive sizing */}
         <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-zinc-700 flex items-center justify-center">
-          {agent.imageUrl ? (
+          
             <img 
-              src={agent.imageUrl} 
+              src={agent.imageUrl}
               alt={agent.name}
               className="w-full h-full object-cover"
             />
-          ) : (
-            <BotIcon className="w-8 h-8 sm:w-12 sm:h-12 text-zinc-400" />
-          )}
+          
         </div>
 
         {/* Agent Name - responsive font size */}
@@ -215,7 +237,7 @@ export default function Home() {
   const agentId = 'cc425065-b039-48b0-be14-f8afa0704357'
   const searchParams = useSearchParams();
   const chatId = decodeURIComponent(searchParams.get('chatId') || '');
-  const [agent, setAgent] = useState<any>();
+  const [agent, setAgent] = useState<any>(DEFAULT_AGENT);
   const [files, setFiles] = useState<FileList | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -236,7 +258,10 @@ export default function Home() {
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } = useChat({
     headers,
-    body: { agent, user },
+    body: { 
+      agent, 
+      user: user ? user : { id: 'anonymous', email: 'guest@example.com' }
+    },
     maxSteps: 30,
     initialMessages,
     sendExtraMessageFields: true,
@@ -250,84 +275,102 @@ export default function Home() {
   });
 
   const getAgent = async () => {
-    const accessToken = await getAccessToken();
-    const response = await fetch(
-      `/api/${agentId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+    try {
+      const accessToken = await getAccessToken();
+      const response = await fetch(
+        `/api/${agentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        console.error("Failed to fetch agent configuration, using default");
+        return DEFAULT_AGENT;
       }
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch agent configuration");
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching agent:", error);
+      return DEFAULT_AGENT;
     }
-    return response.json();
   }
 
   const refreshAgent = async () => {
-    if (!user) return;
-    getAgent().then((agent) => {
-      setAgent(agent);
-    });
+    if (!user || !ready) return;
+    try {
+      const fetchedAgent = await getAgent();
+      setAgent(fetchedAgent);
+    } catch (error) {
+      console.error("Error in refreshAgent:", error);
+    }
   }
 
   useEffect(() => {
-    refreshAgent();
-  }, [agentId]);
+    if (user && ready) {
+      refreshAgent();
+    }
+  }, [agentId, user, ready]);
 
   useEffect(() => {
     const setupHeaders = async () => {
-      const token = await getAccessToken();
-      setHeaders({
-        'Authorization': `Bearer ${token}`
-      });
+      if (user && ready) {
+        const token = await getAccessToken();
+        setHeaders({
+          'Authorization': `Bearer ${token}`
+        });
+      } else {
+        // Set empty headers for non-authenticated sessions
+        setHeaders({});
+      }
       setIsHeadersReady(true);
     };
     
     setupHeaders();
-  }, [getAccessToken]);
+  }, [getAccessToken, user, ready]);
 
   const handleToolSelect = useCallback(async (command: string) => {
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
 
-    const token = await getAccessToken();
-    
-    try {      
-      await fetch(`/api/chat/${chatId ? chatId : newChatId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          chatId: chatId ? chatId : newChatId,
-          userId: user?.id,
-          isTemplate: true,
-          agentId,
-          agentName: agent?.name,
-          lastMessage: command,
-          lastUpdated: new Date().toISOString()
-        })
-      });
-    
-      append({
-        role: 'user',
-        content: command,
-      });
-
-      if (topRef.current) {
-        setTimeout(() => {
-          topRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+    // Only persist tool usage to DB if authenticated
+    if (user?.id && ready) {
+      try {      
+        const token = await getAccessToken();
+        await fetch(`/api/chat/${chatId ? chatId : newChatId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            chatId: chatId ? chatId : newChatId,
+            userId: user?.id,
+            isTemplate: true,
+            agentId,
+            agentName: agent?.name,
+            lastMessage: command,
+            lastUpdated: new Date().toISOString()
+          })
+        });
+      } catch (error) {
+        console.error('Error saving tool selection:', error);
       }
-      
-    } catch (error) {
-      console.error('Error in handleToolSelect:', error);
     }
-  }, [append, chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, setSidebarOpen]);
+  
+    append({
+      role: 'user',
+      content: command,
+    });
+
+    if (topRef.current) {
+      setTimeout(() => {
+        topRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+      
+  }, [append, chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, setSidebarOpen, ready]);
 
   useEffect(() => {
     const tool = searchParams.get('tool');
@@ -519,13 +562,21 @@ export default function Home() {
       }
     };
   
-    loadInitialMessages();
-  }, [chatId, getAccessToken, user]);
+    // Only load messages if user is authenticated
+    if (user?.id && ready) {
+      loadInitialMessages();
+    }
+  }, [chatId, getAccessToken, user, ready]);
 
   const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
+    // Skip DB operations if not authenticated
+    if (!user?.id || !ready) {
+      return [];
+    }
+    
     const lastMessage = messages[messages.length - 1];
   
-    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !user?.id) {
+    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0)) {
       return [];
     }
   
@@ -648,39 +699,20 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (!agent) return;
-    if (messages.length === 0) return;
+    if (agent) {
+      // Create a new debounced function for each message
+      const debouncedSave = debounce(async () => {
+        await updateChatInDB(messages);
+      }, 1000);
     
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage) return;
+      debouncedSave();
     
-    // Create a new debounced function for each message
-    const debouncedSave = debounce(async () => {
-      await updateChatInDB(messages);
-    }, 1000);
-  
-    debouncedSave();
-  
-    return () => {
-      debouncedSave.cancel();
-    };
+      return () => {
+        debouncedSave.cancel();
+      };
+    }
   }, [messages, agent]);
 
-  useEffect(() => {
-    // get agent and set agent name
-    if (!user) return;
-    getAgent().then((agent) => {
-      setAgent(agent);
-    });
-  }, [user]);
-
-  if (!agent) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <div className="text-2xl font-semibold"><LoadingIndicator/></div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col h-screen bg-zinc-900">
@@ -688,20 +720,16 @@ export default function Home() {
         <div className="fixed top-0 left-0 right-0 h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 z-10">
           <div className="flex items-center gap-2 relative lg:left-[250px] md:left-[25px] sm:left-[25px]">
             <div className="lg:ml-0 ml-[55px]">
-              {agent.imageUrl ? (
+              
                 <img 
-                  src={agent.imageUrl} 
-                  alt={agent.name}
+                  src="https://d1olseq3j3ep4p.cloudfront.net/agents/cc425065-b039-48b0-be14-f8afa0704357/profile-1738538619696.jpg" 
+                  alt="Rhun Capital"
                   className="w-8 h-8 rounded-full object-cover"
                 />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
-                  <BotIcon />
-                </div>
-              )}
+              
             </div>
             <Link className="text-indigo-500 text-indigo-400" href={`/`}>          
-              <h1 className="text-lg font-medium text-white">{agent.name}</h1>
+              <h1 className="text-lg font-medium text-white">Rhun Capital</h1>
             </Link>
           </div>
         </div>
@@ -740,15 +768,11 @@ export default function Home() {
                   >
                     <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
                       {message.role === "assistant" ? (
-                        agent.imageUrl ? (
                           <img 
-                            src={agent.imageUrl} 
+                            src={agent.imageUrl}
                             alt={agent.name}
                             className="w-6 h-6 rounded-full object-cover"
                           />
-                        ) : (
-                          <BotIcon />
-                        )
                       ) : (
                         <UserIcon />
                       )}
@@ -970,5 +994,4 @@ export default function Home() {
   );
 }
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'edge'; 
+export const dynamic = 'force-dynamic'; 
