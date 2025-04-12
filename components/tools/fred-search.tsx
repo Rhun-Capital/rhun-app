@@ -1,10 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToolInvocation } from '@ai-sdk/ui-utils';
-import { Button } from '@/components/ui/button';
 import { LineChart, ChevronDown, ChevronUp } from 'lucide-react';
-import { useChat } from 'ai/react';
 import { useState } from 'react';
 
 interface FredSeries {
@@ -62,7 +59,7 @@ export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSear
             >
               <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-medium truncate">{result.title}</h4>
+                  <h4 className="text-white font-medium">{result.title}</h4>
                   <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-zinc-400">
                     <span className="px-2 py-1 bg-zinc-700/50 rounded-full">{result.frequency}</span>
                     <span className="px-2 py-1 bg-zinc-700/50 rounded-full">{result.units}</span>

@@ -306,7 +306,7 @@ const fredTools: Tool[] = [
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent }) => {
   const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
   const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
-  const { user, getAccessToken } = usePrivy();
+  const { user, getAccessToken, authenticated } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
   const [totalValue, setTotalValue] = useState<number | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -331,32 +331,11 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   // Define tools with pro status
   const tools: Tool[] = [ 
     { 
-      name: 'Get My Portfolio Value', 
-      description: 'View the current value of your connected wallet portfolio.',
-      command: getToolCommand('portfolio-value') || 'Show me my portfolio value',
+      name: 'Swap Tokens', 
+      description: 'Swap tokens directly through the chat interface.',
+      command: getToolCommand('swap-tokens') || 'Swap tokens',
       isPro: false,
-      isNew: false
-    },
-    { 
-      name: "Get Agent's Portfolio Value", 
-      description: "View the current value of the agent's embedded wallet portfolio.",
-      command: getToolCommand('agent-portfolio-value') || "Show me your portfolio value",
-      isPro: false,
-      isNew: false
-    },
-    { 
-      name: 'Get My Token Holdings', 
-      description: 'See a detailed breakdown of all tokens in your connected wallet.',
-      command: getToolCommand('token-holdings') || 'Show me my token holdings',
-      isPro: false,
-      isNew: false
-    },
-    { 
-      name: "Get Agent's Token Holdings", 
-      description: "See a detailed breakdown of all tokens in the agent's wallet.",
-      command: getToolCommand('agent-token-holdings') || "Show me your token holdings",
-      isPro: false, 
-      isNew: false
+      isNew: true
     },
     { 
       name: 'Get Solana Transaction Volume', 
@@ -506,6 +485,19 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       isNew: false
     },
   ];
+
+  // Filter out wallet-related tools if user isn't authenticated
+  const filteredTools = tools.filter(tool => {
+    // If user is authenticated, show all tools
+    if (authenticated) return true;
+    
+    // If not authenticated, filter out wallet-related tools
+    const walletRelatedNames = [
+      'Swap Tokens'
+    ];
+    
+    return !walletRelatedNames.includes(tool.name);
+  });
 
   // get portfolio value and tokens every 10 seconds
   useEffect(() => {
@@ -839,7 +831,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
               </div>
             ) : (
               <div className="p-4 space-y-2">
-                {tools.map((tool) => (
+                {filteredTools.map((tool) => (
                   <ToolCard
                     key={tool.name}
                     tool={tool}

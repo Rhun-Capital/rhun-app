@@ -1188,12 +1188,11 @@ function generateToolDocumentation(tools: { [key: string]: { description: string
 }
 const toolsDocumentation = generateToolDocumentation(availableTools);
 
-
 const systemPrompt = `
 ## User Information (the user that's interacting with the agent):
-- User's ID: ${user.id}
-- User's Email: ${user.email || 'N/A'}
-- User's Wallet: ${user.wallet?.address || 'N/A'}
+- User's ID: ${user?.id || 'template'}
+- User's Email: ${user?.email || 'N/A'}
+- User's Wallet: ${user?.wallet?.address || 'N/A'}
 
 ## Agent Information (the agent that's answering the user's query):
 - Agent's ID: ${agentConfig.id}

@@ -56,14 +56,12 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   }, [pathname]);
 
   const navigation = [
-    { name: 'Tools', href: '/', icon: LayoutGrid },
-    ...(authenticated ? [
-      { name: 'Agents', href: '/agents', icon: BotIcon },
-      { name: 'Watchers', href: '/watchers', icon: EyeIcon, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
-      // { name: 'Portfolio', href: '/portfolio', icon: ChartArea },
-      // { name: 'Apps', href: '/marketplace', icon: LayoutGrid },
-      { name: 'Account', href: '/account', icon: CircleUser },
-    ] : []),
+    { name: 'Tools', href: '/tools', icon: LayoutGrid },
+    { name: 'Agents', href: '/agents', icon: BotIcon, requiresAuth: true },
+    { name: 'Watchers', href: '/watchers', icon: EyeIcon, requiresAuth: true, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
+    // { name: 'Portfolio', href: '/portfolio', icon: ChartArea, requiresAuth: true },
+    // { name: 'Apps', href: '/marketplace', icon: LayoutGrid, requiresAuth: true },
+    { name: 'Account', href: '/account', icon: CircleUser, requiresAuth: true },
   ];
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -76,7 +74,11 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   const handleLogout = async () => {
     await clearCookies(); // Clear access tokens
     await logout(); // Clear Privy state
-    router.push('/login');
+    if (pathname === '/tools') {
+      router.push('/tools');
+    } else {
+      router.push('/');
+    }
   }
 
   return (
@@ -100,12 +102,20 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
           lg:translate-x-0
         `}
       >
-        <div className="p-4 border-b border-zinc-700 min-h-[61px]">
-          <Link href='/' onClick={() => setIsOpen(false)}>
-            <div className="flex items-center ml-2">
-              <Image src="https://rhun.io/images/rhun-logo-gradient.svg" alt="Rhun Capital" height={124} width={124} className="pr-2 antialiased"/>
-            </div>
-          </Link>
+        <div className="p-4 pt-6">
+          <button
+            onClick={() => {
+              if (pathname === '/') {
+                window.location.href = "/";
+              } else {
+                router.push("/");
+              }
+              setIsOpen(false);
+            }}
+            className="flex items-center ml-2 max-h-6"
+          >
+            <Image src="https://rhun.io/images/rhun-logo-gradient.svg" alt="Rhun Capital" height={124} width={124} className="pr-2 antialiased"/>
+          </button>
         </div>
         
         <nav className="p-4 flex-1">
@@ -114,10 +124,10 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
               <button 
                 key="new-chat"
                 onClick={() => {
-                  if (pathname === '/agents/template/cc425065-b039-48b0-be14-f8afa0704357') {
-                    window.location.href = "/agents/template/cc425065-b039-48b0-be14-f8afa0704357";
+                  if (pathname === '/') {
+                    window.location.href = "/";
                   } else {
-                    router.push("/agents/template/cc425065-b039-48b0-be14-f8afa0704357");
+                    router.push("/");
                   }
                 }}
                 className="w-full flex items-center p-2 rounded transition-colors hover:bg-zinc-800 bg-indigo-400/10 border-indigo-400 border-2"
@@ -130,32 +140,43 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
             </li>
             {navigation.map((item) => (
               <li key={item.name}>
-                <Link 
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className={`flex items-center p-2 rounded transition-colors ${
-                    pathname === item.href
-                      ? 'bg-zinc-800' 
-                      : 'hover:bg-zinc-800'
-                  }`}
-                >
-                  <div className="text-zinc-400"> 
-                    <item.icon className="h-5 w-5"/>                  
+                {(!item.requiresAuth || authenticated) ? (
+                  <Link 
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center p-2 rounded transition-colors ${
+                      pathname === item.href
+                        ? 'bg-zinc-800' 
+                        : 'hover:bg-zinc-800'
+                    }`}
+                  >
+                    <div className="text-zinc-400"> 
+                      <item.icon className="h-5 w-5"/>                  
+                    </div>
+                    <span className={`${ 
+                      pathname === item.href
+                        ? 'text-white'
+                        : 'text-white hover:text-white'
+                    } ml-3`}>
+                      
+                      {item.badge ? (
+                      <div className="flex items-center gap-2">
+                         {item.name}
+                        <div className="-top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </div></div>): item.name}                      
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="flex items-center p-2 cursor-not-allowed opacity-50">
+                    <div className="text-zinc-600"> 
+                      <item.icon className="h-5 w-5"/>                  
+                    </div>
+                    <span className="text-zinc-600 ml-3">
+                      {item.name}
+                    </span>
                   </div>
-                  <span className={`${ 
-                    pathname === item.href
-                      ? 'text-white'
-                      : 'text-white hover:text-white'
-                  } ml-3`}>
-                    
-                    {item.badge ? (
-                    <div className="flex items-center gap-2">
-                       {item.name}
-                      <div className="-top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {item.badge > 9 ? '9+' : item.badge}
-                    </div></div>): item.name}                      
-                  </span>
-                </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -180,7 +201,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
           </div>
 
 
-       {pathname !== '/login' && <div className="p-4">
+       <div className="p-4">
           {authenticated ? (
             <button 
               onClick={handleLogout}
@@ -196,7 +217,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
               Connect Wallet
             </button>
           )}
-        </div> }
+        </div>
 
 
       </div>
