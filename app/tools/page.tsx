@@ -570,14 +570,14 @@ export default function HomePage() {
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3">
                         <div className="flex items-center gap-2">
                           <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
-                          <h2 className="text-2xl font-semibold text-white drop-shadow-lg">Stake on Meteora</h2>
+                          <h2 className="text-2xl font-semibold text-white drop-shadow-lg">Provide Liquidity on Meteora</h2>
                         </div>
                         <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
                           <Sparkles className="w-3 h-3" />
                           <span>New</span>
                         </span>
                       </div>
-                      <p className="text-zinc-400 text-base mb-6">Stake your RHUN tokens in the Meteora liquidity pool to earn rewards and participate in DeFi.</p>
+                      <p className="text-zinc-400 text-base mb-6">Deposit RHUN tokens in the Meteora liquidity pool to earn rewards and participate in DeFi.</p>
                       <div className="flex items-start gap-2 text-sm text-zinc-400">
                         <div className="px-3 py-1.5 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-2">
                           <Activity className="w-4 h-4" />
