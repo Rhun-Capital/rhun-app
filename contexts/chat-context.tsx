@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { debounce } from 'lodash';
 
 interface Chat {
   chatId: string;
@@ -22,6 +23,9 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const { user, getAccessToken } = usePrivy();
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
+  const [newChatId, setNewChatId] = useState<string | null>(null);
+  const [chatId, setChatId] = useState<string | null>(null);
+  const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
   const fetchUserChats = async () => {
     const token = await getAccessToken();
@@ -81,6 +85,39 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     fetchRecentChats();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (newChatId && !chatId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('chatId', newChatId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [newChatId, chatId]);
+
+  useEffect(() => {
+    const resizeTextarea = () => {
+      if (inputRef.current) {
+        // Reset height to auto to get the correct scrollHeight
+        inputRef.current.style.height = 'auto';
+        // Set the height to match the scrollHeight (content height)
+        const scrollHeight = inputRef.current.scrollHeight;
+        inputRef.current.style.height = `${Math.min(scrollHeight, 150)}px`;
+      }
+    };
+    
+    resizeTextarea();
+    
+    // Create a debounced version of the resize function
+    const debouncedResize = debounce(resizeTextarea, 50);
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', debouncedResize);
+    
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      debouncedResize.cancel();
+    };
+  }, [inputRef]); // Re-run when inputRef changes
 
   const contextValue = {
     recentChats,

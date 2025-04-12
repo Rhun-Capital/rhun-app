@@ -5,7 +5,6 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import PrivyWrapper from "@/components/privy-provider";
 import { ChatProvider } from "@/contexts/chat-context";
-import { SolanaProvider } from "@/contexts/solana-context";
 import { ModalProvider } from "@/contexts/modal-context";
 import { Sidebar } from "@/components/sidebar";
 
@@ -22,7 +21,6 @@ export default function RootLayout({
         <ModalProvider>
           <PrivyWrapper>
             <ChatProvider>
-              <SolanaProvider>
                 <div className="flex h-screen bg-zinc-900">
                   
                     <main className="flex-1 overflow-y-auto">
@@ -33,7 +31,6 @@ export default function RootLayout({
                   
                 </div>
                 <Toaster />
-              </SolanaProvider>
             </ChatProvider>
           </PrivyWrapper>
         </ModalProvider>
