@@ -913,23 +913,23 @@ export default function Home() {
               handleFormSubmit(event, options);
               setFiles(null);
             }} className="max-w-2xl mx-auto flex gap-2 relative">
-              {/* <input
+              <input
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
                 multiple
                 accept="image/png,image/jpeg,image/jpg,text/*"
                 onChange={handleFileChange}
-              /> */}
+              />
               
               <div className="flex-1 flex items-center bg-zinc-800 rounded-lg px-4">
-                {/* <button
+                <button
                   type="button"
                   onClick={handleUploadClick}
                   className="p-2 text-zinc-400 hover:text-white"
                 >
                   <AttachmentIcon />
-                </button> */}
+                </button>
                 
                 <textarea
                   ref={inputRef}
