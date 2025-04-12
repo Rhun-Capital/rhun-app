@@ -1,6 +1,7 @@
 export const toolCommands: { [key: string]: string } = {
   'technical-analysis': 'Show me a technical analysis for',
   'swap': "Let's swap tokens",
+  'swap-tokens': "I want to swap tokens",
   'search-tokens': 'Search for tokens',
   'stock-analysis': 'Analyze stock data',
   'news-analysis': 'Show me the latest news',

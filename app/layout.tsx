@@ -1,10 +1,15 @@
-import './globals.css';
-import { AuthWrapper } from '@/components/auth-wrapper'
-import PrivyWrapper from '@/components/privy-provider';
-import { Toaster } from 'sonner';
-import { Analytics } from "@vercel/analytics/react"
-import { ModalProvider } from '@/contexts/modal-context';
-import { SolanaProvider } from '@/contexts/solana-context';
+"use client";
+
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { Toaster } from "sonner";
+import PrivyWrapper from "@/components/privy-provider";
+import { ChatProvider } from "@/contexts/chat-context";
+import { SolanaProvider } from "@/contexts/solana-context";
+import { ModalProvider } from "@/contexts/modal-context";
+import { Sidebar } from "@/components/sidebar";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
@@ -12,18 +17,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body>
-        <PrivyWrapper>
-          <AuthWrapper>
-            <ModalProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        <ModalProvider>
+          <PrivyWrapper>
+            <ChatProvider>
               <SolanaProvider>
-                {children}
+                <div className="flex h-screen bg-zinc-900">
+                  
+                    <main className="flex-1 overflow-y-auto">
+                    <Sidebar>
+                      {children}
+                      </Sidebar>
+                    </main>
+                  
+                </div>
+                <Toaster />
               </SolanaProvider>
-            </ModalProvider>
-          </AuthWrapper>
-        </PrivyWrapper>
-        <Analytics/>
+            </ChatProvider>
+          </PrivyWrapper>
+        </ModalProvider>
       </body>
     </html>
   );

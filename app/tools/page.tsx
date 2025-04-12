@@ -175,7 +175,7 @@ const GradientBackground = ({ type }: { type: string }) => {
 };
 
 export default function HomePage() {
-  const { user, ready } = usePrivy();
+  const { user, ready, login } = usePrivy();
   const router = useRouter();
 
   const tools = [
@@ -183,7 +183,7 @@ export default function HomePage() {
       title: 'Technical Analysis',
       description: 'Get detailed technical analysis for any asset with multiple indicators and market sentiment.',
       icon: BarChart2,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=technical-analysis',
+      link: '/?tool=technical-analysis',
       color: 'text-indigo-400',
       type: 'technical-analysis',
       isNew: true,
@@ -195,7 +195,7 @@ export default function HomePage() {
       description: 'Get comprehensive analysis of stocks including financial metrics and analyst consensus.',
       icon: TrendingUp,
       isNew: true,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=stock-analysis',
+      link: '/?tool=stock-analysis',
       color: 'text-indigo-400',
       type: 'stock-analysis',
       stats: 'Real-time Data',
@@ -206,7 +206,7 @@ export default function HomePage() {
       description: 'View interactive TradingView charts for any asset with multiple timeframes.',
       icon: LineChart,
       isNew: true,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=tradingview-chart',
+      link: '/?tool=tradingview-chart',
       color: 'text-indigo-400',
       type: 'tradingview-chart',
       isPopular: true,
@@ -217,7 +217,7 @@ export default function HomePage() {
       title: 'Swap Tool',
       description: 'Execute token swaps with your agents directly from the chat interface with real-time quotes.',
       icon: ArrowLeftRight,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=swap',
+      link: '/?tool=swap',
       color: 'text-indigo-400',
       type: 'swap',
       isPopular: true,
@@ -228,7 +228,7 @@ export default function HomePage() {
       title: 'Web Research',
       description: 'Perform web research and get summarized insights from multiple sources.',
       icon: Globe,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=web-research',
+      link: '/?tool=web-research',
       color: 'text-indigo-400',
       type: 'web-research',
       stats: 'Multi-source',
@@ -238,7 +238,7 @@ export default function HomePage() {
       title: 'Asset Search',
       description: 'Search and analyze any cryptocurrency or token with detailed market data.',
       icon: Search,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=search-tokens',
+      link: '/?tool=search-tokens',
       color: 'text-indigo-400',
       type: 'asset-search',
       stats: '10K+ Assets',
@@ -249,7 +249,7 @@ export default function HomePage() {
       title: 'News Analysis',
       description: 'Analyze market news and get sentiment analysis for better decision making.',
       icon: Newspaper,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=news-analysis',
+      link: '/?tool=news-analysis',
       color: 'text-indigo-400',
       type: 'news-analysis',
       stats: 'AI-Powered',
@@ -259,7 +259,7 @@ export default function HomePage() {
       title: 'Fear & Greed Index',
       description: 'Track market sentiment with the Crypto Fear & Greed Index and historical data.',
       icon: Gauge,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fear-greed',
+      link: '/?tool=fear-greed',
       color: 'text-indigo-400',
       type: 'fear-greed',
       stats: 'Market Sentiment',
@@ -269,7 +269,7 @@ export default function HomePage() {
       title: 'Market Movers',
       description: 'Discover top gainers, losers, and trending assets across different timeframes.',
       icon: TrendingUpIcon2,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=market-movers',
+      link: '/?tool=market-movers',
       color: 'text-indigo-400',
       type: 'market-movers',
       stats: 'Real-time Updates',
@@ -279,7 +279,7 @@ export default function HomePage() {
       title: 'GDP Analysis',
       description: 'Access real-time GDP data and analysis from FRED with interactive charts and historical trends.',
       icon: DollarSign,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-gdp',
+      link: '/?tool=fred-gdp',
       color: 'text-indigo-400',
       type: 'fred-gdp',
       isNew: true,
@@ -290,7 +290,7 @@ export default function HomePage() {
       title: 'Unemployment Rate',
       description: 'Track unemployment trends with FRED data, including interactive visualizations and analysis.',
       icon: Building2,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-unemployment',
+      link: '/?tool=fred-unemployment',
       color: 'text-indigo-400',
       type: 'fred-unemployment',
       isNew: true,
@@ -301,7 +301,7 @@ export default function HomePage() {
       title: 'Inflation Data',
       description: 'Monitor inflation metrics with FRED data, including CPI and PCE price indices.',
       icon: Banknote,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-inflation',
+      link: '/?tool=fred-inflation',
       color: 'text-indigo-400',
       type: 'fred-inflation',
       isNew: true,
@@ -312,7 +312,7 @@ export default function HomePage() {
       title: 'Interest Rates',
       description: 'Track Federal Reserve interest rates and bond yields with FRED data.',
       icon: LineChartIcon,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-interest-rates',
+      link: '/?tool=fred-interest-rates',
       color: 'text-indigo-400',
       type: 'fred-interest-rates',
       isNew: true,
@@ -323,7 +323,7 @@ export default function HomePage() {
       title: 'Housing Market',
       description: 'Analyze housing market indicators including starts, permits, and prices.',
       icon: Home,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-housing',
+      link: '/?tool=fred-housing',
       color: 'text-indigo-400',
       type: 'fred-housing',
       isNew: true,
@@ -334,7 +334,7 @@ export default function HomePage() {
       title: 'Retail Sales',
       description: 'Monitor consumer spending trends with FRED retail sales data.',
       icon: ShoppingCart,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-retail',
+      link: '/?tool=fred-retail',
       color: 'text-indigo-400',
       type: 'fred-retail',
       isNew: true,
@@ -345,7 +345,7 @@ export default function HomePage() {
       title: 'Money Supply',
       description: 'Track M2 money supply and other monetary aggregates from FRED.',
       icon: Scale,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-money',
+      link: '/?tool=fred-money',
       color: 'text-indigo-400',
       type: 'fred-money',
       isNew: true,
@@ -356,7 +356,7 @@ export default function HomePage() {
       title: 'Industrial Production',
       description: 'Monitor manufacturing output and industrial activity with FRED data.',
       icon: Activity,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-industrial',
+      link: '/?tool=fred-industrial',
       color: 'text-indigo-400',
       type: 'fred-industrial',
       isNew: true,
@@ -367,7 +367,7 @@ export default function HomePage() {
       title: 'S&P 500 Index',
       description: 'Track the S&P 500 index and its historical performance with FRED data.',
       icon: LineChartIcon,
-      link: '/agents/template/cc425065-b039-48b0-be14-f8afa0704357?tool=fred-sandp500',
+      link: '/?tool=fred-sandp500',
       color: 'text-indigo-400',
       type: 'fred-sandp500',
       isNew: true,
@@ -377,11 +377,6 @@ export default function HomePage() {
   ];
 
   const handleToolClick = (e: React.MouseEvent, tool: any) => {
-    if (!user && ready) {
-      e.preventDefault();
-      toast.error('Please sign in to access this tool.');
-      return;
-    }
     router.push(tool.link);
     router.refresh();
   };
@@ -420,13 +415,15 @@ export default function HomePage() {
               <span>Read docs</span>
               <BookOpenIcon className="w-5 h-5"/>
             </Link>
-            <Link 
-              href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
+            <button
+              onClick={() => {
+                router.push("/");
+              }}
               className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-indigo-400/10 border-2 border-indigo-400 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-800 sm:px-6 sm:py-2 sm:text-base"
             >
               <PlusCircle className="w-5 h-5 text-indigo-400"/>
               <span>New chat</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -434,44 +431,57 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Create Agent Card */}
           <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
-            <Link href="/agents/create">
-              <div className="group cursor-pointer h-full">
-                <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                  {/* Gradient background */}
-                  <GradientBackground type="create-agent" />
-                  
-                  {/* 3D Grid Pattern */}
-                  <Grid3D />
-                  
-                  {/* Card image */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative w-60 h-60 rounded-full overflow-hidden">
-                      <Image
-                        src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/hero.png"
-                        alt="Create Agent"
-                        fill
-                        className="object-cover transition-transform duration-300 hover:scale-105 opacity-60"
-                        priority
-                        quality={100}
-                      />
-                    </div>
+            <div 
+              className="group cursor-pointer h-full"
+              onClick={() => {
+                if (user) {
+                  router.push("/agents/create");
+                } else if (ready) {
+                  login();
+                }
+              }}
+            >
+              <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                {/* Gradient background */}
+                <GradientBackground type="create-agent" />
+                
+                {/* 3D Grid Pattern */}
+                <Grid3D />
+                
+                {/* Card image */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative w-60 h-60 rounded-full overflow-hidden">
+                    <Image
+                      src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/hero.png"
+                      alt="Create Agent"
+                      fill
+                      className="object-cover transition-transform duration-300 hover:scale-105 opacity-60"
+                      priority
+                      quality={100}
+                    />
                   </div>
-                  
-                  {/* Content Section */}
-                  <div className="absolute inset-x-0 bottom-0 p-6">
-                    <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Create Your Own Agent</h2>
-                    <p className="text-zinc-400 text-base mb-6">Build and customize your own AI trading agent with specific strategies and tools.</p>
-                    <Link 
-                      href="/agents/create"
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10  w-fit"
-                    >
-                      <span>Create Agent</span>
-                      <ArrowUpRight className="w-5 h-5" />
-                    </Link>
+                </div>
+                
+                {/* Content Section */}
+                <div className="absolute inset-x-0 bottom-0 p-6">
+                  <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Create Your Own Agent</h2>
+                  <p className="text-zinc-400 text-base mb-6">Build and customize your own AI trading agent with specific strategies and tools.</p>
+                  <div className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10 w-fit">
+                    {user ? (
+                      <>
+                        <span>Create Agent</span>
+                        <ArrowUpRight className="w-5 h-5" />
+                      </>
+                    ) : (
+                      <>
+                        <span>Connect Wallet</span>
+                        <ArrowUpRight className="w-5 h-5" />
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-            </Link>
+            </div>
           </HolographicCard>
 
           {/* Buy RHUN Card */}

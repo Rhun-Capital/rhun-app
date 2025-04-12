@@ -66,7 +66,7 @@ export default function SettingsPage() {
     setLoading(true);
     await clearCookies(); // Clear access tokens
     await logout(); // Clear Privy state
-    router.push('/login');
+    router.push('/');
   }  
   
   const handleCreateWallet = async () => {

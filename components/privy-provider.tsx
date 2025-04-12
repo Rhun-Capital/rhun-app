@@ -6,8 +6,7 @@ import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 
 
 const solanaConnectors = toSolanaWalletConnectors({
-    // By default, shouldAutoConnect is enabled
-    shouldAutoConnect: true,
+    shouldAutoConnect: false,
 });
 
 export default function PrivyWrapper({
@@ -19,11 +18,12 @@ export default function PrivyWrapper({
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
       config={{
-        loginMethods: ['wallet', 'email'],
+        loginMethods: ['email', 'wallet'],
         appearance: {
           theme: 'dark',
           walletChainType: "solana-only",   
-          showWalletLoginFirst: true,       
+          showWalletLoginFirst: false,
+          accentColor: '#6366f1', // indigo-500
         },
         externalWallets: {
           solana: {
