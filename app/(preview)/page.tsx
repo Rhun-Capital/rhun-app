@@ -51,6 +51,7 @@ import { getToolCommand } from '@/app/config/tool-commands';
 import { useModal } from "@/contexts/modal-context";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from 'uuid';
+import { usePrivy } from "@privy-io/react-auth";
 
 const TextFilePreview = ({ file }: { file: File }) => {
   const [content, setContent] = useState<string>('');
@@ -181,46 +182,91 @@ export default function Home() {
   // Handle tool query parameter (Now placed after dependencies)
   const hasTriggeredTool = useRef(false);
   const router = useRouter();  
+  const { user, getAccessToken, ready } = usePrivy();
+  const { refreshRecentChats } = useRecentChats();
+  const [headers, setHeaders] = useState<any>();
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [isHeadersReady, setIsHeadersReady] = useState(false);
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } = useChat({
-    body: { agent },
+    headers,
+    body: { agent, user },
     maxSteps: 30,
+    initialMessages,
     sendExtraMessageFields: true,
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
+    // id: chatId || newChatId,
+    onError: () => {
+      toast.error('Failed to send message. Please try again.')
     },
-    onError: (error) => {
-      console.error('Error in useChat:', error.message);
-      toast.error( JSON.parse(error.message).error );
+    onFinish: async (message) => {   
+      // Debounced save is handled in a separate useEffect
     },
   });
 
-  const refreshAgent = async () => {
-    try {
-      const response = await fetch(`/api/${agentId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch agent');
+  const getAgent = async () => {
+    const accessToken = await getAccessToken();
+    const response = await fetch(
+      `/api/${agentId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       }
-      const agentData = await response.json();
-      setAgent(agentData);
-    } catch (error) {
-      console.error('Error fetching agent:', error);
-      toast.error('Failed to load agent');
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch agent configuration");
     }
-  };
+    return response.json();
+  }
+
+  const refreshAgent = async () => {
+    if (!user) return;
+    getAgent().then((agent) => {
+      setAgent(agent);
+    });
+  }
 
   useEffect(() => {
     refreshAgent();
   }, [agentId]);
 
-  
+  useEffect(() => {
+    const setupHeaders = async () => {
+      const token = await getAccessToken();
+      setHeaders({
+        'Authorization': `Bearer ${token}`
+      });
+      setIsHeadersReady(true);
+    };
+    
+    setupHeaders();
+  }, [getAccessToken]);
 
-  const handleToolSelect = async (command: string) => {
+  const handleToolSelect = useCallback(async (command: string) => {
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
+
+    const token = await getAccessToken();
     
     try {      
+      await fetch(`/api/chat/${chatId ? chatId : newChatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: chatId ? chatId : newChatId,
+          userId: user?.id,
+          isTemplate: true,
+          agentId,
+          agentName: agent?.name,
+          lastMessage: command,
+          lastUpdated: new Date().toISOString()
+        })
+      });
+    
       append({
         role: 'user',
         content: command,
@@ -235,7 +281,7 @@ export default function Home() {
     } catch (error) {
       console.error('Error in handleToolSelect:', error);
     }
-  };
+  }, [append, chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, setSidebarOpen]);
 
   useEffect(() => {
     const tool = searchParams.get('tool');
@@ -364,6 +410,223 @@ export default function Home() {
       }
     }
   };
+
+  useEffect(() => {
+    const loadInitialMessages = async (): Promise<void> => {
+      if (!chatId || !user?.id) return;
+      
+      try {
+        const token = await getAccessToken();
+        const response = await fetch(
+          `/api/chat/${chatId}?userId=${encodeURIComponent(user?.id as string)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+  
+        if (!response.ok) throw new Error('Failed to load chat history');
+        
+        const data = await response.json();
+        
+        if (data.messages && data.messages.length > 0) {
+          // Convert string dates to Date objects and preserve all tool data
+          const formattedMessages: Message[] = data.messages.map((msg: any) => ({
+            id: msg.messageId,
+            createdAt: new Date(msg.createdAt),
+            role: msg.role,
+            content: msg.content,
+            experimental_attachments: msg.attachments?.map((attachment: any) => ({
+              name: attachment.name,
+              url: attachment.url,
+              contentType: attachment.contentType,
+            })),            
+            toolInvocations: msg.toolInvocations?.map((tool: any) => {
+              // Ensure we preserve all S3 references and metadata for tool results
+              const mappedTool = {
+                ...tool, 
+                toolName: tool.toolName,
+                toolCallId: tool.toolCallId,
+                args: tool.args,
+                result: tool.result
+              };
+              
+              // Make sure we keep the special fields for S3 references intact
+              if (mappedTool.result && mappedTool.result._storedInS3) {
+                mappedTool.result = {
+                  ...mappedTool.result,
+                  _storedInS3: true,
+                  _s3Reference: mappedTool.result._s3Reference
+                };
+              }
+              
+              return mappedTool;
+            })
+          }));
+          
+          setInitialMessages(formattedMessages);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+        toast.error('Failed to load chat history');
+      }
+    };
+  
+    loadInitialMessages();
+  }, [chatId, getAccessToken, user]);
+
+  const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
+    const lastMessage = messages[messages.length - 1];
+  
+    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || !user?.id) {
+      return [];
+    }
+  
+    const token = await getAccessToken();
+    const currentChatId = chatId || newChatId;
+    
+    try {
+      // Update chat metadata
+      await fetch(`/api/chat/${currentChatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          userId: user?.id,
+          agentId,
+          agentName: agent?.name,
+          lastMessage: lastMessage.content,
+          lastUpdated: new Date().toISOString(),
+          isTemplate: true
+        })
+      });
+
+      // Process attachments if they exist
+      let processedAttachments = [] as any[];
+      if (lastMessage.experimental_attachments?.length) {
+        processedAttachments = await Promise.all(
+          lastMessage.experimental_attachments.map(async (attachment) => {
+            // Only process data URLs
+            if (attachment.url.startsWith('data:')) {
+              // Create blob from data URL
+              const blob = await fetch(attachment.url).then(r => r.blob());
+              
+              // Get presigned URL
+              const presignedResponse = await fetch(`/api/chat/presigned`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  fileName: attachment.name,
+                  contentType: attachment.contentType,
+                  chatId: currentChatId,
+                  messageId: lastMessage.id
+                })
+              });
+
+              if (!presignedResponse.ok) {
+                throw new Error('Failed to get upload URL');
+              }
+
+              const { url, fields, fileUrl } = await presignedResponse.json();
+
+              // Create FormData and append fields
+              const formData = new FormData();
+              Object.entries(fields).forEach(([key, value]) => {
+                formData.append(key, value as string);
+              });
+              formData.append('file', blob, attachment.name);
+
+              // Upload to S3
+              const uploadResponse = await fetch(url, {
+                method: 'POST',
+                body: formData
+              });
+
+              if (!uploadResponse.ok) {
+                throw new Error('Failed to upload file');
+              }
+
+              // Return processed attachment with S3 URL
+              return {
+                name: attachment.name,
+                contentType: attachment.contentType,
+                url: fileUrl
+              };
+            }
+            
+            // Return non-data URLs as-is
+            return attachment;
+          })
+        );
+      }
+  
+      // Store the message with processed attachments
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          messageId: lastMessage.id,
+          userId: user?.id,
+          isTemplate: true,
+          role: lastMessage.role,
+          content: lastMessage.content,
+          createdAt: lastMessage.createdAt,
+          attachments: processedAttachments,
+          toolInvocations: lastMessage.toolInvocations?.map(tool => ({
+            toolName: tool.toolName,
+            toolCallId: tool.toolCallId,
+            args: tool.args,
+            result: 'result' in tool ? tool.result : undefined
+          }))
+        })
+      });
+  
+      await refreshRecentChats();
+    } catch (error) {
+      console.error('Error updating chat:', error);
+      toast.error('Failed to save chat message');
+    }
+    
+    return [];
+  };
+
+  useEffect(() => {
+    if (!agent) return;
+    if (messages.length === 0) return;
+    
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage) return;
+    
+    // Create a new debounced function for each message
+    const debouncedSave = debounce(async () => {
+      await updateChatInDB(messages);
+    }, 1000);
+  
+    debouncedSave();
+  
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [messages, agent]);
+
+  useEffect(() => {
+    // get agent and set agent name
+    if (!user) return;
+    getAgent().then((agent) => {
+      setAgent(agent);
+    });
+  }, [user]);
 
   if (!agent) {
     return (
@@ -604,23 +867,23 @@ export default function Home() {
               handleFormSubmit(event, options);
               setFiles(null);
             }} className="max-w-2xl mx-auto flex gap-2 relative">
-              <input
+              {/* <input
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
                 multiple
                 accept="image/png,image/jpeg,image/jpg,text/*"
                 onChange={handleFileChange}
-              />
+              /> */}
               
               <div className="flex-1 flex items-center bg-zinc-800 rounded-lg px-4">
-                <button
+                {/* <button
                   type="button"
                   onClick={handleUploadClick}
                   className="p-2 text-zinc-400 hover:text-white"
                 >
                   <AttachmentIcon />
-                </button>
+                </button> */}
                 
                 <textarea
                   ref={inputRef}
