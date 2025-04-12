@@ -1122,13 +1122,13 @@ export default function Home() {
               />
               
               <div className="flex-1 flex items-center bg-zinc-800 rounded-lg px-4">
-                {/* <button
+                <button
                   type="button"
                   onClick={handleUploadClick}
                   className="p-2 text-zinc-400 hover:text-white"
                 >
                   <AttachmentIcon />
-                </button> */}
+                </button>
                 
                 <textarea
                   ref={inputRef}
