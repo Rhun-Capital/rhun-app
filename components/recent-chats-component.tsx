@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Dispatch, SetStateAction } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { MessageSquareIcon } from '@/components/icons';
@@ -14,6 +14,11 @@ interface Chat {
   isTemplate?: boolean;
 }
 
+interface RecentChatsProps {
+  maxVisible?: number;
+  setIsOpen?: Dispatch<SetStateAction<boolean>>;
+}
+
 function formatTimeAgo(timestamp: number) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
   
@@ -23,10 +28,15 @@ function formatTimeAgo(timestamp: number) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export const RecentChats = ({ maxVisible = 3 }) => {
+export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => {
   const { user } = usePrivy();
   const router = useRouter();
   const { recentChats } = useRecentChats();
+  
+  // Log when component mounts to verify props
+  useEffect(() => {
+    console.log("RecentChats mounted with setIsOpen:", setIsOpen ? "function provided" : "no function");
+  }, [setIsOpen]);
 
   // No longer checking for user here since we want to show template chats even when logged out
   if (!recentChats || recentChats.length === 0) {
@@ -43,8 +53,14 @@ export const RecentChats = ({ maxVisible = 3 }) => {
   const navigateToChat = (chat: Chat) => {
     const userId = chat.isTemplate ? 'template' : user?.id;
     const path = `/agents/${userId}/${chat.agentId}?chatId=${chat.chatId}`;
-    router.push(path);
-    router.refresh();
+    if (setIsOpen) {
+      setIsOpen(false);
+    }
+    // Short delay to ensure the sidebar closes before navigating
+    setTimeout(() => {
+      router.push(path);
+      router.refresh();
+    }, 10);
   };
 
   return (
@@ -81,6 +97,13 @@ export const RecentChats = ({ maxVisible = 3 }) => {
         <Link 
           href="/recent-chats" 
           className="text-xs text-zinc-400 hover:text-indigo-300 flex items-center"
+          onClick={() => {
+            console.log("View all clicked, setIsOpen:", !!setIsOpen);
+            if (setIsOpen) {
+              setIsOpen(false);
+              console.log("setIsOpen called with false from View all");
+            }
+          }}
         >
           View all &rarr;
         </Link>
