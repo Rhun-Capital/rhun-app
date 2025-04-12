@@ -88,14 +88,14 @@ const AttachmentDisplay = ({ attachment }: { attachment: any }) => {
       <img 
         src={URL.createObjectURL(attachment)} 
         alt={attachment.name} 
-        className="h-16 w-16 object-cover rounded-md"
+        className="h-40 w-40 object-cover rounded-md"
       />
     );
   }
   
   if (attachment.type?.startsWith('text/')) {
     return (
-      <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+      <div className="h-40 w-40 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
         <TextFilePreview file={attachment} />
       </div>
     );
@@ -107,14 +107,14 @@ const AttachmentDisplay = ({ attachment }: { attachment: any }) => {
       <img 
         src={attachment.url} 
         alt={attachment.name || 'Image attachment'} 
-        className="h-16 w-16 object-cover rounded-md"
+        className="h-40 w-40 object-cover rounded-md"
       />
     );
   }
   
   if (attachment.contentType?.startsWith('text/') && attachment.url) {
     return (
-      <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+      <div className="h-40 w-40 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
         <span className="text-xs truncate">{attachment.name || 'Text file'}</span>
       </div>
     );
@@ -122,7 +122,7 @@ const AttachmentDisplay = ({ attachment }: { attachment: any }) => {
   
   // Default fallback
   return (
-    <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden flex items-center justify-center">
+    <div className="h-40 w-40 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden flex items-center justify-center">
       <span className="text-[8px] truncate">{attachment.name || 'Attachment'}</span>
     </div>
   );
