@@ -124,11 +124,14 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
               <button 
                 key="new-chat"
                 onClick={() => {
-                  if (pathname === '/') {
-                    window.location.href = "/";
-                  } else {
-                    router.push("/");
-                  }
+                  setIsOpen(false);
+                  setTimeout(() => {
+                    if (pathname === '/') {
+                      window.location.href = "/";
+                    } else {
+                      router.push("/");
+                    }
+                  }, 10);
                 }}
                 className="w-full flex items-center p-2 rounded transition-colors hover:bg-zinc-800 bg-indigo-400/10 border-indigo-400 border-2"
               >
@@ -181,7 +184,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
             ))}
           </ul>
 
-          {authenticated && <RecentChats />}
+          {authenticated && <RecentChats setIsOpen={setIsOpen} />}
         </nav>
 
         <div className="ml-4 w-[89%] hidden sm:block">
