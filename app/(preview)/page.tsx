@@ -52,6 +52,8 @@ import { useModal } from "@/contexts/modal-context";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from 'uuid';
 import { usePrivy } from "@privy-io/react-auth";
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 
 interface Agent {
   id: string;
@@ -232,7 +234,24 @@ const EmptyState = ({ agent, onDescribeTools }: EmptyStateProps) => {
   );
 };
 
+// Create a non-SSR version of the component 
+const NoSSRHomeContent = dynamic(() => Promise.resolve(HomeContent), {
+  ssr: false,
+});
+
 export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="text-2xl font-semibold"><LoadingIndicator/></div>
+      </div>
+    }>
+      <NoSSRHomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
   const params = useParams();
   const agentId = 'cc425065-b039-48b0-be14-f8afa0704357'
   const searchParams = useSearchParams();
@@ -993,3 +1012,6 @@ export default function Home() {
     </div>
   );
 }
+
+export const runtime = 'edge';
+export const dynamicParams = true;
