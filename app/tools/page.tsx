@@ -694,7 +694,7 @@ export default function HomePage() {
         {/* View all tools button */}
         <div className="flex justify-center mt-12 pb-[200px]">
           <Link
-            href="/agents/template/cc425065-b039-48b0-be14-f8afa0704357"
+            href="/"
             className="group inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all duration-200 border border-white/10 hover:border-white/20 backdrop-blur-sm"
           >
             <span>Start Chatting</span>
