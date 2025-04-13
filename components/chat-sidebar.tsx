@@ -1,7 +1,6 @@
 // components/chat-sidebar.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { WalletIcon, ToolsIcon } from '@/components/icons';
-import { SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart } from 'lucide-react';
+import { WalletIcon, LayoutGrid, SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart, XIcon } from 'lucide-react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import {useFundWallet} from '@privy-io/react-auth/solana';
@@ -194,7 +193,7 @@ const ToolCard: React.FC<{
     <div 
       className={`relative group ${
       canUse 
-        ? 'cursor-pointer hover:bg-zinc-700' 
+        ? 'cursor-pointer hover:bg-zinc-700 active:bg-zinc-600' 
         : 'cursor-not-allowed opacity-75'
       } bg-zinc-800 p-3 rounded-lg border transition-all duration-200 ${
       tool.isPro 
@@ -635,57 +634,46 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   };
 
   return (
-    <div className={`fixed right-0 top-0 h-full border-l border-zinc-700 transition-all duration-300 bg-zinc-900 z-10 ${
-      isOpen ? 'w-80' : 'w-0'
-    }`}>
-      {/* Toggle Button */}
-      <button 
-        onClick={onToggle}
-        className="absolute -left-6 top-1/2 -translate-y-1/2 p-2 bg-zinc-800 rounded-l-lg border-l border-t border-b border-zinc-700 hover:bg-zinc-700 transition-colors"
-      >
-        {isOpen ? <div>&raquo;</div> : <div>&laquo;</div>}
-      </button>
+    <div className="h-full flex flex-col">
+      {/* Content */}
+      <div className="h-full flex flex-col">
+        {/* Tabs */}
+        <div className="flex border-b border-zinc-700 h-[61px]">
+          <button
+            onClick={() => setActiveTab('wallet')}
+            className={`flex-1 p-4 text-sm font-medium transition-colors ${
+              activeTab === 'wallet' 
+                ? 'text-white border-b-2 border-indigo-500 bg-zinc-800' 
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <WalletIcon />
+              <span>Wallet</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('tools')}
+            className={`flex-1 p-4 text-sm font-medium transition-colors ${
+              activeTab === 'tools' 
+                ? 'text-white border-b-2 border-indigo-500 bg-zinc-800' 
+                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <LayoutGrid />
+              <span>Tools</span>
+            </div>
+          </button>
+        </div>
 
-      {isOpen && (
-        <div className="h-full flex flex-col">
-          {/* Tabs */}
-          <div className="flex border-b border-zinc-700 h-[61px]">
-            <button
-              onClick={() => setActiveTab('wallet')}
-              className={`flex-1 p-4 text-sm font-medium transition-colors ${
-                activeTab === 'wallet' 
-                  ? 'text-white border-b-2 border-indigo-500 bg-zinc-800' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <WalletIcon />
-                <span>Wallet</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('tools')}
-              className={`flex-1 p-4 text-sm font-medium transition-colors ${
-                activeTab === 'tools' 
-                  ? 'text-white border-b-2 border-indigo-500 bg-zinc-800' 
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <ToolsIcon />
-                <span>Tools</span>
-              </div>
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            {activeTab === 'wallet' ? (
-              <div className="p-4 space-y-2">
-
-                {/* Wallet Address */}
-                <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
-                <div  className="flex items-center justify-between">
+        {/* Sidebar Content - add extra padding at bottom */}
+        <div className="flex-1 overflow-y-auto pb-24">
+          {activeTab === 'wallet' ? (
+            <div className="p-4 space-y-2">
+              {/* Wallet Address */}
+              <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
+                <div className="flex items-center justify-between">
                   <div className="text-sm text-zinc-400">Wallet Address</div>
                   {params.userId !== 'template' && <button
                     className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
@@ -698,59 +686,57 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       refreshWalletData();
                     }}
                   >
-                    {refreshLoading ?  <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
-                  </button>  }                
+                    {refreshLoading ? <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
+                  </button>}                
                 </div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="text-sm text-white w-full">
-                      {(agent.wallets?.solana && (params.userId !== 'template' || pathname !== '/')) ?
-                        <div className="text-sm text-zinc-500 mt-2">
-                          {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="text-sm text-white w-full">
+                    {(agent.wallets?.solana && (params.userId !== 'template' || pathname !== '/')) ?
+                      <div className="text-sm text-zinc-500 mt-2">
+                        {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
                       </div> : !authenticated && pathname === '/' ? 
-                      <div className="w-full">
-                        <div className="text-sm text-zinc-500 mt-2 mb-4">Connect your wallet to access wallet features.</div>
-                        <button 
-                          onClick={() => login()}
-                          className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
-                        >
-                          Connect Wallet
-                        </button>
-                      </div> :
-
-                      params.userId === 'template' || pathname === '/' ? 
-                      <div className="text-zinc-500 mt-2 mb-2 w-full">
-                        <div>Template agents do no have access to wallets.</div>
-                        <Link href={`/agents/create`}>
-                          <button className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base">
-                            Create Your Agent
+                        <div className="w-full">
+                          <div className="text-sm text-zinc-500 mt-2 mb-4">Connect your wallet to access wallet features.</div>
+                          <button 
+                            onClick={() => login()}
+                            className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
+                          >
+                            Connect Wallet
                           </button>
-                        </Link>
-                        </div> 
+                        </div> :
+                        params.userId === 'template' || pathname === '/' ? 
+                          <div className="text-zinc-500 mt-2 mb-2 w-full">
+                            <div>Template agents do no have access to wallets.</div>
+                            <Link href={`/agents/create`}>
+                              <button className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base">
+                                Create Your Agent
+                              </button>
+                            </Link>
+                          </div> 
                         : <div className="w-full">
-                          <div className="text-sm text-zinc-500 mt-2 mb-4">No agent wallet found. </div>
-                          <button disabled={createWalletLoading} onClick={handleCreateWallet} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">
-                            {createWalletLoading ? 'Creating...' : 'Create Agent Wallet'}
-                          </button>                          
-                        </div>
-                      }
-                    </div>
-                    {agent.wallets?.solana && (
-                      <CopyButton text={agent.wallets.solana} />
-                    )}
+                            <div className="text-sm text-zinc-500 mt-2 mb-4">No agent wallet found. </div>
+                            <button disabled={createWalletLoading} onClick={handleCreateWallet} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">
+                              {createWalletLoading ? 'Creating...' : 'Create Agent Wallet'}
+                            </button>                          
+                          </div>
+                    }
                   </div>
+                  {agent.wallets?.solana && (
+                    <CopyButton text={agent.wallets.solana} />
+                  )}
+                </div>
+                
                 {/* Portfolio Value */}
                 {(agent.wallets?.solana && totalValue) ? <div className="pt-2 border-t border-zinc-700">
-                    <div className="text-sm text-zinc-400">Total Value</div>
-                    <div className="text-xl font-semibold text-white">
-                      {totalValue ? '$' + totalValue.toFixed(2) : <div className="ml-5"><LoadingIndicator /></div>}
-                    </div>
+                  <div className="text-sm text-zinc-400">Total Value</div>
+                  <div className="text-xl font-semibold text-white">
+                    {totalValue ? '$' + totalValue.toFixed(2) : <div className="ml-5"><LoadingIndicator /></div>}
+                  </div>
                 </div> : null}
                 
-                
-
-                {agent.wallets &&  (
+                {agent.wallets && (
                   <div className="flex gap-2 mt-2">
-                  <ReceiveButton 
+                    <ReceiveButton 
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
                       agent={agent}
@@ -762,7 +748,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       } : undefined}
                     />
 
-                  <TransferButton 
+                    <TransferButton 
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
                       agent={agent}
@@ -774,7 +760,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       } : undefined}
                     />
 
-                  <SwapButton 
+                    <SwapButton 
                       tokens={tokens.data}
                       publicKey={agent.wallets?.solana}
                       onSwapComplete={refreshWalletData}
@@ -785,19 +771,16 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       } : undefined}
                       agent={agent}
                     /> 
-                    </div>
-                    )}
+                  </div>
+                )}
                   
-                  {agent.wallets && <button onClick={handleShowFundingModal} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
-                    Add Funds
-                    </button>
-                  }
+                {agent.wallets && <button onClick={handleShowFundingModal} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
+                  Add Funds
+                </button>}
+              </div>
 
-                </div>
-
-                {/* Token List */}
-                <div className="space-y-2">
-
+              {/* Token List */}
+              <div className="space-y-2">
                 {initialLoading && agent.wallets?.solana && params.userId !== 'template' ? <div className="space-y-2">
                   <LoadingCard/>
                   <LoadingCard/>
@@ -805,87 +788,83 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 </div> : null}
 
                 {agent.wallets?.solana && portfolio && <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Image src={portfolio.holdings[0].logoURI} alt='SOL' width={40} height={40} className="rounded-full object-contain"/>
-                            <div className="flex flex-col justify-start gap-1">
-                              <div className="text-white">Solana</div>
-                              <div className="flex items-center gap-1 text-sm text-zinc-400">
-                                <div className="text-sm">{portfolio.holdings[0].amount }</div>
-                                <div className="text-sm">SOL</div>
-                              </div> 
-                            </div>
-                          </div>
-                          
-                          <div className="text-sm text-zinc-400">${portfolio.holdings[0].usdValue.toFixed(2)}</div>
-                        </div>
-                      </div>}
-
-                  {agent.wallets?.solana ? (
-                    tokens.data.map((token: Token) => (
-                      <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Image src={token.token_icon} alt={token.token_name} width={40} height={40} className="rounded-full"/>
-                            <div className="flex flex-col justify-start gap-1">
-                              <div className="text-white">{token.token_name}</div>
-                              <div className="flex items-center gap-1 text-sm text-zinc-400">
-                                <div className="text-sm">{token.formatted_amount}</div>
-                                <div className="text-sm">{token.token_symbol}</div>
-                              </div> 
-                            </div>
-                          </div>
-                          
-                          <div className="text-sm text-zinc-400">{token.usd_value && token.usd_value > 0.009 ? '$'+token.usd_value.toFixed(2) : '-'}</div>
-                        </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image src={portfolio.holdings[0].logoURI} alt='SOL' width={40} height={40} className="rounded-full object-contain"/>
+                      <div className="flex flex-col justify-start gap-1">
+                        <div className="text-white">Solana</div>
+                        <div className="flex items-center gap-1 text-sm text-zinc-400">
+                          <div className="text-sm">{portfolio.holdings[0].amount}</div>
+                          <div className="text-sm">SOL</div>
+                        </div> 
                       </div>
-                    ))
-                  ) : null}
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 space-y-2">
-                {filteredTools.map((tool) => (
-                  <ToolCard
-                    key={tool.name}
-                    tool={tool}
-                    isSubscribed={isSubscribed}
-                    isDisabled={isToolClickDisabled}
-                    onClick={() => handleToolClick(tool)}
-                  />
-                ))}
+                    </div>
+                    <div className="text-sm text-zinc-400">${portfolio.holdings[0].usdValue.toFixed(2)}</div>
+                  </div>
+                </div>}
 
-                {/* FRED Tools Section */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 my-4">
-                    <LineChart className="w-5 h-5 text-indigo-500" />
-                    <h3 className="text-lg font-semibold text-white">FRED Economic Data</h3>
-                  </div>
-                  <div className="space-y-2">
-                    {fredTools.map((tool) => (
-                      <ToolCard
-                        key={tool.command}
-                        tool={tool}
-                        isSubscribed={isSubscribed}
-                        isDisabled={false}
-                        onClick={() => handleToolClick(tool)}
-                      />
-                    ))}
-                  </div>
+                {agent.wallets?.solana ? (
+                  tokens.data.map((token: Token) => (
+                    <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Image src={token.token_icon} alt={token.token_name} width={40} height={40} className="rounded-full"/>
+                          <div className="flex flex-col justify-start gap-1">
+                            <div className="text-white">{token.token_name}</div>
+                            <div className="flex items-center gap-1 text-sm text-zinc-400">
+                              <div className="text-sm">{token.formatted_amount}</div>
+                              <div className="text-sm">{token.token_symbol}</div>
+                            </div> 
+                          </div>
+                        </div>
+                        <div className="text-sm text-zinc-400">{token.usd_value && token.usd_value > 0.009 ? '$'+token.usd_value.toFixed(2) : '-'}</div>
+                      </div>
+                    </div>
+                  ))
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 space-y-2">
+              {filteredTools.map((tool) => (
+                <ToolCard
+                  key={tool.name}
+                  tool={tool}
+                  isSubscribed={isSubscribed}
+                  isDisabled={isToolClickDisabled}
+                  onClick={() => handleToolClick(tool)}
+                />
+              ))}
+
+              {/* FRED Tools Section */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 my-4">
+                  <LineChart className="w-5 h-5 text-indigo-500" />
+                  <h3 className="text-lg font-semibold text-white">FRED Economic Data</h3>
+                </div>
+                <div className="space-y-2">
+                  {fredTools.map((tool) => (
+                    <ToolCard
+                      key={tool.command}
+                      tool={tool}
+                      isSubscribed={isSubscribed}
+                      isDisabled={false}
+                      onClick={() => handleToolClick(tool)}
+                    />
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-<FundingModal
-    isOpen={showFundingModal}
-    onClose={() => setShowFundingModal(false)}
-    onConfirm={handleFundingConfirm}
-    defaultAmount={0.1}
-  />
-
+      <FundingModal
+        isOpen={showFundingModal}
+        onClose={() => setShowFundingModal(false)}
+        onConfirm={handleFundingConfirm}
+        defaultAmount={0.1}
+      />
     </div>
   );
 };

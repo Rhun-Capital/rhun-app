@@ -50,6 +50,8 @@ import FredAnalysis from '@/components/tools/fred-analysis';
 import { FredSearch } from '@/components/tools/fred-search';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import { getToolCommand } from '@/app/config/tool-commands';
+import { XIcon, MenuIcon } from "lucide-react";
+import { Suspense } from "react";
 
 const getTextFromDataUrl = (dataUrl: string) => {
   try {
@@ -219,6 +221,147 @@ export default function Home() {
   const searchParams = useSearchParams(); 
   const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
 
+  return (
+    <Suspense fallback={
+      <div style={{ width:"100%", position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#18181B' }}>
+        <div className="text-center">
+          <LoadingIndicator/>
+          <p className="mt-4 text-zinc-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+      <style jsx global>{`
+        /* Basic overflow control for all tables and tools */
+        .tool-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          max-width: 100%;
+          display: block;
+          margin-bottom: 12px;
+        }
+        
+        /* Force tables to not exceed their containers */
+        table {
+          width: 100% !important;
+          table-layout: auto;
+          border-collapse: collapse;
+        }
+        
+        /* Ensure text content is properly contained */
+        .message-content {
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          word-break: break-word;
+          max-width: 100%;
+          padding-right: 16px;
+        }
+        
+        /* Common components overrides */
+        .chart-container, 
+        .market-data, 
+        .token-info, 
+        .holders-list, 
+        .transaction-display {
+          max-width: 100%;
+          overflow-x: auto;
+        }
+        
+        pre {
+          white-space: pre-wrap;
+          word-break: break-word;
+          max-width: 100%;
+        }
+        
+        /* Mobile-specific fixes */
+        @media (max-width: 768px) {
+          table {
+            font-size: 0.9rem;
+          }
+          
+          .tool-wrapper {
+            -webkit-overflow-scrolling: touch;
+          }
+          
+          td, th {
+            padding: 8px 6px;
+          }
+        }
+
+        /* Force mobile containment - aggressive approach */
+        @media (max-width: 768px) {
+          .chat-scrollable {
+            overflow-x: hidden !important;
+          }
+          
+          .tool-wrapper {
+            max-width: 90vw !important;
+            overflow-x: scroll !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block;
+          }
+          
+          table {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            font-size: 0.85rem !important;
+          }
+          
+          td, th {
+            padding: 4px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            max-width: 60px !important;
+          }
+          
+          pre, code {
+            max-width: 90vw !important;
+            overflow-x: scroll !important;
+            white-space: pre-wrap !important;
+          }
+          
+          .message-content {
+            max-width: 90vw !important;
+            overflow-wrap: break-word !important;
+            padding-right: 0 !important;
+          }
+          
+          div[class*="market"], 
+          div[class*="token"], 
+          div[class*="chart"],
+          div[class*="holder"],
+          div[class*="transaction"] {
+            max-width: 90vw !important;
+            overflow-x: scroll !important;
+          }
+        }
+        
+        /* Desktop remains untouched */
+        @media (min-width: 769px) {
+          .tool-wrapper {
+            width: auto;
+            overflow: visible;
+          }
+          
+          table {
+            width: auto;
+            table-layout: auto;
+          }
+        }
+      `}</style>
+    </Suspense>
+  );
+}
+
+function HomeContent() {
+  const params = useParams();
+  const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;  
+  const searchParams = useSearchParams(); 
+  const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
+
   const { user, getAccessToken, ready } = usePrivy();
   const { refreshRecentChats } = useRecentChats();
   const [agent, setAgent] = useState<any>();
@@ -233,6 +376,8 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHeadersReady, setIsHeadersReady] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } =
     useChat({
@@ -738,14 +883,140 @@ export default function Home() {
     }
   };
 
+  // Add scroll event listener to show/hide scroll button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      
+      setShowScrollButton(isScrolledUp);
+    };
+    
+    const container = chatContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading && chatContainerRef.current) {
+      scrollToBottom();
+    }
+  }, [messages, isLoading]);
+
+  // Auto-focus the input after the page loads
+  useEffect(() => {
+    if (inputRef.current && window.innerWidth > 768) {
+      inputRef.current.focus();
+    }
+  }, []);
+  
+  // Handle keyboard showing/hiding on mobile
+  useEffect(() => {
+    // iOS workaround to fix the viewport height when the keyboard appears
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    setVh();
+    window.addEventListener('resize', setVh);
+    
+    // Focus handler for iOS to prevent viewport shifting
+    const handleFocus = () => {
+      if (window.innerWidth < 768) {
+        // On iOS, when keyboard appears, adjust scrollable area
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          // Add small delay to let keyboard appear first
+          setTimeout(() => {
+            // Adjust scroll container height to account for keyboard
+            const chatContainer = chatContainerRef.current;
+            if (chatContainer) {
+              chatContainer.style.height = 'calc(100% - 60px)';
+              scrollToBottom();
+            }
+          }, 300);
+        } else {
+          // For non-iOS devices, just scroll to bottom
+          setTimeout(scrollToBottom, 300);
+        }
+      }
+    };
+    
+    // When blur, reset heights
+    const handleBlur = () => {
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        const chatContainer = chatContainerRef.current;
+        if (chatContainer) {
+          // Reset height after keyboard disappears
+          setTimeout(() => {
+            chatContainer.style.height = '100%';
+          }, 100);
+        }
+      }
+    };
+    
+    if (inputRef.current) {
+      inputRef.current.addEventListener('focus', handleFocus);
+      inputRef.current.addEventListener('blur', handleBlur);
+    }
+
+    return () => {
+      window.removeEventListener('resize', setVh);
+      if (inputRef.current) {
+        inputRef.current.removeEventListener('focus', handleFocus);
+        inputRef.current.removeEventListener('blur', handleBlur);
+      }
+    };
+  }, []);
+
+  // Add a custom CSS class for desktop layout
+  useEffect(() => {
+    // Add a custom style element for the desktop layout
+    const style = document.createElement('style');
+    style.textContent = `
+      @media (min-width: 768px) {
+        .desktop-content-width {
+          width: ${sidebarOpen ? 'calc(100% - 400px)' : '100%'} !important;
+          transition: width 0.3s ease;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, [sidebarOpen]);
+
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   if (!isHeadersReady) {
-    return <LoadingIndicator />;
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',  width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        <LoadingIndicator />
+      </div>
+    );
   }  
 
   if (!agent) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <div className="text-2xl font-semibold"><LoadingIndicator/></div>
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',  width: '100vw', height: '100vh', overflow: 'hidden' }}>
+        <div className="text-center">
+          <LoadingIndicator/>
+          <p className="mt-4 text-zinc-400">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -841,14 +1112,11 @@ export default function Home() {
   };
 
   return (
-    <div>
-    <div className="flex flex-col h-screen bg-zinc-900">
-  
-      <div className="flex flex-1 pt-16 lg:pt-0">
-
-      <div className="fixed top-0 left-0 right-0 h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 z-10">
-        <div className="flex items-center gap-2 relative lg:left-[250px] md:left-[25px] sm:left-[25px]">
-          <div className="lg:ml-0 ml-[55px]">  {/* Add responsive margin here */}
+    <div className="fixed inset-0 bg-zinc-900 flex flex-col overflow-hidden ios-fix">
+      {/* Chat header - fixed height */}
+      <div className="flex-none h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 justify-between z-10">
+        <div className="flex items-center gap-2 pl-[50px] md:pl-[250px]">
+          <div>
             {agent.imageUrl ? (
               <img 
                 src={agent.imageUrl} 
@@ -862,20 +1130,57 @@ export default function Home() {
             )}
           </div>
           <Link className="text-indigo-500 text-indigo-400" href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>          
-              <h1 className="text-lg font-medium text-white">{agent.name}</h1>
+            <h1 className="text-lg font-medium text-white">{agent.name}</h1>
           </Link>
         </div>
-      </div>        
-  
-        {/* Main chat area */}
-        <div className="flex-1 flex flex-col max-w-full break-words overflow-hidden">
+        
+        <div className="flex items-center gap-2">
+          {/* Mobile menu button */}
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="md:hidden p-2 rounded-md bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+            aria-label="Toggle tools sidebar"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-3z"/>
+            </svg>
+          </button>
+          
+          {/* Desktop toggle sidebar button - hidden on mobile */}
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="hidden md:block p-2 rounded-md bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            {sidebarOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Main content area - flexible layout */}
+      <div className="flex flex-1 overflow-hidden w-full">
+        {/* Chat content */}
+        <div className="flex-1 flex flex-col relative desktop-content-width">
+          {/* Scrollable area */}
           <div 
-            className={`flex-1 overflow-y-auto ${messages.length === 0 ? 'pt-0 sm:32' : 'pt-0 sm:pt-20'} pb-32`}
+            ref={chatContainerRef}
+            className="flex-1 overflow-y-auto hide-scrollbar chat-scrollable"
+            style={{ 
+              paddingBottom: '72px', 
+              overflowX: 'hidden'
+            }}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            {/* Drag overlay */}
             <AnimatePresence>
               {isDragging && (
                 <motion.div
@@ -891,20 +1196,18 @@ export default function Home() {
                 </motion.div>
               )}
             </AnimatePresence>
-  
-            {/* Messages */}
-            <div className="max-w-2xl sm:max-w-4xl mx-auto">
+              
+            <div className="max-w-3xl mx-auto w-full pt-4 pl-4 pr-4 md:pl-8 md:pr-8">
               {messages.length > 0 ? (
                 messages.map((message, index) => (
                   <motion.div
                     key={message.id}
-                    className={`flex gap-3 py-4 max-w-[95%]`}
+                    className={`flex gap-3 py-4`}
                     initial={{ y: 5, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                   >
-                    
                     <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
-                    {message.role === "assistant" ? (
+                      {message.role === "assistant" ? (
                         agent.imageUrl ? (
                           <img 
                             src={agent.imageUrl} 
@@ -918,109 +1221,112 @@ export default function Home() {
                         <UserIcon />
                       )}
                     </div>
-  
+
                     <div className="flex-1 space-y-2 max-w-[100%] text-white" ref={topRef}>
                       
                       {/* Tool Invocations */}
                       {message.toolInvocations?.map((tool) => {
+                        const wrappedTool = (component: React.ReactNode) => (
+                          <div className="tool-wrapper">
+                            {component}
+                          </div>
+                        );
 
                         switch(tool.toolName) {
                           case 'getUserSolanaBalance':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getAgentSolanaBalance':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getUserPortfolioValue':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getAgentPortfolioValue':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getUserTokenHoldings':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getFearAndGreedIndex':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><FearAndGreedIndex key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<FearAndGreedIndex key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getSolanaTransactionVolume':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><SolanaTransactionVolume key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<SolanaTransactionVolume key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getAgentTokenHoldings':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getMarketMovers':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getRecentlyLaunchedCoins':
-                            return <RecentCoinsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                            return wrappedTool(<RecentCoinsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getTokenInfo':
-                            return  <div className="max-w-[100%] sm:max-w-[75%]"><TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'searchTokens':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getContractAddress':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getTotalCryptoMarketCap':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getMarketCategories':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><MarketCategories key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<MarketCategories key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getDerivativesExchanges':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getTopHolders':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getAccountDetails':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/></div>
+                            return wrappedTool(<AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getTrendingTokens':
                             // Check the chain parameter from the tool result
                             return tool.args.chain === 'solana' 
-                              ? <TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>
-                              : <TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>;
+                              ? wrappedTool(<TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>)
+                              : wrappedTool(<TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getTopNfts':
-                            return <TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
+                            return wrappedTool(<TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
 
                           case 'swap':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
+                            return wrappedTool(<ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
                           case 'getRecentDexScreenerTokens':
-                            return <div className="max-w-[100%] sm:max-w-[75%]"><RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} /></div>;
+                            return wrappedTool(<RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
                           case 'getCryptoNews':
-                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                            return wrappedTool(
                               <RecentNews 
                                 key={tool.toolCallId} 
                                 toolCallId={tool.toolCallId} 
                                 toolInvocation={tool} 
                               />
-                            </div>;      
+                            );      
                           case 'stockAnalysis':
-                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                            return wrappedTool(
                               <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            </div>;
+                            );
                           
                           case 'optionsAnalysis':
-                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                            return wrappedTool(
                               <OptionsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            </div>;
+                            );
                           
                           case 'newsAnalysis':
-                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                            return wrappedTool(
                               <NewsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            </div>;     
-                            
+                            );     
+                              
                           case 'webResearch':
-                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                            return wrappedTool(
                               <WebResearch key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            </div>;
+                            );
                           case 'getTradingViewChart':
-                            return <TradingViewChart key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />;
+                            return wrappedTool(<TradingViewChart key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
                           case 'getTechnicalAnalysis':
-                            return "result" in tool ? (
-                              <div className="p-4">
-                                <TechnicalAnalysis data={tool.result} />
-                              </div>
+                            return "result" in tool ? wrappedTool(
+                              <TechnicalAnalysis data={tool.result} />
                             ) : null;
                           case 'getFredSeries':
-                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                            return wrappedTool(
                               <FredAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            </div>;
+                            );
                           case 'fredSearch':
-                            return <div className="max-w-[100%] sm:max-w-[75%]">
+                            return wrappedTool(
                               <FredSearch 
                                 key={tool.toolCallId} 
                                 toolCallId={tool.toolCallId} 
                                 toolInvocation={tool}
                                 onShowChart={(seriesId) => handleToolSelect(`Show me the FRED series ${seriesId}`)}
                               />
-                            </div>;
+                            );
                           default:
                             return null;                            
                         }
@@ -1040,7 +1346,7 @@ export default function Home() {
                         </div>
                       )}
                       
-                      <div className="max-w-[90%] sm:max-w-[75%]">
+                      <div className="message-content">
                         <Markdown>{message.content}</Markdown>
                       </div>
 
@@ -1048,37 +1354,37 @@ export default function Home() {
                   </motion.div>
                 ))
               ) : !searchParams.get('tool') && (
-            
-                <div className={`flex items-center ${ sidebarOpen ? '' : 'justify-center'}`}>
-                <motion.div className="h-[350px] px-4 w-full md:w-[500px] md:px-0 pt-0 sm:pt-40 ">
-                  <EmptyState 
-                    agent={agent}
-                    userId={decodeURIComponent(params.userId as string)}
-                    agentId={agentId}
-                    onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
-                  />
-                  </motion.div>
-
+                <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                  <div className="w-full max-w-md">
+                    <EmptyState 
+                      agent={agent}
+                      userId={decodeURIComponent(params.userId as string)}
+                      agentId={agentId}
+                      onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
+                    />
+                  </div>
                 </div>
-
-                
-              )}                       
-  
+              )}
+              
               {/* Loading state */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex gap-3 py-4 w-full bg-zinc-900 text-zinc-500 text-sm">
+                <div className="flex items-center gap-3 py-4 bg-zinc-900 text-zinc-500 text-sm">
                   <LoadingIndicator /> <span className="animate-pulse">Thinking...</span>
                 </div>
               )}
             </div>
           </div>
-  
-          {/* Input area */}
-          <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4">
+
+          {/* Input area - fixed at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 z-30 pb-safe"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)"
+            }}
+          >
             {/* File previews */}
             <AnimatePresence>
               {files && (
-                <div className="flex gap-2 mb-2 overflow-x-auto pb-2 sm:relative sm:left-[250px] sm:ml-0">
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
                   {Array.from(files).map((file) =>
                     file.type.startsWith("image") ? (
                       <motion.img
@@ -1105,13 +1411,12 @@ export default function Home() {
                 </div>
               )}
             </AnimatePresence>
-  
+
             {/* Input form */}
             <form onSubmit={(event) => {
-            const options = files ? { experimental_attachments: files } : {};
+              const options = files ? { experimental_attachments: files } : {};
               handleFormSubmit(event, options);
-              setFiles(null);
-            }} className="max-w-2xl mx-auto flex gap-2 relative">
+            }} className="max-w-3xl mx-auto flex gap-2 relative">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -1132,12 +1437,13 @@ export default function Home() {
                 
                 <textarea
                   ref={inputRef}
-                  className="flex-1 bg-transparent py-2 px-2 text-white outline-none resize-none overflow-y-auto pb-2"
+                  className="flex-1 bg-transparent py-2 px-2 text-white outline-none resize-none overflow-y-auto"
                   placeholder="Send a message..."
                   value={input}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                  }}
                   onKeyDown={(event) => {
-                    // Handle Shift+Enter to create a new line
                     if (event.key === 'Enter' && !event.shiftKey) {
                       event.preventDefault();
                       if (input.trim()) {
@@ -1147,37 +1453,108 @@ export default function Home() {
                     }
                   }}
                   onPaste={handlePaste}
-                  rows={1} // Start with one row
-                  style={{ minHeight: '40px', maxHeight: '150px' }} // Set min and max height
+                  rows={1}
+                  style={{ minHeight: '40px', maxHeight: '150px' }}
                 />
                 <button type="submit" className="p-2 text-zinc-400 hover:text-white">
-                  Submit
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
+                  </svg>
                 </button>
               </div>
-  
-
             </form>
-
-
           </div>
-
-
         </div>
 
-      </div>
-  
-    
-    </div>
-          {/* Sidebar container */}
+        {/* Desktop sidebar with absolute positioning */}
+        <div 
+          className={`hidden md:block fixed top-[61px] right-0 bottom-0 border-l border-zinc-700 bg-zinc-900 overflow-y-auto z-10 transition-transform duration-300 w-[400px] ${
+            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+          style={{ 
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))',
+            height: 'auto',
+            maxHeight: 'calc(100vh - 61px)'
+          }}
+        >
           <ChatSidebar 
             agent={agent}
-            isOpen={sidebarOpen}
+            isOpen={true}
             onToggle={() => setSidebarOpen(!sidebarOpen)}
             onToolSelect={handleToolSelect}
             refreshAgent={refreshAgent}
-          />      
+          />
+        </div>
+      </div>
+
+      {/* Scroll to bottom button */}
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.button
+            className="fixed bottom-[84px] right-4 bg-indigo-500 text-white p-2 rounded-full shadow-lg z-30"
+            onClick={scrollToBottom}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 15a.5.5 0 0 1-.5-.5V2.707L1.854 8.354a.5.5 0 1 1-.708-.708l6-6a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8.5 2.707V14.5a.5.5 0 0 1-.5.5z" transform="rotate(180, 8, 8)"/>
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile sidebar - slides up from bottom */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div 
+            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50"
+            onClick={() => setSidebarOpen(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-xl overflow-hidden"
+              style={{ maxHeight: 'calc(100vh - 64px)' }}
+              onClick={e => e.stopPropagation()}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              drag="y"
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) {
+                  setSidebarOpen(false);
+                }
+              }}
+            >
+              {/* Drag handle */}
+              <div 
+                className="w-full h-6 flex justify-center items-center cursor-grab active:cursor-grabbing"
+                onTouchStart={e => e.stopPropagation()}
+              >
+                <div className="w-12 h-1 bg-zinc-600 rounded-full"></div>
+              </div>
+              <div className="overflow-hidden" style={{ height: 'calc(100vh - 88px)' }}>
+                <ChatSidebar 
+                  agent={agent}
+                  isOpen={true}
+                  onToggle={() => setSidebarOpen(false)}
+                  onToolSelect={handleToolSelect}
+                  refreshAgent={refreshAgent}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-
-
 }
+
+export const runtime = 'edge';
+export const dynamicParams = true;

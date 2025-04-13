@@ -2,8 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
 :root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
   color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Fix for grid layout in Safari */
+@supports (-webkit-touch-callout: none) {
+  .safari-fix-grid {
+    display: flex;
+    flex-direction: row;
+  }
+  
+  .safari-column-1 {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .safari-column-2 {
+    flex: 0 0 auto;
+    width: 400px;
+    transform: translateX(0);
+    transition: transform 0.3s ease, width 0.3s ease;
+  }
+  
+  .safari-column-2.closed {
+    width: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS only selector */
+  .ios-fix {
+    /* Prevent keyboard from pushing content */
+    height: -webkit-fill-available;
+  }
+  
+  /* Fix sticky position on iOS */
+  html, body {
+    position: fixed;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
+  
+  /* Prevent inner scroll from causing body scroll */
+  .chat-scrollable {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Fix for iOS fixed position elements */
+  .ios-fixed {
+    position: fixed;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* Fix input area */
+  .input-area-ios {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+/* Add extra space for iOS devices with home indicator */
+@media screen and (max-width: 767px) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+}
+
+/* Fix for textarea height */
+textarea {
+  box-sizing: border-box;
+  resize: none;
+}
+
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @font-face {
@@ -33,4 +143,14 @@ li::marker {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Add CSS for variable height on mobile browsers */
+.h-screen-dynamic {
+  height: 100vh; /* Fallback */
+  height: calc(var(--vh, 1vh) * 100); /* Dynamic height */
+}
+
+.mobile-content {
+  height: calc(var(--vh, 1vh) * 100 - 72px); /* Full height minus header */
 }

@@ -497,8 +497,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   };  
   
   return (
-    <div className="min-h-screen dark:bg-zinc-900 text-gray-100 p-4 sm:p-6" ref={topRef}>
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen dark:bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-x-hidden w-full" ref={topRef}>
+      <div className="max-w-4xl mx-auto w-full pb-16 sm:pb-24">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">
             {initialData ? formData.name || "Edit Agent" : "Create Agent"}
@@ -533,22 +533,24 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
                  
   
         {/* Tabs */}
-        <div className="mb-6 overflow-x-auto">
-          <nav className="flex min-w-max space-x-4 sm:space-x-8 pb-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`pb-3 px-1 text-sm sm:text-base whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "border-b-2 border-indigo-500 text-white"
-                    : "text-zinc-400 hover:text-zinc-300"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+        <div className="mb-6 -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="overflow-x-auto pb-1">
+            <nav className="flex flex-wrap gap-4 sm:gap-6">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`pb-1 text-sm whitespace-nowrap ${
+                    activeTab === tab.id
+                      ? "border-b-2 border-indigo-500 text-white font-medium"
+                      : "text-zinc-400 hover:text-zinc-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
   
         {/* Form Content */}
@@ -591,12 +593,12 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       id="name"
       name="name"
       type="text"
-      placeholder='e.g., "Crypto Analyst"'
+      placeholder="Crypto Analyst"
       required
       disabled={params.userId === 'template'}
       value={formData.name}
       onChange={handleChange}
-      className="w-full px-3 py-3 sm:px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700  text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+      className="w-full px-3 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm overflow-hidden text-ellipsis"
     />
   </div>
 
@@ -607,13 +609,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     <textarea
       id="description"
       name="description"
-      placeholder='e.g., "A crypto analyst providing insights on market trends"'
+      placeholder="A crypto analyst providing insights on market trends"
       required
       disabled={params.userId === 'template'}
       value={formData.description}
       onChange={handleChange}
       rows={4}
-      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700  text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+      className="w-full px-3 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm overflow-x-hidden break-words"
     />
   </div>
 
@@ -631,31 +633,31 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               id={field.name}
               name={field.name}
               disabled={params.userId === 'template'}
-              placeholder={field.placeholder}
+              placeholder={field.placeholder.split('\n').join(' ').substring(0, 100) + '...'}
               value={formData[field.name]}
               onChange={handleChange}
-              rows={field.rows || 10}
-              className="w-full px-3 sm:px-4 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700  text-zinc-300 placeholder-zinc-400 text-sm sm:text-base"
+              rows={field.rows || 8}
+              className="w-full px-3 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm break-words overflow-x-hidden"
             />
           </div>
         ))}
           </div>
         </Accordion>
 
-        {params.userId !== 'template' && <div className="flex justify-end pt-4 gap-4">
+        {params.userId !== 'template' && <div className="flex flex-col sm:flex-row sm:justify-end pt-4 gap-3 mb-12">
           {initialData && <button
             onClick={(e) => {
               e.preventDefault();
               setIsDeleteModalOpen(true)
             }}
-            className="w-full sm:w-auto h-10 px-6 py-2 outline outline-red-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="w-full sm:w-auto h-10 px-4 py-2 outline outline-red-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             Delete Agent
           </button>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full sm:w-auto h-10 px-6 py-2 outline outline-indigo-500 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="w-full sm:w-auto h-10 px-4 py-2 outline outline-indigo-500 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {loading
               ? initialData
