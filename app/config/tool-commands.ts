@@ -4,7 +4,7 @@ export const toolCommands: { [key: string]: string } = {
   'swap-tokens': "I want to swap tokens",
   'search-tokens': 'Search for tokens',
   'stock-analysis': 'Analyze stock data',
-  'news-analysis': 'Show me the latest news',
+  'news-analysis': 'Show me the latest crypto news',
   'web-research': 'Start research',
   'tradingview-chart': 'Show me a TradingView chart',
   'portfolio-value': 'Show me my portfolio value',
