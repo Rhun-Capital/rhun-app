@@ -691,29 +691,112 @@ export async function POST(req: Request) {
           .describe("Maximum number of articles to return")
           .default(10),
       }),
-      execute: async ({ query, maxResults }) => {
-        
-        // Retrieve news articles
-        let newsArticles = await retrieveCryptoNews(
-          query, // Semantic query
-          {},    // No filters
-          maxResults || 10
-        );
-        
-        // Format the results for display
-        return newsArticles.map(article => ({
-          id: article.id,
-          title: article.title,
-          summary: article.body.length > 150 ? `${article.body.substring(0, 150)}...` : article.body,
-          full_text: article.body,
-          url: article.url,
-          published_date: article.published_date,
-          source: article.source_name || "Unknown",
-          sentiment: article.sentiment || "NEUTRAL",
-          categories: article.categories || [],
-          image_url: article.image_url,
-          score: article.score
-        }));
+      execute: async ({ query, maxResults = 10 }) => {
+        try {
+          // CoinDesk News API endpoint - correct endpoint as per documentation
+          const apiUrl = 'https://data-api.coindesk.com/news/v1/search';
+          
+          // Build the request parameters - according to the API documentation
+          const params = new URLSearchParams({
+            search_string: query,
+            limit: maxResults.toString(),
+            source_key: 'coindesk',
+            lang: 'EN'
+          });
+          
+          // Make the API request
+          const newsResponse = await fetch(`${apiUrl}?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!newsResponse.ok) {
+            throw new Error(`CoinDesk API error: ${newsResponse.status} ${newsResponse.statusText}`);
+          }
+          
+          const newsData = await newsResponse.json();
+          
+          // Check if we have results in the expected format
+          if (!newsData || !newsData.Data || !Array.isArray(newsData.Data)) {
+            console.log('No valid data array in CoinDesk response');
+            return [];
+          }
+          
+          // Format the results for display - mapping according to the API response structure
+          return newsData.Data.map((article: any) => {
+            // Extract categories safely with multiple fallback options
+            let categories: string[] = [];
+            
+            try {
+              if (Array.isArray(article.CATEGORY_DATA)) {
+                // First attempt: regular mapping of objects with name property
+                categories = article.CATEGORY_DATA
+                  .filter((cat: any) => cat && typeof cat === 'object' && cat.name)
+                  .map((cat: any) => cat.name);
+                
+                // If that didn't work, try other potential properties
+                if (categories.length === 0 && article.CATEGORY_DATA.length > 0) {
+                  // Second attempt: check if categories might be direct strings
+                  if (typeof article.CATEGORY_DATA[0] === 'string') {
+                    categories = article.CATEGORY_DATA.filter(Boolean);
+                  }
+                  
+                  // Third attempt: check for NAME (uppercase variation)
+                  else if (article.CATEGORY_DATA[0] && article.CATEGORY_DATA[0].NAME) {
+                    categories = article.CATEGORY_DATA
+                      .filter((cat: any) => cat && cat.NAME)
+                      .map((cat: any) => cat.NAME);
+                  }
+                  
+                  // Fourth attempt: check for category property
+                  else if (article.CATEGORY_DATA[0] && article.CATEGORY_DATA[0].category) {
+                    categories = article.CATEGORY_DATA
+                      .filter((cat: any) => cat && cat.category)
+                      .map((cat: any) => cat.category);
+                  }
+                }
+              }
+              
+              // Alternative: check KEYWORDS for categories
+              if (categories.length === 0 && article.KEYWORDS) {
+                if (typeof article.KEYWORDS === 'string') {
+                  // Split comma-separated keywords
+                  categories = article.KEYWORDS.split(',')
+                    .map((k: string) => k.trim())
+                    .filter((k: string) => k);
+                } else if (Array.isArray(article.KEYWORDS)) {
+                  categories = article.KEYWORDS.filter(Boolean);
+                }
+              }
+            } catch (err) {
+              console.error('Error processing categories:', err);
+            }
+            
+            return {
+              id: article.ID?.toString() || article.GUID || '',
+              title: article.TITLE || 'Unknown Title',
+              summary: article.BODY ? 
+                (article.BODY.length > 150 ? `${article.BODY.substring(0, 150)}...` : article.BODY) 
+                : article.SUBTITLE || '',
+              full_text: article.BODY || article.SUBTITLE || '',
+              url: article.URL || '',
+              published_date: article.PUBLISHED_ON ? 
+                new Date(article.PUBLISHED_ON * 1000).toISOString() : 
+                new Date().toISOString(),
+              source: article.SOURCE_DATA?.name || 'CoinDesk',
+              sentiment: article.SENTIMENT || "NEUTRAL",
+              categories: categories,
+              image_url: article.IMAGE_URL || '',
+              score: typeof article.SCORE === 'number' ? article.SCORE : 1.0
+            };
+          });
+        } catch (error) {
+          console.error('Error fetching crypto news:', error);
+          // Return empty array in case of errors
+          return [];
+        }
       }
     },
 

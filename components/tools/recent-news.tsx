@@ -63,6 +63,16 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
   
   // Safely get the articles array
   const articles = Array.isArray(toolInvocation.result) ? toolInvocation.result : [];
+  
+  // Debug log the entire result
+  useEffect(() => {
+    console.log('Crypto News Component received data:', toolInvocation.result);
+    if (articles.length > 0) {
+      console.log('First article:', articles[0]);
+      console.log('Categories type:', articles[0].categories && typeof articles[0].categories);
+      console.log('Categories:', articles[0].categories);
+    }
+  }, [toolInvocation.result, articles]);
 
   useEffect(() => {
     if (selectedArticle && topRef.current) {
@@ -109,29 +119,33 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
         </button>
 
         <div className="mb-4">
-          {selectedArticle.image_url && (
+          {selectedArticle.image_url && selectedArticle.image_url.trim() !== '' && (
             <img 
-              src={selectedArticle.image_url || '/api/placeholder/800/400'}
-              alt={selectedArticle.title}
+              src={selectedArticle.image_url}
+              alt={selectedArticle.title || 'News article'}
               className="w-full h-48 object-cover rounded-lg mb-4"
+              onError={(e) => {
+                // Replace broken image with placeholder
+                e.currentTarget.src = '/placeholder-news.png';
+              }}
             />
           )}
           
           <h2 className="text-xl font-bold text-white mb-2">
-            {selectedArticle.title}
+            {selectedArticle.title || 'Untitled article'}
           </h2>
           
           <div className="flex flex-wrap gap-2 mb-3">
-            <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment)}`}>
-              {selectedArticle.sentiment}
+            <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'NEUTRAL')}`}>
+              {selectedArticle.sentiment || 'NEUTRAL'}
             </span>
             
             <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-              {selectedArticle.source}
+              {selectedArticle.source || 'CoinDesk'}
             </span>
             
             <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-              {formatTimeAgo(selectedArticle.published_date)}
+              {selectedArticle.published_date ? formatTimeAgo(selectedArticle.published_date) : 'Recently'}
             </span>
             
             {safeArrayAccess(selectedArticle.categories).map(category => (
@@ -145,7 +159,7 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
         {/* Article content */}
         <div className="bg-zinc-900 p-4 rounded-lg mb-4">
           <p className="text-zinc-300 whitespace-pre-line">
-            {selectedArticle.full_text}
+            {selectedArticle.full_text || selectedArticle.summary || 'No content available.'}
           </p>
         </div>
 
@@ -162,18 +176,28 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
           </div>
 
           {/* Categories */}
-          {safeArrayAccess(selectedArticle.categories).length > 0 && (
-            <div className="bg-zinc-900 p-3 rounded-lg">
-              <div className="text-sm text-zinc-500 mb-2">Categories</div>
-              <div className="flex flex-wrap gap-2">
-                {safeArrayAccess(selectedArticle.categories).map(category => (
-                  <span key={category} className="bg-zinc-700 text-zinc-300 px-2 py-1 text-xs rounded">
-                    {category}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {(() => {
+            // Filter to only include categories with actual text content
+            const validCategories = safeArrayAccess(selectedArticle.categories)
+              .filter(category => category && typeof category === 'string' && category.trim() !== '');
+            
+            // Only display the Categories section if we have valid categories
+            if (validCategories.length > 0) {
+              return (
+                <div className="bg-zinc-900 p-3 rounded-lg">
+                  <div className="text-sm text-zinc-500 mb-2">Categories</div>
+                  <div className="flex flex-wrap gap-2">
+                    {validCategories.map(category => (
+                      <span key={category} className="bg-zinc-700 text-zinc-300 px-2 py-1 text-xs rounded">
+                        {category}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Original link */}
           {selectedArticle.url && (
@@ -212,11 +236,15 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
                 onClick={() => setSelectedArticle(article)}
                 className="bg-zinc-900 p-3 rounded-lg flex items-start hover:bg-zinc-700 cursor-pointer transition-colors"
               >
-                {article.image_url ? (
+                {article.image_url && article.image_url.trim() !== '' ? (
                   <img 
                     src={article.image_url}
-                    alt={article.title}
+                    alt={article.title || 'News article'}
                     className="w-16 h-16 object-cover rounded mr-3 flex-shrink-0"
+                    onError={(e) => {
+                      // Replace broken image with placeholder
+                      e.currentTarget.src = '/placeholder-news.png';
+                    }}
                   />
                 ) : (
                   <div className="w-16 h-16 bg-zinc-700 rounded mr-3 flex items-center justify-center flex-shrink-0">
@@ -232,18 +260,32 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
                     {article.summary}
                   </div>
                   <div className="flex flex-wrap gap-x-2 mt-2 text-xs">
-                    <span className="text-zinc-500">{article.source}</span>
-                    <span className="text-zinc-500">{formatTimeAgo(article.published_date)}</span>
+                    <span className="text-zinc-500">{article.source || 'CoinDesk'}</span>
+                    <span className="text-zinc-500">{article.published_date ? formatTimeAgo(article.published_date) : 'Recently'}</span>
                     
-                    <span className={`px-1.5 py-0.5 rounded-sm ${getSentimentColor(article.sentiment)}`}>
-                      {article.sentiment}
+                    <span className={`px-1.5 py-0.5 rounded-sm ${getSentimentColor(article.sentiment || 'NEUTRAL')}`}>
+                      {article.sentiment || 'NEUTRAL'}
                     </span>
                     
-                    {article.categories && article.categories.length > 0 && (
-                      <span className="bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded-sm">
-                        {article.categories[0]}
-                      </span>
-                    )}
+                    {(() => {
+                      // Add debug logging for categories
+                      console.log(`Categories for article ${article.id}:`, article.categories);
+                      
+                      const validCategories = safeArrayAccess(article.categories)
+                        .filter(cat => cat && typeof cat === 'string' && cat.trim() !== '');
+                      
+                      // Only return the span if we have valid categories with actual text content
+                      if (validCategories.length > 0 && validCategories[0].trim() !== '') {
+                        return (
+                          <span className="bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded-sm">
+                            {validCategories[0]}
+                          </span>
+                        );
+                      }
+                      
+                      // Return null to render nothing when no valid categories
+                      return null;
+                    })()}
                   </div>
                 </div>
                 
