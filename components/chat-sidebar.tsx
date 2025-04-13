@@ -15,26 +15,9 @@ import FundingModal from './funding-amount-modal';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { getToolCommand } from '@/app/config/tool-commands';
 import {useLogin} from '@privy-io/react-auth';
+import { createPortal } from 'react-dom';
 
-
-interface Tool {
-  name: string;
-  description: string;
-  command: string;
-  isPro?: boolean;
-  isNew?: boolean;
-}
-
-
-interface SidebarProps {
-  agent: any;
-  isOpen: boolean;
-  onToggle: () => void;
-  onToolSelect: (command: string) => void;
-  refreshAgent: () => void;
-}
-
-
+// Import the modal components but use a global approach
 const TransferModal = dynamic(() => import('./send-button'), {
   ssr: false,
 });
@@ -47,6 +30,25 @@ const SwapModal = dynamic(() => import('./swap-button'), {
   ssr: false,
 });
 
+interface Tool {
+  name: string;
+  description: string;
+  command: string;
+  isPro?: boolean;
+  isNew?: boolean;
+}
+
+interface SidebarProps {
+  agent: any;
+  isOpen: boolean;
+  onToggle: () => void;
+  onToolSelect: (command: string) => void;
+  refreshAgent: () => void;
+}
+
+// Create a new type for modal types
+type ModalType = 'transfer' | 'receive' | 'swap' | null;
+
 interface TransferButtonProps {
   tokens: any[];
   publicKey: string;
@@ -57,111 +59,64 @@ interface TransferButtonProps {
     usdValue: number;
     logoURI: string;
   };
+  onOpenModal: (modalType: ModalType) => void;
 }
 
-const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete }: TransferButtonProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { openModal, closeModal } = useModal();
-
-  // Memoize the handlers
-  const handleOpenModal = useCallback(() => {
-    setIsOpen(true);
-    openModal();
-  }, [openModal]);
-
-  const handleCloseModal = useCallback(() => {
-    setIsOpen(false);
-    closeModal();
-  }, [closeModal]);
-
-
-
+// New component that just shows the button without the modal implementation
+const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal }: TransferButtonProps) => {
   return (
-    <>
-      <button 
-        onClick={() => handleOpenModal()}
-        className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
-      >
-        <div className=" flex flex-col items-center gap-1 p-2">
-        <Repeat2 className="w-[20px] h-[20px]"/>
-        <div className="text-sm text-zinc-400">
-          Swap
-        </div>
-        </div>
-      </button>
-      <SwapModal 
-        isOpen={isOpen} 
-        onClose={() => handleCloseModal()}
-        tokens={tokens}
-        solanaBalance={solanaBalance}
-        agent={agent}
-        onSwapComplete={onSwapComplete} // TODO
-      />
-    </>
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenModal('swap');
+      }}
+      className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
+    >
+      <div className=" flex flex-col items-center gap-1 p-2">
+      <Repeat2 className="w-[20px] h-[20px]"/>
+      <div className="text-sm text-zinc-400">
+        Swap
+      </div>
+      </div>
+    </button>
   );
 }
 
-const ReceiveButton = ({ agent, tokens, solanaBalance }: TransferButtonProps & { agent: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+const ReceiveButton = ({ agent, tokens, solanaBalance, onOpenModal }: TransferButtonProps & { agent: any }) => {
   return (
-    <>
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
-      >
-        <div className=" flex flex-col items-center gap-1 p-2">
-        <QrCode className="w-[20px] h-[20px]"/>
-        <div className="text-sm text-zinc-400">
-          Receive
-        </div>
-        </div>
-      </button>
-      <ReceiveModal 
-        agent={agent}
-        isOpen={isOpen} 
-        onClose={() => setIsOpen(false)}
-      />
-    </>
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenModal('receive');
+      }}
+      className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
+    >
+      <div className=" flex flex-col items-center gap-1 p-2">
+      <QrCode className="w-[20px] h-[20px]"/>
+      <div className="text-sm text-zinc-400">
+        Receive
+      </div>
+      </div>
+    </button>
   );
 }
 
-const TransferButton = ({ tokens, solanaBalance, agent }: TransferButtonProps & { agent: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const { openModal, closeModal } = useModal();
-
-  // Memoize the handlers
-  const handleOpenModal = useCallback(() => {
-    setIsOpen(true);
-    openModal();
-  }, [openModal]);
-
-  const handleCloseModal = useCallback(() => {
-    setIsOpen(false);
-    closeModal();
-  }, [closeModal]);
-
+const TransferButton = ({ tokens, solanaBalance, agent, onOpenModal }: TransferButtonProps & { agent: any }) => {
   return (
-    <>
-      <button 
-        onClick={() => handleOpenModal()}
-        className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
-      >
-        <div className=" flex flex-col items-center gap-1 p-2">
-        <SendIcon className="w-[20px] h-[20px]"/>
-        <div className="text-sm text-zinc-400">
-          Send
-        </div>
-        </div>
-      </button>
-      <TransferModal 
-        agent={agent}
-        isOpen={isOpen} 
-        onClose={() => handleCloseModal()}
-        tokens={tokens}
-        solanaBalance={solanaBalance}
-      />
-    </>
+    <button 
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpenModal('transfer');
+      }}
+      className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
+    >
+      <div className=" flex flex-col items-center gap-1 p-2">
+      <SendIcon className="w-[20px] h-[20px]"/>
+      <div className="text-sm text-zinc-400">
+        Send
+      </div>
+      </div>
+    </button>
   );
 };
 
@@ -180,7 +135,7 @@ const LoadingCard = () => {
 </div>)
 }
 
-
+// Rest of the component remains unchanged
 const ToolCard: React.FC<{
   tool: Tool;
   isSubscribed: boolean;
@@ -240,6 +195,7 @@ const ToolCard: React.FC<{
   );
 };
 
+// FRED tools definition remains the same
 const fredTools: Tool[] = [
   {
     name: 'GDP Analysis',
@@ -303,6 +259,18 @@ const fredTools: Tool[] = [
   }
 ];
 
+// Modal portal component
+const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  return mounted ? createPortal(children, document.body) : null;
+};
+
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent }) => {
   const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
   const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
@@ -320,6 +288,19 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const { createWallet, wallets } = useSolanaWallets();
   const pathname = usePathname();
   const {login} = useLogin();
+
+  // Add state to track which modal is open
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+
+  // Handle modal opening
+  const handleOpenModal = (modalType: ModalType) => {
+    setActiveModal(modalType);
+  };
+
+  // Handle modal closing
+  const handleCloseModal = () => {
+    setActiveModal(null);
+  };
 
   interface Token {
     token_address: string;
@@ -746,6 +727,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                         usdValue: portfolio.holdings[0].usdValue,
                         logoURI: portfolio.holdings[0].logoURI
                       } : undefined}
+                      onOpenModal={handleOpenModal}
                     />
 
                     <TransferButton 
@@ -758,6 +740,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                         usdValue: portfolio.holdings[0].usdValue,
                         logoURI: portfolio.holdings[0].logoURI
                       } : undefined}
+                      onOpenModal={handleOpenModal}
                     />
 
                     <SwapButton 
@@ -770,6 +753,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                         logoURI: portfolio.holdings[0].logoURI
                       } : undefined}
                       agent={agent}
+                      onOpenModal={handleOpenModal}
                     /> 
                   </div>
                 )}
@@ -865,6 +849,51 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
         onConfirm={handleFundingConfirm}
         defaultAmount={0.1}
       />
+
+      {/* Render modals using portals to attach them to the document body */}
+      {activeModal === 'transfer' && (
+        <ModalPortal>
+          <TransferModal 
+            agent={agent}
+            isOpen={true}
+            onClose={handleCloseModal}
+            tokens={tokens.data as any[]}
+            solanaBalance={portfolio?.holdings[0] ? {
+              amount: portfolio.holdings[0].amount,
+              usdValue: portfolio.holdings[0].usdValue,
+              logoURI: portfolio.holdings[0].logoURI
+            } : undefined}
+            onSwapComplete={refreshWalletData}
+          />
+        </ModalPortal>
+      )}
+
+      {activeModal === 'receive' && (
+        <ModalPortal>
+          <ReceiveModal 
+            agent={agent}
+            isOpen={true}
+            onClose={handleCloseModal}
+          />
+        </ModalPortal>
+      )}
+
+      {activeModal === 'swap' && (
+        <ModalPortal>
+          <SwapModal 
+            isOpen={true}
+            onClose={handleCloseModal}
+            tokens={tokens.data as any[]}
+            solanaBalance={portfolio?.holdings[0] ? {
+              amount: portfolio.holdings[0].amount,
+              usdValue: portfolio.holdings[0].usdValue,
+              logoURI: portfolio.holdings[0].logoURI
+            } : undefined}
+            agent={agent}
+            onSwapComplete={refreshWalletData}
+          />
+        </ModalPortal>
+      )}
     </div>
   );
 };

@@ -198,7 +198,7 @@ const TransferModal = ({
   };
 
   // If no modal is open, don't render anything
-  if (!isOpen || !isAnyModalOpen) return null;
+  if (!isOpen) return null;
 
   if (!solanaWallet)
     return null;
