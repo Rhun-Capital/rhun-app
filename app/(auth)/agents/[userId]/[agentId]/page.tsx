@@ -52,6 +52,7 @@ import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import { getToolCommand } from '@/app/config/tool-commands';
 import { XIcon, MenuIcon } from "lucide-react";
 import { Suspense } from "react";
+import { useModal } from "@/contexts/modal-context";
 
 const getTextFromDataUrl = (dataUrl: string) => {
   try {
@@ -378,6 +379,7 @@ function HomeContent() {
   const topRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { isAnyModalOpen } = useModal();
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } =
     useChat({
@@ -465,10 +467,10 @@ function HomeContent() {
   }, [topRef.current]);
 
   useEffect(() => {
-    if (window.innerWidth < 1024) {
+    if (window.innerWidth < 1024 && !isAnyModalOpen) {
       setSidebarOpen(false);
     }
-  }, []);
+  }, [isAnyModalOpen]);
 
   useEffect(() => {
     const setupHeaders = async () => {
@@ -1517,7 +1519,7 @@ function HomeContent() {
           >
             <motion.div 
               className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-xl overflow-hidden"
-              style={{ maxHeight: 'calc(75vh)' }}
+              style={{ maxHeight: 'calc(75vh - 40px)' }}
               onClick={e => e.stopPropagation()}
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1534,12 +1536,12 @@ function HomeContent() {
             >
               {/* Drag handle */}
               <div 
-                className="w-full h-6 flex justify-center items-center cursor-grab active:cursor-grabbing"
+                className="w-full h-10 flex justify-center items-center cursor-grab active:cursor-grabbing"
                 onTouchStart={e => e.stopPropagation()}
               >
-                <div className="w-12 h-1 bg-zinc-600 rounded-full"></div>
+                <div className="w-16 h-1.5 bg-zinc-600 rounded-full"></div>
               </div>
-              <div className="overflow-hidden" style={{ height: 'calc(75vh - 24px)' }}>
+              <div className="overflow-hidden" style={{ height: 'calc(75vh - 40px)' }}>
                 <ChatSidebar 
                   agent={agent}
                   isOpen={true}
