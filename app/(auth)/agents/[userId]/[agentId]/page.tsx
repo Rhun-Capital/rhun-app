@@ -890,7 +890,9 @@ function HomeContent() {
       if (!chatContainerRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      // Lower threshold for mobile devices to show the button more readily
+      const threshold = window.innerWidth < 768 ? 50 : 100;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > threshold;
       
       setShowScrollButton(isScrolledUp);
     };
@@ -898,9 +900,21 @@ function HomeContent() {
     const container = chatContainerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
+      // Trigger initial check
+      handleScroll();
       return () => container.removeEventListener('scroll', handleScroll);
     }
   }, []);
+
+  // Check scroll position when messages change
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const threshold = window.innerWidth < 768 ? 50 : 100;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > threshold;
+      setShowScrollButton(isScrolledUp);
+    }
+  }, [messages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -1492,14 +1506,19 @@ function HomeContent() {
       <AnimatePresence>
         {showScrollButton && (
           <motion.button
-            className="fixed bottom-[84px] right-4 bg-indigo-500 text-white p-2 rounded-full shadow-lg z-30"
+            className="fixed bottom-[72px] sm:bottom-[84px] right-4 bg-indigo-600 text-white p-2 md:p-2 rounded-full shadow-lg z-50 flex items-center justify-center md:h-10 md:w-10 h-12 w-12"
             onClick={scrollToBottom}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             whileTap={{ scale: 0.9 }}
+            style={{
+              boxShadow: '0 0 10px rgba(99, 102, 241, 0.5)',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            aria-label="Scroll to bottom"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16" className="md:w-5 md:h-5 w-6 h-6">
               <path d="M8 15a.5.5 0 0 1-.5-.5V2.707L1.854 8.354a.5.5 0 1 1-.708-.708l6-6a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8.5 2.707V14.5a.5.5 0 0 1-.5.5z" transform="rotate(180, 8, 8)"/>
             </svg>
           </motion.button>
