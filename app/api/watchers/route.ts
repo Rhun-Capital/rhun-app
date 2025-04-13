@@ -311,8 +311,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { name, tags }: UpdateMetadataRequest = await request.json();
-    console.log(`Updating watcher for userId=${userId}, walletAddress=${walletAddress}, queryString=${queryString}`);
-    console.log(`Update payload:`, { name, tags });
 
     // First, try to find the watcher regardless of the approach
     let watcherKey;

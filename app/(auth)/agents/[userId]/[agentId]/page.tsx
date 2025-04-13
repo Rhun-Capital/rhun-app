@@ -561,7 +561,6 @@ function HomeContent() {
       const timeoutId = setTimeout(() => {
         const toolCommand = getToolCommand(tool);
         if (toolCommand) {
-          console.log(`Triggering tool from URL parameter: ${tool} with command: ${toolCommand}`);
           handleToolSelect(toolCommand);
           hasTriggeredTool.current = true;
           
