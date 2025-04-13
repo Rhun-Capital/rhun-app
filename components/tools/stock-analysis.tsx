@@ -1,76 +1,184 @@
-
 // components/tools/StockAnalysis.tsx
-import { access } from 'fs';
+// This component displays stock analysis data and automatically fetches and appends
+// the complete financial analysis data from DynamoDB when the analysis is complete.
+// It uses the /api/financial-data/complete endpoint to get the full data
+// and appends the analysis to the chat using the append prop.
+
 import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { useSearchParams } from 'next/navigation';
+import type { Message, CreateMessage } from 'ai';
 
 interface StockAnalysisProps {
   toolCallId: string;
   toolInvocation: any;
+  append?: (message: Message | CreateMessage, options?: any) => Promise<string | null | undefined>;
 }
 
-export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnalysisProps) {
-  // Initialize data more safely - ensure we capture the processing status
+export default function StockAnalysis({ toolCallId, toolInvocation, append }: StockAnalysisProps) {
+  // Initialize data and state
   const [data, setData] = useState(toolInvocation.result);
-
   const [isPolling, setIsPolling] = useState(false);
+  const [hasProcessed, setHasProcessed] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
   const { getAccessToken } = usePrivy();
+  const searchParams = useSearchParams();
+  const chatId = decodeURIComponent(searchParams.get('chatId') || '');
 
-  // Add a useEffect to update state after initial render if needed
+  // Format market cap in a human-readable format
+  const formatMarketCap = (value: number | undefined): string => {
+    if (typeof value !== 'number' || isNaN(value)) return 'N/A';
+    
+    if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
+    if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `${(value / 1e6).toFixed(2)}M`;
+    
+    return value.toString();
+  };
+
+  // Update data from prop
   useEffect(() => {
-    // If data is missing a requestId but toolInvocation has it, update the state
     setData(toolInvocation.result);
-
+    
+    // If this is the first time receiving a processing status with requestId, start polling
+    if (
+      toolInvocation.result?.status === 'processing' && 
+      toolInvocation.result?.requestId && 
+      !requestId
+    ) {
+      setRequestId(toolInvocation.result.requestId);
+    }
   }, [toolInvocation]);
 
+  // Separate effect for polling to avoid conflicts
   useEffect(() => {
-
-    if (!data) {
+    // Only run polling if we have a requestId and haven't processed yet
+    if (!requestId || hasProcessed || !append) {
       return;
     }
-  
-    // If result is still processing and has a requestId, start polling
-    if (data?.status === 'processing' && data?.requestId) {
-      setIsPolling(true);
-      
-      let attempts = 0;
-      const maxAttempts = 30; // Poll for up to 30 seconds
-      
-      const pollInterval = setInterval(async () => {
-        attempts++;
-        
-        try {
-          const accessToken = await getAccessToken();
 
-          // Call the API endpoint to check status
-          const response = await fetch(`/api/financial-data/status?requestId=${data.requestId}`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
-            }
-          });
-          const statusData = await response.json();
-          
-          if (statusData.status === 'completed') {
-            setData(JSON.parse(statusData.results)[data.ticker]?.report);
-            clearInterval(pollInterval);
-            setIsPolling(false);
-          }
-          
-          if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
-            setIsPolling(false);
-          }
-        } catch (error) {
-          console.error('Error polling for status:', error);
+    console.log(`Starting to poll for requestId: ${requestId}`);
+    setIsPolling(true);
+    
+    // Set up polling interval
+    const pollInterval = setInterval(async () => {
+      try {
+        const accessToken = await getAccessToken();
+        const response = await fetch(`/api/financial-data/status?requestId=${requestId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to check status');
+        }
+        
+        const statusData = await response.json();
+        
+        // If analysis is complete
+        if (statusData.status === 'completed') {
           clearInterval(pollInterval);
           setIsPolling(false);
+          
+          // Mark as processed to prevent future polling
+          setHasProcessed(true);
+          
+          try {
+            // Parse the analysis data directly from the statusData results
+            const ticker = data.ticker;
+            const analysisResults = JSON.parse(statusData.results);
+            
+            if (!analysisResults[ticker] || !analysisResults[ticker].report) {
+              throw new Error('Invalid data structure');
+            }
+            
+            // Get the report data
+            const report = analysisResults[ticker].report;
+            
+            // Update the display data
+            setData(report);
+            
+            // Create a concise summary for the message
+            const summaryMessage = createSummaryMessage(ticker, report);
+            
+            // Append the message
+            await append({
+              role: 'assistant',
+              content: summaryMessage
+            });
+          } catch (error) {
+            console.error('Error handling completed analysis:', error);
+          }
         }
-      }, 3000); // Check every 3 seconds
-      
-      return () => clearInterval(pollInterval);
+      } catch (error) {
+        console.error('Error polling for status:', error);
+        clearInterval(pollInterval);
+        setIsPolling(false);
+      }
+    }, 3000);
+    
+    // Cleanup
+    return () => clearInterval(pollInterval);
+  }, [requestId, hasProcessed, getAccessToken, append, data?.ticker]);
+  
+  // Function to create a summary message
+  const createSummaryMessage = (ticker: string, report: any): string => {
+    let message = `# ${ticker} Analysis Summary\n\n`;
+    
+    // Company overview
+    message += `## Company Overview\n`;
+    message += `- **Name**: ${report.name || ticker}\n`;
+    message += `- **Industry**: ${report.industry || 'N/A'}\n`;
+    message += `- **Current Price**: $${report.current_price?.toFixed(2) || 'N/A'}\n`;
+    message += `- **Market Cap**: $${formatMarketCap(report.market_cap)}\n`;
+    message += `- **P/E Ratio**: ${report.pe_ratio?.toFixed(2) || 'N/A'}\n\n`;
+    
+    // Financial health
+    if (report.financial_health) {
+      message += `## Financial Health\n`;
+      const fin = report.financial_health;
+      message += `- **Gross Margin**: ${fin.gross_margin ? (fin.gross_margin * 100).toFixed(2) + '%' : 'N/A'}\n`;
+      message += `- **Net Margin**: ${fin.net_margin ? (fin.net_margin * 100).toFixed(2) + '%' : 'N/A'}\n`;
+      message += `- **Debt/Equity**: ${fin.debt_to_equity?.toFixed(2) || 'N/A'}\n`;
+      message += `- **Current Ratio**: ${fin.current_ratio?.toFixed(2) || 'N/A'}\n\n`;
     }
-  }, [data]);
+    
+    // Analyst consensus
+    if (report.analyst_consensus) {
+      const consensus = report.analyst_consensus;
+      message += `## Analyst Consensus\n`;
+      message += `- **Target Price**: $${consensus.avg_price_target?.toFixed(2) || 'N/A'}\n`;
+      message += `- **Upside Potential**: ${consensus.upside_potential?.toFixed(2) || 'N/A'}%\n`;
+      message += `- **Buy/Hold/Sell**: ${consensus.buy_count || 0}/${consensus.hold_count || 0}/${consensus.sell_count || 0}\n\n`;
+    }
+    
+    // News sentiment with links
+    if (report.news_sentiment) {
+      const sentiment = report.news_sentiment;
+      message += `## News Sentiment\n`;
+      message += `- **Overall Sentiment**: ${sentiment.sentiment || 'Neutral'}\n`;
+      message += `- **Average Score**: ${sentiment.average_score?.toFixed(2) || 'N/A'}\n`;
+      message += `- **Articles Analyzed**: ${sentiment.article_count || 0}\n\n`;
+      
+      // Include news headlines with links if available
+      if (sentiment.articles && sentiment.articles.length > 0) {
+        message += `### Recent News:\n`;
+        sentiment.articles.slice(0, 3).forEach((article: any, index: number) => {
+          const date = article.date ? new Date(article.date).toLocaleDateString() : 'N/A';
+          // Include a clickable link if available
+          if (article.link) {
+            message += `${index + 1}. [${article.title}](${article.link}) - ${article.publisher || 'Unknown Source'} (${date})\n`;
+          } else {
+            message += `${index + 1}. ${article.title} - ${article.publisher || 'Unknown Source'} (${date})\n`;
+          }
+        });
+        message += `\n`;
+      }
+    }
+    
+    return message;
+  };
 
+  // Render loading state
   if (!data) {
     return (
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2">
@@ -79,6 +187,7 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
     );
   }
   
+  // Render error state
   if (data.error) {
     return (
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2 text-white">
@@ -87,6 +196,7 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
     );
   }
   
+  // Render processing state
   if (data.status === 'processing') {
     return (
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2 text-white">
@@ -101,6 +211,7 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
     );
   }
   
+  // Render analysis data
   return (
     <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2 text-white">
       <div className="flex justify-between items-center mb-4">
@@ -110,7 +221,7 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
               src={data.logo_url} 
               alt={`${data.name} logo`} 
               className="w-8 h-8 mr-2 object-contain"
-              onError={(e) => { e.currentTarget.style.display = 'none' }} // Hide if image fails to load
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
             />
           )}
           <h3 className="text-xl font-bold">{data.ticker} ({data.name || data.ticker})</h3>
@@ -121,39 +232,35 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
           <h4 className="text-sm font-semibold text-zinc-400">Market Cap</h4>
-          <div className="text-lg">
-            {typeof data.market_cap === 'number' 
-            ? `$${data.market_cap >= 1e12 
-              ? (data.market_cap / 1e12).toFixed(2) + 'T'
-              : data.market_cap >= 1e9 
-              ? (data.market_cap / 1e9).toFixed(2) + 'B' 
-              : (data.market_cap / 1e6).toFixed(2) + 'M'}`
-            : 'N/A'}
-          </div>
+          <div className="text-lg">${formatMarketCap(data.market_cap)}</div>
         </div>
         <div>
           <h4 className="text-sm font-semibold text-zinc-400">P/E Ratio</h4>
           <div className="text-lg">{typeof data.pe_ratio === 'number' ? data.pe_ratio.toFixed(2) : 'N/A'}</div>
         </div>
-        <div>
-          <h4 className="text-sm font-semibold text-zinc-400">Analyst Target</h4>
-          <div className="text-lg">
-            ${typeof data.analyst_consensus?.avg_price_target === 'number' 
-              ? data.analyst_consensus.avg_price_target.toFixed(2) 
-              : 'N/A'}
-          </div>
-        </div>
-        <div>
-          <h4 className="text-sm font-semibold text-zinc-400">Upside</h4>
-          <div className={`text-lg ${
-            data.analyst_consensus?.upside_potential > 0 ? 'text-green-500' : 
-            data.analyst_consensus?.upside_potential < 0 ? 'text-red-500' : ''
-          }`}>
-            {typeof data.analyst_consensus?.upside_potential === 'number' 
-              ? data.analyst_consensus.upside_potential.toFixed(2) + '%' 
-              : 'N/A'}
-          </div>
-        </div>
+        {data.analyst_consensus && (
+          <>
+            <div>
+              <h4 className="text-sm font-semibold text-zinc-400">Analyst Target</h4>
+              <div className="text-lg">
+                ${typeof data.analyst_consensus?.avg_price_target === 'number' 
+                  ? data.analyst_consensus.avg_price_target.toFixed(2) 
+                  : 'N/A'}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-zinc-400">Upside</h4>
+              <div className={`text-lg ${
+                data.analyst_consensus?.upside_potential > 0 ? 'text-green-500' : 
+                data.analyst_consensus?.upside_potential < 0 ? 'text-red-500' : ''
+              }`}>
+                {typeof data.analyst_consensus?.upside_potential === 'number' 
+                  ? data.analyst_consensus.upside_potential.toFixed(2) + '%' 
+                  : 'N/A'}
+              </div>
+            </div>
+          </>
+        )}
       </div>
       
       {data.financial_health && (
@@ -204,11 +311,10 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
             Based on {data.news_sentiment?.article_count || 0} recent articles
           </div>
           
-          {/* Display article links if available */}
           {data.news_sentiment?.articles && data.news_sentiment.articles.length > 0 && (
             <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
               <div className="text-sm font-medium">Recent News:</div>
-              {data.news_sentiment.articles.map((article: { link: string; title: string; publisher: string; date: string }, index: number) => (
+              {data.news_sentiment.articles.slice(0, 3).map((article: any, index: number) => (
                 <div key={index} className="text-xs border-l-2 border-zinc-600 pl-2">
                   <a 
                     href={article.link} 
@@ -244,7 +350,6 @@ export default function StockAnalysis({ toolCallId, toolInvocation }: StockAnaly
         </div>
       )}
       
-      {/* Last update timestamp */}
       <div className="text-xs text-zinc-500 mt-4 text-right">
         Last updated: {new Date().toLocaleString()}
       </div>

@@ -1347,9 +1347,9 @@ This agent can analyze stock market data using comprehensive financial tools:
 2. Never use links in your response.
 3. Format follow-up suggestions like this:
    \n\n---\n### What would you like to do next?\n
-   1. [Suggestion 1]
-   2. [Suggestion 2]
-   3. [Suggestion 3]\n---\n
+   1. Suggestion 1
+   2. Suggestion 2
+   3. Suggestion 3\n---\n
 
 ## Tool Relationships
 When suggesting follow-ups, consider relevant relationships between tools. Use the query to determine which tools to suggest.
