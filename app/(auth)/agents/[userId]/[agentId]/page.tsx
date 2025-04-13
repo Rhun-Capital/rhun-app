@@ -1517,7 +1517,7 @@ function HomeContent() {
           >
             <motion.div 
               className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-xl overflow-hidden"
-              style={{ maxHeight: 'calc(100vh - 64px)' }}
+              style={{ maxHeight: 'calc(75vh)' }}
               onClick={e => e.stopPropagation()}
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1539,7 +1539,7 @@ function HomeContent() {
               >
                 <div className="w-12 h-1 bg-zinc-600 rounded-full"></div>
               </div>
-              <div className="overflow-hidden" style={{ height: 'calc(100vh - 88px)' }}>
+              <div className="overflow-hidden" style={{ height: 'calc(75vh - 24px)' }}>
                 <ChatSidebar 
                   agent={agent}
                   isOpen={true}
