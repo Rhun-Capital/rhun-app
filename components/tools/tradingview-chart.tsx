@@ -108,7 +108,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
     <div
     className="p-4"
     style={{ 
-      height: "600px", 
+      height: "500px", 
       width: "100%",
       minHeight: "500px"
     }}>
@@ -117,7 +117,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
         ref={container} 
         id={containerId}
         style={{ 
-          height: "600px", 
+          height: "500px", 
           width: "100%",
           minHeight: "500px"
         }}

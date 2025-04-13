@@ -131,48 +131,53 @@ export default function AgentsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-white p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-zinc-900 text-white p-4 sm:p-6 overflow-x-hidden w-full">
+      <div className="max-w-6xl mx-auto w-full">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold">My Agents</h1>
           {user && <CreateAgentButton />}
         </div>
 
-
-        <div className="flex gap-4 mb-6 flex-col sm:flex-row">
-          <button
-            onClick={() => setActiveFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm transition ${
-              activeFilter === 'all'
-                ? 'bg-indigo-500 text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            All Agents
-          </button>
-          <button
-            onClick={() => setActiveFilter('templates')}
-            className={`px-4 py-2 rounded-lg text-sm transition ${
-              activeFilter === 'templates'
-                ? 'bg-indigo-500 text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            Templates
-          </button>
-          <button
-            onClick={() => setActiveFilter('custom')}
-            className={`px-4 py-2 rounded-lg text-sm transition ${
-              activeFilter === 'custom'
-                ? 'bg-indigo-500 text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            My Agents
-          </button>
+        <div className="flex gap-4 mb-6 overflow-x-auto pb-2 -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="flex space-x-2 min-w-max">
+            <button
+              onClick={() => setActiveFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm transition ${
+                activeFilter === 'all'
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+            >
+              All Agents
+            </button>
+            <button
+              onClick={() => setActiveFilter('templates')}
+              className={`px-4 py-2 rounded-lg text-sm transition ${
+                activeFilter === 'templates'
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+            >
+              Templates
+            </button>
+            <button
+              onClick={() => setActiveFilter('custom')}
+              className={`px-4 py-2 rounded-lg text-sm transition ${
+                activeFilter === 'custom'
+                  ? 'bg-indigo-500 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+            >
+              My Agents
+            </button>
+          </div>
         </div>
 
-        {loading ? <LoadingIndicator/> : (
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <LoadingIndicator/>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {user && activeFilter !== 'templates' && (
               <CreateAgentCard />

@@ -100,8 +100,8 @@ export default function SettingsPage() {
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-x-hidden">
+        <div className="max-w-4xl mx-auto w-full">
           <div className="p-4 sm:p-6 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2 text-sm sm:text-base">
             <AlertCircleIcon />
             <p>Please connect your wallet to access settings.</p>
@@ -112,8 +112,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-gray-100">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+    <div className="min-h-screen bg-zinc-900 text-gray-100 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 w-full">
         {/* {showSubscriptionBanner && (
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg mb-6">
             <div className="flex items-center gap-2">
@@ -164,8 +164,8 @@ export default function SettingsPage() {
                 <div>
                   <label className="block text-xs sm:text-sm text-zinc-400 mb-1 sm:mb-2">Primary Wallet</label>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <div className="min-w-0">
-                      <pre className="text-xs sm:text-sm break-all overflow-x-auto">{user.wallet.address}</pre>
+                    <div className="w-full min-w-0 overflow-hidden">
+                      <pre className="text-xs sm:text-sm break-all overflow-x-auto whitespace-normal">{user.wallet.address}</pre>
                     </div>
                     <CopyButton text={user.wallet.address}/>
                   </div>

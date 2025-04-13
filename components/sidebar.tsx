@@ -82,7 +82,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <div className='flex h-screen bg-zinc-900 text-zinc-400'>
+    <div className='flex h-screen w-screen bg-zinc-900 text-zinc-400'>
       {/* Mobile menu button */}
       <button
         onClick={toggleSidebar}
