@@ -688,7 +688,12 @@ function HomeContent() {
     
     const lastMessage = messages[messages.length - 1];
   
-    if ((lastMessage.content === '' && lastMessage.toolInvocations?.length === 0)) {
+    // Skip DB operations if the message is empty, has no content and no tool invocations
+    // Also skip if this appears to be a tool-generated message (from assistant role but doesn't have a toolInvocation)
+    if (
+      (lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || 
+      (lastMessage.role === 'assistant' && !lastMessage.toolInvocations?.length && lastMessage.content.includes('Analysis Summary'))
+    ) {
       return [];
     }
   
@@ -1106,7 +1111,7 @@ function HomeContent() {
                             );
                           case 'stockAnalysis':
                             return wrappedTool(
-                              <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                              <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} append={append} />
                             );
                           
                           case 'optionsAnalysis':
