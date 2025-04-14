@@ -389,8 +389,9 @@ function HomeContent() {
       initialMessages,
       sendExtraMessageFields: true,
       id: chatId || newChatId,
-      onError: () => {
-        toast.error('Failed to send message. Please try again.')
+      onError: (error) => {
+        console.error('Error in onError:', error);
+        toast.error('Failed to send message. ' + error.message)
       },
       onFinish: async (message) => {   
         // Debounced save is handled in a separate useEffect
