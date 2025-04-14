@@ -1311,7 +1311,7 @@ function HomeContent() {
                             );      
                           case 'stockAnalysis':
                             return wrappedTool(
-                              <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+                              <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} append={append} />
                             );
                           
                           case 'optionsAnalysis':
