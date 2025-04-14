@@ -154,7 +154,7 @@ async function hasActiveSubscription(userId: string): Promise<boolean> {
 // Rate limit configuration
 const RATE_LIMIT = {
   UNAUTHENTICATED: {
-    MAX_REQUESTS: 20,      // 20 requests
+    MAX_REQUESTS: 100,      // 30 requests
     TIME_WINDOW: 3600000,  // per hour (in milliseconds)
   },
   AUTHENTICATED: {
