@@ -117,7 +117,6 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
             
             // Append the message if append function is available
             if (append) {
-              console.log("heereeee")
               await append({
                 role: 'assistant',
                 content: summaryMessage
