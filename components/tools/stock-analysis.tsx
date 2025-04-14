@@ -4,7 +4,7 @@
 // It uses the /api/financial-data/complete endpoint to get the full data
 // and appends the analysis to the chat using the append prop.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSearchParams } from 'next/navigation';
 import type { Message, CreateMessage } from 'ai';
@@ -24,6 +24,7 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
   const { getAccessToken } = usePrivy();
   const searchParams = useSearchParams();
   const chatId = decodeURIComponent(searchParams.get('chatId') || '');
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Format market cap in a human-readable format
   const formatMarketCap = (value: number | undefined): string => {
@@ -46,37 +47,51 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
       toolInvocation.result?.requestId && 
       !requestId
     ) {
+      console.log(`Setting requestId: ${toolInvocation.result.requestId}`);
       setRequestId(toolInvocation.result.requestId);
     }
-  }, [toolInvocation]);
+  }, [toolInvocation, requestId]);
 
   // Separate effect for polling to avoid conflicts
   useEffect(() => {
     // Only run polling if we have a requestId and haven't processed yet
-    if (!requestId || hasProcessed || !append) {
+    if (!requestId || hasProcessed) {
       return;
     }
 
     console.log(`Starting to poll for requestId: ${requestId}`);
     setIsPolling(true);
     
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
     // Set up polling interval
-    const pollInterval = setInterval(async () => {
+    const pollStatus = async () => {
       try {
         const accessToken = await getAccessToken();
+        console.log(`Polling for status: ${requestId}`);
+        
         const response = await fetch(`/api/financial-data/status?requestId=${requestId}`, {
-          headers: { Authorization: `Bearer ${accessToken}` }
+          headers: { 
+            Authorization: `Bearer ${accessToken}`,
+            'Cache-Control': 'no-cache'
+          }
         });
         
         if (!response.ok) {
-          throw new Error('Failed to check status');
+          throw new Error(`Failed to check status: ${response.status}`);
         }
         
         const statusData = await response.json();
+        console.log('Status data:', statusData);
         
         // If analysis is complete
         if (statusData.status === 'completed') {
-          clearInterval(pollInterval);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
           setIsPolling(false);
           
           // Mark as processed to prevent future polling
@@ -100,24 +115,39 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
             // Create a concise summary for the message
             const summaryMessage = createSummaryMessage(ticker, report);
             
-            // Append the message
-            await append({
-              role: 'assistant',
-              content: summaryMessage
-            });
+            // Append the message if append function is available
+            if (append) {
+              console.log("heereeee")
+              await append({
+                role: 'assistant',
+                content: summaryMessage
+              });
+            }
           } catch (error) {
             console.error('Error handling completed analysis:', error);
           }
         }
       } catch (error) {
         console.error('Error polling for status:', error);
-        clearInterval(pollInterval);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
         setIsPolling(false);
       }
-    }, 3000);
+    };
+    
+    // Call once immediately
+    pollStatus();
+    
+    // Then set up the interval
+    intervalRef.current = setInterval(pollStatus, 3000);
     
     // Cleanup
-    return () => clearInterval(pollInterval);
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, [requestId, hasProcessed, getAccessToken, append, data?.ticker]);
   
   // Function to create a summary message
