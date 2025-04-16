@@ -1315,12 +1315,6 @@ ${agentConfig.responsePriorityOrder}
 ## Special Instructions
 ${agentConfig.specialInstructions}
 
-## Authentication Requirements
-- if this => ${user?.id} is not null, the user is authenticated.
-- Before using any wallet-related tools (swap, transfer, etc.), check if the user is authenticated
-- If the user is not authenticated, inform them they need to connect their wallet first
-- For wallet-related operations, verify that the user has a connected wallet
-- If the user tries to use wallet tools without authentication, guide them to connect their wallet
 
 ## Style Guide
 ${agentConfig.styleGuide}

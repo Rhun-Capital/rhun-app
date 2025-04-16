@@ -174,7 +174,8 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
               style={{ 
                 height: "100vh", 
                 width: "100vw",
-                paddingTop: "3rem"
+                paddingTop: "3rem",
+                paddingBottom: "4rem"
               }}>
               <div 
                 className="tradingview-widget-container w-full h-full" 
