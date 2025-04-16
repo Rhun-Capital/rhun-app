@@ -221,7 +221,7 @@ function metricsToText(metricsArray: any[]): string {
 
 
 export async function POST(req: Request) {
-  const { messages, user, agent } = await req.json();
+  const { messages, user, agent, templateWallet } = await req.json();
 
   // Validate required fields
   if (!agent || !agent.id || !agent.userId) {
@@ -265,7 +265,7 @@ export async function POST(req: Request) {
       description: "show the agent's portfolio value for their embedded wallet to the user",
       parameters: z.object({ agent: z.string() }),
       execute: async ({}: { agentDetails: string }) => {
-        const data = await getPortfolioValue(agentConfig.wallets.solana);
+        const data = await getPortfolioValue(agentConfig.wallets?.solana || templateWallet);
   
        // Calculate portfolio metrics
       const totalValue = typeof data === 'object' && 'holdings' in data ? data.holdings.reduce(
@@ -290,7 +290,7 @@ export async function POST(req: Request) {
       description: "show the agents token holdings for their embedded wallet to the user",
       parameters: z.object({ agentDetails: z.string() }),
       execute: async ({}: { agentDetails: string }) => {
-        const data = await getTokenHoldings(agentConfig.wallets.solana);
+        const data = await getTokenHoldings(agentConfig.wallets?.solana || templateWallet);
         return data;
       }
     },
@@ -1275,13 +1275,13 @@ const systemPrompt = `
 ## User Information (the user that's interacting with the agent):
 - User's ID: ${user?.id || 'template'}
 - User's Email: ${user?.email || 'N/A'}
-- User's Wallet: ${user?.wallet?.address || 'N/A'}
+- User's Primary Wallet: ${user?.wallet?.address || 'N/A'}
 
 ## Agent Information (the agent that's answering the user's query):
 - Agent's ID: ${agentConfig.id}
 - Agent's Name: ${agentConfig.name}
 - Agent's Description: ${agentConfig.description}
-- Agent's Wallet: ${agentConfig.wallets?.solana || 'N/A'}
+- Agent's Wallet: ${agentConfig.wallets?.solana || templateWallet}
 
 DO NOT use other tools like getAccountDetails for Solana-specific queries. Always use parseSolanaQuery first.
 
@@ -1323,11 +1323,6 @@ ${toolsDocumentation}
 
 # Relevant Context for This Query:
 ${contextText}
-
-${agentConfig.userId === 'template' ? `
- If the users runs the Get Agent Portfolio tool (getAgentPortfolioValue), tell them this is a template agent and does not have a wallet. 
- Template agents do no have access to wallets and therefore cannot execute swaps. If they run the swap tool, tell them template agents cannot execute swaps and to create a new agent, fund the agent wallet to use this functionality.
-`: ''}
 
 ## Browser Use Tools
 Whenever the user asks to do "research" or "analysis" you should run the webResearch tool.

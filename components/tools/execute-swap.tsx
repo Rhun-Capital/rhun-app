@@ -4,7 +4,7 @@ import { ProxyConnection } from '@/utils/solana';
 import { executeSwap, getQuote } from '@/utils/solana';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import { usePrivy } from '@privy-io/react-auth';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, usePathname } from 'next/navigation';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
@@ -50,6 +50,7 @@ const ExecuteSwap: React.FC<{
   const params = useParams();
   const searchParams = useSearchParams(); 
   const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
+  const pathname = usePathname();
 
   const existingResult = 'result' in toolInvocation ? toolInvocation.result : null;
   const existingStatus = 'status' in toolInvocation ? toolInvocation.status : null;    
@@ -77,9 +78,11 @@ const ExecuteSwap: React.FC<{
     if (!user) return;
     getAgent().then((agent) => {
       setAgent(agent);
-      const activeWallet = solanaWallets.find(
-        wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
-      );
+      const activeWallet = params.userId === 'template' || pathname === '/'
+        ? solanaWallets[0]
+        : solanaWallets.find(
+            wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
+          );
       setActiveWallet(activeWallet);
     });
   }, [user])

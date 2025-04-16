@@ -5,6 +5,8 @@ import {
 } from "@/components/icons";
 import {BotIcon} from "lucide-react";
 import { useRecentChats } from '@/contexts/chat-context';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { usePathname } from 'next/navigation';
 import { useChat } from "ai/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
@@ -346,12 +348,19 @@ function HomeContent() {
   const [isHeadersReady, setIsHeadersReady] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { wallets } = useSolanaWallets();
+  const pathname = usePathname();
+
+  const templateWallet = params.userId === 'template' || pathname === '/' 
+    ? wallets[0]?.address 
+    : null
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } = useChat({
     headers,
     body: { 
       agent, 
-      user: user ? user : { id: 'anonymous', email: 'guest@example.com' }
+      user,
+      templateWallet
     },
     maxSteps: 30,
     initialMessages,
@@ -680,12 +689,7 @@ function HomeContent() {
     }
   }, [chatId, getAccessToken, user, ready]);
 
-  const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
-    // Skip DB operations if not authenticated
-    if (!user?.id || !ready) {
-      return [];
-    }
-    
+  const updateChatInDB = useCallback(async (messages: Message[]): Promise<string[]> => {
     const lastMessage = messages[messages.length - 1];
   
     // Skip DB operations if the message is empty, has no content and no tool invocations
@@ -813,7 +817,7 @@ function HomeContent() {
     }
     
     return [];
-  };
+  }, [chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, refreshRecentChats]);
 
   useEffect(() => {
     if (agent) {
@@ -828,7 +832,7 @@ function HomeContent() {
         debouncedSave.cancel();
       };
     }
-  }, [messages, agent, updateChatInDB]);
+  }, [messages, agent]);
 
   const scrollToBottom = () => {
     if (chatContainerRef.current) {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePrivy, useSolanaWallets, getAccessToken } from '@privy-io/react-auth';
 import { ProxyConnection, executeSwap, getQuote } from '../utils/solana';
 import { RefreshCw } from 'lucide-react';
+import { useParams, usePathname } from 'next/navigation';
 
 import Image from 'next/image';
 import LoadingIndicator from './loading-indicator';
@@ -60,10 +61,16 @@ type SelectionType = 'from' | 'to' | null;
 
 const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComplete }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
   const { wallets: solanaWallets } = useSolanaWallets();
-  const activeWallet = solanaWallets.find(
-    wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
-  );
-
+  const params = useParams();
+  const pathname = usePathname();
+  
+  // For template agents, use the first wallet from useSolanaWallets
+  const activeWallet = params.userId === 'template' || pathname === '/' 
+    ? solanaWallets[0]
+    : solanaWallets.find(
+        wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
+      );
+  
   const [selecting, setSelecting] = useState<SelectionType>(null);
   const [fromToken, setFromToken] = useState<Token | null>(null);
   const [toToken, setToToken] = useState<Token | null>(null);

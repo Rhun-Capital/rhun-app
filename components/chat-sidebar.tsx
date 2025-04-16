@@ -16,6 +16,7 @@ import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { getToolCommand } from '@/app/config/tool-commands';
 import {useLogin} from '@privy-io/react-auth';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 
 // Import the modal components but use a global approach
 const TransferModal = dynamic(() => import('./send-button'), {
@@ -288,9 +289,25 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const { createWallet, wallets } = useSolanaWallets();
   const pathname = usePathname();
   const {login} = useLogin();
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [tokenAddress, setTokenAddress] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isWalletLoading, setIsWalletLoading] = useState(true);
 
   // Add state to track which modal is open
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+
+  // Get the active wallet based on whether it's a template agent or not
+  const activeWallet = params.userId === 'template' || pathname === '/' 
+    ? wallets[0]?.address 
+    : agent.wallets?.solana;
+
+  // Update loading state when wallet is ready
+  useEffect(() => {
+    if (activeWallet) {
+      setIsWalletLoading(false);
+    }
+  }, [activeWallet]);
 
   // Handle modal opening
   const handleOpenModal = (modalType: ModalType) => {
@@ -485,10 +502,10 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   // get portfolio value and tokens every 10 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      if (activeTab === 'wallet' && agent.wallets?.solana) {
+      if (activeTab === 'wallet' && activeWallet) {
         Promise.all([
-          getTokens(agent.wallets.solana),
-          getPortfolioValue(agent.wallets.solana)
+          getTokens(activeWallet),
+          getPortfolioValue(activeWallet)
         ])
         .then(([tokensResponse, portfolioResponse]) => {
           setTokens(tokensResponse);
@@ -501,7 +518,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       }
     }, 10000);
     return () => clearInterval(interval);
-  }, [activeTab, agent.wallets?.solana, setInitialLoading]);
+  }, [activeTab, activeWallet, setInitialLoading]);
 
 
   const handleToolClick = (tool: Tool) => {
@@ -521,9 +538,9 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   }
 
   async function handleFundingConfirm(amount: number) {
-    if (agent.wallets?.solana) {
+    if (activeWallet) {
       try {
-        await fundWallet(agent.wallets.solana, {
+        await fundWallet(activeWallet, {
           amount: amount.toString(),
         });
         refreshWalletData();
@@ -555,6 +572,20 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       setCreateWalletLoading(false);
     }
   };  
+
+  const handleCreateTemplateWallet = async () => {
+    try {
+      setCreateWalletLoading(true);
+      const wallet = await createWallet({ walletIndex: 0 });
+      // For template agents, we just update the local state
+      agent.wallets = { ...agent.wallets, solana: wallet.address };
+      refreshAgent();
+    } catch (error) {
+      console.error('Error creating template wallet:', error);
+    } finally {
+      setCreateWalletLoading(false);
+    }
+  };
 
   async function getPortfolioValue(walletAddress: string) {
     const url = `/api/portfolio/${walletAddress}`;
@@ -593,14 +624,14 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
   const refreshWalletData = async () => {
     setRefreshLoading(true);
-    if (agent.wallets?.solana) {
+    if (activeWallet) {
       try {
         // Refresh tokens
-        const tokenResponse = await getTokens(agent.wallets.solana);
+        const tokenResponse = await getTokens(activeWallet);
         setTokens(tokenResponse);
 
         // Refresh portfolio
-        const portfolioResponse = await getPortfolioValue(agent.wallets.solana);
+        const portfolioResponse = await getPortfolioValue(activeWallet);
         const tv = portfolioResponse.holdings.reduce(
           (acc: number, token: { usdValue: number }) => acc + token.usdValue, 
           0
@@ -672,54 +703,55 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 </div>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="text-sm text-white w-full">
-                    {(agent.wallets?.solana && (params.userId !== 'template' || pathname !== '/')) ?
+                    {isWalletLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <LoadingIndicator />
+                      </div>
+                    ) : (activeWallet) ? (
                       <div className="text-sm text-zinc-500 mt-2">
-                        {agent.wallets.solana ? <div className="truncate max-w-[185px]">{agent.wallets.solana}</div> : 'No agent wallet found'}
-                      </div> : !authenticated && pathname === '/' ? 
-                        <div className="w-full">
-                          <div className="text-sm text-zinc-500 mt-2 mb-4">Connect your wallet to access wallet features.</div>
-                          <button 
-                            onClick={() => login()}
-                            className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
-                          >
-                            Connect Wallet
-                          </button>
-                        </div> :
-                        params.userId === 'template' || pathname === '/' ? 
-                          <div className="text-zinc-500 mt-2 mb-2 w-full">
-                            <div>Template agents do no have access to wallets.</div>
-                            <Link href={`/agents/create`}>
-                              <button className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base">
-                                Create Your Agent
-                              </button>
-                            </Link>
-                          </div> 
-                        : <div className="w-full">
-                            <div className="text-sm text-zinc-500 mt-2 mb-4">No agent wallet found. </div>
-                            <button disabled={createWalletLoading} onClick={handleCreateWallet} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">
-                              {createWalletLoading ? 'Creating...' : 'Create Agent Wallet'}
-                            </button>                          
-                          </div>
-                    }
+                        {activeWallet ? <div className="truncate max-w-[185px]">{activeWallet}</div> : 'No agent wallet found'}
+                      </div>
+                    ) : !authenticated && pathname === '/' ? (
+                      <div className="w-full">
+                        <div className="text-sm text-zinc-500 mt-2 mb-4">Connect your wallet to access wallet features.</div>
+                        <button 
+                          onClick={() => login()}
+                          className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
+                        >
+                          Connect Wallet
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-full">
+                        <div className="text-sm text-zinc-500 mt-2 mb-4">No agent wallet found. </div>
+                        <button 
+                          disabled={createWalletLoading} 
+                          onClick={params.userId === 'template' || pathname === '/' ? handleCreateTemplateWallet : handleCreateWallet} 
+                          className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {createWalletLoading ? 'Creating...' : 'Create Agent Wallet'}
+                        </button>                          
+                      </div>
+                    )}
                   </div>
-                  {agent.wallets?.solana && (
-                    <CopyButton text={agent.wallets.solana} />
+                  {activeWallet && (
+                    <CopyButton text={activeWallet} />
                   )}
                 </div>
                 
                 {/* Portfolio Value */}
-                {(agent.wallets?.solana && totalValue) ? <div className="pt-2 border-t border-zinc-700">
+                {(activeWallet && totalValue) ? <div className="pt-2 border-t border-zinc-700">
                   <div className="text-sm text-zinc-400">Total Value</div>
                   <div className="text-xl font-semibold text-white">
                     {totalValue ? '$' + totalValue.toFixed(2) : <div className="ml-5"><LoadingIndicator /></div>}
                   </div>
                 </div> : null}
                 
-                {agent.wallets && (
+                {activeWallet && (
                   <div className="flex gap-2 mt-2">
                     <ReceiveButton 
                       tokens={tokens.data}
-                      publicKey={agent.wallets?.solana}
+                      publicKey={activeWallet}
                       agent={agent}
                       onSwapComplete={refreshWalletData}
                       solanaBalance={portfolio?.holdings[0] ? {
@@ -732,7 +764,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
                     <TransferButton 
                       tokens={tokens.data}
-                      publicKey={agent.wallets?.solana}
+                      publicKey={activeWallet}
                       agent={agent}
                       onSwapComplete={refreshWalletData}
                       solanaBalance={portfolio?.holdings[0] ? {
@@ -745,7 +777,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
                     <SwapButton 
                       tokens={tokens.data}
-                      publicKey={agent.wallets?.solana}
+                      publicKey={activeWallet}
                       onSwapComplete={refreshWalletData}
                       solanaBalance={portfolio?.holdings[0] ? {
                         amount: portfolio.holdings[0].amount,
@@ -758,20 +790,20 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                   </div>
                 )}
                   
-                {agent.wallets && <button onClick={handleShowFundingModal} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
+                {activeWallet && <button onClick={handleShowFundingModal} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
                   Add Funds
                 </button>}
               </div>
 
               {/* Token List */}
               <div className="space-y-2">
-                {initialLoading && agent.wallets?.solana && params.userId !== 'template' ? <div className="space-y-2">
+                {initialLoading && activeWallet && params.userId !== 'template' ? <div className="space-y-2">
                   <LoadingCard/>
                   <LoadingCard/>
                   <LoadingCard/>
                 </div> : null}
 
-                {agent.wallets?.solana && portfolio && <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
+                {activeWallet && portfolio && <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Image src={portfolio.holdings[0].logoURI} alt='SOL' width={40} height={40} className="rounded-full object-contain"/>
@@ -787,7 +819,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                   </div>
                 </div>}
 
-                {agent.wallets?.solana ? (
+                {activeWallet ? (
                   tokens.data.map((token: Token) => (
                     <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-4">
                       <div className="flex items-center justify-between">
