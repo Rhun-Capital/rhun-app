@@ -286,7 +286,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const [showFundingModal, setShowFundingModal] = useState(false);
   const [createWalletLoading, setCreateWalletLoading] = useState(false);
   const { fundWallet } = useFundWallet();
-  const { createWallet, wallets } = useSolanaWallets();
+  const { createWallet, wallets, ready } = useSolanaWallets();
   const pathname = usePathname();
   const {login} = useLogin();
   const [recipientAddress, setRecipientAddress] = useState('');
@@ -304,10 +304,24 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
   // Update loading state when wallet is ready
   useEffect(() => {
+    if (!ready) {
+      setIsWalletLoading(true);
+      return;
+    }
+
+    // If we're ready but have no wallets, we're not loading - we're disconnected
+    if (wallets.length === 0) {
+      setIsWalletLoading(false);
+      return;
+    }
+
     if (activeWallet) {
       setIsWalletLoading(false);
+    } else {
+      // If we're ready but don't have a wallet, we're still loading
+      setIsWalletLoading(true);
     }
-  }, [activeWallet]);
+  }, [activeWallet, ready, wallets.length]);
 
   // Handle modal opening
   const handleOpenModal = (modalType: ModalType) => {
