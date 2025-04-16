@@ -537,11 +537,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const { fundWallet } = useFundWallet();
   const { createWallet, wallets, ready } = useSolanaWallets();
   const pathname = usePathname();
-  const {login} = useLogin({
-    onError: (error: string) => {
-      setIsWalletLoading(false);
-    }
-  });
+  const {login} = useLogin();
   // const [isWalletLoading, setIsWalletLoading] = useState(true);
 
   // Add state to track which modal is open
