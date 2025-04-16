@@ -552,6 +552,24 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     ? wallets[0]?.address 
     : agent.wallets?.solana;
 
+  // Fetch initial wallet data
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      if (activeWallet) {
+        try {
+          setInitialLoading(true);
+          await refreshWalletData();
+          setInitialLoading(false);
+        } catch (error) {
+          console.error('Error fetching initial wallet data:', error);
+          setInitialLoading(false);
+        }
+      }
+    };
+
+    fetchInitialData();
+  }, [activeWallet]);
+
   // Update loading state when wallet is ready
   useEffect(() => {
     if (!ready) {
@@ -758,7 +776,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
               <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-zinc-400">Wallet Address</div>
-                  {params.userId !== 'template' && <button
+                  {activeWallet && <button
                     className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
                     title="Refresh wallet data"
                     onClick={() => {
