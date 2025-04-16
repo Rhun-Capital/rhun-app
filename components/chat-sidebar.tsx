@@ -895,16 +895,28 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 {activeWallet && portfolio && <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Image src={portfolio.holdings[0].logoURI} alt='SOL' width={40} height={40} className="rounded-full object-contain"/>
+                      {portfolio.holdings[0]?.logoURI && (
+                        <Image 
+                          src={portfolio.holdings[0].logoURI} 
+                          alt='SOL' 
+                          width={40} 
+                          height={40} 
+                          className="rounded-full object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      )}
                       <div className="flex flex-col justify-start gap-1">
                         <div className="text-white">Solana</div>
                         <div className="flex items-center gap-1 text-sm text-zinc-400">
-                          <div className="text-sm">{portfolio.holdings[0].amount}</div>
+                          <div className="text-sm">{portfolio.holdings[0]?.amount || '0'}</div>
                           <div className="text-sm">SOL</div>
                         </div> 
                       </div>
                     </div>
-                    <div className="text-sm text-zinc-400">{portfolio.holdings[0].usdValue.toFixed(2)}</div>
+                    <div className="text-sm text-zinc-400">{portfolio.holdings[0]?.usdValue?.toFixed(2) || '0.00'}</div>
                   </div>
                 </div>}
 
@@ -913,7 +925,19 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                     <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Image src={token.token_icon} alt={token.token_name} width={40} height={40} className="rounded-full"/>
+                          {token.token_icon && (
+                            <Image 
+                              src={token.token_icon} 
+                              alt={token.token_name} 
+                              width={40} 
+                              height={40} 
+                              className="rounded-full"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          )}
                           <div className="flex flex-col justify-start gap-1">
                             <div className="text-white">{token.token_name}</div>
                             <div className="flex items-center gap-1 text-sm text-zinc-400">
