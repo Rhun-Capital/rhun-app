@@ -77,6 +77,7 @@ const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal 
             login();
             return;
           }
+          onOpenModal('swap');
         }}
         className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
       >
