@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { WalletIcon, LayoutGrid, SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart, XIcon, TrendingUp, Search, ImageIcon, BookOpen, Globe } from 'lucide-react';
 import Image from 'next/image';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useLogin, PrivyErrorCode } from '@privy-io/react-auth';
 import {useFundWallet} from '@privy-io/react-auth/solana';
 import LoadingIndicator from './loading-indicator';
 import CopyButton from './copy-button';
@@ -14,7 +14,6 @@ import { useModal } from '@/contexts/modal-context';
 import FundingModal from './funding-amount-modal';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { getToolCommand } from '@/app/config/tool-commands';
-import {useLogin} from '@privy-io/react-auth';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 
@@ -65,8 +64,8 @@ interface TransferButtonProps {
 }
 
 // New component that just shows the button without the modal implementation
-const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal }: TransferButtonProps) => {
-  const { authenticated } = usePrivy();
+const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal }: TransferButtonProps & { agent: any }) => {
+  const { user } = usePrivy();
   const { login } = useLogin();
 
   return (
@@ -74,7 +73,7 @@ const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal 
       <button 
         onClick={(e) => {
           e.stopPropagation();
-          if (!authenticated) {
+          if (!user) {
             login();
             return;
           }
@@ -88,7 +87,7 @@ const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal 
           </div>
         </div>
       </button>
-      {!authenticated && (
+      {!user && (
         <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
           <div className="text-sm text-white">Connect Wallet</div>
         </div>
@@ -538,24 +537,25 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const { fundWallet } = useFundWallet();
   const { createWallet, wallets, ready } = useSolanaWallets();
   const pathname = usePathname();
-  const {login} = useLogin();
-  const [recipientAddress, setRecipientAddress] = useState('');
-  const [tokenAddress, setTokenAddress] = useState('');
-  const [amount, setAmount] = useState('');
-  const [isWalletLoading, setIsWalletLoading] = useState(true);
+  const {login} = useLogin({
+    onError: (error: string) => {
+      setIsWalletLoading(false);
+    }
+  });
+  // const [isWalletLoading, setIsWalletLoading] = useState(true);
 
   // Add state to track which modal is open
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   // Get the active wallet based on whether it's a template agent or not
-  const activeWallet = params.userId === 'template' || pathname === '/' 
+  const activeWallet = (params.userId === 'template' || pathname === '/') && authenticated
     ? wallets[0]?.address 
     : agent.wallets?.solana;
 
   // Fetch initial wallet data
   useEffect(() => {
     const fetchInitialData = async () => {
-      if (activeWallet) {
+      if (activeWallet && ready && authenticated) {
         try {
           setInitialLoading(true);
           await refreshWalletData();
@@ -568,28 +568,39 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     };
 
     fetchInitialData();
-  }, [activeWallet]);
+  }, [activeWallet, ready, authenticated]);
 
   // Update loading state when wallet is ready
+  // useEffect(() => {
+  //   if (!ready) {
+  //     setIsWalletLoading(true);
+  //     return;
+  //   }
+
+  //   // If we're ready but have no wallets, we're not loading - we're disconnected
+  //   if (wallets.length === 0) {
+  //     setIsWalletLoading(false);
+  //     return;
+  //   }
+
+  //   if (activeWallet) {
+  //     setIsWalletLoading(false);
+  //   } else {
+  //     // If we're ready but don't have a wallet, we're still loading
+  //     setIsWalletLoading(true);
+  //   }
+  // }, [activeWallet, ready, wallets.length]);
+
+  // Clear wallet data when user is not authenticated
   useEffect(() => {
-    if (!ready) {
-      setIsWalletLoading(true);
-      return;
+    if (!user) {
+      setPortfolio(null);
+      setTotalValue(null);
+      setTokens({ data: [], metadata: { tokens: Object } });
+      setInitialLoading(false);
+      setRefreshLoading(false);
     }
-
-    // If we're ready but have no wallets, we're not loading - we're disconnected
-    if (wallets.length === 0) {
-      setIsWalletLoading(false);
-      return;
-    }
-
-    if (activeWallet) {
-      setIsWalletLoading(false);
-    } else {
-      // If we're ready but don't have a wallet, we're still loading
-      setIsWalletLoading(true);
-    }
-  }, [activeWallet, ready, wallets.length]);
+  }, [user]);
 
   // Handle modal opening
   const handleOpenModal = (modalType: ModalType) => {
@@ -792,11 +803,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 </div>
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <div className="text-sm text-white w-full">
-                    {isWalletLoading ? (
-                      <div className="flex items-center justify-center py-4">
-                        <LoadingIndicator />
-                      </div>
-                    ) : (activeWallet) ? (
+                    {activeWallet ? (
                       <div className="text-sm text-zinc-500 mt-2">
                         {activeWallet ? <div className="truncate max-w-[185px]">{activeWallet}</div> : 'No agent wallet found'}
                       </div>
@@ -967,7 +974,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       key={tool.command}
                       tool={tool}
                       isSubscribed={isSubscribed}
-                      isDisabled={!authenticated && tool.requiresAuth}
+                      isDisabled={!user && tool.requiresAuth}
                       onClick={() => handleToolClick(tool)}
                     />
                   ))}
