@@ -6,6 +6,8 @@ import {
 import {BotIcon} from "lucide-react";
 import { useRecentChats } from '@/contexts/chat-context';
 import { useChat } from "ai/react";
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { usePathname } from 'next/navigation';
 import { DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
@@ -380,11 +382,17 @@ function HomeContent() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { isAnyModalOpen } = useModal();
+  const { wallets } = useSolanaWallets();
+  const pathname = usePathname();
+
+  const templateWallet = params.userId === 'template' || pathname === '/' 
+    ? wallets[0]?.address 
+    : null  
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } =
     useChat({
       headers,
-      body: { agent, user },
+      body: { agent, user, templateWallet },
       maxSteps: 30,
       initialMessages,
       sendExtraMessageFields: true,
@@ -576,77 +584,7 @@ function HomeContent() {
     }
   }, [searchParams, messages, handleToolSelect, ready, user?.id, agent, router]); // Add router to dependencies
 
-  useEffect(() => {
-    if (!agent) return;
-    if (messages.length === 0) return;
-    
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage) return;
-    
-    // Create a new debounced function for each message
-    const debouncedSave = debounce(async () => {
-      await updateChatInDB(messages);
-    }, 1000);
-  
-    debouncedSave();
-  
-    return () => {
-      debouncedSave.cancel();
-    };
-  }, [messages, agent]);
-
-  // Add this useEffect to handle auto-resizing of the textarea
-  useEffect(() => {
-    const resizeTextarea = () => {
-      if (inputRef.current) {
-        // Reset height to auto to get the correct scrollHeight
-        inputRef.current.style.height = 'auto';
-        // Set the height to match the scrollHeight (content height)
-        const scrollHeight = inputRef.current.scrollHeight;
-        inputRef.current.style.height = `${Math.min(scrollHeight, 150)}px`;
-      }
-    };
-    
-    resizeTextarea();
-    
-    // Create a debounced version of the resize function
-    const debouncedResize = debounce(resizeTextarea, 50);
-    
-    // Add event listener for window resize
-    window.addEventListener('resize', debouncedResize);
-    
-    return () => {
-      window.removeEventListener('resize', debouncedResize);
-      debouncedResize.cancel();
-    };
-  }, [input]); // Re-run when input changes      
-
-  // Add this useEffect for cleanup
-  useEffect(() => {
-    const blobUrls: string[] = [];
-    
-    // Collect all blob URLs created
-    messages.forEach(message => {
-      message.experimental_attachments?.forEach(attachment => {
-        if (attachment.url?.startsWith('blob:')) {
-          blobUrls.push(attachment.url);
-        }
-      });
-    });
-    
-    // Cleanup function
-    return () => {
-      blobUrls.forEach(url => {
-        try {
-          URL.revokeObjectURL(url);
-        } catch (error) {
-          console.error('Error cleaning up blob URL:', error);
-        }
-      });
-    };
-  }, [messages]);    
-
-  const updateChatInDB = async (messages: Message[]): Promise<string[]> => {
+  const updateChatInDB = useCallback(async (messages: Message[]): Promise<string[]> => {
     const lastMessage = messages[messages.length - 1];
   
     // Skip DB operations if the message is empty, has no content and no tool invocations
@@ -676,7 +614,7 @@ function HomeContent() {
           agentName: agent?.name,
           lastMessage: lastMessage.content,
           lastUpdated: new Date().toISOString(),
-          isTemplate: params.userId === 'template'
+          isTemplate: true
         })
       });
 
@@ -753,7 +691,7 @@ function HomeContent() {
           chatId: currentChatId,
           messageId: lastMessage.id,
           userId: user?.id,
-          isTemplate: params.userId === 'template',
+          isTemplate: true,
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
@@ -774,8 +712,74 @@ function HomeContent() {
     }
     
     return [];
-  };
-  
+  }, [chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, refreshRecentChats]);
+
+  useEffect(() => {
+    if (agent) {
+      // Create a new debounced function for each message
+      const debouncedSave = debounce(async () => {
+        await updateChatInDB(messages);
+      }, 1000);
+    
+      debouncedSave();
+    
+      return () => {
+        debouncedSave.cancel();
+      };
+    }
+  }, [messages, agent]);
+
+  // Add this useEffect to handle auto-resizing of the textarea
+  useEffect(() => {
+    const resizeTextarea = () => {
+      if (inputRef.current) {
+        // Reset height to auto to get the correct scrollHeight
+        inputRef.current.style.height = 'auto';
+        // Set the height to match the scrollHeight (content height)
+        const scrollHeight = inputRef.current.scrollHeight;
+        inputRef.current.style.height = `${Math.min(scrollHeight, 150)}px`;
+      }
+    };
+    
+    resizeTextarea();
+    
+    // Create a debounced version of the resize function
+    const debouncedResize = debounce(resizeTextarea, 50);
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', debouncedResize);
+    
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      debouncedResize.cancel();
+    };
+  }, [input]); // Re-run when input changes      
+
+  // Add this useEffect for cleanup
+  useEffect(() => {
+    const blobUrls: string[] = [];
+    
+    // Collect all blob URLs created
+    messages.forEach(message => {
+      message.experimental_attachments?.forEach(attachment => {
+        if (attachment.url?.startsWith('blob:')) {
+          blobUrls.push(attachment.url);
+        }
+      });
+    });
+    
+    // Cleanup function
+    return () => {
+      blobUrls.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error('Error cleaning up blob URL:', error);
+        }
+      });
+    };
+  }, [messages]);    
+
   useEffect(() => {
     // get agent and sey agent name
     if (!user) return;

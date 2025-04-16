@@ -3,7 +3,8 @@
 import { useSolanaWallets, useSendTransaction } from '@privy-io/react-auth/solana';
 import { usePrivy } from '@privy-io/react-auth';
 import { LAMPORTS_PER_SOL, clusterApiUrl, Connection, Transaction, SystemProgram, PublicKey } from "@solana/web3.js";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams, usePathname } from 'next/navigation';
 
 interface Quote {
   inAmount: number;
@@ -16,30 +17,30 @@ interface Quote {
 
 export default function SwapComponent({ quote, agent }: { quote: Quote, agent: any }) {
   const { ready, wallets } = useSolanaWallets();
-  const agentWallet = wallets.find(w => w.address === agent.wallets.solana);
+  const params = useParams();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
   const connection = new Connection(clusterApiUrl('mainnet-beta'), 'confirmed');
   let transaction = new Transaction();
+
+  // Get the active wallet based on whether it's a template agent or not
+  const activeWallet = params.userId === 'template' || pathname === '/' 
+    ? wallets[0]?.address 
+    : agent.wallets?.solana;
+
+  // Find the wallet object for the active wallet
+  const agentWallet = wallets.find(w => w.address === activeWallet);
+
+  console.log('agentWallet', agentWallet);
+  console.log('activeWallet', activeWallet);
 
   if (!ready || !wallets[0]) return;
 
   const handleSwap = async () => {
     setIsLoading(true);
     try {
-      // const swapData = await fetch('https://quote-api.jup.ag/v6/swap', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     quoteResponse: quote,
-      //     userPublicKey: agentWallet?.address.toString(),
-      //     wrapUnwrapSol: true
-      //   })
-      // }).then(r => r.json());
-
-
       if (agentWallet) {
         await agentWallet.sendTransaction(
-          // swapData.swapTransaction,
           transaction,
           connection
         );
@@ -57,9 +58,6 @@ export default function SwapComponent({ quote, agent }: { quote: Quote, agent: a
 
   return (
     <div className="p-4 bg-zinc-800 rounded">
-      {/* <div>Input: {quote.inAmount / LAMPORTS_PER_SOL} SOL</div>
-      <div>Output: {quote.displayAmount}</div> */}
-      ehy!
       <button 
         onClick={handleSwap}
         disabled={!agentWallet || isLoading}

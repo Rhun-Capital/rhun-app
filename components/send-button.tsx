@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { ProxyConnection, executeTransfer } from '../utils/solana';
 import { RefreshCw } from 'lucide-react';
 import { useModal } from '../contexts/modal-context'; // Ensure this path is correct
+import { useParams, usePathname } from 'next/navigation';
 
 interface Token {
   token_address: string;
@@ -40,7 +41,13 @@ const TransferModal = ({
   const { authenticated } = usePrivy();
   const { wallets } = useSolanaWallets();
   const { isAnyModalOpen, closeModal } = useModal();
-  const solanaWallet = agent.wallets ? wallets.find(w => w.address === agent.wallets.solana) : null;
+  const params = useParams();
+  const pathname = usePathname();
+  
+  // For template agents, use the first wallet from useSolanaWallets
+  const solanaWallet = params.userId === 'template' || pathname === '/' 
+    ? wallets[0]
+    : wallets.find(w => w.address === agent.wallets?.solana);
   
   const connection = new ProxyConnection({ commitment: 'confirmed' });
   

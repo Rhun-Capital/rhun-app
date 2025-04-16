@@ -4,6 +4,8 @@
 import { useState } from 'react';
 import {QRCodeSVG} from 'qrcode.react';
 import Image from 'next/image';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { useParams, usePathname } from 'next/navigation';
 
 interface ReceiveModalProps {
   isOpen: boolean;
@@ -12,13 +14,15 @@ interface ReceiveModalProps {
 }
 
 const ReceiveModal = ({ isOpen, agent, onClose }: ReceiveModalProps) => {
-  // check the agent exists and has a solana wallet
-  let activeWallet;
-  if (agent && agent?.wallets && agent.wallets.solana){
-    activeWallet = agent.wallets.solana;
-  } else {
-    activeWallet = null;
-  }
+  const { wallets: solanaWallets } = useSolanaWallets();
+  const params = useParams();
+  const pathname = usePathname();
+  
+  // For template agents, use the first wallet from useSolanaWallets
+  const activeWallet = params.userId === 'template' || pathname === '/' 
+    ? solanaWallets[0]?.address 
+    : agent?.wallets?.solana;
+
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
