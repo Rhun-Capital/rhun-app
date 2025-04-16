@@ -65,21 +65,34 @@ interface TransferButtonProps {
 
 // New component that just shows the button without the modal implementation
 const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal }: TransferButtonProps) => {
+  const { authenticated } = usePrivy();
+  const { login } = useLogin();
+
   return (
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpenModal('swap');
-      }}
-      className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
-    >
-      <div className=" flex flex-col items-center gap-1 p-2">
-      <Repeat2 className="w-[20px] h-[20px]"/>
-      <div className="text-sm text-zinc-400">
-        Swap
-      </div>
-      </div>
-    </button>
+    <div className="relative">
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!authenticated) {
+            login();
+            return;
+          }
+        }}
+        className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
+      >
+        <div className="flex flex-col items-center gap-1 p-2">
+          <Repeat2 className="w-[20px] h-[20px]"/>
+          <div className="text-sm text-zinc-400">
+            Swap
+          </div>
+        </div>
+      </button>
+      {!authenticated && (
+        <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+          <div className="text-sm text-white">Connect Wallet</div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -143,7 +156,19 @@ const ToolCard: React.FC<{
   isDisabled: boolean;
   onClick: () => void;
 }> = ({ tool, isSubscribed, onClick, isDisabled }) => {
+  const { authenticated } = usePrivy();
+  const { login } = useLogin();
   const canUse = (!tool.isPro || isSubscribed) && !isDisabled;
+
+  const handleClick = () => {
+    if (tool.name === 'Swap Tokens' && !authenticated) {
+      login();
+      return;
+    }
+    if (canUse) {
+      onClick();
+    }
+  };
 
   return (
     <div 
@@ -158,7 +183,7 @@ const ToolCard: React.FC<{
         ? 'border-green-500/50 hover:border-green-500' 
         : 'border-zinc-700'
       }`}
-      onClick={() => canUse && onClick()}
+      onClick={handleClick}
     >
       <div className="flex justify-between items-start mb-1">
       <div className="font-medium text-white group-hover:text-white/90">
@@ -191,6 +216,13 @@ const ToolCard: React.FC<{
         Upgrade to Pro
         </a>
       </div>
+      )}
+
+      {/* Connect wallet overlay for swap tool */}
+      {tool.name === 'Swap Tokens' && !authenticated && (
+        <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <div className="text-sm text-white">Connect Wallet</div>
+        </div>
       )}
     </div>
   );
