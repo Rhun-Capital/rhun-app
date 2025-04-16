@@ -3,6 +3,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/react"
 import PrivyWrapper from "@/components/privy-provider";
 import { ChatProvider } from "@/contexts/chat-context";
 import { ModalProvider } from "@/contexts/modal-context";
@@ -34,6 +35,7 @@ export default function RootLayout({
             </ChatProvider>
           </PrivyWrapper>
         </ModalProvider>
+        <Analytics/>
       </body>
     </html>
   );
