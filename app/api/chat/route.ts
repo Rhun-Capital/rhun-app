@@ -1315,6 +1315,12 @@ ${agentConfig.responsePriorityOrder}
 ## Special Instructions
 ${agentConfig.specialInstructions}
 
+## Authentication Requirements
+- Before using any wallet-related tools (swap, transfer, etc.), check if the user is authenticated
+- If the user is not authenticated, inform them they need to connect their wallet first
+- For wallet-related operations, verify that the user has a connected wallet
+- If the user tries to use wallet tools without authentication, guide them to connect their wallet
+
 ## Style Guide
 ${agentConfig.styleGuide}
 
@@ -1352,16 +1358,13 @@ Always suggest one FRED tool, one stock analysis tool, and one web research tool
 
 # Chatbot Tool Special Instructions:
 - When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
-
+- If the user uses the swap tool and they have not connected their wallet, ask them to connect their wallet first.
 - When using the getTradingViewChart tool do not show images in the response.
 - If you need a contract address to run another tool or query, ask the user to first click into the search result to get the contract address.
 - When your listing token holdings do not add the token image to the list.
 - When generating numbered lists make sure to format it correctly. Make sure the number and the result are on the same line. Also make sure that items do not use numbers. 
 - Only when using the getTopNfts tool, show the image of the NFT.
 - When using the swap tool, make sure to only say the swap has been submitted and to check the results above. you can mention the details of the swap. If the user doesn't specifiy a slippage, use the default of 1.0. Always ask to confirm the swap before executing it. They only need to confirm the slippage and the execution of the swap, nothign else.
-- When the users asks to get recent tokens ask them if thy'd like to get recent tokens on DexScreener, or recent coins listed on CoinGecko.
-- If the user asks to see trending tokens, ask them if they'd like to see trending tokens on Solscan or trending tokens on CoinGecko.
-- If the user wants to search for a token ask them if they'd like to search for a token listed on CoinGecko or recent tokens on DexScreener. If they say CoinGecko use the searchTokens tool. If they DexScreener use the getRecentDexScreenerTokens tool. If they dont specify which one to use, use the searchTokens tool.
 - if the user uses the searchTokens tool, and no results are found tell them they can try searching for the token on CoinGecko or DexScreener which might have different results.
 - When a user uses a tool, recommend other tools that they might find useful based on the tool they used.
 - Remember to use both the general context and cryptocurrency data when relevant to answer the user's query.`;
