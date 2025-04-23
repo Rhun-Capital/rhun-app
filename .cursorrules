@@ -1,0 +1,19 @@
+# Lessons
+
+- When using PrivyClient in server-side code, initialize it with 3 parameters: `appId`, `appSecret`, and options object containing wallet API configuration if needed.
+- For delegated wallet sessions in Privy, use the `useDelegatedActions` hook from '@privy-io/react-auth' in the UI components to prompt users for authorization.
+- The Privy server API for delegated wallets works through direct API calls to the Privy endpoints when you need to make transactions on behalf of a user.
+
+# Scratchpad
+
+## Implementing Privy Delegated Wallets for Agent Wallets
+
+[X] Create a delegate-wallet-button.tsx component that uses useDelegatedActions
+[X] Integrate the DelegateWalletButton into wallet-tab.tsx in the Advanced Options section
+[X] Create server-wallet.ts utility functions for server-side operations with delegated wallets
+[X] Implement a transactions/send API endpoint for handling delegated wallet transactions
+
+The implementation consists of:
+1. A client-side component that allows users to grant server-side access to their wallets
+2. Server-side utilities for using those delegated wallet powers
+3. API endpoints that use the delegation to perform operations on behalf of the user 

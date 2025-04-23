@@ -1027,6 +1027,25 @@ function HomeContent() {
     }
   };
 
+  const handleRemoveFile = (fileToRemove: File) => {
+    if (!files) return;
+    
+    const dataTransfer = new DataTransfer();
+    Array.from(files).forEach(file => {
+      // Skip the file we want to remove
+      if (file !== fileToRemove) {
+        dataTransfer.items.add(file);
+      }
+    });
+    
+    // If all files were removed, set to null
+    if (dataTransfer.files.length === 0) {
+      setFiles(null);
+    } else {
+      setFiles(dataTransfer.files);
+    }
+  };
+
   if (!isHeadersReady) {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',  width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -1409,27 +1428,51 @@ function HomeContent() {
             {/* File previews */}
             <AnimatePresence>
               {files && (
-                <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2 max-w-3xl mx-auto pt-2">
                   {Array.from(files).map((file) =>
                     file.type.startsWith("image") ? (
-                      <motion.img
-                        key={file.name}
-                        src={URL.createObjectURL(file)}
-                        alt={file.name}
-                        className="h-16 w-16 object-cover rounded-md"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                      />
-                    ) : (
                       <motion.div
                         key={file.name}
-                        className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden"
+                        className="relative"
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.8, opacity: 0 }}
                       >
-                        <TextFilePreview file={file} />
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          className="h-16 w-16 object-cover rounded-md"
+                        />
+                        <button
+                          onClick={() => handleRemoveFile(file)}
+                          className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
+                          aria-label="Remove file"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                          </svg>
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key={file.name}
+                        className="relative"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                      >
+                        <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+                          <TextFilePreview file={file} />
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFile(file)}
+                          className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
+                          aria-label="Remove file"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                          </svg>
+                        </button>
                       </motion.div>
                     )
                   )}
