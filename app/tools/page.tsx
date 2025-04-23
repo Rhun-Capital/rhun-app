@@ -210,7 +210,7 @@ export default function HomePage() {
       color: 'text-indigo-400',
       type: 'swap',
       isPopular: true,
-      stats: '0.1% Slippage',
+      stats: '10K+ Assets',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/swap-wire.png'
     },
     {
