@@ -1096,12 +1096,17 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
         </div>
       </div>
 
-      <FundingModal
-        isOpen={showFundingModal}
-        onClose={() => setShowFundingModal(false)}
-        onConfirm={handleFundingConfirm}
-        defaultAmount={0.1}
-      />
+      {/* Render FundingModal using ModalPortal */}
+      {showFundingModal && (
+        <ModalPortal>
+          <FundingModal
+            isOpen={showFundingModal}
+            onClose={() => setShowFundingModal(false)}
+            onConfirm={handleFundingConfirm}
+            defaultAmount={0.1}
+          />
+        </ModalPortal>
+      )}
 
       {/* Render modals using portals to attach them to the document body */}
       {activeModal === 'transfer' && (
