@@ -18,7 +18,6 @@ interface TradingViewResult {
   toolbar_bg?: string;
   enable_publishing?: boolean;
   allow_symbol_change?: boolean;
-  // save_image?: boolean;
   container_id?: string;
   height?: number;
   width?: string;
@@ -172,24 +171,24 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
             <div
               className="w-full h-full p-4"
               style={{ 
-                height: "100vh", 
+                height: "90vh", 
                 width: "100vw",
                 paddingTop: "3rem",
-                paddingBottom: "4rem"
+                paddingBottom: "calc(env(safe-area-inset-bottom) + 5rem)"
               }}>
               <div 
                 className="tradingview-widget-container w-full h-full" 
                 ref={expandedContainer}
                 id={expandedContainerId}
                 style={{ 
-                  height: "calc(100vh - 3rem)", 
+                  height: "calc(100vh - 10rem)", 
                   width: "100%"
                 }}
               >
                 <div 
                   className="tradingview-widget-container__widget w-full h-full" 
                   style={{ 
-                    height: "calc(100vh - 3rem - 32px)", 
+                    height: "calc(100vh - 10rem - 32px)", 
                     width: "100%"
                   }}
                 />
