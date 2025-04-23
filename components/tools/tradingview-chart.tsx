@@ -168,29 +168,20 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div
-              className="w-full h-full p-4"
-              style={{ 
-                height: "90vh", 
+            <div className="w-full p-4 h-[90vh] md:h-[100vh]" style={{ 
                 width: "100vw",
                 paddingTop: "3rem",
                 paddingBottom: "calc(env(safe-area-inset-bottom) + 5rem)"
               }}>
               <div 
-                className="tradingview-widget-container w-full h-full" 
+                className="tradingview-widget-container w-full h-[calc(90vh-8rem)] md:h-[calc(100vh-8rem)]" 
                 ref={expandedContainer}
                 id={expandedContainerId}
-                style={{ 
-                  height: "calc(100vh - 10rem)", 
-                  width: "100%"
-                }}
+                style={{ width: "100%" }}
               >
                 <div 
-                  className="tradingview-widget-container__widget w-full h-full" 
-                  style={{ 
-                    height: "calc(100vh - 10rem - 32px)", 
-                    width: "100%"
-                  }}
+                  className="tradingview-widget-container__widget w-full h-[calc(90vh-8rem-32px)] md:h-[calc(100vh-8rem-32px)]" 
+                  style={{ width: "100%" }}
                 />
               </div>
             </div>

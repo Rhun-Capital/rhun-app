@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useModal } from '@/contexts/modal-context';
+import Image from 'next/image';
 
 interface FundingModalProps {
   isOpen: boolean;
@@ -53,13 +54,22 @@ const FundingModal: React.FC<FundingModalProps> = ({
           </svg>
         </button>
 
-        <h2 className="text-xl font-bold mb-6 text-white">Add Funds</h2>
+        <h2 className="text-xl font-bold mb-6 text-white flex items-center gap-2">
+          Add Funds
+        </h2>
 
         <div className="space-y-4">
           {/* Amount Input */}
           <div>
-            <label className="text-sm text-zinc-400 block mb-2">
-              Amount (SOL)
+            <label className="text-sm text-zinc-400 flex items-center gap-2 mb-2">
+              <Image
+                src="https://d1olseq3j3ep4p.cloudfront.net/images/chains/solana.svg"
+                alt="Solana logo"
+                width={16}
+                height={16}
+                priority
+              />
+              <span>Amount (SOL)</span>
             </label>
             <input
               type="number"
