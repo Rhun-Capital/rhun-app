@@ -384,10 +384,33 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
   }
 
   const formatNumber = (num: number) => {
+    if (!num && num !== 0) return '0.00';
+    
+    // For very small numbers (< 0.01), use more decimal places
+    if (Math.abs(num) < 0.01 && num !== 0) {
+      // Count leading zeros after decimal point
+      const numStr = num.toString();
+      const decimalPart = numStr.split('.')[1] || '';
+      let leadingZeros = 0;
+      
+      for (let i = 0; i < decimalPart.length; i++) {
+        if (decimalPart[i] === '0') {
+          leadingZeros++;
+        } else {
+          break;
+        }
+      }
+      
+      // Use at least 2 significant digits plus the leading zeros
+      const significantDigits = Math.max(2, leadingZeros + 2);
+      return num.toFixed(significantDigits);
+    }
+    
+    // For normal numbers, use 2 decimal places
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(num || 0);
+    }).format(num);
   };
 
   const formatPercentage = (num: number) => {
