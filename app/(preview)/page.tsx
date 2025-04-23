@@ -1221,7 +1221,7 @@ function HomeContent() {
           >
             <AnimatePresence>
               {files && (
-                <div className="flex gap-2 mb-2 overflow-x-auto pb-2 max-w-3xl mx-auto">
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2 pt-2 max-w-3xl mx-auto">
                   {Array.from(files).map((file) =>
                     file.type.startsWith("image") ? (
                       <motion.div

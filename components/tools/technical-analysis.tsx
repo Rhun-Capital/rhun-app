@@ -401,8 +401,9 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
         }
       }
       
-      // Use at least 2 significant digits plus the leading zeros
-      const significantDigits = Math.max(2, leadingZeros + 2);
+      // Use at least 6 significant digits for very small numbers to preserve precision
+      // This will ensure numbers like 0.000295 are shown properly
+      const significantDigits = Math.max(6, leadingZeros + 3);
       return num.toFixed(significantDigits);
     }
     
