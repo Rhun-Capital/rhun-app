@@ -189,18 +189,7 @@ export default function HomePage() {
       isNew: true,
       stats: '20+ Indicators',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/technical-analysis-2+Background+Removed.png'
-    },
-    {
-      title: 'Stock Analysis',
-      description: 'Get comprehensive analysis of stocks including financial metrics and analyst consensus.',
-      icon: TrendingUp,
-      isNew: true,
-      link: '/?tool=stock-analysis',
-      color: 'text-indigo-400',
-      type: 'stock-analysis',
-      stats: 'Real-time Data',
-      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/stocks-wire.png'
-    },   
+    }, 
     {
       title: 'TradingView Chart',
       description: 'View interactive TradingView charts for any asset with multiple timeframes.',
@@ -225,16 +214,6 @@ export default function HomePage() {
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/swap-wire.png'
     },
     {
-      title: 'Web Research',
-      description: 'Perform web research and get summarized insights from multiple sources.',
-      icon: Globe,
-      link: '/?tool=web-research',
-      color: 'text-indigo-400',
-      type: 'web-research',
-      stats: 'Multi-source',
-      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/web-search.png'
-    },    
-    {
       title: 'Asset Search',
       description: 'Search and analyze any cryptocurrency or token with detailed market data.',
       icon: Search,
@@ -243,8 +222,7 @@ export default function HomePage() {
       type: 'asset-search',
       stats: '10K+ Assets',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/asset-search.png'
-    },
-
+    },    
     {
       title: 'News Analysis',
       description: 'Analyze market news and get sentiment analysis for better decision making.',
@@ -254,7 +232,17 @@ export default function HomePage() {
       type: 'news-analysis',
       stats: 'AI-Powered',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/news-2.png'
-    },
+    },    
+    {
+      title: 'Web Research',
+      description: 'Perform web research and get summarized insights from multiple sources.',
+      icon: Globe,
+      link: '/?tool=web-research',
+      color: 'text-indigo-400',
+      type: 'web-research',
+      stats: 'Multi-source',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/web-search.png'
+    },     
     {
       title: 'Fear & Greed Index',
       description: 'Track market sentiment with the Crypto Fear & Greed Index and historical data.',
@@ -275,6 +263,16 @@ export default function HomePage() {
       stats: 'Real-time Updates',
       image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/market-movers.png'
     },
+    {
+      title: 'Stock Analysis',
+      description: 'Get comprehensive analysis of stocks including financial metrics and analyst consensus.',
+      icon: TrendingUp,
+      link: '/?tool=stock-analysis',
+      color: 'text-indigo-400',
+      type: 'stock-analysis',
+      stats: 'Real-time Data',
+      image: 'https://d1olseq3j3ep4p.cloudfront.net/images/tools/stocks-wire.png'
+    },  
     {
       title: 'GDP Analysis',
       description: 'Access real-time GDP data and analysis from FRED with interactive charts and historical trends.',
