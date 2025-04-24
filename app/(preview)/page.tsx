@@ -692,11 +692,11 @@ function HomeContent() {
   const updateChatInDB = useCallback(async (messages: Message[]): Promise<string[]> => {
     const lastMessage = messages[messages.length - 1];
   
-    // Skip DB operations if the message is empty, has no content and no tool invocations
-    // Also skip if this appears to be a tool-generated message (from assistant role but doesn't have a toolInvocation)
+    // Skip if there's no lastMessage or if the message has no content/tool invocations
     if (
+      !lastMessage || 
       (lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || 
-      (lastMessage.role === 'assistant' && !lastMessage.toolInvocations?.length && lastMessage.content.includes('Analysis Summary'))
+      (lastMessage.role === 'assistant' && !lastMessage.toolInvocations?.length && lastMessage.content?.includes('Analysis Summary'))
     ) {
       return [];
     }
@@ -1416,5 +1416,5 @@ function HomeContent() {
   );
 }
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamicParams = true;
