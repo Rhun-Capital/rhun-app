@@ -24,6 +24,7 @@ import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
 import { calculateSMA, calculateEMA, calculateRSI, calculateMACD, calculateStochRSI, calculateCCI, calculateMFI, calculateADX, calculateDMI, calculateIchimoku, calculateAroon, calculateATR, calculateVolumeMetrics, calculateOBV, calculatePivotPoints, calculateFibonacciRetracement, calculateBollingerBands, calculateSupportResistance, calculateMarketSentiment } from '@/utils/technical-analysis';
 
+export const runtime = 'nodejs';
 
 export interface DexScreenerToken {
   tokenAddress: string;
