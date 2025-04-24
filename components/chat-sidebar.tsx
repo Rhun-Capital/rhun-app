@@ -522,6 +522,18 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
   return mounted ? createPortal(children, document.body) : null;
 };
 
+// Helper function to format numbers with commas
+const formatNumberWithCommas = (value: number | undefined | null) => {
+  if (value === undefined || value === null) return '0';
+  return value.toLocaleString('en-US', { maximumFractionDigits: 8 });
+};
+
+// Helper function to format currency with commas
+const formatCurrency = (value: number | undefined | null) => {
+  if (value === undefined || value === null) return '$0.00';
+  return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent }) => {
   const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
   const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
@@ -836,7 +848,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                 {(activeWallet && totalValue) ? <div className="pt-2 border-t border-zinc-700">
                   <div className="text-sm text-zinc-400">Total Value</div>
                   <div className="text-xl font-semibold text-white">
-                    {totalValue ? '$' + totalValue.toFixed(2) : <div className="ml-5"><LoadingIndicator /></div>}
+                    {totalValue ? formatCurrency(totalValue) : <div className="ml-5"><LoadingIndicator /></div>}
                   </div>
                 </div> : null}
                 
@@ -915,12 +927,12 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       <div className="flex flex-col justify-start gap-1">
                         <div className="text-white">Solana</div>
                         <div className="flex items-center gap-1 text-sm text-zinc-400">
-                          <div className="text-sm">{portfolio.holdings[0]?.amount || '0'}</div>
+                          <div className="text-sm">{portfolio.holdings[0]?.amount ? formatNumberWithCommas(portfolio.holdings[0].amount) : '0'}</div>
                           <div className="text-sm">SOL</div>
                         </div> 
                       </div>
                     </div>
-                    <div className="text-sm text-zinc-400">{portfolio.holdings[0]?.usdValue?.toFixed(2) || '0.00'}</div>
+                    <div className="text-sm text-zinc-400">{portfolio.holdings[0]?.usdValue ? formatCurrency(portfolio.holdings[0].usdValue) : '$0.00'}</div>
                   </div>
                 </div>}
 
@@ -945,12 +957,12 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                           <div className="flex flex-col justify-start gap-1">
                             <div className="text-white">{token.token_name}</div>
                             <div className="flex items-center gap-1 text-sm text-zinc-400">
-                              <div className="text-sm">{token.formatted_amount}</div>
+                              <div className="text-sm">{formatNumberWithCommas(token.formatted_amount)}</div>
                               <div className="text-sm">{token.token_symbol}</div>
                             </div> 
                           </div>
                         </div>
-                        <div className="text-sm text-zinc-400">{token.usd_value && token.usd_value > 0.009 ? '$'+token.usd_value.toFixed(2) : '-'}</div>
+                        <div className="text-sm text-zinc-400">{token.usd_value && token.usd_value > 0.009 ? formatCurrency(token.usd_value) : '-'}</div>
                       </div>
                     </div>
                   ))
