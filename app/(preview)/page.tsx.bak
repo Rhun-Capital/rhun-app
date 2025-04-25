@@ -1,0 +1,1866 @@
+"use client";
+import {
+  AttachmentIcon,
+  UserIcon
+} from "@/components/icons";
+import {BotIcon} from "lucide-react";
+import { useRecentChats } from '@/contexts/chat-context';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { usePathname } from 'next/navigation';
+import { useChat } from "ai/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { DragEvent } from "react";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
+import { toast } from "sonner";
+import Link from "next/link";
+import { Markdown } from "@/components/markdown";
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import LoadingIndicator from "@/components/loading-indicator";
+import MarketMovers from "@/components/tools/market-movers";
+import TokenInfo from "@/components/tools/token-info";
+import SearchTokens from "@/components/tools/search-tokens";
+import TotalCryptoMarketCap from "@/components/tools/total-crypto-marketcap";
+import MarketCategories from "@/components/tools/market-categories";
+import DerivativesExchanges from "@/components/tools/derivatives-exchanges";
+import RecentCoinsResults from "@/components/tools/recent-coins";
+import TopHoldersDisplay from "@/components/tools/get-top-holders";
+import type { Message } from 'ai';
+import React from 'react';
+import ChatSidebar from '@/components/chat-sidebar';
+import SolanaBalance  from "@/components/tools/solana-balance";
+import PortfolioValue  from "@/components/tools/portfolio-value";
+import TokenHoldings  from "@/components/tools/token-holdings";
+import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
+import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
+import AccountInfo from "@/components/tools/account-info";
+import TrendingCoins from "@/components/tools/trending-searches";
+import TrendingSolanaTokens from "@/components/tools/trending-solana-tokens";
+import TopNFTsResults from "@/components/tools/top-nfts";
+import SwapComponent from "@/components/tools/swap-component";
+import { debounce } from 'lodash';
+import ExecuteSwap from "@/components/tools/execute-swap";
+import RecentDexScreenerTokens from "@/components/tools/recent-dexscreener-tokens";
+import RecentNews from "@/components/tools/recent-news";
+import StockAnalysis from "@/components/tools/stock-analysis";
+import OptionsAnalysis from "@/components/tools/options-analysis";
+import NewsAnalysis from "@/components/tools/news-analysis";
+import WebResearch from "@/components/tools/web-research";
+import TradingViewChart from "@/components/tools/tradingview-chart";
+import TechnicalAnalysis from '@/components/tools/technical-analysis';
+import FredAnalysis from '@/components/tools/fred-analysis';
+import { FredSearch } from '@/components/tools/fred-search';
+import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
+import { getToolCommand } from '@/app/config/tool-commands';
+import { useModal } from "@/contexts/modal-context";
+import { Button } from "@/components/ui/button";
+import { v4 as uuidv4 } from 'uuid';
+import { usePrivy } from "@privy-io/react-auth";
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { XIcon, MenuIcon, LayoutGrid, ChevronDown } from "lucide-react";
+import { LineChart } from "lucide-react";
+
+interface Agent {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  userId: string;
+}
+
+const DEFAULT_AGENT: Agent = {
+  id: 'cc425065-b039-48b0-be14-f8afa0704357',
+  name: 'Rhun Capital',
+  description: 
+    'Meet Rhun Capital, your all-in-one crypto research partner equipped with a comprehensive ' +
+    'suite of tools to navigate the dynamic digital asset landscape. Rhun Capital enables you to explore ' +
+    'detailed token information, track the latest launches, and scrutinize token distributions—including ' +
+    'data on top token holders—to uncover valuable insights. Leverage market sentiment indicators to ' +
+    'understand prevailing market emotions and refine your investment strategies, while comparing market ' +
+    'categories and evaluating data from exchanges to reveal emerging opportunities and risks. Whether ' +
+    "you're managing your own portfolio or seeking an in-depth market analysis, our data-driven approach " +
+    'and specialized tools provide you with the insights needed for smarter crypto investing.',
+  imageUrl: 'https://d1olseq3j3ep4p.cloudfront.net/agents/cc425065-b039-48b0-be14-f8afa0704357/profile-1738538619696.jpg',
+  userId: 'template'
+};
+
+const TextFilePreview = ({ file }: { file: File | string }) => {
+  const [content, setContent] = useState<string>('');
+  
+  useEffect(() => {
+    if (typeof file === 'string') {
+      setContent(file);
+    } else if (file instanceof Blob) {
+      const reader = new FileReader();
+      reader.onload = (e) => setContent(e.target?.result as string);
+      reader.readAsText(file);
+    }
+  }, [file]);
+
+  return <pre className="whitespace-pre-wrap text-xs">{content}</pre>;
+};
+
+// Helper function to safely get URLs for attachments
+const getAttachmentUrl = (attachment: any): string => {
+  if (attachment.url) {
+    // If it's already a URL, return it
+    return attachment.url;
+  } else if (attachment.type?.startsWith('image/')) {
+    // If it's a fresh file upload, create object URL
+    return URL.createObjectURL(attachment);
+  }
+  return '';
+};
+
+const AttachmentDisplay = ({ attachment }: { attachment: any }) => {
+  // Handle fresh file uploads (experimental_attachments)
+  if (attachment.type?.startsWith('image/')) {
+    return (
+      <img 
+        src={URL.createObjectURL(attachment)} 
+        alt={attachment.name} 
+        className="h-40 w-40 object-cover rounded-md"
+      />
+    );
+  }
+  
+  if (attachment.type?.startsWith('text/')) {
+    return (
+      <div className="h-40 w-40 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+        <TextFilePreview file={attachment} />
+      </div>
+    );
+  }
+  
+  // Handle stored attachments from API (contentType and url structure)
+  if (attachment.contentType?.startsWith('image/') && attachment.url) {
+    return (
+      <img 
+        src={attachment.url} 
+        alt={attachment.name || 'Image attachment'} 
+        className="h-40 w-40 object-cover rounded-md"
+      />
+    );
+  }
+  
+  if (attachment.contentType?.startsWith('text/') && attachment.url) {
+    return (
+      <div className="h-40 w-40 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+        <span className="text-xs truncate">{attachment.name || 'Text file'}</span>
+      </div>
+    );
+  }
+  
+  // Default fallback
+  return (
+    <div className="h-40 w-40 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden flex items-center justify-center">
+      <span className="text-[8px] truncate">{attachment.name || 'Attachment'}</span>
+    </div>
+  );
+};
+
+const CollapsibleDescription = ({ text }: { text: string }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const maxLength = 100; // Adjust this value to change initial visible length
+  const needsShowMore = text.length > maxLength;
+
+  return (
+    <div className="relative">
+      <p className="text-base sm:text-lg">
+        {isExpanded ? text : `${text.slice(0, maxLength)}${needsShowMore ? '...' : ''}`}
+      </p>
+      {needsShowMore && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-indigo-400 hover:text-indigo-300 transition-colors text-sm mt-2"
+        >
+          {isExpanded ? 'Show Less' : 'Read More'}
+        </button>
+      )}
+    </div>
+  );
+};
+
+interface EmptyStateProps {
+  agent: any;
+  userId: string;
+  agentId: string;
+  onDescribeTools: () => void;
+}
+
+const EmptyState = ({ agent, onDescribeTools }: EmptyStateProps) => {
+  return (
+    <div className="mx-auto w-full max-w-md">
+      <div className="border rounded-xl p-4 sm:p-8 flex flex-col items-center gap-4 sm:gap-6 text-zinc-400 border-zinc-700 bg-zinc-800/30">
+        {/* Agent Image/Icon with responsive sizing */}
+        <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-zinc-700 flex items-center justify-center">
+          
+            <img 
+              src={agent.imageUrl}
+              alt={agent.name}
+              className="w-full h-full object-cover"
+            />
+          
+        </div>
+
+        {/* Agent Name - responsive font size */}
+        <h2 className="text-xl sm:text-2xl font-semibold text-white text-center">
+          Hello, I&apos;m {agent.name}
+        </h2>
+
+        {/* Welcome Message - responsive text and spacing */}
+        <div className="text-center space-y-3 sm:space-y-4 px-2 sm:px-4">
+          <CollapsibleDescription text={agent.description} />
+          <p className="text-xs text-zinc-400">
+          You can also drag and drop files here to send them as attachments. You can
+          send images and text files. Learn more about my capabilities in the{' '}
+            <Link
+              className="text-indigo-400 hover:text-indigo-300 transition-colors"
+              href="https://rhun-capital.gitbook.io/"
+              target="_blank"
+            >
+              documentation
+            </Link>
+            .
+          </p>
+        </div>
+
+        {/* Action Buttons - Stack on mobile, side by side on desktop */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto mt-2">
+          <button
+            onClick={onDescribeTools}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
+          >
+            View Available Tools
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Create a non-SSR version of the component 
+const NoSSRHomeContent = dynamic(() => Promise.resolve(HomeContent), {
+  ssr: false,
+});
+
+// Add a utility function to get a human-readable title for a tool
+const getToolTitle = (tool: any): string => {
+  switch(tool.toolName) {
+    case 'getUserSolanaBalance':
+    case 'getAgentSolanaBalance':
+      return 'Solana Balance';
+    case 'getUserPortfolioValue':
+    case 'getAgentPortfolioValue':
+      return 'Portfolio Value';
+    case 'getUserTokenHoldings':
+    case 'getAgentTokenHoldings':
+      return 'Token Holdings';
+    case 'getFearAndGreedIndex':
+      return 'Fear & Greed Index';
+    case 'getSolanaTransactionVolume':
+      return 'Solana Transaction Volume';
+    case 'getMarketMovers':
+      return 'Market Movers';
+    case 'getRecentlyLaunchedCoins':
+      return 'Recently Launched Coins';
+    case 'getTokenInfo':
+      return tool.args?.symbol 
+        ? `Token Info: ${tool.args.symbol.toUpperCase()}`
+        : 'Token Info';
+    case 'searchTokens':
+      return tool.args?.query
+        ? `Token Search: ${tool.args.query}`
+        : 'Token Search';
+    case 'getContractAddress':
+      return 'Contract Address';
+    case 'getTotalCryptoMarketCap':
+      return 'Total Crypto Market Cap';
+    case 'getMarketCategories':
+      return 'Market Categories';
+    case 'getDerivativesExchanges':
+      return 'Derivatives Exchanges';
+    case 'getTopHolders':
+      return tool.args?.symbol
+        ? `Top Holders: ${tool.args.symbol.toUpperCase()}`
+        : 'Top Token Holders';
+    case 'getAccountDetails':
+      return 'Account Details';
+    case 'getTrendingTokens':
+      return tool.args?.chain === 'solana' 
+        ? 'Trending Solana Tokens'
+        : 'Trending Tokens';
+    case 'getTopNfts':
+      return 'Top NFTs';
+    case 'swap':
+      return 'Token Swap';
+    case 'getRecentDexScreenerTokens':
+      return 'Recent DexScreener Tokens';
+    case 'getCryptoNews':
+      return 'Crypto News';
+    case 'stockAnalysis':
+      return tool.args?.symbol
+        ? `Stock Analysis: ${tool.args.symbol.toUpperCase()}`
+        : 'Stock Analysis';
+    case 'optionsAnalysis':
+      return 'Options Analysis';
+    case 'newsAnalysis':
+      return 'News Analysis';
+    case 'webResearch':
+      return 'Web Research';
+    case 'getTradingViewChart':
+      return tool.args?.symbol
+        ? `Chart: ${tool.args.symbol.toUpperCase()}`
+        : 'TradingView Chart';
+    case 'getTechnicalAnalysis':
+      return tool.args?.symbol
+        ? `Technical Analysis: ${tool.args.symbol.toUpperCase()}`
+        : 'Technical Analysis';
+    case 'getFredSeries':
+      return tool.args?.series_id
+        ? `FRED: ${tool.args.series_id}`
+        : 'FRED Economic Data';
+    case 'fredSearch':
+      return tool.args?.query
+        ? `FRED Search: ${tool.args.query}`
+        : 'FRED Search Results';
+    default:
+      return tool.toolName
+        ? tool.toolName.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())
+        : 'Tool Result';
+  }
+};
+
+// Add an ArtifactCard component to display tool results in the chat
+const ArtifactCard = ({ tool, isSelected, onSelect }: { 
+  tool: any; 
+  isSelected: boolean; 
+  onSelect: () => void;
+}) => {
+  const title = getToolTitle(tool);
+  
+  return (
+    <div 
+      className={`relative mt-2 p-2 w-44 cursor-pointer rounded-lg transition-colors border ${
+        isSelected 
+          ? 'bg-indigo-500/10 border-indigo-500 text-indigo-100' 
+          : 'bg-zinc-800 hover:bg-zinc-800/80 border-zinc-700 hover:border-zinc-500 text-zinc-300'
+      }`}
+      onClick={onSelect}
+    >
+      {/* Artifact selection indicator */}
+      {isSelected && (
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center">
+          <div className="w-2 h-2 bg-white rounded-full"></div>
+        </div>
+      )}
+      
+      <div className="flex items-center gap-2 mb-1">
+        <div className={`${isSelected ? 'text-indigo-400' : 'text-zinc-400'}`}>
+          <LineChart size={16} />
+        </div>
+        <div className={`text-sm font-medium ${isSelected ? 'text-indigo-300' : 'text-zinc-300'}`}>
+          {title}
+        </div>
+      </div>
+      
+      <div className="text-xs text-zinc-500 mt-1 truncate">
+        Interactive tool result
+      </div>
+    </div>
+  );
+};
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#18181B' }}>
+        <div className="text-center">
+          <LoadingIndicator/>
+          <p className="mt-4 text-zinc-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <NoSSRHomeContent />
+      <style jsx global>{`
+        /* Force mobile containment - aggressive approach */
+        @media (max-width: 768px) {
+          .chat-scrollable {
+            overflow-x: hidden !important;
+          }
+          
+          .tool-wrapper {
+            max-width: 90vw !important;
+            overflow-x: scroll !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: block;
+          }
+          
+          table {
+            width: 100% !important;
+            max-width: 100% !important;
+            table-layout: fixed !important;
+            font-size: 0.85rem !important;
+          }
+          
+          td, th {
+            padding: 4px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+            max-width: 60px !important;
+          }
+          
+          pre, code {
+            max-width: 90vw !important;
+            overflow-x: scroll !important;
+            white-space: pre-wrap !important;
+          }
+          
+          .message-content {
+            max-width: 90vw !important;
+            overflow-wrap: break-word !important;
+            padding-right: 0 !important;
+          }
+          
+          div[class*="market"], 
+          div[class*="token"], 
+          div[class*="chart"],
+          div[class*="holder"],
+          div[class*="transaction"] {
+            max-width: 90vw !important;
+            overflow-x: scroll !important;
+          }
+        }
+        
+        /* Desktop remains untouched */
+        @media (min-width: 769px) {
+          .tool-wrapper {
+            width: auto;
+            overflow: visible;
+          }
+          
+          table {
+            width: auto;
+            table-layout: auto;
+          }
+        }
+      `}</style>
+    </Suspense>
+  );
+}
+
+function HomeContent() {
+  const params = useParams();
+  const agentId = 'cc425065-b039-48b0-be14-f8afa0704357'
+  const searchParams = useSearchParams();
+  const chatId = decodeURIComponent(searchParams.get('chatId') || '');
+  const [agent, setAgent] = useState<any>(DEFAULT_AGENT);
+  const [files, setFiles] = useState<FileList | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [savedInput, setSavedInput] = useState("");
+  const [newChatId] = useState<string>(`chat_template_${Date.now()}`);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [hasTools, setHasTools] = useState(false);
+  const [activeTab, setActiveTab] = useState<'wallet' | 'tools' | 'results'>('tools');
+  const topRef = useRef<HTMLDivElement>(null);
+  const { isAnyModalOpen } = useModal();
+  // Handle tool query parameter (Now placed after dependencies)
+  const hasTriggeredTool = useRef(false);
+  const router = useRouter();  
+  const { user, getAccessToken, ready } = usePrivy();
+  const { refreshRecentChats } = useRecentChats();
+  const [headers, setHeaders] = useState<any>();
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [isHeadersReady, setIsHeadersReady] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { wallets } = useSolanaWallets();
+  const pathname = usePathname();
+  const [selectedToolId, setSelectedToolId] = useState<string | null>(null);
+  const [showToolResultsBottomSheet, setShowToolResultsBottomSheet] = useState(false);
+  const [lastToolId, setLastToolId] = useState<string | null>(null);
+  const [showToolsDropdown, setShowToolsDropdown] = useState(false);
+  const [pendingToolCommand, setPendingToolCommand] = useState<string | null>(null);
+
+  const templateWallet = params.userId === 'template' || pathname === '/' 
+    ? wallets[0]?.address 
+    : null
+
+  // Add CSS to hide the results tab in the sidebar on mobile only
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Hide results tab in sidebar on mobile only */
+      @media (max-width: 767px) {
+        .flex.border-b.border-zinc-700 > button:nth-child(3) {
+          display: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  const { messages, input, handleSubmit, handleInputChange, isLoading, append } = useChat({
+    headers,
+    body: { 
+      agent, 
+      user,
+      templateWallet
+    },
+    maxSteps: 30,
+    initialMessages,
+    sendExtraMessageFields: true,
+    id: chatId || newChatId,
+    onError: () => {
+      toast.error('Failed to send message. Please try again.')
+    },
+    onFinish: async (message) => {   
+      // Debounced save is handled in a separate useEffect
+    },
+  });
+
+  const getAgent = async () => {
+    try {
+      const accessToken = await getAccessToken();
+      const response = await fetch(
+        `/api/${agentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        console.error("Failed to fetch agent configuration, using default");
+        return DEFAULT_AGENT;
+      }
+      return response.json();
+    } catch (error) {
+      console.error("Error fetching agent:", error);
+      return DEFAULT_AGENT;
+    }
+  }
+
+  const refreshAgent = async () => {
+    if (!user || !ready) return;
+    try {
+      const fetchedAgent = await getAgent();
+      setAgent(fetchedAgent);
+    } catch (error) {
+      console.error("Error in refreshAgent:", error);
+    }
+  }
+
+  useEffect(() => {
+    if (user && ready) {
+      refreshAgent();
+    }
+  }, [agentId, user, ready]);
+
+  useEffect(() => {
+    const setupHeaders = async () => {
+      if (user && ready) {
+        const token = await getAccessToken();
+        setHeaders({
+          'Authorization': `Bearer ${token}`
+        });
+      } else {
+        // Set empty headers for non-authenticated sessions
+        setHeaders({});
+      }
+      setIsHeadersReady(true);
+    };
+    
+    setupHeaders();
+  }, [getAccessToken, user, ready]);
+
+  const handleToolSelect = useCallback(async (command: string) => {
+    // For mobile: close sidebar when a tool is selected
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    } else {
+      // For desktop: always open sidebar
+      setSidebarOpen(true);
+      // Always set active tab to results when a tool is run
+      setActiveTab('results');
+    }
+
+    // Set the pending tool command
+    setPendingToolCommand(command);
+
+    // Only persist tool usage to DB if authenticated
+    if (user?.id && ready) {
+      try {      
+        const token = await getAccessToken();
+        await fetch(`/api/chat/${chatId ? chatId : newChatId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            chatId: chatId ? chatId : newChatId,
+            userId: user?.id,
+            isTemplate: true,
+            agentId,
+            agentName: agent?.name,
+            lastMessage: command,
+            lastUpdated: new Date().toISOString()
+          })
+        });
+      } catch (error) {
+        console.error('Error saving tool selection:', error);
+      }
+    }
+  
+    append({
+      role: 'user',
+      content: command,
+    });
+
+    if (topRef.current) {
+      setTimeout(() => {
+        topRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+      
+  }, [append, chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, setSidebarOpen, ready]);
+
+  // Clear pending tool command when message is received
+  useEffect(() => {
+    // If we have a new message from the assistant, clear the pending tool command
+    if (messages.length > 0 && messages[messages.length - 1].role === 'assistant' && pendingToolCommand) {
+      setPendingToolCommand(null);
+    }
+  }, [messages, pendingToolCommand]);
+
+  useEffect(() => {
+    const tool = searchParams.get('tool');
+    // Ensure all dependencies are ready and the tool hasn't been triggered yet
+    if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect) {
+      // Add a small delay to ensure everything is initialized
+      const timeoutId = setTimeout(() => {
+        const toolCommand = getToolCommand(tool);
+        if (toolCommand) {
+          handleToolSelect(toolCommand);
+          hasTriggeredTool.current = true;
+          
+          // Remove the tool parameter from the URL
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('tool');
+          router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+        }
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchParams, messages, handleToolSelect, router]); // Add router to dependencies    
+
+  const handleFormSubmit = (event: React.FormEvent, options = {}) => {
+    if (input.trim()) {
+      setSavedInput("");
+    }
+
+    handleSubmit(event, options);
+    setFiles(null);
+    
+    // Auto-focus the input again after submitting
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+      // Ensure we scroll to bottom after sending
+      scrollToBottom();
+    }, 100);
+  };
+
+  // Helper function to update textarea height
+  const autoResizeTextarea = () => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 150) + 'px';
+    }
+  };
+
+  useEffect(() => {
+    // Auto-resize the textarea when input changes
+    autoResizeTextarea();
+  }, [input]);
+
+  useEffect(() => {
+    if (topRef.current) {
+      const rect = topRef.current.getBoundingClientRect();
+      if (rect.bottom > window.innerHeight || rect.top < 0) {
+        topRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [topRef.current]);
+
+  useEffect(() => {
+    // Only close sidebar on small screens, never because of modals
+    if (window.innerWidth < 1024 && !isAnyModalOpen) {
+      setSidebarOpen(false);
+    }
+  }, [isAnyModalOpen]);
+
+  const handlePaste = (event: React.ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+
+    if (items) {
+      const files = Array.from(items)
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null);
+
+      if (files.length > 0) {
+        const validFiles = files.filter(
+          (file) =>
+            file.type.startsWith("image/") || file.type.startsWith("text/")
+        );
+
+        if (validFiles.length === files.length) {
+          const dataTransfer = new DataTransfer();
+          validFiles.forEach((file) => dataTransfer.items.add(file));
+          setFiles(dataTransfer.files);
+        } else {
+          toast.error("Only image and text files are allowed");
+        }
+      }
+    }
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const droppedFiles = event.dataTransfer.files;
+    const droppedFilesArray = Array.from(droppedFiles);
+    if (droppedFilesArray.length > 0) {
+      const validFiles = droppedFilesArray.filter(
+        (file) =>
+          file.type.startsWith("image/") || file.type.startsWith("text/")
+      );
+
+      if (validFiles.length === droppedFilesArray.length) {
+        const dataTransfer = new DataTransfer();
+        validFiles.forEach((file) => dataTransfer.items.add(file));
+        setFiles(dataTransfer.files);
+      } else {
+        toast.error("Only image and text files are allowed!");
+      }
+
+      setFiles(droppedFiles);
+    }
+    setIsDragging(false);
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = event.target.files;
+    if (selectedFiles) {
+      const validFiles = Array.from(selectedFiles).filter(
+        (file) =>
+          file.type.startsWith("image/") || file.type.startsWith("text/")
+      );
+
+      if (validFiles.length === selectedFiles.length) {
+        const dataTransfer = new DataTransfer();
+        validFiles.forEach((file) => dataTransfer.items.add(file));
+        setFiles(dataTransfer.files);
+      } else {
+        toast.error("Only image and text files are allowed");
+      }
+    }
+  };
+
+  useEffect(() => {
+    const loadInitialMessages = async (): Promise<void> => {
+      if (!chatId || !user?.id) return;
+      
+      try {
+        const token = await getAccessToken();
+        const response = await fetch(
+          `/api/chat/${chatId}?userId=${encodeURIComponent(user?.id as string)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+  
+        if (!response.ok) throw new Error('Failed to load chat history');
+        
+        const data = await response.json();
+        
+        if (data.messages && data.messages.length > 0) {
+          // Convert string dates to Date objects and preserve all tool data
+          const formattedMessages: Message[] = data.messages.map((msg: any) => ({
+            id: msg.messageId,
+            createdAt: new Date(msg.createdAt),
+            role: msg.role,
+            content: msg.content,
+            experimental_attachments: msg.attachments?.map((attachment: any) => ({
+              name: attachment.name,
+              url: attachment.url,
+              contentType: attachment.contentType,
+            })),            
+            toolInvocations: msg.toolInvocations?.map((tool: any) => {
+              // Ensure we preserve all S3 references and metadata for tool results
+              const mappedTool = {
+                ...tool, 
+                toolName: tool.toolName,
+                toolCallId: tool.toolCallId,
+                args: tool.args,
+                result: tool.result
+              };
+              
+              // Make sure we keep the special fields for S3 references intact
+              if (mappedTool.result && mappedTool.result._storedInS3) {
+                mappedTool.result = {
+                  ...mappedTool.result,
+                  _storedInS3: true,
+                  _s3Reference: mappedTool.result._s3Reference
+                };
+              }
+              
+              return mappedTool;
+            })
+          }));
+          
+          setInitialMessages(formattedMessages);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+        toast.error('Failed to load chat history');
+      }
+    };
+  
+    // Only load messages if user is authenticated
+    if (user?.id && ready) {
+      loadInitialMessages();
+    }
+  }, [chatId, getAccessToken, user, ready]);
+
+  const updateChatInDB = useCallback(async (messages: Message[]): Promise<string[]> => {
+    const lastMessage = messages[messages.length - 1];
+  
+    // Skip if there's no lastMessage or if the message has no content/tool invocations
+    if (
+      !lastMessage || 
+      (lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || 
+      (lastMessage.role === 'assistant' && !lastMessage.toolInvocations?.length && lastMessage.content?.includes('Analysis Summary'))
+    ) {
+      return [];
+    }
+  
+    const token = await getAccessToken();
+    const currentChatId = chatId || newChatId;
+    
+    try {
+      // Update chat metadata
+      await fetch(`/api/chat/${currentChatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          userId: user?.id,
+          agentId,
+          agentName: agent?.name,
+          lastMessage: lastMessage.content,
+          lastUpdated: new Date().toISOString(),
+          isTemplate: true
+        })
+      });
+
+      // Process attachments if they exist
+      let processedAttachments = [] as any[];
+      if (lastMessage.experimental_attachments?.length) {
+        processedAttachments = await Promise.all(
+          lastMessage.experimental_attachments.map(async (attachment) => {
+            // Only process data URLs
+            if (attachment.url.startsWith('data:')) {
+              // Create blob from data URL
+              const blob = await fetch(attachment.url).then(r => r.blob());
+              
+              // Get presigned URL
+              const presignedResponse = await fetch(`/api/chat/presigned`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  fileName: attachment.name,
+                  contentType: attachment.contentType,
+                  chatId: currentChatId,
+                  messageId: lastMessage.id
+                })
+              });
+
+              if (!presignedResponse.ok) {
+                throw new Error('Failed to get upload URL');
+              }
+
+              const { url, fields, fileUrl } = await presignedResponse.json();
+
+              // Create FormData and append fields
+              const formData = new FormData();
+              Object.entries(fields).forEach(([key, value]) => {
+                formData.append(key, value as string);
+              });
+              formData.append('file', blob, attachment.name);
+
+              // Upload to S3
+              const uploadResponse = await fetch(url, {
+                method: 'POST',
+                body: formData
+              });
+
+              if (!uploadResponse.ok) {
+                throw new Error('Failed to upload file');
+              }
+
+              // Return processed attachment with S3 URL
+              return {
+                name: attachment.name,
+                contentType: attachment.contentType,
+                url: fileUrl
+              };
+            }
+            
+            // Return non-data URLs as-is
+            return attachment;
+          })
+        );
+      }
+  
+      // Store the message with processed attachments
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          messageId: lastMessage.id,
+          userId: user?.id,
+          isTemplate: true,
+          role: lastMessage.role,
+          content: lastMessage.content,
+          createdAt: lastMessage.createdAt,
+          attachments: processedAttachments,
+          toolInvocations: lastMessage.toolInvocations?.map(tool => ({
+            toolName: tool.toolName,
+            toolCallId: tool.toolCallId,
+            args: tool.args,
+            result: 'result' in tool ? tool.result : undefined
+          }))
+        })
+      });
+  
+      await refreshRecentChats();
+    } catch (error) {
+      console.error('Error updating chat:', error);
+      toast.error('Failed to save chat message');
+    }
+    
+    return [];
+  }, [chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, refreshRecentChats]);
+
+  useEffect(() => {
+    if (agent) {
+      // Create a new debounced function for each message
+      const debouncedSave = debounce(async () => {
+        await updateChatInDB(messages);
+      }, 1000);
+    
+      debouncedSave();
+    
+      return () => {
+        debouncedSave.cancel();
+      };
+    }
+  }, [messages, agent]);
+
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Add scroll event listener to show/hide scroll button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!chatContainerRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      
+      setShowScrollButton(isScrolledUp);
+    };
+    
+    const container = chatContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading && chatContainerRef.current) {
+      scrollToBottom();
+    }
+  }, [messages, isLoading]);
+
+  // Auto-focus the input after the page loads
+  useEffect(() => {
+    if (inputRef.current && window.innerWidth > 768) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  // Handle keyboard showing/hiding on mobile
+  useEffect(() => {
+    // iOS workaround to fix the viewport height when the keyboard appears
+    const setVh = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    setVh();
+    window.addEventListener('resize', setVh);
+    
+    // Focus handler for iOS to prevent viewport shifting
+    const handleFocus = () => {
+      if (window.innerWidth < 768) {
+        // On iOS, when keyboard appears, adjust scrollable area
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          // Add small delay to let keyboard appear first
+          setTimeout(() => {
+            // Adjust scroll container height to account for keyboard
+            const chatContainer = chatContainerRef.current;
+            if (chatContainer) {
+              chatContainer.style.height = 'calc(100% - 60px)';
+              scrollToBottom();
+            }
+          }, 300);
+        } else {
+          // For non-iOS devices, just scroll to bottom
+          setTimeout(scrollToBottom, 300);
+        }
+      }
+    };
+    
+    // When blur, reset heights
+    const handleBlur = () => {
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        const chatContainer = chatContainerRef.current;
+        if (chatContainer) {
+          // Reset height after keyboard disappears
+          setTimeout(() => {
+            chatContainer.style.height = '100%';
+          }, 100);
+        }
+      }
+    };
+    
+    if (inputRef.current) {
+      inputRef.current.addEventListener('focus', handleFocus);
+      inputRef.current.addEventListener('blur', handleBlur);
+    }
+
+    return () => {
+      window.removeEventListener('resize', setVh);
+      if (inputRef.current) {
+        inputRef.current.removeEventListener('focus', handleFocus);
+        inputRef.current.removeEventListener('blur', handleBlur);
+      }
+    };
+  }, []);
+
+  // Add a custom CSS class for desktop layout
+  useEffect(() => {
+    // Add a custom style element for the desktop layout
+    const style = document.createElement('style');
+    style.textContent = `
+      @media (min-width: 768px) {
+        .desktop-content-width {
+          width: ${!sidebarOpen ? '100%' : activeTab === 'results' ? 'calc(100% - 50%)' : 'calc(100% - 30%)'} !important;
+          transition: width 0.3s ease;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, [sidebarOpen, activeTab]);
+
+  const handleRemoveFile = (fileToRemove: File) => {
+    if (!files) return;
+    
+    const dataTransfer = new DataTransfer();
+    Array.from(files).forEach(file => {
+      // Skip the file we want to remove
+      if (file !== fileToRemove) {
+        dataTransfer.items.add(file);
+      }
+    });
+    
+    // If all files were removed, set to null
+    if (dataTransfer.files.length === 0) {
+      setFiles(null);
+    } else {
+      setFiles(dataTransfer.files);
+    }
+  };
+
+  // Add effect to watch for new tools and automatically show tool results
+  useEffect(() => {
+    // Check if we have any tool results
+    const hasToolResults = messages.some(message => 
+      message.toolInvocations && message.toolInvocations.length > 0
+    );
+    
+    if (hasToolResults && !hasTools) {
+      // This is the first time tools appeared
+      // For desktop: open sidebar and switch to results tab
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(true);
+        setActiveTab('results');
+        
+        // Direct selection of the results tab using DOM
+        setTimeout(() => {
+          const resultsTabButton = document.querySelector('.flex.border-b.border-zinc-700 > button:nth-child(3)') as HTMLButtonElement;
+          if (resultsTabButton) {
+            console.log("First tool appearance: Clicking results tab button directly");
+            resultsTabButton.click();
+          }
+        }, 200);
+      } else {
+        // For mobile: open tool results bottom sheet for the first tool
+        const firstToolMessage = messages.find(message => 
+          message.toolInvocations && message.toolInvocations.length > 0
+        );
+        if (firstToolMessage && firstToolMessage.toolInvocations) {
+          const firstTool = firstToolMessage.toolInvocations[0];
+          setSelectedToolId(`${firstToolMessage.id}-${firstTool.toolCallId}`);
+          setShowToolResultsBottomSheet(true);
+        }
+      }
+    }
+    
+    setHasTools(hasToolResults);
+  }, [messages, hasTools, setSidebarOpen]);
+
+  // Listen for new tool invocations to show results tab on desktop and select the tool
+  useEffect(() => {
+    // Track if tools have been added
+    const toolCount = messages.reduce((count, message) => {
+      return count + (message.toolInvocations?.length || 0);
+    }, 0);
+    
+    // Skip if there are no tools
+    if (toolCount === 0) return;
+    
+    // Find the most recent tool
+    let latestToolId: string | null = null;
+    let latestDate = new Date(0);
+    
+    for (const message of messages) {
+      if (message.toolInvocations?.length) {
+        const messageDate = new Date(message.createdAt || Date.now());
+        if (messageDate > latestDate) {
+          latestDate = messageDate;
+          const latestTool = message.toolInvocations[0];
+          latestToolId = `${message.id}-${latestTool.toolCallId}`;
+        }
+      }
+    }
+    
+    if (latestToolId) {
+      // On desktop: switch to results tab and select the tool
+      if (window.innerWidth >= 768) {
+        console.log("Auto-selecting tool on desktop:", latestToolId);
+        
+        // Force select the results tab and the tool
+        setActiveTab('results');
+        setSidebarOpen(true);
+        setSelectedToolId(latestToolId);
+        
+        // Direct DOM manipulation to ensure results tab is selected
+        setTimeout(() => {
+          const resultsTabButton = document.querySelector('.flex.border-b.border-zinc-700 > button:nth-child(3)') as HTMLButtonElement;
+          if (resultsTabButton) {
+            console.log("Clicking results tab button directly");
+            resultsTabButton.click();
+          }
+        }, 100);
+      } 
+      // On mobile: show the bottom sheet with the selected tool
+      else if (!showToolResultsBottomSheet) {
+        console.log("Auto-selecting tool on mobile:", latestToolId);
+        setSelectedToolId(latestToolId);
+        setShowToolResultsBottomSheet(true);
+      }
+    }
+  }, [messages, setSidebarOpen, activeTab, showToolResultsBottomSheet]);
+
+  // Function to select a tool from the main chat interface
+  const handleSelectTool = (messageId: string, toolCallId: string) => {
+    const toolId = `${messageId}-${toolCallId}`;
+    setSelectedToolId(toolId);
+    
+    // For desktop: open sidebar and switch to results tab
+    if (window.innerWidth >= 768) {
+      setSidebarOpen(true);
+      setActiveTab('results');
+    } else {
+      // For mobile: open the tool results bottom sheet
+      setShowToolResultsBottomSheet(true);
+    }
+  };
+
+  // For mobile, don't show the results tab at all
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        // On mobile, hide the results tab by ensuring it's not the active tab
+        if (activeTab === 'results') {
+          setActiveTab('tools');
+        }
+      }
+    };
+
+    // Run initially
+    handleResize();
+    
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [activeTab]);
+
+  // Add effect to track the most recent tool for the FAB
+  useEffect(() => {
+    // Find the most recent assistant message with tool invocations
+    const messagesWithTools = messages
+      .filter(message => message.role === 'assistant' && message.toolInvocations && message.toolInvocations.length > 0)
+      .reverse();
+    
+    if (messagesWithTools.length > 0) {
+      const latestMessage = messagesWithTools[0];
+      if (latestMessage.toolInvocations && latestMessage.toolInvocations.length > 0) {
+        const latestTool = latestMessage.toolInvocations[0];
+        setLastToolId(`${latestMessage.id}-${latestTool.toolCallId}`);
+      }
+    }
+  }, [messages]);
+
+  return (
+    <div className="h-full bg-zinc-900 flex flex-col overflow-hidden ios-fix">
+      {/* Chat header - fixed height */}
+      <div className="flex-none h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 justify-between z-10">
+        <div className="flex items-center gap-2">
+          <div>
+                <img 
+                  src="https://d1olseq3j3ep4p.cloudfront.net/agents/cc425065-b039-48b0-be14-f8afa0704357/profile-1738538619696.jpg" 
+                  alt="Rhun Capital"
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+            </div>
+            <Link className="text-indigo-500 text-indigo-400" href={`/`}>          
+              <h1 className="text-lg font-medium text-white">Rhun Capital</h1>
+            </Link>
+          </div>
+        
+        <div className="flex items-center gap-2">
+          {/* Mobile Menu Button */}
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="md:hidden p-2 rounded-md bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+            aria-label="Toggle tools sidebar"
+          >
+            {sidebarOpen ? <XIcon size={20} /> : <LayoutGrid size={20} />}
+          </button>
+          
+          {/* Desktop toggle sidebar button - hidden on mobile */}
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="hidden md:block p-2 rounded-md bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-colors"
+            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            {sidebarOpen ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+              </svg>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Main content area - flexible layout */}
+      <div className="flex flex-1 overflow-hidden w-full">
+        {/* Chat content */}
+        <div className={`flex-1 flex flex-col relative transition-all duration-300 ${!sidebarOpen ? 'w-full' : activeTab === 'results' ? 'md:w-1/2' : 'md:w-[70%]'}`}>
+          {/* Scrollable area */}
+          <div className="flex flex-1 h-full">
+            {/* Messages panel */}
+            <div 
+              ref={chatContainerRef}
+              className="flex-1 overflow-y-auto hide-scrollbar chat-scrollable"
+              style={{ 
+                paddingBottom: '72px', 
+                overflowX: 'hidden'
+              }}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <AnimatePresence>
+                {isDragging && (
+                  <motion.div
+                    className="fixed inset-0 z-50 bg-zinc-900/90 flex items-center justify-center"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <div className="text-center">
+                      <p className="text-white text-lg">Drop files here</p>
+                      <p className="text-zinc-400">(images and text only)</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+                
+              <div className="max-w-full mx-auto w-full pt-4 pl-4 pr-2 md:pl-8 md:pr-4">
+                {messages.length > 0 ? (
+                  messages.map((message, index) => (
+                    <motion.div
+                      key={message.id}
+                      className={`flex gap-3 py-4`}
+                      initial={{ y: 5, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                    >
+                      <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
+                        {message.role === "assistant" ? (
+                            <img 
+                              src={agent.imageUrl}
+                              alt={agent.name}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                        ) : (
+                          <UserIcon />
+                        )}
+                      </div>
+
+                      <div className="flex-1 space-y-2 max-w-[100%] text-white" ref={topRef}>
+                        {(message.experimental_attachments?.length ?? 0) > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {message.experimental_attachments?.map((attachment: any, idx: number) => (
+                              <AttachmentDisplay 
+                                key={`${attachment.name || idx}`} 
+                                attachment={attachment}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div className="message-content">
+                          <Markdown>{message.content}</Markdown>
+                        </div>
+
+                        {/* Display tool artifacts in the chat flow */}
+                        {message.toolInvocations && message.toolInvocations.length > 0 && (
+                          <div className="flex gap-2 flex-wrap mt-3 overflow-x-auto pb-2">
+                            {message.toolInvocations.map(tool => {
+                              // Create a unique ID for this tool
+                              const toolId = `${message.id}-${tool.toolCallId}`;
+                              const isSelected = selectedToolId === toolId;
+                              
+                              return (
+                                <ArtifactCard 
+                                  key={toolId}
+                                  tool={tool}
+                                  isSelected={isSelected}
+                                  onSelect={() => handleSelectTool(message.id, tool.toolCallId)}
+                                />
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))
+                ) : !searchParams.get('tool') && (
+                  <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                    <div className="w-full max-w-md">
+                      <EmptyState 
+                        agent={agent}
+                        userId="template"
+                        agentId={agentId}
+                        onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                  <div className="flex gap-3 py-4 bg-zinc-900 text-zinc-500 text-sm">
+                    <LoadingIndicator /> <span className="animate-pulse">Thinking...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Scroll to bottom button */}
+          <AnimatePresence>
+            {showScrollButton && (
+              <motion.button
+                className="absolute bottom-[84px] right-4 bg-indigo-500 text-white p-2 rounded-full shadow-lg z-30"
+                onClick={scrollToBottom}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileTap={{ scale: 0.9 }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 15a.5.5 0 0 1-.5-.5V2.707L1.854 8.354a.5.5 0 1 1-.708-.708l6-6a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8.5 2.707V14.5a.5.5 0 0 1-.5.5z" transform="rotate(180, 8, 8)"/>
+                </svg>
+              </motion.button>
+            )}
+          </AnimatePresence>
+
+          {/* Input area - fixed at bottom */}
+          <div className="absolute bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 z-30 pb-safe"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)"
+            }}
+          >
+            <AnimatePresence>
+              {files && (
+                <div className="flex gap-2 mb-2 overflow-x-auto pb-2 pt-2 max-w-3xl mx-auto">
+                  {Array.from(files).map((file) =>
+                    file.type.startsWith("image") ? (
+                      <motion.div
+                        key={file.name}
+                        className="relative"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                      >
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          className="h-16 w-16 object-cover rounded-md"
+                        />
+                        <button
+                          onClick={() => handleRemoveFile(file)}
+                          className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
+                          aria-label="Remove file"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                          </svg>
+                        </button>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key={file.name}
+                        className="relative"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                      >
+                        <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+                          <TextFilePreview file={file} />
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFile(file)}
+                          className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
+                          aria-label="Remove file"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                          </svg>
+                        </button>
+                      </motion.div>
+                    )
+                  )}
+                </div>
+              )}
+            </AnimatePresence>
+
+            <form onSubmit={(event) => {
+              const options = files ? { experimental_attachments: files } : {};
+              handleFormSubmit(event, options);
+            }} className="max-w-3xl mx-auto flex gap-2 relative">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                multiple
+                accept="image/png,image/jpeg,image/jpg,text/*"
+                onChange={handleFileChange}
+              />
+              
+              <div className="flex-1 flex items-center bg-zinc-800 rounded-lg px-4">
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  className="p-2 text-zinc-400 hover:text-white"
+                >
+                  <AttachmentIcon />
+                </button>
+                
+                <textarea
+                  ref={inputRef}
+                  className="flex-1 bg-transparent py-2 px-2 text-white outline-none resize-none overflow-y-auto"
+                  placeholder="Send a message..."
+                  value={input}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      if (input.trim()) {
+                        const options = files ? { experimental_attachments: files } : {};
+                        handleFormSubmit(event, options);
+                      }
+                    }
+                  }}
+                  onPaste={handlePaste}
+                  rows={1}
+                  style={{ minHeight: '40px', maxHeight: '150px' }}
+                />
+                <button type="submit" className="p-2 text-zinc-400 hover:text-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar */}
+      <div 
+        className={`hidden md:block border-l border-zinc-700 bg-zinc-900 transition-all duration-300 ${
+          !sidebarOpen ? 'w-0' : activeTab === 'results' ? 'w-1/2' : 'w-[30%]'
+        }`}
+      >
+        {sidebarOpen && (
+          <ChatSidebar 
+            agent={agent}
+            isOpen={true}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            onToolSelect={handleToolSelect}
+            refreshAgent={refreshAgent}
+            messages={messages}
+            defaultTab="tools"
+            selectedToolId={selectedToolId}
+            onToolSelected={setSelectedToolId}
+            pendingToolCommand={pendingToolCommand}
+            isLoading={isLoading}
+          />
+        )}
+      </div>
+    </div>
+
+    {/* Mobile Bottom Sheet */}
+    <AnimatePresence>
+      {sidebarOpen && (
+        <motion.div 
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50 overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setSidebarOpen(false)}
+        >
+          {/* Bottom sheet with drag capability */}
+          <motion.div 
+            className="absolute bottom-0 left-0 right-0 bg-zinc-900 shadow-lg rounded-t-xl overflow-hidden flex flex-col"
+            style={{ height: "75vh" }}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) {
+                setSidebarOpen(false);
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="w-full flex justify-center pt-4 pb-5 cursor-grab flex-shrink-0">
+              <div className="w-16 h-1.5 bg-zinc-600 rounded-full"></div>
+            </div>
+            
+            <div className="overflow-y-auto flex-1">
+              <ChatSidebar 
+                agent={agent}
+                isOpen={true}
+                onToggle={() => setSidebarOpen(false)}
+                onToolSelect={handleToolSelect}
+                refreshAgent={refreshAgent}
+                messages={messages}
+                defaultTab="tools"
+                selectedToolId={selectedToolId}
+                onToolSelected={setSelectedToolId}
+                pendingToolCommand={pendingToolCommand}
+                isLoading={isLoading}
+              />
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    {/* Tool Results Mobile Bottom Sheet */}
+    <AnimatePresence>
+      {showToolResultsBottomSheet && selectedToolId && (
+        <motion.div 
+          className="md:hidden fixed inset-0 bg-black bg-opacity-70 z-50 overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setShowToolResultsBottomSheet(false)}
+        >
+          {/* Bottom sheet with drag capability */}
+          <motion.div 
+            className="absolute bottom-0 left-0 right-0 bg-zinc-900 shadow-lg rounded-t-xl overflow-hidden flex flex-col"
+            style={{ height: "80vh" }}
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) {
+                setShowToolResultsBottomSheet(false);
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag handle */}
+            <div className="w-full flex justify-center pt-8 pb-8 cursor-grab flex-shrink-0">
+              <div className="w-20 h-1.5 bg-zinc-600 rounded-full"></div>
+            </div>
+            
+            {/* Header with close button and tool selector */}
+            <div className="px-4 pb-4 flex flex-col border-b border-zinc-700">
+      
+              
+              {/* Simple Tool Selection Dropdown */}
+              {messages.some(message => message.toolInvocations && message.toolInvocations.length > 0) && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowToolsDropdown(!showToolsDropdown)}
+                    className="w-full flex items-center justify-between p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:bg-zinc-700 transition-colors"
+                  >
+                    <span className="text-white font-medium truncate">
+                      {selectedToolId && messages.flatMap(message => 
+                        message.toolInvocations?.filter(tool => 
+                          `${message.id}-${tool.toolCallId}` === selectedToolId
+                        ).map(tool => getToolTitle(tool))
+                      ).filter(Boolean)[0] || "Select a tool result"}
+                    </span>
+                    <ChevronDown 
+                      className={`w-5 h-5 text-zinc-400 transition-transform ${
+                        showToolsDropdown ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {showToolsDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                      {messages.flatMap(message => 
+                        message.toolInvocations?.map(tool => {
+                          const id = `${message.id}-${tool.toolCallId}`;
+                          const title = getToolTitle(tool);
+                          return (
+                            <button
+                              key={id}
+                              onClick={() => {
+                                setSelectedToolId(id);
+                                setShowToolsDropdown(false);
+                              }}
+                              className={`w-full text-left px-4 py-3 hover:bg-zinc-700 transition-colors ${
+                                selectedToolId === id ? 'bg-zinc-700 text-white' : 'text-zinc-300'
+                              }`}
+                            >
+                              <div className="font-medium">{title}</div>
+                              <div className="text-xs text-zinc-400 mt-1">
+                                {message.createdAt ? new Date(message.createdAt).toLocaleString() : ''}
+                              </div>
+                            </button>
+                          );
+                        }) || []
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Tool content area */}
+            <div className="overflow-y-auto flex-1 p-4">
+              {/* Extract the tool result display logic from ChatSidebar */}
+              {selectedToolId && messages.map(message => 
+                message.toolInvocations?.map(tool => {
+                  const toolId = `${message.id}-${tool.toolCallId}`;
+                  if (toolId === selectedToolId) {
+                    // Always pass these standard props to tool components
+                    const commonProps = {
+                      toolCallId: tool.toolCallId,
+                      toolInvocation: tool
+                    };
+                    
+                    // Get the tool name for rendering
+                    const toolTitle = getToolTitle(tool);
+                   
+                    // All available tool components
+                    switch(tool.toolName) {
+                      // Market data tools
+                      case 'getMarketMovers':
+                        return <MarketMovers key={toolId} {...commonProps} />;
+                      case 'getTokenInfo':
+                        return <TokenInfo key={toolId} {...commonProps} />;
+                      case 'searchTokens':
+                        return <SearchTokens key={toolId} {...commonProps} />;
+                      case 'getTotalCryptoMarketCap':
+                        return <TotalCryptoMarketCap key={toolId} {...commonProps} />;
+                      case 'getMarketCategories':
+                        return <MarketCategories key={toolId} {...commonProps} />;
+                      case 'getDerivativesExchanges':
+                        return <DerivativesExchanges key={toolId} {...commonProps} />;
+                      case 'getRecentlyLaunchedCoins':
+                        return <RecentCoinsResults key={toolId} {...commonProps} />;
+                      case 'getTopHolders':
+                        return <TopHoldersDisplay key={toolId} {...commonProps} />;
+                        
+                      // Balance & portfolio tools
+                      case 'getUserSolanaBalance':
+                      case 'getAgentSolanaBalance':
+                        return <SolanaBalance key={toolId} {...commonProps} />;
+                      case 'getUserPortfolioValue':
+                      case 'getAgentPortfolioValue':
+                        return <PortfolioValue key={toolId} {...commonProps} />;
+                      case 'getUserTokenHoldings':
+                      case 'getAgentTokenHoldings':
+                        return <TokenHoldings key={toolId} {...commonProps} />;
+                        
+                      // Market indicators
+                      case 'getFearAndGreedIndex':
+                        return <FearAndGreedIndex key={toolId} {...commonProps} />;
+                      case 'getSolanaTransactionVolume':
+                        return <SolanaTransactionVolume key={toolId} {...commonProps} />;
+                        
+                      // Account tools
+                      case 'getAccountDetails':
+                        return <AccountInfo key={toolId} {...commonProps} />;
+                        
+                      // Trending & top data
+                      case 'getTrendingTokens':
+                        return tool?.args?.chain === 'solana' 
+                          ? <TrendingSolanaTokens key={toolId} {...commonProps} />
+                          : <TrendingCoins key={toolId} {...commonProps} />;
+                      case 'getTopNfts':
+                        return <TopNFTsResults key={toolId} {...commonProps} />;
+                        
+                      // Screening tools  
+                      case 'getRecentDexScreenerTokens':
+                        return <RecentDexScreenerTokens key={toolId} {...commonProps} />;
+                      case 'getCryptoNews':
+                        return <RecentNews key={toolId} {...commonProps} />;
+                        
+                      // Analysis tools
+                      case 'stockAnalysis':
+                        return <StockAnalysis key={toolId} {...commonProps} />;
+                      case 'optionsAnalysis':
+                        return <OptionsAnalysis key={toolId} {...commonProps} />;
+                      case 'newsAnalysis':
+                        return <NewsAnalysis key={toolId} {...commonProps} />;
+                      case 'webResearch':
+                        return <WebResearch key={toolId} {...commonProps} />;
+                      case 'getTradingViewChart':
+                        return <TradingViewChart key={toolId} {...commonProps} />;
+                      case 'getFredSeries':
+                        return <FredAnalysis key={toolId} {...commonProps} />;
+                        
+                      case 'swap':
+                        return <ExecuteSwap key={toolId} {...commonProps} />;
+                        
+                      
+                      case 'getTechnicalAnalysis':
+                        return 'result' in tool ? <TechnicalAnalysis key={toolId} data={tool.result} /> : null;
+                        
+                      case 'fredSearch':
+                        return <FredSearch key={toolId} {...commonProps} onShowChart={(seriesId) => {
+                          handleToolSelect(`Show me the FRED series ${seriesId}`);
+                        }} />;
+                        
+                      default:
+                        return (
+                          <div key={toolId} className="p-4 bg-zinc-800 rounded-lg">
+                            <h3 className="text-white text-lg mb-2">{toolTitle}</h3>
+                            <div className="text-zinc-400 text-sm">
+                              No results available
+                            </div>
+                          </div>
+                        );
+                    }
+                  }
+                  return null;
+                })
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+export const runtime = 'nodejs';
+export const dynamicParams = true;

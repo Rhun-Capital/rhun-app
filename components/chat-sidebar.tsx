@@ -1,6 +1,6 @@
 // components/chat-sidebar.tsx
-import React, { useState, useEffect, useCallback } from 'react';
-import { WalletIcon, LayoutGrid, SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart, XIcon, TrendingUp, Search, ImageIcon, BookOpen, Globe } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { WalletIcon, LayoutGrid, SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart, XIcon, TrendingUp, Search, ImageIcon, BookOpen, Globe, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { usePrivy, useLogin, PrivyErrorCode } from '@privy-io/react-auth';
 import {useFundWallet} from '@privy-io/react-auth/solana';
@@ -554,11 +554,30 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
   // Add state to track which modal is open
   const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [showWalletSelector, setShowWalletSelector] = useState(false);
+  const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
+  const walletSelectorRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicks outside the wallet selector
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (walletSelectorRef.current && !walletSelectorRef.current.contains(event.target as Node)) {
+        setShowWalletSelector(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [walletSelectorRef]);
 
   // Get the active wallet based on whether it's a template agent or not
   const activeWallet = (params.userId === 'template' || pathname === '/') && authenticated
-    ? wallets[0]?.address 
+    ? selectedWalletAddress || user?.wallet?.address || wallets[0]?.address
     : agent.wallets?.solana;
+
+  console.log(activeWallet, wallets);
 
   // Fetch initial wallet data
   useEffect(() => {
@@ -730,16 +749,28 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     return response.json();
   }
 
+  // Update useEffect to watch for selectedWalletAddress changes
+  useEffect(() => {
+    if (selectedWalletAddress && ready) {
+      // Refresh data when wallet changes
+      refreshWalletData();
+    }
+  }, [selectedWalletAddress, ready]);
+
+  // Add this modified refreshWalletData that uses selectedWalletAddress when available
   const refreshWalletData = async () => {
     setRefreshLoading(true);
-    if (activeWallet) {
+    // Use selectedWalletAddress if available, otherwise use activeWallet
+    const currentWallet = selectedWalletAddress || activeWallet;
+    
+    if (currentWallet) {
       try {
         // Refresh tokens
-        const tokenResponse = await getTokens(activeWallet);
+        const tokenResponse = await getTokens(currentWallet);
         setTokens(tokenResponse);
 
         // Refresh portfolio
-        const portfolioResponse = await getPortfolioValue(activeWallet);
+        const portfolioResponse = await getPortfolioValue(currentWallet);
         const tv = portfolioResponse.holdings.reduce(
           (acc: number, token: { usdValue: number }) => acc + token.usdValue, 
           0
@@ -793,29 +824,106 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
             <div className="p-4 space-y-2">
               {/* Wallet Address */}
               <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-zinc-400">Wallet Address</div>
-                  {activeWallet && <button
-                    className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
-                    title="Refresh wallet data"
-                    onClick={() => {
-                      setRefreshLoading(true);
-                      setTimeout(() => {
-                        setRefreshLoading(false);
-                      }, 2000)
-                      refreshWalletData();
-                    }}
+                <div className="flex items-center justify-between mb-2">
+                  <div 
+                    className="flex items-center gap-1 cursor-pointer hover:bg-zinc-700 px-2 py-1 rounded-md transition-colors"
+                    onClick={() => (params.userId === 'template' || pathname === '/') && authenticated && wallets.length > 0 ? setShowWalletSelector(!showWalletSelector) : null}
                   >
-                    {refreshLoading ? <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
-                  </button>}                
-                </div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="text-sm text-white w-full">
                     {activeWallet ? (
-                      <div className="text-sm text-zinc-500 mt-2">
-                        {activeWallet ? <div className="truncate max-w-[185px]">{activeWallet}</div> : 'No agent wallet found'}
-                      </div>
-                    ) : !authenticated && pathname === '/' ? (
+                      <>
+                        <div className="text-sm text-zinc-400 truncate max-w-[200px]">{activeWallet}</div>
+                        {(params.userId === 'template' || pathname === '/') && authenticated && wallets.length > 0 && (
+                          <ChevronDown className="w-4 h-4 text-zinc-400" />
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-zinc-400">No wallet</div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {activeWallet && (
+                      <>
+                        <button
+                          className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
+                          title="Refresh wallet data"
+                          onClick={() => {
+                            setRefreshLoading(true);
+                            setTimeout(() => {
+                              setRefreshLoading(false);
+                            }, 2000);
+                            refreshWalletData();
+                          }}
+                        >
+                          {refreshLoading ? <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
+                        </button>
+                        <CopyButton text={activeWallet} />
+                      </>
+                    )}
+                  </div>
+                </div>
+                
+                {showWalletSelector && (
+                  <div className="absolute z-50 left-4 right-4 mt-2 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg" ref={walletSelectorRef}>
+                    <div className="p-2 border-b border-zinc-700 text-sm font-medium text-white">
+                      Select Wallet
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {/* Primary wallet */}
+                      {user?.wallet?.address && (
+                        <div 
+                          className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === user?.wallet?.address ? 'bg-zinc-700' : ''}`}
+                          onClick={() => {
+                            setSelectedWalletAddress(user?.wallet?.address || null);
+                            setShowWalletSelector(false);
+                            refreshWalletData();
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <WalletIcon className="w-4 h-4 text-indigo-400" />
+                              <div className="text-sm text-white">Primary Wallet</div>
+                            </div>
+                            {activeWallet === user?.wallet?.address && (
+                              <div className="text-green-500">✓</div>
+                            )}
+                          </div>
+                          <div className="text-xs text-zinc-400 truncate pl-6">{user?.wallet?.address}</div>
+                        </div>
+                      )}
+                      
+                      {/* Other wallets */}
+                      {wallets.map((wallet, index) => {
+                        if (wallet.address === user?.wallet?.address) return null;
+                        return (
+                          <div 
+                            key={wallet.address}
+                            className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === wallet.address ? 'bg-zinc-700' : ''}`}
+                            onClick={() => {
+                              setSelectedWalletAddress(wallet.address);
+                              setShowWalletSelector(false);
+                              refreshWalletData();
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <WalletIcon className="w-4 h-4 text-zinc-400" />
+                                <div className="text-sm text-white">Wallet {index + 1}</div>
+                              </div>
+                              {activeWallet === wallet.address && (
+                                <div className="text-green-500">✓</div>
+                              )}
+                            </div>
+                            <div className="text-xs text-zinc-400 truncate pl-6">{wallet.address}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                {!activeWallet && (
+                  <div className="text-sm text-white w-full">
+                    {!authenticated && pathname === '/' ? (
                       <div className="w-full">
                         <div className="text-sm text-zinc-500 mt-2 mb-4">Connect your wallet to access wallet features.</div>
                         <button 
@@ -838,10 +946,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       </div>
                     )}
                   </div>
-                  {activeWallet && (
-                    <CopyButton text={activeWallet} />
-                  )}
-                </div>
+                )}
                 
                 {/* Portfolio Value */}
                 {(activeWallet && totalValue) ? <div className="pt-2 border-t border-zinc-700">
