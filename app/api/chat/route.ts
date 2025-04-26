@@ -588,6 +588,8 @@ export async function POST(req: Request) {
         chain: z.enum(['all', 'solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'fantom', 'arbitrum'])
           .describe("Which blockchain to get recent tokens for")
           .default('solana'),
+        searchText: z.string().optional()
+          .describe("Search for tokens by name or symbol (case-insensitive)"),
         filters: z.object({
           minLinks: z.number().optional()
             .describe("Minimum number of links"),
