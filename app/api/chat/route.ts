@@ -1,6 +1,6 @@
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveNfts, retrieveTrendingSolanaTokens, retrieveDexScreenerTokens, retrieveCryptoNews } from '@/utils/retrieval';
+import { retrieveContext, retrieveCoins, retrieveCoinsWithFilters, retrieveTrendingCoins, retrieveNfts, retrieveTrendingSolanaTokens, retrieveCryptoNews } from '@/utils/retrieval';
 import { z } from 'zod';
 import { TokenHolding } from "@/types";
 import { 
@@ -23,71 +23,9 @@ import {
 import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
 import { calculateSMA, calculateEMA, calculateRSI, calculateMACD, calculateStochRSI, calculateCCI, calculateMFI, calculateADX, calculateDMI, calculateIchimoku, calculateAroon, calculateATR, calculateVolumeMetrics, calculateOBV, calculatePivotPoints, calculateFibonacciRetracement, calculateBollingerBands, calculateSupportResistance, calculateMarketSentiment } from '@/utils/technical-analysis';
+import { getPairsByTokenAddresses, getLatestBoostedTokens, getLatestTokenProfiles } from '@/utils/dexscreener';
 
 export const runtime = 'nodejs';
-
-export interface DexScreenerToken {
-  tokenAddress: string;
-  chainId: string;
-  name?: string;
-  symbol?: string;
-  url?: string;
-  description?: string;
-  icon?: string;
-  price?: {
-    value: number;
-    formatted: string;
-  };
-  metrics?: {
-    marketCap?: number;
-    fullyDilutedValuation?: number;
-    volume24h?: number;
-    liquidity?: number;
-    totalPairs?: number;
-    buys24h?: number;
-    sells24h?: number;
-    totalTransactions24h?: number;
-    buySellRatio?: number;
-  };
-  links?: {
-    total: number;
-    socialLinks: string[];
-    websiteUrls: string[];
-    otherLinks: {
-      url: string;
-      description: string;
-    }[];
-  };
-  details?: {
-    createdAt?: string;
-    ageDays?: number;
-    labels?: string[];
-    uniqueDexes?: string[];
-  };
-  last_updated: string;
-  score: number;
-  network?: string;
-}
-
-// Interface for token retrieval filters
-export interface DexScreenerTokenFilters {
-  chainId?: string;
-  minLinks?: number;
-  hasDescription?: boolean;
-  hasIcon?: boolean;
-  minPrice?: number;
-  maxPrice?: number;
-  minMarketCap?: number;
-  maxMarketCap?: number;
-  minVolume?: number;
-  minAge?: number;
-  maxAge?: number;
-  minLiquidity?: number;
-  hasLabels?: boolean;
-  minBuySellRatio?: number;
-  network?: string;
-  searchText?: string; // Text search filter for name/symbol
-}
 
 // Types for task results
 export interface BrowserUseTaskResult {
@@ -108,7 +46,6 @@ export interface BrowserUseTaskResult {
     cookies?: any[];
   };
 }
-
 
 function formatNumber(num: number): string {
   if (Math.abs(num) >= 1000000000) {
@@ -219,7 +156,6 @@ function metricsToText(metricsArray: any[]): string {
     .join('\n\n');
 }
 
-
 export async function POST(req: Request) {
   const { messages, user, agent, templateWallet } = await req.json();
 
@@ -239,7 +175,6 @@ export async function POST(req: Request) {
     retrieveContext(latestMessage.content, agent.id),
     getAgentConfig(agent.userId, agent.id),
   ]);
-
 
   const allTools: { [key: string]: { description: string; parameters: any; execute: (args: any) => Promise<any> } } =
   { 
@@ -583,104 +518,27 @@ export async function POST(req: Request) {
     },
 
     getRecentDexScreenerTokens: {
-      description: "Get recent tokens from DexScreener with optional filters and search",
+      description: "Get recent tokens from DexScreener",
       parameters: z.object({
-        chain: z.enum(['all', 'solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'fantom', 'arbitrum'])
-          .describe("Which blockchain to get recent tokens for")
-          .default('solana'),
-        searchText: z.string().optional()
-          .describe("Search for tokens by name or symbol (case-insensitive)"),
-        filters: z.object({
-          minLinks: z.number().optional()
-            .describe("Minimum number of links"),
-          minPrice: z.number().optional()
-            .describe("Minimum price in USD"),
-          maxPrice: z.number().optional()
-            .describe("Maximum price in USD"),
-          minMarketCap: z.number().optional()
-            .describe("Minimum market cap in USD"),
-          maxMarketCap: z.number().optional()
-            .describe("Maximum market cap in USD"),
-          minVolume: z.number().optional()
-            .describe("Minimum 24h volume in USD"),
-          minLiquidity: z.number().optional()
-            .describe("Minimum liquidity in USD"),
-          minAge: z.number().optional()
-            .describe("Minimum age in days"),
-          maxAge: z.number().optional()
-            .describe("Maximum age in days"),
-          hasDescription: z.boolean().optional()
-            .describe("Filter for tokens with/without description"),
-          hasIcon: z.boolean().optional()
-            .describe("Filter for tokens with/without icon"),
-          hasLabels: z.boolean().optional()
-            .describe("Filter for tokens with labels"),
-          minBuySellRatio: z.number().optional()
-            .describe("Minimum ratio of buys to sells in 24h")
-        }).optional(),
-        maxResults: z.number().optional()
-          .describe("Maximum number of results to return")
-          .default(100),
-        sortBy: z.enum(['score', 'links', 'recent', 'volume', 'market_cap', 'liquidity', 'transactions', 'price'])
-          .describe("How to sort the results")
-          .default('recent'),
+        chainId: z.string().describe('The chain ID to search for tokens on').default('solana'),
       }),
-      execute: async ({ chain, searchText, filters, maxResults, sortBy }) => {
-        // Prepare chain-specific filters
-        const chainFilters: DexScreenerTokenFilters = { ...filters };
-        
-        // If specific chain is specified, add chain filter
-        if (chain !== 'all') {
-          chainFilters.chainId = chain;
-        }
-        
-        // Add search text if provided
-        if (searchText) {
-          chainFilters.searchText = searchText;
-        }
-    
-        // Retrieve tokens
-        let trendingTokens = await retrieveDexScreenerTokens(
-          undefined, // No semantic query needed for trending/filtering
-          chainFilters, 
-          maxResults || 100
-        );
-    
-        // Apply sorting
-        switch (sortBy) {
-          case 'links':
-            trendingTokens = trendingTokens.sort((a, b) => (b.links?.total || 0) - (a.links?.total || 0));
-            break;
-          case 'recent':
-            trendingTokens = trendingTokens.sort((a, b) => {
-              const aDate = new Date(a.last_updated || 0).getTime();
-              const bDate = new Date(b.last_updated || 0).getTime();
-              return bDate - aDate;
-            });
-            break;
-          case 'volume':
-            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.volume24h || 0) - (a.metrics?.volume24h || 0));
-            break;
-          case 'market_cap':
-            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.marketCap || 0) - (a.metrics?.marketCap || 0));
-            break;
-          case 'liquidity':
-            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.liquidity || 0) - (a.metrics?.liquidity || 0));
-            break;
-          case 'transactions':
-            trendingTokens = trendingTokens.sort((a, b) => (b.metrics?.totalTransactions24h || 0) - (a.metrics?.totalTransactions24h || 0));
-            break;
-          case 'price':
-            trendingTokens = trendingTokens.sort((a, b) => (b.price?.value || 0) - (a.price?.value || 0));
-            break;
-          default:
-            // Default to sorting by score
-            trendingTokens = trendingTokens.sort((a, b) => b.score - a.score);
-        }
-    
-        return trendingTokens;
+      execute: async () => {
+        const response = await getLatestBoostedTokens();
+        const tokenProfiles = await getLatestTokenProfiles();
+        // looper ove rthe response and run getPairsByTokenAddresses
+        let tokenAddreses = ""
+        response.map((token) => {
+          tokenAddreses += token.tokenAddress + ",";
+        })
+        tokenProfiles.map((token) => {
+          tokenAddreses += token.tokenAddress + ",";
+        })
+        let pairs = await getPairsByTokenAddresses('solana', tokenAddreses);
+        console.log(pairs);
+        return pairs;
       }
     },
+
 
     getCryptoNews: {
       description: "Get recent cryptocurrency news with semantic search",
