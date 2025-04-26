@@ -587,9 +587,7 @@ export async function POST(req: Request) {
       parameters: z.object({
         chain: z.enum(['all', 'solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'fantom', 'arbitrum'])
           .describe("Which blockchain to get recent tokens for")
-          .default('all'),
-        searchText: z.string().optional()
-          .describe("Search for tokens by name or symbol (case-insensitive)"),
+          .default('solana'),
         filters: z.object({
           minLinks: z.number().optional()
             .describe("Minimum number of links"),
@@ -619,11 +617,11 @@ export async function POST(req: Request) {
             .describe("Minimum ratio of buys to sells in 24h")
         }).optional(),
         maxResults: z.number().optional()
-          .describe("Maximum number of tokens to return")
+          .describe("Maximum number of results to return")
           .default(100),
         sortBy: z.enum(['score', 'links', 'recent', 'volume', 'market_cap', 'liquidity', 'transactions', 'price'])
           .describe("How to sort the results")
-          .default('score'),
+          .default('recent'),
       }),
       execute: async ({ chain, searchText, filters, maxResults, sortBy }) => {
         // Prepare chain-specific filters
