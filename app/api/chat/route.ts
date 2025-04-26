@@ -200,7 +200,7 @@ export async function POST(req: Request) {
       description: "show the agent's portfolio value for their embedded wallet to the user",
       parameters: z.object({ agent: z.string() }),
       execute: async ({}: { agentDetails: string }) => {
-        const data = await getPortfolioValue(agentConfig.wallets?.solana || templateWallet);
+        const data = await getPortfolioValue(templateWallet);
   
        // Calculate portfolio metrics
       const totalValue = typeof data === 'object' && 'holdings' in data ? data.holdings.reduce(
@@ -225,7 +225,7 @@ export async function POST(req: Request) {
       description: "show the agents token holdings for their embedded wallet to the user",
       parameters: z.object({ agentDetails: z.string() }),
       execute: async ({}: { agentDetails: string }) => {
-        const data = await getTokenHoldings(agentConfig.wallets?.solana || templateWallet);
+        const data = await getTokenHoldings(templateWallet);
         return data;
       }
     },

@@ -350,9 +350,9 @@ function HomeContent() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { wallets } = useSolanaWallets();
   const pathname = usePathname();
-
+  const savedWallet = localStorage.getItem('rhun_selected_wallet_address');
   const templateWallet = params.userId === 'template' || pathname === '/' 
-    ? wallets[0]?.address 
+    ? savedWallet || wallets[0]?.address 
     : null
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } = useChat({
