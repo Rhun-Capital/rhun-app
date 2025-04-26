@@ -2,6 +2,7 @@ import { resourceLimits } from 'node:worker_threads';
 import { createEmbedding, initPinecone } from './embeddings';
 import { RecordMetadataValue } from '@pinecone-database/pinecone';
 import { QueryResponse, RecordMetadata, ScoredPineconeRecord } from '@pinecone-database/pinecone';
+import * as DexScreener from './dexscreener';
 
 // Base interface for common coin data
 interface BaseCoinData {
@@ -78,89 +79,6 @@ interface NftImage {
   small: string;
   small_2x: string;
 }
-
-// Interface for NFT price data
-interface NftPrice {
-  native_currency: number;
-  usd: number;
-}
-
-// Interface for NFT percentage change data
-interface NftPercentageChange {
-  native_currency: number;
-  usd: number;
-}
-
-// Interface for NFT image data
-interface NftImage {
-  small: string;
-  small_2x: string;
-}
-
-export interface DexScreenerToken {
-  tokenAddress: string;
-  chainId: string;
-  createdAt?: string;
-  name?: string;
-  symbol?: string;
-  url?: string;
-  description?: string;
-  icon?: string;
-  price?: {
-    value: number;
-    formatted: string;
-  };
-  metrics?: {
-    marketCap?: number;
-    fullyDilutedValuation?: number;
-    volume24h?: number;
-    liquidity?: number;
-    totalPairs?: number;
-    buys24h?: number;
-    sells24h?: number;
-    totalTransactions24h?: number;
-    buySellRatio?: number;
-  };
-  links?: {
-    total: number;
-    socialLinks: string[];
-    websiteUrls: string[];
-    otherLinks: {
-      url: string;
-      description: string;
-    }[];
-  };
-  details?: {
-    createdAt?: string;
-    ageDays?: number;
-    labels?: string[];
-    uniqueDexes?: string[];
-  };
-  last_updated: string;
-  score: number;
-  network?: string;
-}
-
-// Interface for token retrieval filters
-export interface DexScreenerTokenFilters {
-  chainId?: string;
-  minLinks?: number;
-  hasDescription?: boolean;
-  hasIcon?: boolean;
-  minPrice?: number;
-  maxPrice?: number;
-  minMarketCap?: number;
-  maxMarketCap?: number;
-  minVolume?: number;
-  minAge?: number;
-  maxAge?: number;
-  minLiquidity?: number;
-  hasLabels?: boolean;
-  minBuySellRatio?: number;
-  network?: string;
-  searchText?: string; // Text search filter for name/symbol
-}
-
 
 // Interface for Solana token data
 export interface SolanaTrendingData {
@@ -841,248 +759,29 @@ export async function retrieveCoinsWithFilters(
   }
 }
 
+/**
+ * Retrieve tokens from DexScreener with optional filtering
+ * This is now a wrapper around the dexscreener.ts implementation
+ * 
+ * @param semanticQuery - Optional semantic search query
+ * @param filters - Optional filters to apply
+ * @param maxResults - Maximum number of results to return
+ * @param namespaceDate - Namespace date (unused in new implementation)
+ * @returns Array of filtered tokens
+ */
 export async function retrieveDexScreenerTokens(
   semanticQuery?: string,
-  filters?: DexScreenerTokenFilters,
+  filters?: DexScreener.DexScreenerTokenFilters,
   maxResults: number = 100,
   namespaceDate?: string
-): Promise<DexScreenerToken[]> {
+): Promise<DexScreener.DexScreenerToken[]> {
   try {
-    // Initialize Pinecone
-    const pinecone = initPinecone();
-    const index = pinecone.index(process.env.PINECONE_INDEX_NAME!);
-
-    // Determine which namespace to query
-    const targetDate = namespaceDate || new Date().toISOString().split('T')[0];
-    const namespace = `dexscreener_${targetDate}`;
-    const namespaceIndex = index.namespace(namespace);
-    
-    console.log(`Querying namespace: ${namespace}`);
-
-    // Build filter conditions
-    const filterConditions: any[] = [
-      { dexScreenerUrl: { $exists: true } }
-    ];
-
-    // Apply optional filters
-    if (filters) {
-      if (filters.chainId) {
-        filterConditions.push({ chainId: { $eq: filters.chainId } });
-      }
-
-      if (filters.network) {
-        filterConditions.push({ network: { $eq: filters.network } });
-      }
-
-      if (filters.hasDescription === true) {
-        filterConditions.push({ description: { $exists: true, $ne: '' } });
-      } else if (filters.hasDescription === false) {
-        filterConditions.push({ 
-          $or: [
-            { description: { $exists: false } },
-            { description: '' }
-          ]
-        });
-      }
-
-      if (filters.hasIcon === true) {
-        filterConditions.push({ icon: { $exists: true, $ne: '' } });
-      } else if (filters.hasIcon === false) {
-        filterConditions.push({ 
-          $or: [
-            { icon: { $exists: false } },
-            { icon: '' }
-          ]
-        });
-      }
-
-      // Add price filters
-      if (filters.minPrice !== undefined) {
-        filterConditions.push({ price_usd: { $gte: filters.minPrice } });
-      }
-
-      if (filters.maxPrice !== undefined) {
-        filterConditions.push({ price_usd: { $lte: filters.maxPrice } });
-      }
-
-      if (filters.minMarketCap !== undefined) {
-        filterConditions.push({ market_cap: { $gte: filters.minMarketCap } });
-      }
-
-      if (filters.maxMarketCap !== undefined) {
-        filterConditions.push({ market_cap: { $lte: filters.maxMarketCap } });
-      }
-
-      if (filters.minVolume !== undefined) {
-        filterConditions.push({ volume_24h: { $gte: filters.minVolume } });
-      }
-
-      if (filters.minLiquidity !== undefined) {
-        filterConditions.push({ liquidity_usd: { $gte: filters.minLiquidity } });
-      }
-
-      if (filters.minAge !== undefined) {
-        filterConditions.push({ age_days: { $gte: filters.minAge } });
-      }
-
-      if (filters.maxAge !== undefined) {
-        filterConditions.push({ age_days: { $lte: filters.maxAge } });
-      }
-
-      if (filters.hasLabels === true) {
-        filterConditions.push({ 
-          $and: [
-            { labels: { $exists: true } },
-          ]
-        });
-      }
-
-      if (filters.minBuySellRatio !== undefined) {
-        filterConditions.push({ 
-          $and: [
-            { buys_24h: { $exists: true } },
-            { sells_24h: { $exists: true, $ne: 0 } },
-            { $gte: [{ $divide: ["$buys_24h", "$sells_24h"] }, filters.minBuySellRatio] }
-          ]
-        });
-      }
-      
-      // Search by name or symbol if searchText is provided
-      if (filters.searchText && filters.searchText.trim().length > 0) {
-        const searchText = filters.searchText.trim().toLowerCase();
-        filterConditions.push({
-          $or: [
-            { token_name_lower: { $eq: searchText } },
-            { token_symbol_lower: { $eq: searchText } }
-          ]
-        });
-      }
-    }
-
-    // Prepare query vector (use default if no query provided)
-    const defaultVector = Array(1536).fill(0.1);
-    
-    const queryParams = {
-      vector: semanticQuery 
-        ? await createEmbedding(semanticQuery)
-        : defaultVector,
-      filter: { $and: filterConditions },
-      topK: maxResults,
-      includeMetadata: true,
-    };
-
-    // Query the specific namespace
-    const queryResponse = await namespaceIndex.query(queryParams);
-
-    // If no results found in the current namespace and we're querying today's namespace,
-    // try yesterday's namespace as fallback
-    if ((!queryResponse.matches || queryResponse.matches.length === 0) && !namespaceDate) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayNamespace = `dexscreener_${yesterday.toISOString().split('T')[0]}`;
-      console.log(`No results in current namespace, trying yesterday's namespace: ${yesterdayNamespace}`);
-      
-      const yesterdayIndex = index.namespace(yesterdayNamespace);
-      const yesterdayResponse = await yesterdayIndex.query(queryParams);
-      if (yesterdayResponse.matches && yesterdayResponse.matches.length > 0) {
-        console.log(`Found ${yesterdayResponse.matches.length} results in yesterday's namespace`);
-        return mapResponseToTokens(yesterdayResponse);
-      }
-    }
-
-    return mapResponseToTokens(queryResponse);
-
+    // Call the implementation from dexscreener.ts
+    return await DexScreener.retrieveDexScreenerTokens(semanticQuery, filters, maxResults);
   } catch (error) {
     console.error('Error retrieving DexScreener tokens:', error);
     return [];
   }
-}
-
-// Helper function to map query response to DexScreenerToken objects
-function mapResponseToTokens(queryResponse: QueryResponse<RecordMetadata>): DexScreenerToken[] {
-  return (queryResponse.matches?.map(match => {
-    // Extract base token fields
-    const token: DexScreenerToken = {
-      tokenAddress: match.metadata?.tokenAddress as string,
-      chainId: match.metadata?.chainId as string,
-      createdAt: match.metadata?.created_at ? new Date(match.metadata.created_at as number).toISOString() : undefined,
-      name: match.metadata?.token_name_lower as string || match.metadata?.header as string,
-      symbol: match.metadata?.token_symbol_lower as string,
-      url: match.metadata?.dexScreenerUrl as string,
-      icon: match.metadata?.icon as string || match.metadata?.image_url as string,
-      description: match.metadata?.description as string,
-      last_updated: match.metadata?.last_updated as string,
-      score: match.score || 0, // Handle undefined score
-      network: match.metadata?.network as string,
-    };
-
-    // Extract price data
-    if (match.metadata?.price_usd !== undefined) {
-      let formattedPrice: string;
-      const priceValue = match.metadata.price_usd as number;
-      
-      // Format price based on its magnitude
-      if (priceValue < 0.000001) {
-        formattedPrice = priceValue.toExponential(4);
-      } else if (priceValue < 0.01) {
-        formattedPrice = priceValue.toFixed(8);
-      } else {
-        formattedPrice = priceValue.toFixed(4);
-      }
-      
-      token.price = {
-        value: priceValue,
-        formatted: formattedPrice
-      };
-    }
-
-    // Extract metrics
-    token.metrics = {
-      marketCap: match.metadata?.market_cap as number,
-      fullyDilutedValuation: match.metadata?.fully_diluted_valuation as number,
-      volume24h: match.metadata?.volume_24h as number,
-      liquidity: match.metadata?.liquidity_usd as number,
-      totalPairs: match.metadata?.total_pairs as number,
-      buys24h: match.metadata?.buys_24h as number,
-      sells24h: match.metadata?.sells_24h as number,
-      totalTransactions24h: match.metadata?.total_txns_24h as number,
-    };
-
-    // Calculate buy/sell ratio if possible
-    if (token.metrics.buys24h !== undefined && 
-        token.metrics.sells24h !== undefined && 
-        token.metrics.sells24h > 0) {
-      token.metrics.buySellRatio = token.metrics.buys24h / token.metrics.sells24h;
-    }
-
-    // Extract links
-    const socialLinks = (match.metadata?.social_links || []) as string[];
-    const websiteUrls = (match.metadata?.website_urls || []) as string[];
-    const linkUrls = (match.metadata?.link_urls || []) as string[];
-    const linkDescriptions = (match.metadata?.link_descriptions || []) as string[];
-    
-    const otherLinks = linkUrls.map((url, index) => ({
-      url,
-      description: index < linkDescriptions.length ? linkDescriptions[index] : "Link"
-    }));
-    
-    token.links = {
-      total: socialLinks.length + websiteUrls.length + linkUrls.length,
-      socialLinks,
-      websiteUrls,
-      otherLinks
-    };
-
-    // Extract details
-    token.details = {
-      createdAt: match.metadata?.created_at ? new Date(match.metadata.created_at as number).toISOString() : undefined,
-      ageDays: match.metadata?.age_days as number,
-      labels: match.metadata?.labels as string[] || [],
-      uniqueDexes: match.metadata?.unique_dexes as string[] || [],
-    };
-
-    return token;
-  }) || []);
 }
 
 /**
