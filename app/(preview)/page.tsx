@@ -341,7 +341,7 @@ function HomeContent() {
   // Handle tool query parameter (Now placed after dependencies)
   const hasTriggeredTool = useRef(false);
   const router = useRouter();  
-  const { user, getAccessToken, ready } = usePrivy();
+  const { user, getAccessToken, ready, authenticated } = usePrivy();
   const { refreshRecentChats } = useRecentChats();
   const [headers, setHeaders] = useState<any>();
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
@@ -540,6 +540,14 @@ function HomeContent() {
       setSidebarOpen(false);
     }
   }, [isAnyModalOpen]);
+
+  useEffect(() => {
+    if (newChatId && !chatId && authenticated) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('chatId', newChatId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [newChatId, chatId, authenticated]);  
 
   const handlePaste = (event: React.ClipboardEvent) => {
     const items = event.clipboardData?.items;

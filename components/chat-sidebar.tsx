@@ -557,6 +557,29 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const [showWalletSelector, setShowWalletSelector] = useState(false);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
   const walletSelectorRef = useRef<HTMLDivElement>(null);
+  
+  // Save selectedWalletAddress to localStorage when it changes
+  useEffect(() => {
+    if (selectedWalletAddress) {
+      try {
+        localStorage.setItem('rhun_selected_wallet_address', selectedWalletAddress);
+      } catch (e) {
+        console.error("Error saving to localStorage:", e);
+      }
+    }
+  }, [selectedWalletAddress]);
+
+  // Initialize selectedWalletAddress from localStorage
+  useEffect(() => {
+    try {
+      const savedWallet = localStorage.getItem('rhun_selected_wallet_address');
+      if (savedWallet) {
+        setSelectedWalletAddress(savedWallet);
+      }
+    } catch (e) {
+      console.error("Error accessing localStorage:", e);
+    }
+  }, []);
 
   // Handle clicks outside the wallet selector
   useEffect(() => {
@@ -576,8 +599,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const activeWallet = (params.userId === 'template' || pathname === '/') && authenticated
     ? selectedWalletAddress || user?.wallet?.address || wallets[0]?.address
     : agent.wallets?.solana;
-
-  console.log(activeWallet, wallets);
 
   // Fetch initial wallet data
   useEffect(() => {
@@ -749,38 +770,48 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     return response.json();
   }
 
-  // Update useEffect to watch for selectedWalletAddress changes
+  // Update useEffect to watch for selectedWalletAddress changes with a slight delay
   useEffect(() => {
-    if (selectedWalletAddress && ready) {
-      // Refresh data when wallet changes
-      refreshWalletData();
+    if (selectedWalletAddress && ready && authenticated) {
+      // Use a small timeout to ensure state updates have propagated
+      const refreshTimer = setTimeout(() => {
+        refreshWalletData();
+      }, 100);
+      
+      return () => clearTimeout(refreshTimer);
     }
-  }, [selectedWalletAddress, ready]);
+  }, [selectedWalletAddress, ready, authenticated]);
 
   // Add this modified refreshWalletData that uses selectedWalletAddress when available
   const refreshWalletData = async () => {
     setRefreshLoading(true);
-    // Use selectedWalletAddress if available, otherwise use activeWallet
-    const currentWallet = selectedWalletAddress || activeWallet;
     
-    if (currentWallet) {
+    // Get the current wallet address directly from the most up-to-date value
+    const currentWalletAddress = (params.userId === 'template' || pathname === '/') && authenticated
+      ? selectedWalletAddress || user?.wallet?.address || wallets[0]?.address
+      : agent.wallets?.solana;
+    
+    if (currentWalletAddress) {
       try {
         // Refresh tokens
-        const tokenResponse = await getTokens(currentWallet);
+        const tokenResponse = await getTokens(currentWalletAddress);
         setTokens(tokenResponse);
 
         // Refresh portfolio
-        const portfolioResponse = await getPortfolioValue(currentWallet);
+        const portfolioResponse = await getPortfolioValue(currentWalletAddress);
         const tv = portfolioResponse.holdings.reduce(
           (acc: number, token: { usdValue: number }) => acc + token.usdValue, 
           0
         );
         setTotalValue(tv);
         setPortfolio(portfolioResponse);
-        setRefreshLoading(false);
       } catch (error) {
         console.error('Error refreshing wallet data:', error);
+      } finally {
+        setRefreshLoading(false);
       }
+    } else {
+      setRefreshLoading(false);
     }
   };
 
@@ -875,7 +906,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                           onClick={() => {
                             setSelectedWalletAddress(user?.wallet?.address || null);
                             setShowWalletSelector(false);
-                            refreshWalletData();
                           }}
                         >
                           <div className="flex items-center justify-between">
@@ -901,7 +931,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                             onClick={() => {
                               setSelectedWalletAddress(wallet.address);
                               setShowWalletSelector(false);
-                              refreshWalletData();
                             }}
                           >
                             <div className="flex items-center justify-between">
