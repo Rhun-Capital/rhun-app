@@ -60,16 +60,24 @@ interface PaginatedTokens {
 type SelectionType = 'from' | 'to' | null;
 
 const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComplete }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
-  const { wallets: solanaWallets } = useSolanaWallets();
+  const { wallets: solanaWallets, ready } = useSolanaWallets();
   const params = useParams();
   const pathname = usePathname();
-  
-  // For template agents, use the first wallet from useSolanaWallets
-  const activeWallet = params.userId === 'template' || pathname === '/' 
-    ? solanaWallets[0]
-    : solanaWallets.find(
-        wallet => wallet.address.toLowerCase() === agent.wallets.solana.toLowerCase()
-      );
+  const { user  } = usePrivy();
+  const SELECTED_WALLET_KEY = 'rhun_selected_wallet_address';
+  let wallet = localStorage.getItem(SELECTED_WALLET_KEY);
+  let activeWallet = null;
+      
+  // Determine active wallet with proper checks
+  if (wallet && solanaWallets.find(w => w.address.toLowerCase() === wallet.toLowerCase())) {
+    activeWallet = solanaWallets.find(w => w.address.toLowerCase() === wallet.toLowerCase())
+  } else if (agent?.wallets?.solana && solanaWallets.find(w => w.address.toLowerCase() === agent.wallets.solana.toLowerCase())) {
+    activeWallet = solanaWallets.find(w => w.address.toLowerCase() === agent.wallets.solana.toLowerCase())
+  } else {
+    activeWallet = solanaWallets[0] || null
+  }
+
+
   
   const [selecting, setSelecting] = useState<SelectionType>(null);
   const [fromToken, setFromToken] = useState<Token | null>(null);

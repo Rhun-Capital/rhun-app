@@ -6,7 +6,7 @@ import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 
 
 const solanaConnectors = toSolanaWalletConnectors({
-    shouldAutoConnect: false,
+    shouldAutoConnect: true,
 });
 
 export default function PrivyWrapper({
