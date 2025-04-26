@@ -6,9 +6,24 @@
 - NextJS Edge runtime has limitations with certain class inheritance patterns. Class extension errors ("Class extends value is not a constructor or null") can occur when using libraries not compatible with Edge runtime.
 - Always add null/undefined checks before accessing object properties, especially when working with messages or API responses that might not always have the expected structure.
 - When handling API fetch requests, always catch potential network errors and handle 404 responses gracefully, especially for resources that might legitimately not exist (like user subscriptions). Use proper TypeScript interfaces for error responses to maintain type safety.
+- When adapting UI components, avoid using complex component structures with props unless those components are properly typed. Inline effects and styles can be more reliable when having issues with TypeScript errors.
 
 # Scratchpad
 
+## Updating Agent List Card Styling
+
+[X] Identify the task: Update the agent list card styling to match the tools page design with holographic effects
+[X] Analyze the tools page component structure to understand the styling approach
+[X] Implement the new style features: 3D grid, gradients, and hover effects
+[X] Resolve TypeScript issues by simplifying the component structure
+
+The solution approach:
+1. Rather than creating complex reusable components with props that cause TypeScript issues, use inline styles and effects
+2. Implement the same visual features directly in each card: gradient backgrounds, grid overlays, and hover effects
+3. Keep the existing functionality while enhancing the visual appearance
+4. Use transition effects and animations to match the tools page style
+
+Previous implementations:
 ## Removing Unused Subscription Hook in Chat Sidebar
 
 [X] Identify the issue: Unnecessary subscription hook causing 404 errors in chat sidebar

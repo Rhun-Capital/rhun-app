@@ -170,7 +170,7 @@ export const CloseIcon = () => {
   );
 };
 
-export const PlusIcon = () => {
+export const PlusIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       height="16"
@@ -178,6 +178,7 @@ export const PlusIcon = () => {
       viewBox="0 0 16 16"
       width="16"
       style={{ color: "currentcolor" }}
+      className={className}
     >
       <path
         fillRule="evenodd"
