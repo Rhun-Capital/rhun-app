@@ -1,6 +1,6 @@
 // components/chat-sidebar.tsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { WalletIcon, LayoutGrid, SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart, XIcon, TrendingUp, Search, ImageIcon, BookOpen, Globe, ChevronDown } from 'lucide-react';
+import { WalletIcon, LayoutGrid, SendIcon, QrCode, Repeat2, Sparkles, RefreshCcw, LineChart, XIcon, TrendingUp, Search, ImageIcon, BookOpen, Globe, ChevronDown, CheckIcon } from 'lucide-react';
 import Image from 'next/image';
 import { usePrivy, useLogin, PrivyErrorCode } from '@privy-io/react-auth';
 import {useFundWallet} from '@privy-io/react-auth/solana';
@@ -60,10 +60,11 @@ interface TransferButtonProps {
     logoURI: string;
   };
   onOpenModal: (modalType: ModalType) => void;
+  isLoading?: boolean;
 }
 
 // New component that just shows the button without the modal implementation
-const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal }: TransferButtonProps & { agent: any }) => {
+const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal, isLoading = false }: TransferButtonProps & { agent: any }) => {
   const { user } = usePrivy();
   const { login } = useLogin();
 
@@ -78,7 +79,8 @@ const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal 
           }
           onOpenModal('swap');
         }}
-        className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
+        disabled={isLoading}
+        className={`w-[80px] rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <div className="flex flex-col items-center gap-1 p-2">
           <Repeat2 className="w-[20px] h-[20px]"/>
@@ -96,39 +98,41 @@ const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal 
   );
 }
 
-const ReceiveButton = ({ agent, tokens, solanaBalance, onOpenModal }: TransferButtonProps & { agent: any }) => {
+const ReceiveButton = ({ agent, tokens, solanaBalance, onOpenModal, isLoading = false }: TransferButtonProps & { agent: any }) => {
   return (
     <button 
       onClick={(e) => {
         e.stopPropagation();
         onOpenModal('receive');
       }}
-      className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
+      disabled={isLoading}
+      className={`w-[80px] rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
-      <div className=" flex flex-col items-center gap-1 p-2">
-      <QrCode className="w-[20px] h-[20px]"/>
-      <div className="text-sm text-zinc-400">
-        Receive
-      </div>
+      <div className="flex flex-col items-center gap-1 p-2">
+        <QrCode className="w-[20px] h-[20px]"/>
+        <div className="text-sm text-zinc-400">
+          Receive
+        </div>
       </div>
     </button>
   );
 }
 
-const TransferButton = ({ tokens, solanaBalance, agent, onOpenModal }: TransferButtonProps & { agent: any }) => {
+const TransferButton = ({ tokens, solanaBalance, agent, onOpenModal, isLoading = false }: TransferButtonProps & { agent: any }) => {
   return (
     <button 
       onClick={(e) => {
         e.stopPropagation();
         onOpenModal('transfer');
       }}
-      className="w-[80px] bg-zinc-800 rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2"
+      disabled={isLoading}
+      className={`w-[80px] rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
-      <div className=" flex flex-col items-center gap-1 p-2">
-      <SendIcon className="w-[20px] h-[20px]"/>
-      <div className="text-sm text-zinc-400">
-        Send
-      </div>
+      <div className="flex flex-col items-center gap-1 p-2">
+        <SendIcon className="w-[20px] h-[20px]"/>
+        <div className="text-sm text-zinc-400">
+          Send
+        </div>
       </div>
     </button>
   );
@@ -550,14 +554,45 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
   const { createWallet, wallets, ready } = useSolanaWallets();
   const pathname = usePathname();
   const {login} = useLogin();
-  // const [isWalletLoading, setIsWalletLoading] = useState(true);
-
+  
   // Add state to track which modal is open
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [showWalletSelector, setShowWalletSelector] = useState(false);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
   const walletSelectorRef = useRef<HTMLDivElement>(null);
   
+  // Function to toggle wallet selector visibility
+  const toggleWalletSelector = () => {
+    const selector = document.getElementById('wallet-selector');
+    if (selector) {
+      if (selector.style.display === 'none' || !selector.style.display) {
+        selector.style.display = 'block';
+      } else {
+        selector.style.display = 'none';
+      }
+    }
+  };
+  
+  // Close wallet selector when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const selector = document.getElementById('wallet-selector');
+      const toggleButton = document.querySelector('.wallet-selector-toggle');
+      
+      if (selector && 
+          !selector.classList.contains('hidden') && 
+          !selector.contains(event.target as Node) && 
+          toggleButton && 
+          !toggleButton.contains(event.target as Node)) {
+        selector.classList.add('hidden');
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   // Save selectedWalletAddress to localStorage when it changes
   useEffect(() => {
     if (selectedWalletAddress) {
@@ -568,32 +603,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
       }
     }
   }, [selectedWalletAddress]);
-
-  // Initialize selectedWalletAddress from localStorage
-  useEffect(() => {
-    try {
-      const savedWallet = localStorage.getItem('rhun_selected_wallet_address');
-      if (savedWallet) {
-        setSelectedWalletAddress(savedWallet);
-      }
-    } catch (e) {
-      console.error("Error accessing localStorage:", e);
-    }
-  }, []);
-
-  // Handle clicks outside the wallet selector
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (walletSelectorRef.current && !walletSelectorRef.current.contains(event.target as Node)) {
-        setShowWalletSelector(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [walletSelectorRef]);
 
   // Get the active wallet based on whether it's a template agent or not
   const activeWallet = (params.userId === 'template' || pathname === '/') && authenticated
@@ -617,27 +626,6 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
 
     fetchInitialData();
   }, [activeWallet, ready, authenticated]);
-
-  // Update loading state when wallet is ready
-  // useEffect(() => {
-  //   if (!ready) {
-  //     setIsWalletLoading(true);
-  //     return;
-  //   }
-
-  //   // If we're ready but have no wallets, we're not loading - we're disconnected
-  //   if (wallets.length === 0) {
-  //     setIsWalletLoading(false);
-  //     return;
-  //   }
-
-  //   if (activeWallet) {
-  //     setIsWalletLoading(false);
-  //   } else {
-  //     // If we're ready but don't have a wallet, we're still loading
-  //     setIsWalletLoading(true);
-  //   }
-  // }, [activeWallet, ready, wallets.length]);
 
   // Clear wallet data when user is not authenticated
   useEffect(() => {
@@ -815,6 +803,18 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     }
   };
 
+  // Initialize wallet selector from localStorage
+  useEffect(() => {
+    try {
+      const savedWallet = localStorage.getItem('rhun_selected_wallet_address');
+      if (savedWallet) {
+        setSelectedWalletAddress(savedWallet);
+      }
+    } catch (e) {
+      console.error("Error accessing localStorage:", e);
+    }
+  }, []);
+
   return (
     <div className="h-full flex flex-col">
       {/* Content */}
@@ -857,8 +857,15 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
               <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
                 <div className="flex items-center justify-between mb-2">
                   <div 
-                    className="flex items-center gap-1 cursor-pointer hover:bg-zinc-700 px-2 py-1 rounded-md transition-colors"
-                    onClick={() => (params.userId === 'template' || pathname === '/') && authenticated && wallets.length > 0 ? setShowWalletSelector(!showWalletSelector) : null}
+                    className="flex items-center gap-1 cursor-pointer hover:bg-zinc-700 px-2 py-1 rounded-md transition-colors wallet-selector-toggle"
+                    onClick={() => {
+                      if ((params.userId === 'template' || pathname === '/') && authenticated && wallets.length > 0) {
+                        const selector = document.getElementById('wallet-selector');
+                        if (selector) {
+                          selector.classList.toggle('hidden');
+                        }
+                      }
+                    }}
                   >
                     {activeWallet ? (
                       <>
@@ -893,62 +900,67 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                   </div>
                 </div>
                 
-                {showWalletSelector && (
-                  <div className="absolute z-50 left-4 right-4 mt-2 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg" ref={walletSelectorRef}>
-                    <div className="p-2 border-b border-zinc-700 text-sm font-medium text-white">
-                      Select Wallet
-                    </div>
-                    <div className="max-h-60 overflow-y-auto">
-                      {/* Primary wallet */}
-                      {user?.wallet?.address && (
+                {/* Wallet selector dropdown */}
+                <div id="wallet-selector" className="absolute z-50 left-4 right-4 mt-2 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg hidden" ref={walletSelectorRef}>
+                  <div className="p-2 border-b border-zinc-700 text-sm font-medium text-white">
+                    Select Wallet
+                  </div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {/* Primary wallet */}
+                    {user?.wallet?.address && (
+                      <div 
+                        className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === user?.wallet?.address ? 'bg-zinc-700' : ''}`}
+                        onClick={() => {
+                          setSelectedWalletAddress(user?.wallet?.address || null);
+                          const selector = document.getElementById('wallet-selector');
+                          if (selector) {
+                            selector.classList.add('hidden');
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <WalletIcon className="w-4 h-4 text-indigo-400" />
+                            <div className="text-sm text-white">Primary Wallet</div>
+                          </div>
+                          {activeWallet === user?.wallet?.address && (
+                            <CheckIcon className="w-4 h-4 text-green-500" />
+                          )}
+                        </div>
+                        <div className="text-xs text-zinc-400 truncate pl-6">{user?.wallet?.address}</div>
+                      </div>
+                    )}
+                    
+                    {/* Other wallets */}
+                    {wallets.map((wallet, index) => {
+                      if (wallet.address === user?.wallet?.address) return null;
+                      return (
                         <div 
-                          className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === user?.wallet?.address ? 'bg-zinc-700' : ''}`}
+                          key={wallet.address}
+                          className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === wallet.address ? 'bg-zinc-700' : ''}`}
                           onClick={() => {
-                            setSelectedWalletAddress(user?.wallet?.address || null);
-                            setShowWalletSelector(false);
+                            setSelectedWalletAddress(wallet.address);
+                            const selector = document.getElementById('wallet-selector');
+                            if (selector) {
+                              selector.classList.add('hidden');
+                            }
                           }}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <WalletIcon className="w-4 h-4 text-indigo-400" />
-                              <div className="text-sm text-white">Primary Wallet</div>
+                              <WalletIcon className="w-4 h-4 text-zinc-400" />
+                              <div className="text-sm text-white">Wallet {index + 1}</div>
                             </div>
-                            {activeWallet === user?.wallet?.address && (
-                              <div className="text-green-500">✓</div>
+                            {activeWallet === wallet.address && (
+                              <CheckIcon className="w-4 h-4 text-green-500" />
                             )}
                           </div>
-                          <div className="text-xs text-zinc-400 truncate pl-6">{user?.wallet?.address}</div>
+                          <div className="text-xs text-zinc-400 truncate pl-6">{wallet.address}</div>
                         </div>
-                      )}
-                      
-                      {/* Other wallets */}
-                      {wallets.map((wallet, index) => {
-                        if (wallet.address === user?.wallet?.address) return null;
-                        return (
-                          <div 
-                            key={wallet.address}
-                            className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === wallet.address ? 'bg-zinc-700' : ''}`}
-                            onClick={() => {
-                              setSelectedWalletAddress(wallet.address);
-                              setShowWalletSelector(false);
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <WalletIcon className="w-4 h-4 text-zinc-400" />
-                                <div className="text-sm text-white">Wallet {index + 1}</div>
-                              </div>
-                              {activeWallet === wallet.address && (
-                                <div className="text-green-500">✓</div>
-                              )}
-                            </div>
-                            <div className="text-xs text-zinc-400 truncate pl-6">{wallet.address}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
                 
                 {!activeWallet && (
                   <div className="text-sm text-white w-full">
@@ -998,6 +1010,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                         logoURI: portfolio.holdings[0].logoURI
                       } : undefined}
                       onOpenModal={handleOpenModal}
+                      isLoading={refreshLoading || initialLoading}
                     />
 
                     <TransferButton 
@@ -1011,6 +1024,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                         logoURI: portfolio.holdings[0].logoURI
                       } : undefined}
                       onOpenModal={handleOpenModal}
+                      isLoading={refreshLoading || initialLoading}
                     />
 
                     <SwapButton 
@@ -1024,11 +1038,14 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
                       } : undefined}
                       agent={agent}
                       onOpenModal={handleOpenModal}
+                      isLoading={refreshLoading || initialLoading}
                     /> 
                   </div>
                 )}
                   
-                {activeWallet && <button onClick={handleShowFundingModal} className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base">
+                {activeWallet && <button onClick={handleShowFundingModal} 
+                  disabled={refreshLoading || initialLoading}
+                  className={`mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base ${(refreshLoading || initialLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   Add Funds
                 </button>}
               </div>

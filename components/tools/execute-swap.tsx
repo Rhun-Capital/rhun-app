@@ -57,7 +57,6 @@ const ExecuteSwap: React.FC<{
   const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
   const pathname = usePathname();
   
-  
   const existingResult = 'result' in toolInvocation ? toolInvocation.result : null;
   const existingStatus = 'status' in toolInvocation ? toolInvocation.status : null;    
   // Set initial status based on existing result
@@ -84,7 +83,6 @@ const ExecuteSwap: React.FC<{
     if (!user) return;
     getAgent().then((agent) => {
 
-      
       setAgent(agent);
   
       // Determine active wallet with proper checks

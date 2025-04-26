@@ -112,7 +112,7 @@ export const Sidebar = ({ children }: { children: React.ReactNode }) => {
               }
               setIsOpen(false);
             }}
-            className="flex items-center ml-2 max-h-6"
+            className="flex items-center pb-2 md:pb-0 ml-12 md:ml-2 max-h-6"
           >
             <Image src="https://rhun.io/images/rhun-logo-gradient.svg" alt="Rhun Capital" height={124} width={124} className="pr-2 antialiased"/>
           </button>
