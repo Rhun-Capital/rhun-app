@@ -2200,21 +2200,28 @@ function HomeContent() {
           )}
           
           {/* Sidebar */}
-          <div 
-            className={`bg-zinc-900 overflow-hidden transition-all duration-300 
-              ${sidebarOpen 
-                ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-auto z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
-                : 'w-0 md:border-l-0'}`}
-            style={{ 
-              bottom: 0,
-              paddingBottom: "calc(env(safe-area-inset-bottom, 0px))",
-              borderTopRightRadius: '16px'
-            }}
-          >
+          <AnimatePresence>
             {sidebarOpen && (
-              <>
-                
-                <div className="h-[calc(100vh-100px)] flex flex-col flex-1 overflow-hidden bg-zinc-900">
+              <motion.div 
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ 
+                  type: 'tween',
+                  duration: 0.2,
+                  ease: 'easeOut'
+                }}
+                className={`bg-zinc-900 overflow-hidden transition-all duration-300 
+                  ${sidebarOpen 
+                    ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-auto z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
+                    : 'w-0 md:border-l-0'}`}
+                style={{ 
+                  bottom: 0,
+                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px))",
+                  borderTopRightRadius: '16px'
+                }}
+              >
+                <div className="h-[calc(100vh-140px)] flex flex-col flex-1 overflow-hidden bg-zinc-900">
                   {/* Close button - only on mobile */}
                   <div className="flex justify-between items-center p-4 border-b border-zinc-700 md:hidden bg-zinc-900">
                     <h3 className="text-lg font-medium text-white">
@@ -2377,7 +2384,7 @@ function HomeContent() {
                             >
                               View Available Tools
                             </button>                            
-      
+        
                           </div>
                           ) : (
                             <div className="space-y-3">
@@ -2415,9 +2422,9 @@ function HomeContent() {
                     )}
                   </div>
                 </div>
-              </>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
