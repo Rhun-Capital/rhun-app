@@ -380,127 +380,81 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-white sm:p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Hero Section */}
-        <div className="text-center py-8 sm:py-16 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black backdrop-blur-md text-white rounded-lg p-4 relative overflow-hidden border border-white/10">
-          {/* Stars background */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="stars-small"></div>
-            <div className="stars-medium"></div>
-            <div className="stars-large"></div>
-          </div>
-          
-          <div className="flex flex-col items-center justify-center gap-2 md:flex-row relative z-10">
-            <h1 className="text-4xl font-bold">Welcome to</h1>
-            <Image 
-              src="https://d1olseq3j3ep4p.cloudfront.net/images/rhun-logo-white.svg" 
-              alt="Rhun Capital" 
-              height={155} 
-              width={155} 
-              className="mt-1 ml-2 antialiased"
-            />
-          </div>
-          <p className="text-xl text-zinc-400 max-w-2xl mx-auto relative z-10">
-            Access powerful trading tools and analysis directly from your chat interface.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-5 relative z-10">
-            <Link 
-              href="https://rhun-capital.gitbook.io/rhun"
-              target='_blank'
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-zinc-700 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-600 sm:px-6 sm:py-2 sm:text-base"
-            >
-              <span>Read docs</span>
-              <BookOpenIcon className="w-5 h-5"/>
-            </Link>
-            <button
-              onClick={() => {
-                router.push("/");
-              }}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-indigo-400/10 border-2 border-indigo-400 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-800 sm:px-6 sm:py-2 sm:text-base"
-            >
-              <PlusCircle className="w-5 h-5 text-indigo-400"/>
-              <span>New chat</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Featured Cards - Side by Side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Create Agent Card */}
-          <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
-            <div 
-              className="group cursor-pointer h-full"
-              onClick={() => {
-                if (user) {
-                  router.push("/agents/create");
-                } else if (ready) {
-                  login();
-                }
-              }}
-            >
-              <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                {/* Gradient background */}
-                <GradientBackground type="create-agent" />
-                
-                {/* 3D Grid Pattern */}
-                <Grid3D />
-                
-                {/* Card image */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="relative w-60 h-60 rounded-full overflow-hidden">
-                    <Image
-                      src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/hero.png"
-                      alt="Create Agent"
-                      fill
-                      className="object-cover transition-transform duration-300 hover:scale-105 opacity-60"
-                      priority
-                      quality={100}
-                    />
-                  </div>
-                </div>
-                
-                {/* Content Section */}
-                <div className="absolute inset-x-0 bottom-0 p-6">
-                  <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Create Your Own Agent</h2>
-                  <p className="text-zinc-400 text-base mb-6">Build and customize your own AI trading agent with specific strategies and tools.</p>
-                  <div className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10 w-fit">
-                    {user ? (
-                      <>
-                        <span>Create Agent</span>
-                        <ArrowUpRight className="w-5 h-5" />
-                      </>
-                    ) : (
-                      <>
-                        <span>Connect Wallet</span>
-                        <ArrowUpRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+    <div className="h-screen overflow-y-auto bg-zinc-900 text-white">
+      <div className="sm:p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Hero Section */}
+          <div className="text-center py-8 sm:py-16 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black backdrop-blur-md text-white rounded-lg p-4 relative overflow-hidden border border-white/10">
+            {/* Stars background */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="stars-small"></div>
+              <div className="stars-medium"></div>
+              <div className="stars-large"></div>
             </div>
-          </HolographicCard>
+            
+            <div className="flex flex-col items-center justify-center gap-2 md:flex-row relative z-10">
+              <h1 className="text-4xl font-bold">Welcome to</h1>
+              <Image 
+                src="https://d1olseq3j3ep4p.cloudfront.net/images/rhun-logo-white.svg" 
+                alt="Rhun Capital" 
+                height={155} 
+                width={155} 
+                className="mt-1 ml-2 antialiased"
+              />
+            </div>
+            <p className="text-xl text-zinc-400 max-w-2xl mx-auto relative z-10">
+              Access powerful trading tools and analysis directly from your chat interface.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-5 relative z-10">
+              <Link 
+                href="https://rhun-capital.gitbook.io/rhun"
+                target='_blank'
+                className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-zinc-700 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-600 sm:px-6 sm:py-2 sm:text-base"
+              >
+                <span>Read docs</span>
+                <BookOpenIcon className="w-5 h-5"/>
+              </Link>
+              <button
+                onClick={() => {
+                  router.push("/");
+                }}
+                className="inline-flex items-center justify-center gap-2 px-8 py-3 text-lg bg-indigo-400/10 border-2 border-indigo-400 text-white rounded-lg font-semibold transition-colors hover:bg-zinc-800 sm:px-6 sm:py-2 sm:text-base"
+              >
+                <PlusCircle className="w-5 h-5 text-indigo-400"/>
+                <span>New chat</span>
+              </button>
+            </div>
+          </div>
 
-          {/* Buy RHUN Card */}
-          <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
-            <Link href="https://jup.ag/swap/SOL-Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump" target="_blank">
-              <div className="group cursor-pointer h-full">
+          {/* Featured Cards - Side by Side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Create Agent Card */}
+            <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
+              <div 
+                className="group cursor-pointer h-full"
+                onClick={() => {
+                  if (user) {
+                    router.push("/agents/create");
+                  } else if (ready) {
+                    login();
+                  }
+                }}
+              >
                 <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                   {/* Gradient background */}
-                  <GradientBackground type="buy-rhun" />
+                  <GradientBackground type="create-agent" />
                   
                   {/* 3D Grid Pattern */}
                   <Grid3D />
                   
                   {/* Card image */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative w-60 h-60 rounded-2xl overflow-hidden">
+                    <div className="relative w-60 h-60 rounded-full overflow-hidden">
                       <Image
-                        src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/buy-rhun-wire.png"
-                        alt="Buy RHUN"
+                        src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/hero.png"
+                        alt="Create Agent"
                         fill
-                        className="object-cover transition-transform duration-300 hover:scale-105"
+                        className="object-cover transition-transform duration-300 hover:scale-105 opacity-60"
                         priority
                         quality={100}
                       />
@@ -509,22 +463,138 @@ export default function HomePage() {
                   
                   {/* Content Section */}
                   <div className="absolute inset-x-0 bottom-0 p-6">
-                    <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Buy $RHUN Token</h2>
-                    <p className="text-zinc-400 text-base mb-6">Get access to premium features and participate in the RHUN ecosystem.</p>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="inline-flex items-center justify-center gap-1 px-3 py-2.5 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10 w-fit"
-                      >
-                        <div className="relative w-12 h-4">
-                          <Image
-                            src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/jupiter-logo.svg"
-                            alt="Jupiter"
-                            fill
-                            className="object-contain"
-                          />
+                    <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Create Your Own Agent</h2>
+                    <p className="text-zinc-400 text-base mb-6">Build and customize your own AI trading agent with specific strategies and tools.</p>
+                    <div className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10 w-fit">
+                      {user ? (
+                        <>
+                          <span>Create Agent</span>
+                          <ArrowUpRight className="w-5 h-5" />
+                        </>
+                      ) : (
+                        <>
+                          <span>Connect Wallet</span>
+                          <ArrowUpRight className="w-5 h-5" />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </HolographicCard>
+
+            {/* Buy RHUN Card */}
+            <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
+              <Link href="https://jup.ag/swap/SOL-Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump" target="_blank">
+                <div className="group cursor-pointer h-full">
+                  <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                    {/* Gradient background */}
+                    <GradientBackground type="buy-rhun" />
+                    
+                    {/* 3D Grid Pattern */}
+                    <Grid3D />
+                    
+                    {/* Card image */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="relative w-60 h-60 rounded-2xl overflow-hidden">
+                        <Image
+                          src="https://d1olseq3j3ep4p.cloudfront.net/images/tools/buy-rhun-wire.png"
+                          alt="Buy RHUN"
+                          fill
+                          className="object-cover transition-transform duration-300 hover:scale-105"
+                          priority
+                          quality={100}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Content Section */}
+                    <div className="absolute inset-x-0 bottom-0 p-6">
+                      <h2 className="text-2xl font-semibold text-white drop-shadow-lg mb-3">Buy $RHUN Token</h2>
+                      <p className="text-zinc-400 text-base mb-6">Get access to premium features and participate in the RHUN ecosystem.</p>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="inline-flex items-center justify-center gap-1 px-3 py-2.5 bg-transparent text-white rounded-lg font-semibold transition-all duration-200 border-2 border-indigo-400 hover:border-indigo-400 hover:text-white hover:bg-indigo-500/10 w-fit"
+                        >
+                          <div className="relative w-12 h-4">
+                            <Image
+                              src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/jupiter-logo.svg"
+                              alt="Jupiter"
+                              fill
+                              className="object-contain"
+                            />
+                          </div>
+                          <span>Buy on Jupiter</span>
+                          <ArrowUpRight className="w-5 h-5" />
                         </div>
-                        <span>Buy on Jupiter</span>
-                        <ArrowUpRight className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </HolographicCard>
+          </div>
+
+          {/* Meteora Staking Card - Full Width */}
+          <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
+            <Link href="https://www.meteora.ag/dlmm/2jxVjkPignEbR5pbGNtiRyCc6fAKZTKuFTf1MQED9pt5" target="_blank">
+              <div className="group cursor-pointer w-full">
+                <div className="relative h-[300px] sm:h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                  {/* Gradient background */}
+                  <GradientBackground type="meteora-staking" />
+                  
+                  {/* 3D Grid Pattern */}
+                  <Grid3D />
+                  
+                  {/* Content layout */}
+                  <div className="absolute inset-0">
+                    {/* Card image - Only visible on mobile */}
+                    <div className="sm:hidden absolute inset-0 flex items-center justify-center pt-8">
+                      <div className="relative w-48 h-48">
+                        <Image
+                          src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/meteora-logo.svg"
+                          alt="Meteora"
+                          fill
+                          className="object-contain opacity-20 sm:opacity-40 transition-transform duration-300 group-hover:scale-105"
+                          priority
+                          quality={100}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="absolute inset-x-0 bottom-0 p-6 sm:relative sm:flex sm:items-center sm:justify-between sm:p-8 sm:h-full">
+                      {/* Left side - Text content */}
+                      <div className="flex-1 text-left sm:pr-8">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
+                            <h2 className="text-2xl font-semibold text-white drop-shadow-lg">Provide Liquidity on Meteora</h2>
+                          </div>
+                          <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            <span>New</span>
+                          </span>
+                        </div>
+                        <p className="text-zinc-400 text-base mb-6">Deposit RHUN tokens in the Meteora liquidity pool to earn rewards and participate in DeFi.</p>
+                        <div className="flex items-start gap-2 text-sm text-zinc-400">
+                          <div className="px-3 py-1.5 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-2">
+                            <Activity className="w-4 h-4" />
+                            <span>Earn Rewards</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Right side - Logo (Only visible on desktop) */}
+                      <div className="hidden sm:block relative w-32 h-32">
+                        <Image
+                          src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/meteora-logo.svg"
+                          alt="Meteora"
+                          fill
+                          className="object-contain opacity-20 sm:opacity-40 transition-transform duration-300 group-hover:scale-105"
+                          priority
+                          quality={100}
+                        />
                       </div>
                     </div>
                   </div>
@@ -532,172 +602,104 @@ export default function HomePage() {
               </div>
             </Link>
           </HolographicCard>
-        </div>
 
-        {/* Meteora Staking Card - Full Width */}
-        <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
-          <Link href="https://www.meteora.ag/dlmm/2jxVjkPignEbR5pbGNtiRyCc6fAKZTKuFTf1MQED9pt5" target="_blank">
-            <div className="group cursor-pointer w-full">
-              <div className="relative h-[300px] sm:h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                {/* Gradient background */}
-                <GradientBackground type="meteora-staking" />
-                
-                {/* 3D Grid Pattern */}
-                <Grid3D />
-                
-                {/* Content layout */}
-                <div className="absolute inset-0">
-                  {/* Card image - Only visible on mobile */}
-                  <div className="sm:hidden absolute inset-0 flex items-center justify-center pt-8">
-                    <div className="relative w-48 h-48">
-                      <Image
-                        src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/meteora-logo.svg"
-                        alt="Meteora"
-                        fill
-                        className="object-contain opacity-20 sm:opacity-40 transition-transform duration-300 group-hover:scale-105"
-                        priority
-                        quality={100}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Content Section */}
-                  <div className="absolute inset-x-0 bottom-0 p-6 sm:relative sm:flex sm:items-center sm:justify-between sm:p-8 sm:h-full">
-                    {/* Left side - Text content */}
-                    <div className="flex-1 text-left sm:pr-8">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 mb-3">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
-                          <h2 className="text-2xl font-semibold text-white drop-shadow-lg">Provide Liquidity on Meteora</h2>
-                        </div>
-                        <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          <span>New</span>
-                        </span>
-                      </div>
-                      <p className="text-zinc-400 text-base mb-6">Deposit RHUN tokens in the Meteora liquidity pool to earn rewards and participate in DeFi.</p>
-                      <div className="flex items-start gap-2 text-sm text-zinc-400">
-                        <div className="px-3 py-1.5 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-2">
-                          <Activity className="w-4 h-4" />
-                          <span>Earn Rewards</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Right side - Logo (Only visible on desktop) */}
-                    <div className="hidden sm:block relative w-32 h-32">
-                      <Image
-                        src="https://d1olseq3j3ep4p.cloudfront.net/images/providers/meteora-logo.svg"
-                        alt="Meteora"
-                        fill
-                        className="object-contain opacity-20 sm:opacity-40 transition-transform duration-300 group-hover:scale-105"
-                        priority
-                        quality={100}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Link>
-        </HolographicCard>
-
-        {/* Tools Section */}
-        <div className="space-y-8">
-          <h2 className="text-2xl font-bold text-white">Agent Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tools.map((tool) => (
-              <HolographicCard key={tool.title}>
-                <div 
-                  className="group cursor-pointer h-full"
-                  onClick={(e) => handleToolClick(e, tool)}
-                >
-                  <div className="relative h-48 overflow-hidden rounded-t-lg transition-all duration-300">
-                    {/* Gradient background */}
-                    <GradientBackground type={tool.type} />
-                    
-                    {/* Card image */}
-                    {tool.image && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="relative w-48 h-48 rounded-2xl overflow-hidden">
-                          <Image
-                            src={tool.image}
-                            alt={tool.title}
-                            fill
-                            className="object-cover animate-glow opacity-60 transition-transform duration-300 hover:scale-105"
-                            priority
-                            quality={100}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Animated gradient border */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    
-                    {/* Holographic overlay - removing backdrop blur */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
-                    
-                    {/* Content gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-zinc-900/50 to-transparent" />
-                    
-                    {/* Badges with animation - reducing blur */}
-                    <div className="absolute top-4 right-4 flex gap-2">
-                      {tool.isNew && (
-                        <div className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          <span>New</span>
+          {/* Tools Section */}
+          <div className="space-y-8">
+            <h2 className="text-2xl font-bold text-white">Agent Tools</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {tools.map((tool) => (
+                <HolographicCard key={tool.title}>
+                  <div 
+                    className="group cursor-pointer h-full"
+                    onClick={(e) => handleToolClick(e, tool)}
+                  >
+                    <div className="relative h-48 overflow-hidden rounded-t-lg transition-all duration-300">
+                      {/* Gradient background */}
+                      <GradientBackground type={tool.type} />
+                      
+                      {/* Card image */}
+                      {tool.image && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="relative w-48 h-48 rounded-2xl overflow-hidden">
+                            <Image
+                              src={tool.image}
+                              alt={tool.title}
+                              fill
+                              className="object-cover animate-glow opacity-60 transition-transform duration-300 hover:scale-105"
+                              priority
+                              quality={100}
+                            />
+                          </div>
                         </div>
                       )}
-                      {/* {tool.isPopular && (
-                        <div className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
-                          <Zap className="w-3 h-3" />
-                          <span>Popular</span>
+                      
+                      {/* Animated gradient border */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      {/* Holographic overlay - removing backdrop blur */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
+                      
+                      {/* Content gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-zinc-900/50 to-transparent" />
+                      
+                      {/* Badges with animation - reducing blur */}
+                      <div className="absolute top-4 right-4 flex gap-2">
+                        {tool.isNew && (
+                          <div className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            <span>New</span>
+                          </div>
+                        )}
+                        {/* {tool.isPopular && (
+                          <div className="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full flex items-center gap-1">
+                            <Zap className="w-3 h-3" />
+                            <span>Popular</span>
+                          </div>
+                        )} */}
+                      </div>
+
+                      {/* Tool Info with floating effect */}
+                      <div className="absolute bottom-4 left-4 right-4 transform group-hover:translate-y-[-5px] transition-transform duration-300">
+                        <div className="flex items-center gap-2 mb-2">
+                          <tool.icon className={`w-8 h-8 ${tool.color} drop-shadow-lg group-hover:scale-110 transition-transform duration-300`} />
+                          <h2 className="text-xl font-semibold text-white drop-shadow-lg">{tool.title}</h2>
                         </div>
-                      )} */}
+                        <div className="flex items-center gap-2 text-xs text-zinc-400">
+                          <div className="px-2 py-1 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-1">
+                            <Activity className="w-3 h-3" />
+                            <span>{tool.stats}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Tool Info with floating effect */}
-                    <div className="absolute bottom-4 left-4 right-4 transform group-hover:translate-y-[-5px] transition-transform duration-300">
-                      <div className="flex items-center gap-2 mb-2">
-                        <tool.icon className={`w-8 h-8 ${tool.color} drop-shadow-lg group-hover:scale-110 transition-transform duration-300`} />
-                        <h2 className="text-xl font-semibold text-white drop-shadow-lg">{tool.title}</h2>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-zinc-400">
-                        <div className="px-2 py-1 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-1">
-                          <Activity className="w-3 h-3" />
-                          <span>{tool.stats}</span>
+                    {/* Bottom card section with holographic effect */}
+                    <div className="p-4 bg-zinc-800 rounded-b-lg border border-transparent group-hover:shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-sm">
+                      <p className="text-zinc-400 text-sm">{tool.description}</p>
+                      <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center text-sm text-zinc-500 group-hover:text-indigo-400 transition-colors">
+                          <span>Try now</span>
+                          <div className="h-4 w-4 ml-1 mb-1 group-hover:translate-x-1 transition-transform">&#8250;</div>
                         </div>
+                        <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
                       </div>
                     </div>
                   </div>
-
-                  {/* Bottom card section with holographic effect */}
-                  <div className="p-4 bg-zinc-800 rounded-b-lg border border-transparent group-hover:shadow-[0_0_20px_rgba(99,102,241,0.2)] backdrop-blur-sm">
-                    <p className="text-zinc-400 text-sm">{tool.description}</p>
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex items-center text-sm text-zinc-500 group-hover:text-indigo-400 transition-colors">
-                        <span>Try now</span>
-                        <div className="h-4 w-4 ml-1 mb-1 group-hover:translate-x-1 transition-transform">&#8250;</div>
-                      </div>
-                      <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
-                    </div>
-                  </div>
-                </div>
-              </HolographicCard>
-            ))}
+                </HolographicCard>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* View all tools button */}
-        <div className="flex justify-center mt-12 pb-[200px]">
-          <Link
-            href="/"
-            className="group inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all duration-200 border border-white/10 hover:border-white/20 backdrop-blur-sm"
-          >
-            <span>Start Chatting</span>
-            <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
-          </Link>
+          {/* View all tools button */}
+          <div className="flex justify-center mt-12 pb-[200px]">
+            <Link
+              href="/"
+              className="group inline-flex items-center justify-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all duration-200 border border-white/10 hover:border-white/20 backdrop-blur-sm"
+            >
+              <span>Start Chatting</span>
+              <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
+            </Link>
+          </div>
         </div>
       </div>
 
