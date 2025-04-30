@@ -222,37 +222,37 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
           </div>
         )}
         
-        {"result" in toolInvocation && toolInvocation.result.coins.map((coin: Coin) => (
-          <div 
-            key={coin.id} 
-            className="flex items-center border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg 
-                     hover:border-indigo-400 hover:shadow-lg cursor-pointer w-full sm:w-[300px]"
-            onClick={() => handleCoinClick(coin.id)}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              {coin.thumb ? (
-                <img src={coin.thumb} alt={coin.name} className="w-8 h-8 rounded-full flex-shrink-0" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400 flex-shrink-0">
-                  N/A
+        {"result" in toolInvocation && toolInvocation.result && toolInvocation.result.coins && toolInvocation.result.coins.length > 0 ? (
+          toolInvocation.result.coins.map((coin: Coin) => (
+            <div 
+              key={coin.id} 
+              className="flex items-center border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg 
+                       hover:border-indigo-400 hover:shadow-lg cursor-pointer w-full sm:w-[300px]"
+              onClick={() => handleCoinClick(coin.id)}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {coin.thumb ? (
+                  <img src={coin.thumb} alt={coin.name} className="w-8 h-8 rounded-full flex-shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400 flex-shrink-0">
+                    N/A
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{coin.name}</div>
+                  <div className="text-sm text-zinc-400 truncate">{coin.symbol.toUpperCase()}</div>
+                </div>
+              </div>
+              {coin.marketCapRank && (
+                <div className="text-right flex-shrink-0">
+                  <div className="text-xs sm:text-sm text-zinc-400">
+                    #{coin.marketCapRank}
+                  </div>
                 </div>
               )}
-              <div className="min-w-0">
-                <div className="font-medium truncate">{coin.name}</div>
-                <div className="text-sm text-zinc-400 truncate">{coin.symbol.toUpperCase()}</div>
-              </div>
             </div>
-            {coin.marketCapRank && (
-              <div className="text-right flex-shrink-0">
-                <div className="text-xs sm:text-sm text-zinc-400">
-                  #{coin.marketCapRank}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-        
-        {"result" in toolInvocation && toolInvocation.result.coins.length === 0 && (
+          ))
+        ) : (
           <div className="text-sm text-zinc-400 text-center py-4">
             No results found
           </div>
