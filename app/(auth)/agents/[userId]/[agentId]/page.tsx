@@ -2212,9 +2212,18 @@ function HomeContent() {
           <AnimatePresence>
             {sidebarOpen && (
               <motion.div 
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
+                initial={{ 
+                  y: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 0,
+                  opacity: 0
+                }}
+                animate={{ 
+                  y: 0,
+                  opacity: 1
+                }}
+                exit={{ 
+                  y: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 0,
+                  opacity: 0
+                }}
                 transition={{ 
                   type: 'tween',
                   duration: 0.2,
