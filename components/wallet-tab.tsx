@@ -311,13 +311,70 @@ useEffect(() => {
               </div>
             )}
 
-            {/* Wallet Actions */}
-            <div className="pt-4 border-t border-zinc-700 flex gap-2">
+            {/* Token List */}
+            <div className="space-y-2">
+              {portfolio?.holdings?.[0] && (
+                <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image 
+                        src={portfolio.holdings[0].logoURI} 
+                        alt="SOL" 
+                        width={40} 
+                        height={40} 
+                        className="rounded-full object-contain"
+                      />
+                      <div className="flex flex-col justify-start gap-1">
+                        <div className="text-white">Solana</div>
+                        <div className="flex items-center gap-1 text-sm text-zinc-400">
+                          <div>{portfolio.holdings[0].amount}</div>
+                          <div>SOL</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-zinc-400">
+                      ${portfolio.holdings[0].usdValue.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {tokens.data.map((token: any) => (
+                <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image 
+                        src={token.token_icon} 
+                        alt={token.token_name} 
+                        width={40} 
+                        height={40} 
+                        className="rounded-full"
+                      />
+                      <div className="flex flex-col justify-start gap-1">
+                        <div className="text-white">{token.token_name}</div>
+                        <div className="flex items-center gap-1 text-sm text-zinc-400">
+                          <div>{token.formatted_amount}</div>
+                          <div>{token.token_symbol}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-zinc-400">
+                      {token.usd_value && token.usd_value > 0.009 
+                        ? `$${token.usd_value.toFixed(2)}` 
+                        : '-'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Wallet Actions - Moved below token list with square button style */}
+            <div className="flex justify-center gap-4 mt-4">
               <button 
                 onClick={() => setIsReceiveModalOpen(true)}
-                className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2"
+                className="w-24 h-24 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-3 border border-zinc-700"
               >
-                <QrCode className="w-5 h-5 mb-1" />
+                <QrCode className="w-8 h-8 mb-2" />
                 <span className="text-sm text-zinc-400">Receive</span>
               </button>
               
@@ -327,61 +384,21 @@ useEffect(() => {
                   setIsTransferModalOpen(true)
                   openModal();
                 }}
-                className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-24 h-24 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-3 border border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <SendIcon className="w-5 h-5 mb-1" />
+                <SendIcon className="w-8 h-8 mb-2" />
                 <span className="text-sm text-zinc-400">Send</span>
               </button>
               
               <button 
                 disabled={!totalValue || tokens.data.length === 0}
                 onClick={() => setIsSwapModalOpen(true)}
-                className="w-20 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-24 h-24 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-3 border border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Repeat2 className="w-5 h-5 mb-1" />
+                <Repeat2 className="w-8 h-8 mb-2" />
                 <span className="text-sm text-zinc-400">Swap</span>
               </button>
             </div>
-
-            {/* Modal Components */}
-            {walletAddress && (
-              <ReceiveModal
-                isOpen={isReceiveModalOpen}
-                onClose={() => setIsReceiveModalOpen(false)}
-                agent={{
-                  wallets: { solana: walletAddress || '' }
-                }}
-              />
-            )}
-
-            <TransferModal
-              isOpen={isTransferModalOpen}
-              onClose={() => setIsTransferModalOpen(false)}
-              tokens={tokens.data}
-              solanaBalance= {{
-                amount: portfolio && portfolio.holdings[0].amount,
-                usdValue: portfolio &&  portfolio.holdings[0].usdValue,
-                logoURI: portfolio && portfolio.holdings[0].logoURI
-              }}           
-              agent={{
-                wallets: { solana: walletAddress || '' }
-              }}
-            />
-
-            {walletAddress && (<SwapModal
-              isOpen={isSwapModalOpen}
-              onClose={() => setIsSwapModalOpen(false)}
-              tokens={tokens.data}
-              solanaBalance= {{
-                amount: portfolio && portfolio.holdings[0].amount,
-                usdValue:portfolio &&  portfolio.holdings[0].usdValue,
-                logoURI: portfolio && portfolio.holdings[0].logoURI
-              }}           
-              agent={{
-                wallets: { solana: walletAddress }
-              }}
-              onSwapComplete={refreshWalletData}
-            />)}
 
             {/* Advanced Options */}
             <div className="pt-4 border-t border-zinc-700">
@@ -412,62 +429,45 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Token List */}
-          <div className="space-y-2">
-            {portfolio?.holdings?.[0] && (
-              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Image 
-                      src={portfolio.holdings[0].logoURI} 
-                      alt="SOL" 
-                      width={40} 
-                      height={40} 
-                      className="rounded-full object-contain"
-                    />
-                    <div className="flex flex-col justify-start gap-1">
-                      <div className="text-white">Solana</div>
-                      <div className="flex items-center gap-1 text-sm text-zinc-400">
-                        <div>{portfolio.holdings[0].amount}</div>
-                        <div>SOL</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-sm text-zinc-400">
-                    ${portfolio.holdings[0].usdValue.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Modal Components */}
+          {walletAddress && (
+            <ReceiveModal
+              isOpen={isReceiveModalOpen}
+              onClose={() => setIsReceiveModalOpen(false)}
+              agent={{
+                wallets: { solana: walletAddress || '' }
+              }}
+            />
+          )}
 
-            {tokens.data.map((token: any) => (
-              <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Image 
-                      src={token.token_icon} 
-                      alt={token.token_name} 
-                      width={40} 
-                      height={40} 
-                      className="rounded-full"
-                    />
-                    <div className="flex flex-col justify-start gap-1">
-                      <div className="text-white">{token.token_name}</div>
-                      <div className="flex items-center gap-1 text-sm text-zinc-400">
-                        <div>{token.formatted_amount}</div>
-                        <div>{token.token_symbol}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-sm text-zinc-400">
-                    {token.usd_value && token.usd_value > 0.009 
-                      ? `$${token.usd_value.toFixed(2)}` 
-                      : '-'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TransferModal
+            isOpen={isTransferModalOpen}
+            onClose={() => setIsTransferModalOpen(false)}
+            tokens={tokens.data}
+            solanaBalance= {{
+              amount: portfolio && portfolio.holdings[0].amount,
+              usdValue: portfolio &&  portfolio.holdings[0].usdValue,
+              logoURI: portfolio && portfolio.holdings[0].logoURI
+            }}           
+            agent={{
+              wallets: { solana: walletAddress || '' }
+            }}
+          />
+
+          {walletAddress && (<SwapModal
+            isOpen={isSwapModalOpen}
+            onClose={() => setIsSwapModalOpen(false)}
+            tokens={tokens.data}
+            solanaBalance= {{
+              amount: portfolio && portfolio.holdings[0].amount,
+              usdValue:portfolio &&  portfolio.holdings[0].usdValue,
+              logoURI: portfolio && portfolio.holdings[0].logoURI
+            }}           
+            agent={{
+              wallets: { solana: walletAddress }
+            }}
+            onSwapComplete={refreshWalletData}
+          />)}
         </div>
       )}
 

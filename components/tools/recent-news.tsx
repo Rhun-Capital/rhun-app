@@ -222,8 +222,7 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
   return (
     <div className="bg-zinc-800 rounded-lg">
       <div className="p-4">
-        <h2 className="text-xl font-bold text-white mb-2">Crypto News</h2>
-        <p className="text-zinc-400 mb-4">Latest cryptocurrency news and updates</p>
+        <p className="text-zinc-400 mb-4">Latest cryptocurrency news and updates. Click on an article to read more.</p>
 
         <div className="space-y-3">
           {articles.map((article: CryptoNewsArticle) => {
@@ -268,8 +267,6 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
                     </span>
                     
                     {(() => {
-                      // Add debug logging for categories
-                      console.log(`Categories for article ${article.id}:`, article.categories);
                       
                       const validCategories = safeArrayAccess(article.categories)
                         .filter(cat => cat && typeof cat === 'string' && cat.trim() !== '');

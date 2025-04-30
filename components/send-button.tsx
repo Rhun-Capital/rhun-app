@@ -5,6 +5,7 @@ import { ProxyConnection, executeTransfer } from '../utils/solana';
 import { RefreshCw } from 'lucide-react';
 import { useModal } from '../contexts/modal-context'; // Ensure this path is correct
 import { useParams, usePathname } from 'next/navigation';
+import { createPortal } from 'react-dom';
 
 interface Token {
   token_address: string;
@@ -29,6 +30,18 @@ interface TransferModalProps {
   };
   onSwapComplete?: () => void;
 }
+
+// Modal portal component to ensure modal is rendered at the document root
+const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  return mounted ? createPortal(children, document.body) : null;
+};
 
 const TransferModal = ({ 
   agent, 
@@ -271,127 +284,129 @@ const TransferModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 relative shadow-xl border border-zinc-700">
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+    <ModalPortal>
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]">
+        <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 relative shadow-xl border border-zinc-700">
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
 
-        <h2 className="text-xl font-bold mb-4 text-white">
-          {step === 'select-token' ? 'Select Asset' : 'Send Assets'}
-        </h2>
+          <h2 className="text-xl font-bold mb-4 text-white">
+            {step === 'select-token' ? 'Select Asset' : 'Send Assets'}
+          </h2>
 
-        {!authenticated ? (
-          <div className="bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
-            Please connect your wallet first
-          </div>
-        ) : success || pendingSignature ? (
-          renderSuccessState()
-        ) : step === 'select-token' ? (
-          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-            {solanaBalance && (
-              <div
-                onClick={() => handleTokenSelect('SOL')}
-                className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Image src={solanaBalance.logoURI} alt="SOL" width={40} height={40} className="rounded-full"/>
-                    <div className="flex flex-col justify-start">
-                      <div className="text-white">Solana</div>
-                      <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
+          {!authenticated ? (
+            <div className="bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
+              Please connect your wallet first
+            </div>
+          ) : success || pendingSignature ? (
+            renderSuccessState()
+          ) : step === 'select-token' ? (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {solanaBalance && (
+                <div
+                  onClick={() => handleTokenSelect('SOL')}
+                  className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image src={solanaBalance.logoURI} alt="SOL" width={40} height={40} className="rounded-full"/>
+                      <div className="flex flex-col justify-start">
+                        <div className="text-white">Solana</div>
+                        <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
+                      </div>
                     </div>
+                    <div className="text-sm text-zinc-400">${solanaBalance.usdValue.toFixed(2)}</div>
                   </div>
-                  <div className="text-sm text-zinc-400">${solanaBalance.usdValue.toFixed(2)}</div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {tokens.map((token) => (
-              <div
-                key={token.token_address}
-                onClick={() => handleTokenSelect(token)}
-                className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Image src={token.token_icon} alt={token.token_name} width={40} height={40} className="rounded-full"/>
-                    <div className="flex flex-col justify-start">
-                      <div className="text-white">{token.token_name}</div>
-                      <div className="text-sm text-zinc-400">{token.formatted_amount} {token.token_symbol}</div>
+              {tokens.map((token) => (
+                <div
+                  key={token.token_address}
+                  onClick={() => handleTokenSelect(token)}
+                  className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 hover:bg-zinc-700 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image src={token.token_icon} alt={token.token_name} width={40} height={40} className="rounded-full"/>
+                      <div className="flex flex-col justify-start">
+                        <div className="text-white">{token.token_name}</div>
+                        <div className="text-sm text-zinc-400">{token.formatted_amount} {token.token_symbol}</div>
+                      </div>
                     </div>
+                    <div className="text-sm text-zinc-400">${token.usd_value.toFixed(2)}</div>
                   </div>
-                  <div className="text-sm text-zinc-400">${token.usd_value.toFixed(2)}</div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {selectedToken && (
-              <div className="flex items-center gap-2 bg-zinc-800 p-3 rounded-lg">
-                <Image src={selectedToken.token_icon} alt={selectedToken.token_name} width={32} height={32} className="rounded-full"/>
-                <div className="text-white">{selectedToken.token_name}</div>
-                <div className="text-zinc-400 text-sm">
-                  Balance: {selectedToken.formatted_amount} {selectedToken.token_symbol}
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {selectedToken && (
+                <div className="flex items-center gap-2 bg-zinc-800 p-3 rounded-lg">
+                  <Image src={selectedToken.token_icon} alt={selectedToken.token_name} width={32} height={32} className="rounded-full"/>
+                  <div className="text-white">{selectedToken.token_name}</div>
+                  <div className="text-zinc-400 text-sm">
+                    Balance: {selectedToken.formatted_amount} {selectedToken.token_symbol}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <input
-              type="text"
-              placeholder="Recipient address"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white"
-            />
-            
-            <div className="relative">
               <input
-                type="number"
-                placeholder={`Amount in ${isUSD ? 'USD' : selectedToken?.token_symbol}`}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                type="text"
+                placeholder="Recipient address"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
                 className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white"
               />
-              <div className="absolute right-2 top-2 flex items-center gap-2">
-                <button
-                  onClick={handleMaxAmount}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  MAX
-                </button>
-                <button
-                  onClick={toggleAmountType}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                >
-                  {isUSD ? selectedToken?.token_symbol : 'USD'}
-                </button>
+              
+              <div className="relative">
+                <input
+                  type="number"
+                  placeholder={`Amount in ${isUSD ? 'USD' : selectedToken?.token_symbol}`}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white"
+                />
+                <div className="absolute right-2 top-2 flex items-center gap-2">
+                  <button
+                    onClick={handleMaxAmount}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    MAX
+                  </button>
+                  <button
+                    onClick={toggleAmountType}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    {isUSD ? selectedToken?.token_symbol : 'USD'}
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            <button
-              onClick={handleSendTransaction}
-              disabled={loading || !recipient || !amount}
-              className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Sending...' : 'Send'}
-            </button>
+              
+              <button
+                onClick={handleSendTransaction}
+                disabled={loading || !recipient || !amount}
+                className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Sending...' : 'Send'}
+              </button>
 
-            {error && (
-              <div className="bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
-                {error}
-              </div>
-            )}
-          </div>
-        )}
+              {error && (
+                <div className="bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40">
+                  {error}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };
 

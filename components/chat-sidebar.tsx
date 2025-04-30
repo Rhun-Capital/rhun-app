@@ -15,6 +15,7 @@ import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { getToolCommand } from '@/app/config/tool-commands';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
+import { Token } from '@/components/tools/token-holdings';
 
 // Import the modal components but use a global approach
 const TransferModal = dynamic(() => import('./send-button'), {
@@ -48,110 +49,6 @@ interface SidebarProps {
 
 // Create a new type for modal types
 type ModalType = 'transfer' | 'receive' | 'swap' | null;
-
-interface TransferButtonProps {
-  tokens: any[];
-  publicKey: string;
-  agent: any;
-  onSwapComplete: () => void;
-  solanaBalance?: {
-    amount: number;
-    usdValue: number;
-    logoURI: string;
-  };
-  onOpenModal: (modalType: ModalType) => void;
-  isLoading?: boolean;
-}
-
-// New component that just shows the button without the modal implementation
-const SwapButton = ({ tokens, solanaBalance, agent, onSwapComplete, onOpenModal, isLoading = false }: TransferButtonProps & { agent: any }) => {
-  const { user } = usePrivy();
-  const { login } = useLogin();
-
-  return (
-    <div className="relative">
-      <button 
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!user) {
-            login();
-            return;
-          }
-          onOpenModal('swap');
-        }}
-        disabled={isLoading}
-        className={`w-[80px] rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-      >
-        <div className="flex flex-col items-center gap-1 p-2">
-          <Repeat2 className="w-[20px] h-[20px]"/>
-          <div className="text-sm text-zinc-400">
-            Swap
-          </div>
-        </div>
-      </button>
-      {!user && (
-        <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-          <div className="text-sm text-white">Connect Wallet</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const ReceiveButton = ({ agent, tokens, solanaBalance, onOpenModal, isLoading = false }: TransferButtonProps & { agent: any }) => {
-  return (
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpenModal('receive');
-      }}
-      disabled={isLoading}
-      className={`w-[80px] rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
-      <div className="flex flex-col items-center gap-1 p-2">
-        <QrCode className="w-[20px] h-[20px]"/>
-        <div className="text-sm text-zinc-400">
-          Receive
-        </div>
-      </div>
-    </button>
-  );
-}
-
-const TransferButton = ({ tokens, solanaBalance, agent, onOpenModal, isLoading = false }: TransferButtonProps & { agent: any }) => {
-  return (
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpenModal('transfer');
-      }}
-      disabled={isLoading}
-      className={`w-[80px] rounded-lg flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 transition-colors p-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
-      <div className="flex flex-col items-center gap-1 p-2">
-        <SendIcon className="w-[20px] h-[20px]"/>
-        <div className="text-sm text-zinc-400">
-          Send
-        </div>
-      </div>
-    </button>
-  );
-};
-
-const LoadingCard = () => {
-  return (<div className="animate-pulse bg-zinc-800 p-3 rounded-lg border border-zinc-700 h-[65px]">
-  <div className="flex items-center justify-between">
-  <div className="flex items-center gap-2">
-    <div className="bg-zinc-700 w-10 h-10 rounded-full"></div>
-    <div className="flex flex-col justify-start gap-1">
-      <div className="bg-zinc-700 w-20 h-4 rounded-lg"></div>
-      <div className="bg-zinc-700 w-10 h-3 rounded-lg"></div>
-    </div>   
-  </div>
-  <div className="bg-zinc-700 w-10 h-3 rounded-lg"></div>      
-  </div>
-</div>)
-}
 
 // Rest of the component remains unchanged
 const ToolCard: React.FC<{
@@ -513,149 +410,15 @@ const networkTools: Tool[] = [
   }
 ];
 
-// Modal portal component
-const ModalPortal = ({ children }: { children: React.ReactNode }) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  return mounted ? createPortal(children, document.body) : null;
-};
-
-// Helper function to format numbers with commas
-const formatNumberWithCommas = (value: number | undefined | null) => {
-  if (value === undefined || value === null) return '0';
-  return value.toLocaleString('en-US', { maximumFractionDigits: 8 });
-};
-
-// Helper function to format currency with commas
-const formatCurrency = (value: number | undefined | null) => {
-  if (value === undefined || value === null) return '$0.00';
-  return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent }) => {
-  const [activeTab, setActiveTab] = useState<'wallet' | 'tools'>('tools');
+const ChatSidebar: React.FC<SidebarProps> = ({ onToolSelect }) => {
   const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
-  const { user, getAccessToken, authenticated } = usePrivy();
   const [portfolio, setPortfolio] = useState<any>(null);
-  const [totalValue, setTotalValue] = useState<number | null>(null);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const params = useParams();
   const isSubscribed = true; // Set all users as subscribed to avoid 404 errors
-  const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Object } }>({ data: [], metadata: { tokens: Object } });
-  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [tokens, setTokens] = useState<{ data: Token[]; metadata: { tokens: Record<string, any> } }>({ data: [], metadata: { tokens: {} } });
   const [showFundingModal, setShowFundingModal] = useState(false);
-  const [createWalletLoading, setCreateWalletLoading] = useState(false);
   const { fundWallet } = useFundWallet();
   const { createWallet, wallets, ready } = useSolanaWallets();
-  const pathname = usePathname();
-  const {login} = useLogin();
-  
-  // Add state to track which modal is open
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
-  const walletSelectorRef = useRef<HTMLDivElement>(null);
-  
-  // Function to toggle wallet selector visibility
-  const toggleWalletSelector = () => {
-    const selector = document.getElementById('wallet-selector');
-    if (selector) {
-      if (selector.style.display === 'none' || !selector.style.display) {
-        selector.style.display = 'block';
-      } else {
-        selector.style.display = 'none';
-      }
-    }
-  };
-  
-  // Close wallet selector when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const selector = document.getElementById('wallet-selector');
-      const toggleButton = document.querySelector('.wallet-selector-toggle');
-      
-      if (selector && 
-          !selector.classList.contains('hidden') && 
-          !selector.contains(event.target as Node) && 
-          toggleButton && 
-          !toggleButton.contains(event.target as Node)) {
-        selector.classList.add('hidden');
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Save selectedWalletAddress to localStorage when it changes
-  useEffect(() => {
-    if (selectedWalletAddress) {
-      try {
-        localStorage.setItem('rhun_selected_wallet_address', selectedWalletAddress);
-      } catch (e) {
-        console.error("Error saving to localStorage:", e);
-      }
-    }
-  }, [selectedWalletAddress]);
-
-  // Get the active wallet based on whether it's a template agent or not
-  const activeWallet = (params.userId === 'template' || pathname === '/') && authenticated
-    ? selectedWalletAddress || user?.wallet?.address || wallets[0]?.address
-    : agent.wallets?.solana;
-
-  // Fetch initial wallet data
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      if (activeWallet && ready && authenticated) {
-        try {
-          setInitialLoading(true);
-          await refreshWalletData();
-          setInitialLoading(false);
-        } catch (error) {
-          console.error('Error fetching initial wallet data:', error);
-          setInitialLoading(false);
-        }
-      }
-    };
-
-    fetchInitialData();
-  }, [activeWallet, ready, authenticated]);
-
-  // Clear wallet data when user is not authenticated
-  useEffect(() => {
-    if (!user) {
-      setPortfolio(null);
-      setTotalValue(null);
-      setTokens({ data: [], metadata: { tokens: Object } });
-      setInitialLoading(false);
-      setRefreshLoading(false);
-    }
-  }, [user]);
-
-  // Handle modal opening
-  const handleOpenModal = (modalType: ModalType) => {
-    setActiveModal(modalType);
-  };
-
-  // Handle modal closing
-  const handleCloseModal = () => {
-    setActiveModal(null);
-  };
-
-  interface Token {
-    token_address: string;
-    token_icon: string;
-    token_name: string;
-    usd_value: number;
-    formatted_amount: number;
-    token_symbol: string;
-  }
+  const { user } = usePrivy();
   
   const handleToolClick = (tool: Tool) => {
     if (isToolClickDisabled) return;
@@ -669,651 +432,149 @@ const ChatSidebar: React.FC<SidebarProps> = ({ agent, isOpen, onToggle, onToolSe
     }, 5000);    
   };
 
-  async function handleShowFundingModal() {
-    setShowFundingModal(true);
-  }
-
-  async function handleFundingConfirm(amount: number) {
-    if (activeWallet) {
-      try {
-        await fundWallet(activeWallet, {
-          amount: amount.toString(),
-        });
-        refreshWalletData();
-      } catch (error) {
-        console.error('Error funding wallet:', error);
-      }
-    }
-  }
-
-  const handleCreateWallet = async () => {
-    try {
-      setCreateWalletLoading(true);
-      const wallet = await createWallet({ createAdditional: true });
-      
-      const accessToken = await getAccessToken();
-      
-      await fetch(`/api/agents/${decodeURIComponent(params.userId as string)}/${params.agentId}/wallet`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ wallets: { solana: wallet.address } }),
-      });
-      refreshAgent();
-    } catch (error) {
-      console.error('Error creating wallet:', error);
-    } finally {
-      setCreateWalletLoading(false);
-    }
-  };  
-
-  const handleCreateTemplateWallet = async () => {
-    try {
-      setCreateWalletLoading(true);
-      const wallet = await createWallet({ walletIndex: 0 });
-      // For template agents, we just update the local state
-      agent.wallets = { ...agent.wallets, solana: wallet.address };
-      refreshAgent();
-    } catch (error) {
-      console.error('Error creating template wallet:', error);
-    } finally {
-      setCreateWalletLoading(false);
-    }
-  };
-
-  async function getPortfolioValue(walletAddress: string) {
-    const url = `/api/portfolio/${walletAddress}`;
-    const token = await getAccessToken();
-    const headers = { 'Authorization': `Bearer ${token}` };
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error('Failed to fetch portfolio data');
-    }
-    return response.json();  
-  }
-
-  async function getTokens(walletAddress: string) {
-    const url = `/api/wallets/${walletAddress}/tokens`;
-    const token = await getAccessToken();
-    const headers = { 'Authorization': `Bearer ${token}` };
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error('Failed to fetch portfolio data');
-    }
-    return response.json();  
-  }  
-
-  //  get solana balance 
-
-  async function getSolanaBalance(walletAddress: string) {
-    const url = `/api/wallets/${walletAddress}/balance`;
-    const token = await getAccessToken();
-    const headers = { 'Authorization': `Bearer ${token}` };
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-      throw new Error('Failed to fetch portfolio data');
-    }
-    return response.json();
-  }
-
-  // Update useEffect to watch for selectedWalletAddress changes with a slight delay
-  useEffect(() => {
-    if (selectedWalletAddress && ready && authenticated) {
-      // Use a small timeout to ensure state updates have propagated
-      const refreshTimer = setTimeout(() => {
-        refreshWalletData();
-      }, 100);
-      
-      return () => clearTimeout(refreshTimer);
-    }
-  }, [selectedWalletAddress, ready, authenticated]);
-
-  // Add this modified refreshWalletData that uses selectedWalletAddress when available
-  const refreshWalletData = async () => {
-    setRefreshLoading(true);
-    
-    // Get the current wallet address directly from the most up-to-date value
-    const currentWalletAddress = (params.userId === 'template' || pathname === '/') && authenticated
-      ? selectedWalletAddress || user?.wallet?.address || wallets[0]?.address
-      : agent.wallets?.solana;
-    
-    if (currentWalletAddress) {
-      try {
-        // Refresh tokens
-        const tokenResponse = await getTokens(currentWalletAddress);
-        setTokens(tokenResponse);
-
-        // Refresh portfolio
-        const portfolioResponse = await getPortfolioValue(currentWalletAddress);
-        const tv = portfolioResponse.holdings.reduce(
-          (acc: number, token: { usdValue: number }) => acc + token.usdValue, 
-          0
-        );
-        setTotalValue(tv);
-        setPortfolio(portfolioResponse);
-      } catch (error) {
-        console.error('Error refreshing wallet data:', error);
-      } finally {
-        setRefreshLoading(false);
-      }
-    } else {
-      setRefreshLoading(false);
-    }
-  };
-
-  // Initialize wallet selector from localStorage
-  useEffect(() => {
-    try {
-      const savedWallet = localStorage.getItem('rhun_selected_wallet_address');
-      if (savedWallet) {
-        setSelectedWalletAddress(savedWallet);
-      }
-    } catch (e) {
-      console.error("Error accessing localStorage:", e);
-    }
-  }, []);
-
   return (
     <div className="h-full flex flex-col">
       {/* Content */}
       <div className="h-full flex flex-col">
-        {/* Tabs */}
-        <div className="flex border-b border-zinc-700 h-[61px]">
-          <button
-            onClick={() => setActiveTab('wallet')}
-            className={`flex-1 p-4 text-sm font-medium transition-colors ${
-              activeTab === 'wallet' 
-                ? 'text-white border-b-2 border-indigo-500 bg-zinc-800' 
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <WalletIcon />
-              <span>Wallet</span>
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('tools')}
-            className={`flex-1 p-4 text-sm font-medium transition-colors ${
-              activeTab === 'tools' 
-                ? 'text-white border-b-2 border-indigo-500 bg-zinc-800' 
-                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <LayoutGrid />
-              <span>Tools</span>
-            </div>
-          </button>
-        </div>
-
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto pb-24">
-          {activeTab === 'wallet' ? (
-            <div className="p-4 space-y-2">
-              {/* Wallet Address */}
-              <div className="bg-zinc-800 bg-opacity-40 p-4 rounded-lg border border-zinc-700">
-                <div className="flex items-center justify-between mb-2">
-                  <div 
-                    className="flex items-center gap-1 cursor-pointer hover:bg-zinc-700 px-2 py-1 rounded-md transition-colors wallet-selector-toggle"
-                    onClick={() => {
-                      if ((params.userId === 'template' || pathname === '/') && authenticated && wallets.length > 0) {
-                        const selector = document.getElementById('wallet-selector');
-                        if (selector) {
-                          selector.classList.toggle('hidden');
-                        }
-                      }
-                    }}
-                  >
-                    {activeWallet ? (
-                      <>
-                        <div className="text-sm text-zinc-400 truncate max-w-[200px]">{activeWallet}</div>
-                        {(params.userId === 'template' || pathname === '/') && authenticated && wallets.length > 0 && (
-                          <ChevronDown className="w-4 h-4 text-zinc-400" />
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-sm text-zinc-400">No wallet</div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {activeWallet && (
-                      <>
-                        <button
-                          className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
-                          title="Refresh wallet data"
-                          onClick={() => {
-                            setRefreshLoading(true);
-                            setTimeout(() => {
-                              setRefreshLoading(false);
-                            }, 2000);
-                            refreshWalletData();
-                          }}
-                        >
-                          {refreshLoading ? <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
-                        </button>
-                        <CopyButton text={activeWallet} />
-                      </>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Wallet selector dropdown */}
-                <div id="wallet-selector" className="absolute z-50 left-4 right-4 mt-2 bg-zinc-800 border border-zinc-700 rounded-md shadow-lg hidden" ref={walletSelectorRef}>
-                  <div className="p-2 border-b border-zinc-700 text-sm font-medium text-white">
-                    Select Wallet
-                  </div>
-                  <div className="max-h-60 overflow-y-auto">
-                    {/* Primary wallet */}
-                    {user?.wallet?.address && (
-                      <div 
-                        className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === user?.wallet?.address ? 'bg-zinc-700' : ''}`}
-                        onClick={() => {
-                          setSelectedWalletAddress(user?.wallet?.address || null);
-                          const selector = document.getElementById('wallet-selector');
-                          if (selector) {
-                            selector.classList.add('hidden');
-                          }
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <WalletIcon className="w-4 h-4 text-indigo-400" />
-                            <div className="text-sm text-white">Primary Wallet</div>
-                          </div>
-                          {activeWallet === user?.wallet?.address && (
-                            <CheckIcon className="w-4 h-4 text-green-500" />
-                          )}
-                        </div>
-                        <div className="text-xs text-zinc-400 truncate pl-6">{user?.wallet?.address}</div>
-                      </div>
-                    )}
-                    
-                    {/* Other wallets */}
-                    {wallets.map((wallet, index) => {
-                      if (wallet.address === user?.wallet?.address) return null;
-                      return (
-                        <div 
-                          key={wallet.address}
-                          className={`p-2 hover:bg-zinc-700 cursor-pointer ${activeWallet === wallet.address ? 'bg-zinc-700' : ''}`}
-                          onClick={() => {
-                            setSelectedWalletAddress(wallet.address);
-                            const selector = document.getElementById('wallet-selector');
-                            if (selector) {
-                              selector.classList.add('hidden');
-                            }
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <WalletIcon className="w-4 h-4 text-zinc-400" />
-                              <div className="text-sm text-white">Wallet {index + 1}</div>
-                            </div>
-                            {activeWallet === wallet.address && (
-                              <CheckIcon className="w-4 h-4 text-green-500" />
-                            )}
-                          </div>
-                          <div className="text-xs text-zinc-400 truncate pl-6">{wallet.address}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                
-                {!activeWallet && (
-                  <div className="text-sm text-white w-full">
-                    {!authenticated && pathname === '/' ? (
-                      <div className="w-full">
-                        <div className="text-sm text-zinc-500 mt-2 mb-4">Connect your wallet to access wallet features.</div>
-                        <button 
-                          onClick={() => login()}
-                          className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
-                        >
-                          Connect Wallet
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="w-full">
-                        <div className="text-sm text-zinc-500 mt-2 mb-4">No agent wallet found. </div>
-                        <button 
-                          disabled={createWalletLoading} 
-                          onClick={params.userId === 'template' || pathname === '/' ? handleCreateTemplateWallet : handleCreateWallet} 
-                          className="mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {createWalletLoading ? 'Creating...' : 'Create Agent Wallet'}
-                        </button>                          
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Portfolio Value */}
-                {(activeWallet && totalValue) ? <div className="pt-2 border-t border-zinc-700">
-                  <div className="text-sm text-zinc-400">Total Value</div>
-                  <div className="text-xl font-semibold text-white">
-                    {totalValue ? formatCurrency(totalValue) : <div className="ml-5"><LoadingIndicator /></div>}
-                  </div>
-                </div> : null}
-                
-                {activeWallet && (
-                  <div className="flex gap-2 mt-2">
-                    <ReceiveButton 
-                      tokens={tokens.data}
-                      publicKey={activeWallet}
-                      agent={agent}
-                      onSwapComplete={refreshWalletData}
-                      solanaBalance={portfolio?.holdings[0] ? {
-                        amount: portfolio.holdings[0].amount,
-                        usdValue: portfolio.holdings[0].usdValue,
-                        logoURI: portfolio.holdings[0].logoURI
-                      } : undefined}
-                      onOpenModal={handleOpenModal}
-                      isLoading={refreshLoading || initialLoading}
-                    />
-
-                    <TransferButton 
-                      tokens={tokens.data}
-                      publicKey={activeWallet}
-                      agent={agent}
-                      onSwapComplete={refreshWalletData}
-                      solanaBalance={portfolio?.holdings[0] ? {
-                        amount: portfolio.holdings[0].amount,
-                        usdValue: portfolio.holdings[0].usdValue,
-                        logoURI: portfolio.holdings[0].logoURI
-                      } : undefined}
-                      onOpenModal={handleOpenModal}
-                      isLoading={refreshLoading || initialLoading}
-                    />
-
-                    <SwapButton 
-                      tokens={tokens.data}
-                      publicKey={activeWallet}
-                      onSwapComplete={refreshWalletData}
-                      solanaBalance={portfolio?.holdings[0] ? {
-                        amount: portfolio.holdings[0].amount,
-                        usdValue: portfolio.holdings[0].usdValue,
-                        logoURI: portfolio.holdings[0].logoURI
-                      } : undefined}
-                      agent={agent}
-                      onOpenModal={handleOpenModal}
-                      isLoading={refreshLoading || initialLoading}
-                    /> 
-                  </div>
-                )}
-                  
-                {activeWallet && <button onClick={handleShowFundingModal} 
-                  disabled={refreshLoading || initialLoading}
-                  className={`mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-600 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base ${(refreshLoading || initialLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  Add Funds
-                </button>}
+          <div className="p-4 space-y-2">
+            {/* Portfolio Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <WalletIcon className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Portfolio Tools</h3>
               </div>
-
-              {/* Token List */}
               <div className="space-y-2">
-                {initialLoading && activeWallet && params.userId !== 'template' ? <div className="space-y-2">
-                  <LoadingCard/>
-                  <LoadingCard/>
-                  <LoadingCard/>
-                </div> : null}
-
-                {activeWallet && portfolio && <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {portfolio.holdings[0]?.logoURI && (
-                        <Image 
-                          src={portfolio.holdings[0].logoURI} 
-                          alt='SOL' 
-                          width={40} 
-                          height={40} 
-                          className="rounded-full object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      )}
-                      <div className="flex flex-col justify-start gap-1">
-                        <div className="text-white">Solana</div>
-                        <div className="flex items-center gap-1 text-sm text-zinc-400">
-                          <div className="text-sm">{portfolio.holdings[0]?.amount ? formatNumberWithCommas(portfolio.holdings[0].amount) : '0'}</div>
-                          <div className="text-sm">SOL</div>
-                        </div> 
-                      </div>
-                    </div>
-                    <div className="text-sm text-zinc-400">{portfolio.holdings[0]?.usdValue ? formatCurrency(portfolio.holdings[0].usdValue) : '$0.00'}</div>
-                  </div>
-                </div>}
-
-                {activeWallet ? (
-                  tokens.data.map((token: Token) => (
-                    <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {token.token_icon && (
-                            <Image 
-                              src={token.token_icon} 
-                              alt={token.token_name} 
-                              width={40} 
-                              height={40} 
-                              className="rounded-full"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <div className="flex flex-col justify-start gap-1">
-                            <div className="text-white">{token.token_name}</div>
-                            <div className="flex items-center gap-1 text-sm text-zinc-400">
-                              <div className="text-sm">{formatNumberWithCommas(token.formatted_amount)}</div>
-                              <div className="text-sm">{token.token_symbol}</div>
-                            </div> 
-                          </div>
-                        </div>
-                        <div className="text-sm text-zinc-400">{token.usd_value && token.usd_value > 0.009 ? formatCurrency(token.usd_value) : '-'}</div>
-                      </div>
-                    </div>
-                  ))
-                ) : null}
+                {portfolioTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={!user && tool.requiresAuth}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
               </div>
             </div>
-          ) : (
-            <div className="p-4 space-y-2">
-              {/* Portfolio Tools Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 my-4">
-                  <WalletIcon className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-lg font-semibold text-white">Portfolio Tools</h3>
-                </div>
-                <div className="space-y-2">
-                  {portfolioTools.map((tool) => (
-                    <ToolCard
-                      key={tool.command}
-                      tool={tool}
-                      isSubscribed={isSubscribed}
-                      isDisabled={!user && tool.requiresAuth}
-                      onClick={() => handleToolClick(tool)}
-                    />
-                  ))}
-                </div>
-              </div>
 
-              {/* Technical Analysis Tools Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 my-4">
-                  <LineChart className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-lg font-semibold text-white">Technical Analysis</h3>
-                </div>
-                <div className="space-y-2">
-                  {technicalAnalysisTools.map((tool) => (
-                    <ToolCard
-                      key={tool.command}
-                      tool={tool}
-                      isSubscribed={isSubscribed}
-                      isDisabled={false}
-                      onClick={() => handleToolClick(tool)}
-                    />
-                  ))}
-                </div>
+            {/* Technical Analysis Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <LineChart className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Technical Analysis</h3>
               </div>
-
-              {/* Market Analysis Tools Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 my-4">
-                  <TrendingUp className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-lg font-semibold text-white">Market Analysis</h3>
-                </div>
-                <div className="space-y-2">
-                  {marketAnalysisTools.map((tool) => (
-                    <ToolCard
-                      key={tool.command}
-                      tool={tool}
-                      isSubscribed={isSubscribed}
-                      isDisabled={false}
-                      onClick={() => handleToolClick(tool)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Token Discovery Tools Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 my-4">
-                  <Search className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-lg font-semibold text-white">Token Discovery</h3>
-                </div>
-                <div className="space-y-2">
-                  {tokenDiscoveryTools.map((tool) => (
-                    <ToolCard
-                      key={tool.command}
-                      tool={tool}
-                      isSubscribed={isSubscribed}
-                      isDisabled={false}
-                      onClick={() => handleToolClick(tool)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Wallet Tools Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 my-4">
-                  <WalletIcon className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-lg font-semibold text-white">Wallet Tools</h3>
-                </div>
-                <div className="space-y-2">
-                  {walletTools.map((tool) => (
-                    <ToolCard
-                      key={tool.command}
-                      tool={tool}
-                      isSubscribed={isSubscribed}
-                      isDisabled={false}
-                      onClick={() => handleToolClick(tool)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Research Tools Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 my-4">
-                  <BookOpen className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-lg font-semibold text-white">Research Tools</h3>
-                </div>
-                <div className="space-y-2">
-                  {researchTools.map((tool) => (
-                    <ToolCard
-                      key={tool.command}
-                      tool={tool}
-                      isSubscribed={isSubscribed}
-                      isDisabled={false}
-                      onClick={() => handleToolClick(tool)}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* FRED Tools Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 my-4">
-                  <LineChart className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-lg font-semibold text-white">FRED Economic Data</h3>
-                </div>
-                <div className="space-y-2">
-                  {fredTools.map((tool) => (
-                    <ToolCard
-                      key={tool.command}
-                      tool={tool}
-                      isSubscribed={isSubscribed}
-                      isDisabled={false}
-                      onClick={() => handleToolClick(tool)}
-                    />
-                  ))}
-                </div>
+              <div className="space-y-2">
+                {technicalAnalysisTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
               </div>
             </div>
-          )}
+
+            {/* Market Analysis Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <TrendingUp className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Market Analysis</h3>
+              </div>
+              <div className="space-y-2">
+                {marketAnalysisTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Token Discovery Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <Search className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Token Discovery</h3>
+              </div>
+              <div className="space-y-2">
+                {tokenDiscoveryTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Wallet Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <WalletIcon className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Wallet Tools</h3>
+              </div>
+              <div className="space-y-2">
+                {walletTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Research Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <BookOpen className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Research Tools</h3>
+              </div>
+              <div className="space-y-2">
+                {researchTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* FRED Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <LineChart className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">FRED Economic Data</h3>
+              </div>
+              <div className="space-y-2">
+                {fredTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Render FundingModal using ModalPortal */}
-      {showFundingModal && (
-        <ModalPortal>
-          <FundingModal
-            isOpen={showFundingModal}
-            onClose={() => setShowFundingModal(false)}
-            onConfirm={handleFundingConfirm}
-            defaultAmount={0.1}
-          />
-        </ModalPortal>
-      )}
-
-      {/* Render modals using portals to attach them to the document body */}
-      {activeModal === 'transfer' && (
-        <ModalPortal>
-          <TransferModal 
-            agent={agent}
-            isOpen={true}
-            onClose={handleCloseModal}
-            tokens={tokens.data as any[]}
-            solanaBalance={portfolio?.holdings[0] ? {
-              amount: portfolio.holdings[0].amount,
-              usdValue: portfolio.holdings[0].usdValue,
-              logoURI: portfolio.holdings[0].logoURI
-            } : undefined}
-            onSwapComplete={refreshWalletData}
-          />
-        </ModalPortal>
-      )}
-
-      {activeModal === 'receive' && (
-        <ModalPortal>
-          <ReceiveModal 
-            agent={agent}
-            isOpen={true}
-            onClose={handleCloseModal}
-          />
-        </ModalPortal>
-      )}
-
-      {activeModal === 'swap' && (
-        <ModalPortal>
-          <SwapModal 
-            isOpen={true}
-            onClose={handleCloseModal}
-            tokens={tokens.data as any[]}
-            solanaBalance={portfolio?.holdings[0] ? {
-              amount: portfolio.holdings[0].amount,
-              usdValue: portfolio.holdings[0].usdValue,
-              logoURI: portfolio.holdings[0].logoURI
-            } : undefined}
-            agent={agent}
-            onSwapComplete={refreshWalletData}
-          />
-        </ModalPortal>
-      )}
     </div>
   );
 };

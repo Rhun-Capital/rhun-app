@@ -100,12 +100,19 @@ export async function POST(request: Request) {
       ReturnValues: 'ALL_NEW'
     };
 
-    const updatedMessage = await dynamodb.update(updateParams).promise();
-
-    return NextResponse.json({
-      success: true,
-      message: updatedMessage.Attributes
-    });
+    try {
+      const updatedMessage = await dynamodb.update(updateParams).promise();
+      return NextResponse.json({
+        success: true,
+        message: updatedMessage.Attributes
+      });
+    } catch (updateError: any) {
+      console.error('Error updating DynamoDB:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update tool invocation in database' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error updating tool invocation:', error);
     return NextResponse.json(

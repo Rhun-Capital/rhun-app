@@ -8,6 +8,7 @@ import { useParams, useSearchParams, usePathname } from 'next/navigation';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { CrossmintNFTCollectionView } from '@crossmint/client-sdk-react-ui';
+import { toast } from 'sonner';
 
 // Add constant for localStorage key
 const SELECTED_WALLET_KEY = 'rhun_selected_wallet_address';
@@ -29,15 +30,16 @@ interface Token {
 interface UpdateToolInvocationParams {
   chatId: string;
   toolCallId: string;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'in_progress';
   result: {
-    transactionHash: string;
-    status: 'success' | 'error';
+    transactionHash?: string;
+    status: 'success' | 'error' | 'in_progress';
     error?: any;
     fromToken?: string;
     toToken?: string;
     amount?: string;
     slippage?: number;
+    message?: string;
   };
 }
 
@@ -78,11 +80,52 @@ const ExecuteSwap: React.FC<{
 
   const { fromToken: fromTokenName, toToken: toTokenName, amount, slippage = 1.0 } = toolParams;
 
+  // Move validation to useEffect and add proper checks
+  useEffect(() => {
+    // Only validate if we have all required parameters
+    if (!fromTokenName || !toTokenName || !amount) {
+      console.log('Waiting for all required parameters:', {
+        fromToken: fromTokenName,
+        toToken: toTokenName,
+        amount: amount
+      });
+      return;
+    }
+
+    // Validate amount
+    const amountToSwap = parseFloat(amount);
+    if (isNaN(amountToSwap)) {
+      console.error('Invalid amount format:', amount);
+      setStatus('error');
+      setErrorMessage('Invalid swap amount: Amount must be a valid number');
+      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
+      return;
+    }
+
+    if (amountToSwap <= 0) {
+      console.error('Invalid amount value:', amountToSwap);
+      setStatus('error');
+      setErrorMessage('Invalid swap amount: Amount must be greater than 0');
+      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
+      return;
+    }
+
+    // Clear any previous validation errors
+    setValidationErrors({});
+
+    // If we get here, the parameters are valid
+    console.log('Valid parameters received:', {
+      fromToken: fromTokenName,
+      toToken: toTokenName,
+      amount: amountToSwap,
+      slippage
+    });
+  }, [fromTokenName, toTokenName, amount, slippage]);
+
   useEffect(() => {
     // get agent and set agent name
     if (!user) return;
     getAgent().then((agent) => {
-
       setAgent(agent);
   
       // Determine active wallet with proper checks
@@ -98,9 +141,6 @@ const ExecuteSwap: React.FC<{
       }
 
       setActiveWallet(activeWallet)
-      
-
-
     });
   }, [user]);
 
@@ -126,10 +166,53 @@ const ExecuteSwap: React.FC<{
   }  
 
   useEffect(() => {
-    if (activeWallet && !hasExecuted) {
-      executeTokenSwap();
+    if (activeWallet) {
+      // Just validate parameters, don't execute
+      validateParameters();
     }
   }, [activeWallet]);
+
+  const validateParameters = () => {
+    // Only validate if we have all required parameters
+    if (!fromTokenName || !toTokenName || !amount) {
+      console.log('Waiting for all required parameters:', {
+        fromToken: fromTokenName,
+        toToken: toTokenName,
+        amount: amount
+      });
+      return false;
+    }
+
+    // Validate amount
+    const amountToSwap = parseFloat(amount);
+    if (isNaN(amountToSwap)) {
+      console.error('Invalid amount format:', amount);
+      setStatus('error');
+      setErrorMessage('Invalid swap amount: Amount must be a valid number');
+      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
+      return false;
+    }
+
+    if (amountToSwap <= 0) {
+      console.error('Invalid amount value:', amountToSwap);
+      setStatus('error');
+      setErrorMessage('Invalid swap amount: Amount must be greater than 0');
+      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
+      return false;
+    }
+
+    // Clear any previous validation errors
+    setValidationErrors({});
+
+    // If we get here, the parameters are valid
+    console.log('Valid parameters received:', {
+      fromToken: fromTokenName,
+      toToken: toTokenName,
+      amount: amountToSwap,
+      slippage
+    });
+    return true;
+  };
 
   const getPrice = async (id: string) => {
       const accessToken = await getAccessToken();
@@ -266,13 +349,20 @@ const ExecuteSwap: React.FC<{
       });
   
       if (!response.ok) {
-        throw new Error('Failed to update tool invocation');
+        const errorData = await response.json();
+        // Handle 404 errors gracefully - this is expected for new tool invocations
+        if (response.status === 404) {
+          console.log('Tool invocation not found - this is expected for new invocations');
+          return null;
+        }
+        throw new Error(errorData.error || 'Failed to update tool invocation');
       }
   
       return await response.json();
     } catch (error) {
       console.error('Error updating tool invocation:', error);
-      throw error;
+      // Don't throw the error, just log it and continue
+      return null;
     }
   };  
 
@@ -310,6 +400,7 @@ const ExecuteSwap: React.FC<{
           result: {
             transactionHash: signature,
             status: 'error',
+            error: JSON.stringify(status.value.err),
             fromToken: fromTokenName,
             toToken: toTokenName,
             amount,
@@ -341,12 +432,33 @@ const ExecuteSwap: React.FC<{
         throw new Error(`Could not find ${!fromToken ? fromTokenName : toTokenName}`);
       }
   
+      // Debug logs for amount
+      console.log('Amount validation:', {
+        rawAmount: amount,
+        type: typeof amount,
+        parsedAmount: parseFloat(amount),
+        isNaN: isNaN(parseFloat(amount))
+      });
+
       // Validate amount and balance
       const amountToSwap = parseFloat(amount);
-      if (amountToSwap <= 0) {
-        throw new Error('Invalid swap amount');
+      if (isNaN(amountToSwap)) {
+        console.error('Amount parsing failed:', {
+          amount,
+          parsedAmount: amountToSwap,
+          type: typeof amount
+        });
+        setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
+        throw new Error('Invalid swap amount: Amount must be a valid number');
       }
-  
+      if (amountToSwap <= 0) {
+        setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
+        throw new Error('Invalid swap amount: Amount must be greater than 0');
+      }
+
+      // Clear validation errors if we get here
+      setValidationErrors({});
+
       // Execute swap
       setStatus('swapping');
       let signature;
@@ -356,10 +468,15 @@ const ExecuteSwap: React.FC<{
           console.warn(`Using unknown token with address ${fromToken.token_address}. Make sure you have this token in your wallet.`);
         }
         
+        console.log('Executing swap with amount:', {
+          amount: amountToSwap.toString(),
+          type: typeof amountToSwap.toString()
+        });
+
         signature = await executeSwap({
           fromToken,
           toToken,
-          amount: amount.toString(),
+          amount: amountToSwap.toString(),
           slippage,
           wallet: activeWallet
         });
@@ -407,6 +524,20 @@ const ExecuteSwap: React.FC<{
               setStatus('error');
               setErrorMessage('Transaction confirmation timed out');
               console.error('Transaction confirmation timed out');
+              await updateToolInvocation({
+                chatId,
+                toolCallId,
+                status: 'error',
+                result: {
+                  transactionHash: signature,
+                  status: 'error',
+                  error: 'Transaction confirmation timed out',
+                  fromToken: fromTokenName,
+                  toToken: toTokenName,
+                  amount,
+                  slippage
+                }
+              });
             }
           }
         } catch (statusError: unknown) {
@@ -414,6 +545,20 @@ const ExecuteSwap: React.FC<{
           setStatus('error');
           setErrorMessage(`Status check error: ${(statusError as Error).message}`);
           console.error('Error checking transaction status:', statusError);
+          await updateToolInvocation({
+            chatId,
+            toolCallId,
+            status: 'error',
+            result: {
+              transactionHash: signature,
+              status: 'error',
+              error: (statusError as Error).message,
+              fromToken: fromTokenName,
+              toToken: toTokenName,
+              amount,
+              slippage
+            }
+          });
         }
       }, 2000);
   
@@ -450,6 +595,85 @@ const ExecuteSwap: React.FC<{
 
     setHasExecuted(true);
   };
+
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Add validation state
+  const isValid = !error && Object.keys(validationErrors).length === 0;
+
+  const handleExecuteSwap = async () => {
+    if (!activeWallet) {
+      setError('No wallet connected');
+      return;
+    }
+
+    if (!validateParameters()) {
+      return;
+    }
+
+    try {
+      setIsExecuting(true);
+      setError(null);
+      setValidationErrors({});
+
+      // Update tool invocation status to 'in_progress'
+      const updateResult = await updateToolInvocation({
+        chatId,
+        toolCallId,
+        status: 'in_progress',
+        result: {
+          status: 'in_progress',
+          message: 'Starting swap execution...'
+        }
+      });
+
+      // If update fails, log it but continue with the swap
+      if (!updateResult) {
+        console.log('Failed to update tool invocation status, but continuing with swap');
+      }
+
+      // Execute the swap
+      await executeTokenSwap();
+      
+      // Show success message
+      toast.success("Swap Executed", {
+        description: "Your swap has been executed successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error executing swap:', error);
+      setError(error instanceof Error ? error.message : 'Failed to execute swap');
+      
+      // Try to update tool invocation with error status
+      try {
+        await updateToolInvocation({
+          chatId,
+          toolCallId,
+          status: 'error',
+          result: {
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Failed to execute swap'
+          }
+        });
+      } catch (updateError) {
+        console.error('Failed to update tool invocation with error:', updateError);
+      }
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  // Update the useEffect to execute swap when parameters are valid
+  useEffect(() => {
+    if (activeWallet && !hasExecuted) {
+      const isValid = validateParameters();
+      if (isValid) {
+        handleExecuteSwap();
+      }
+    }
+  }, [activeWallet, fromTokenName, toTokenName, amount, slippage]);
 
   // Render a simple status indicator
   return (
