@@ -461,7 +461,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           )}
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-2xl font-bold">
+              <h3 className="text-2xl font-bold text-white">
                 {(data.symbol || 'Unknown').toUpperCase()}
               </h3>
               {data.name && (
@@ -472,7 +472,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             </div>
           </div>
         </div>
-        <div className="text-3xl font-bold flex items-center gap-2 mt-2">
+        <div className="text-3xl text-white font-bold flex items-center gap-2 mt-2">
           $
           {formatNumber(data.currentPrice)}
         </div>
@@ -500,7 +500,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
 
       {/* Market Summary */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg text-white font-semibold mb-4">
           Market Summary
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -565,7 +565,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
 
       {/* Quick Analysis */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg text-white font-semibold mb-4">
           Quick Analysis
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -601,46 +601,46 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
 
       {/* Technical Indicators */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg text-white font-semibold mb-4">
           Technical Indicators
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Moving Averages */}
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">Moving Averages</div>
             <div className="space-y-2">
               {sma['20'] !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">SMA 20</span>
                   <span className="font-medium">{formatNumber(sma['20'])}</span>
                 </div>
               )}
               {sma['50'] !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">SMA 50</span>
                   <span className="font-medium">{formatNumber(sma['50'])}</span>
                 </div>
               )}
               {sma['200'] !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">SMA 200</span>
                   <span className="font-medium">{formatNumber(sma['200'])}</span>
                 </div>
               )}
               {ema['9'] !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">EMA 9</span>
                   <span className="font-medium">{formatNumber(ema['9'])}</span>
                 </div>
               )}
               {ema['21'] !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">EMA 21</span>
                   <span className="font-medium">{formatNumber(ema['21'])}</span>
                 </div>
               )}
               {ema['50'] !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">EMA 50</span>
                   <span className="font-medium">{formatNumber(ema['50'])}</span>
                 </div>
@@ -670,25 +670,25 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="text-sm text-zinc-400 mb-2">Momentum Indicators</div>
             <div className="space-y-2">
               {technicalIndicators.rsi !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">RSI</span>
                   <span className="font-medium">{formatNumber(technicalIndicators.rsi)}</span>
                 </div>
               )}
               {technicalIndicators.stochRSI !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">StochRSI</span>
                   <span className="font-medium">{formatNumber(technicalIndicators.stochRSI)}</span>
                 </div>
               )}
               {technicalIndicators.cci !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">CCI</span>
                   <span className="font-medium">{formatNumber(technicalIndicators.cci)}</span>
                 </div>
               )}
               {technicalIndicators.mfi !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">MFI</span>
                   <span className="font-medium">{formatNumber(technicalIndicators.mfi)}</span>
                 </div>
@@ -768,23 +768,23 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           </div>
 
           {/* MACD */}
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">MACD</div>
             <div className="space-y-2">
               {macd.macd !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">MACD Line</span>
                   <span className="font-medium">{formatNumber(macd.macd)}</span>
                 </div>
               )}
               {macd.signal !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Signal Line</span>
                   <span className="font-medium">{formatNumber(macd.signal)}</span>
                 </div>
               )}
               {macd.histogram !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Histogram</span>
                   <span className="font-medium">{formatNumber(macd.histogram)}</span>
                 </div>
@@ -810,29 +810,29 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           </div>
 
           {/* Ichimoku Cloud */}
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">Ichimoku Cloud</div>
             <div className="space-y-2">
               {ichimoku.tenkan !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Tenkan</span>
                   <span className="font-medium">{formatNumber(ichimoku.tenkan)}</span>
                 </div>
               )}
               {ichimoku.kijun !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Kijun</span>
                   <span className="font-medium">{formatNumber(ichimoku.kijun)}</span>
                 </div>
               )}
               {ichimoku.senkouA !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Senkou A</span>
                   <span className="font-medium">{formatNumber(ichimoku.senkouA)}</span>
                 </div>
               )}
               {ichimoku.senkouB !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Senkou B</span>
                   <span className="font-medium">{formatNumber(ichimoku.senkouB)}</span>
                 </div>
@@ -862,25 +862,25 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
             <div className="text-sm text-zinc-400 mb-2">Volume Indicators</div>
             <div className="space-y-2">
               {volume.volume !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Volume</span>
                   <span className="font-medium">{formatNumber(volume.volume)}</span>
                 </div>
               )}
               {volume.volumeSMA !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Volume SMA</span>
                   <span className="font-medium">{formatNumber(volume.volumeSMA)}</span>
                 </div>
               )}
               {volume.volumeEMA !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Volume EMA</span>
                   <span className="font-medium">{formatNumber(volume.volumeEMA)}</span>
                 </div>
               )}
               {technicalIndicators.obv !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">OBV</span>
                   <span className="font-medium">{formatNumber(technicalIndicators.obv)}</span>
                 </div>
@@ -906,29 +906,29 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           </div>
 
           {/* Bollinger Bands */}
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">Bollinger Bands</div>
             <div className="space-y-2">
               {bollingerBands.upper !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Upper Band</span>
                   <span className="font-medium">{formatNumber(bollingerBands.upper)}</span>
                 </div>
               )}
               {bollingerBands.middle !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Middle Band</span>
                   <span className="font-medium">{formatNumber(bollingerBands.middle)}</span>
                 </div>
               )}
               {bollingerBands.lower !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">Lower Band</span>
                   <span className="font-medium">{formatNumber(bollingerBands.lower)}</span>
                 </div>
               )}
               {technicalIndicators.atr !== 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-white">
                   <span className="text-sm">ATR</span>
                   <span className="font-medium">{formatNumber(technicalIndicators.atr)}</span>
                 </div>
@@ -954,26 +954,26 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           </div>
 
           {/* Pivot Points */}
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">Pivot Points</div>
             <div className="space-y-2">
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">Pivot</span>
                 <span className="font-medium">{formatNumber(pivotPoints.pivot)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">R1</span>
                 <span className="font-medium">{formatNumber(pivotPoints.r1)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">R2</span>
                 <span className="font-medium">{formatNumber(pivotPoints.r2)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">S1</span>
                 <span className="font-medium">{formatNumber(pivotPoints.s1)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">S2</span>
                 <span className="font-medium">{formatNumber(pivotPoints.s2)}</span>
               </div>
@@ -998,30 +998,30 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           </div>
 
           {/* Fibonacci Retracement */}
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">Fibonacci Retracement</div>
             <div className="space-y-2">
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">Level 0%</span>
                 <span className="font-medium">{formatNumber(fibonacciRetracement.level0)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">Level 23.6%</span>
                 <span className="font-medium">{formatNumber(fibonacciRetracement.level236)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">Level 38.2%</span>
                 <span className="font-medium">{formatNumber(fibonacciRetracement.level382)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">Level 50%</span>
                 <span className="font-medium">{formatNumber(fibonacciRetracement.level500)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">Level 61.8%</span>
                 <span className="font-medium">{formatNumber(fibonacciRetracement.level618)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white">
                 <span className="text-sm">Level 100%</span>
                 <span className="font-medium">{formatNumber(fibonacciRetracement.level100)}</span>
               </div>
@@ -1053,12 +1053,12 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           Support & Resistance
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">Support Levels</div>
             <div className="space-y-2">
               {supportResistance.support.map((level, index) => (
                 level !== 0 && (
-                  <div key={index} className="flex justify-between">
+                  <div key={index} className="flex justify-between text-white">
                     <span className="text-sm">Level {index + 1}</span>
                     <span className="font-medium">{formatNumber(level)}</span>
                   </div>
@@ -1066,14 +1066,14 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
               ))}
             </div>
           </div>
-          <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="bg-zinc-900 p-4 rounded-lg text-white">
             <div className="text-sm text-zinc-400 mb-2">Resistance Levels</div>
             <div className="space-y-2">
               {supportResistance.resistance.map((level, index) => (
                 level !== 0 && (
-                  <div key={index} className="flex justify-between">
-                    <span className="text-sm">Level {index + 1}</span>
-                    <span className="font-medium">{formatNumber(level)}</span>
+                  <div key={index} className="flex justify-between text-white">
+                    <span className="text-sm text-white">Level {index + 1}</span>
+                    <span className="font-medium text-white">{formatNumber(level)}</span>
                   </div>
                 )
               ))}
@@ -1112,7 +1112,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm flex items-center gap-2">
+              <span className="text-sm flex items-center gap-2 text-white">
                 Trend
                 <div className="group relative">
                   <Info className="h-3 w-3 text-zinc-500 cursor-help" />
@@ -1136,7 +1136,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm flex items-center gap-2">
+              <span className="text-sm flex items-center gap-2 text-white">
                 Strength
                 <div className="group relative">
                   <Info className="h-3 w-3 text-zinc-500 cursor-help" />
@@ -1159,7 +1159,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm">Confidence</span>
+              <span className="text-sm text-white">Confidence</span>
               <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
                 {marketSentiment.confidence.toFixed(1)}%
               </span>
