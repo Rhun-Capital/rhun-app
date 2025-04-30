@@ -1,4 +1,4 @@
-interface Token {
+export interface Token {
     token_account: string,
     token_address: string,
     amount: number,
@@ -80,5 +80,7 @@ interface Token {
       </div>
     );
   };
+  
+  TokenHoldings.displayName = 'TokenHoldings';
   
   export default TokenHoldings;

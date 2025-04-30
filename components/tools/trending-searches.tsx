@@ -233,16 +233,6 @@ interface SortableColumn {
             </div>
           </div>
 
-          {/* {selectedCoin.sparkline && (
-            <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
-              <div className="text-sm text-zinc-500 mb-2">Price Chart (24h)</div>
-              <img 
-                src={selectedCoin.sparkline} 
-                alt={`${selectedCoin.name} price chart`}
-                className="w-full h-24"
-              />
-            </div>
-          )} */}
 
           {selectedCoin.content_description && (
             <div className="space-y-2">

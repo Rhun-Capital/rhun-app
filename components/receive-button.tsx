@@ -1,17 +1,30 @@
 // components/recieve-button.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {QRCodeSVG} from 'qrcode.react';
 import Image from 'next/image';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { useParams, usePathname } from 'next/navigation';
+import { createPortal } from 'react-dom';
 
 interface ReceiveModalProps {
   isOpen: boolean;
   agent: { wallets: { solana: string } };
   onClose: () => void;
 }
+
+// Modal portal component to ensure modal is rendered at the document root
+const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  return mounted ? createPortal(children, document.body) : null;
+};
 
 const ReceiveModal = ({ isOpen, agent, onClose }: ReceiveModalProps) => {
   const { wallets: solanaWallets } = useSolanaWallets();
@@ -35,8 +48,8 @@ const ReceiveModal = ({ isOpen, agent, onClose }: ReceiveModalProps) => {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+  const modalContent = (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 relative shadow-xl border border-zinc-700">
         {/* Close button */}
         <button
@@ -105,6 +118,8 @@ const ReceiveModal = ({ isOpen, agent, onClose }: ReceiveModalProps) => {
       </div>
     </div>
   );
+
+  return <ModalPortal>{modalContent}</ModalPortal>;
 };
 
 export default ReceiveModal;

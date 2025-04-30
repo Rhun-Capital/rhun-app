@@ -1,21 +1,42 @@
 "use client";
-import {
-  AttachmentIcon,
-  UserIcon
-} from "@/components/icons";
-import {BotIcon} from "lucide-react";
-import { useRecentChats } from '@/contexts/chat-context';
-import { useSolanaWallets } from '@privy-io/react-auth/solana';
-import { usePathname } from 'next/navigation';
+
+import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
 import { useChat } from "ai/react";
-import { useCallback, useEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
+import Image from "next/image";
 import { Markdown } from "@/components/markdown";
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
+import type { Message } from 'ai';
+import { debounce, set } from 'lodash';
+import { v4 as uuidv4 } from 'uuid';
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
+import { createPortal } from 'react-dom';
+
+// UI Components
 import LoadingIndicator from "@/components/loading-indicator";
+import ChatSidebar from '@/components/chat-sidebar';
+import CopyButton from '@/components/copy-button';
+
+// Auth & Web3
+import { usePrivy, useLogin } from "@privy-io/react-auth";
+import { useSolanaWallets } from "@privy-io/react-auth/solana";
+import { useFundWallet } from "@privy-io/react-auth/solana";
+
+// Contexts
+import { useRecentChats } from '@/contexts/chat-context';
+import { useModal } from "@/contexts/modal-context";
+
+// Modals
+import TransferModal from "@/components/send-button";
+import ReceiveModal from "@/components/receive-button";
+import SwapModal from "@/components/swap-button";
+import FundingModal from "@/components/funding-amount-modal";
+
+// Tools
 import MarketMovers from "@/components/tools/market-movers";
 import TokenInfo from "@/components/tools/token-info";
 import SearchTokens from "@/components/tools/search-tokens";
@@ -24,12 +45,9 @@ import MarketCategories from "@/components/tools/market-categories";
 import DerivativesExchanges from "@/components/tools/derivatives-exchanges";
 import RecentCoinsResults from "@/components/tools/recent-coins";
 import TopHoldersDisplay from "@/components/tools/get-top-holders";
-import type { Message } from 'ai';
-import React from 'react';
-import ChatSidebar from '@/components/chat-sidebar';
-import SolanaBalance  from "@/components/tools/solana-balance";
-import PortfolioValue  from "@/components/tools/portfolio-value";
-import TokenHoldings  from "@/components/tools/token-holdings";
+import SolanaBalance from "@/components/tools/solana-balance";
+import PortfolioValue from "@/components/tools/portfolio-value";
+import TokenHoldings from "@/components/tools/token-holdings";
 import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import AccountInfo from "@/components/tools/account-info";
@@ -37,7 +55,6 @@ import TrendingCoins from "@/components/tools/trending-searches";
 import TrendingSolanaTokens from "@/components/tools/trending-solana-tokens";
 import TopNFTsResults from "@/components/tools/top-nfts";
 import SwapComponent from "@/components/tools/swap-component";
-import { debounce } from 'lodash';
 import ExecuteSwap from "@/components/tools/execute-swap";
 import RecentDexScreenerTokens from "@/components/tools/recent-dexscreener-tokens";
 import RecentNews from "@/components/tools/recent-news";
@@ -50,14 +67,53 @@ import TechnicalAnalysis from '@/components/tools/technical-analysis';
 import FredAnalysis from '@/components/tools/fred-analysis';
 import { FredSearch } from '@/components/tools/fred-search';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
+
+// Utility functions
 import { getToolCommand } from '@/app/config/tool-commands';
-import { useModal } from "@/contexts/modal-context";
-import { Button } from "@/components/ui/button";
-import { v4 as uuidv4 } from 'uuid';
-import { usePrivy } from "@privy-io/react-auth";
-import { Suspense } from 'react';
-import dynamic from 'next/dynamic';
-import { XIcon, MenuIcon } from "lucide-react";
+import { getToolDisplayName, generateToolDescription, getToolIcon } from '@/app/config/tool-display';
+
+// Icons
+import { 
+  XIcon, 
+  MenuIcon, 
+  RefreshCcw, 
+  SendIcon, 
+  QrCode, 
+  WalletIcon,
+  PiggyBank,
+  Coins,
+  TrendingUp,
+  LayoutGrid,
+  Layers,
+  Building,
+  Gauge,
+  Activity,
+  Info,
+  Search,
+  File,
+  Users,
+  Rocket,
+  Flame,
+  Image as ImageIcon,
+  List,
+  User as UserIcon,
+  ArrowLeftRight,
+  LineChart,
+  BarChart,
+  Newspaper,
+  BarChart2,
+  Percent,
+  FileText,
+  Globe,
+  Database,
+  PieChart,
+  ChevronDown,
+  CheckIcon,
+  Repeat2,
+  FileImage as AttachmentIcon
+} from "lucide-react";
+
+import { useWalletData } from '@/app/hooks/useWalletData';
 
 interface Agent {
   id: string;
@@ -243,6 +299,494 @@ const NoSSRHomeContent = dynamic(() => Promise.resolve(HomeContent), {
   ssr: false,
 });
 
+// Move WalletContent outside and memoize it
+const WalletContent = memo(({ 
+  templateWallet,
+  user,
+  authenticated,
+  login,
+  wallets
+}: { 
+  templateWallet: string | null;
+  user: any;
+  authenticated: boolean;
+  login: () => void;
+  wallets: any[];
+}) => {
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
+  const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [isFundingModalOpen, setIsFundingModalOpen] = useState(false);
+  const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
+  const [fundingAmount, setFundingAmount] = useState(0.1);
+  const { fundWallet } = useFundWallet();
+  const { openModal, closeModal } = useModal();
+  
+  // Function to toggle wallet dropdown
+  const toggleWalletDropdown = () => {
+    setIsWalletDropdownOpen(!isWalletDropdownOpen);
+  };
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.wallet-selector-wrapper')) {
+        setIsWalletDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Get the active wallet based on selectedWalletAddress, user's wallet or the templateWallet
+  const activeWallet = selectedWalletAddress || templateWallet || (user?.wallet?.address);
+
+  // Save selectedWalletAddress to localStorage
+  useEffect(() => {
+    if (selectedWalletAddress) {
+      try {
+        localStorage.setItem('rhun_selected_wallet_address', selectedWalletAddress);
+      } catch (e) {
+        console.error("Error saving to localStorage:", e);
+      }
+    }
+  }, [selectedWalletAddress]);
+  
+  // Initialize wallet selector from localStorage
+  useEffect(() => {
+    try {
+      const savedWallet = localStorage.getItem('rhun_selected_wallet_address');
+      if (savedWallet) {
+        setSelectedWalletAddress(savedWallet);
+      }
+    } catch (e) {
+      console.error("Error accessing localStorage:", e);
+    }
+  }, []);
+
+  // Use the hook
+  const { portfolio, totalValue, tokens, initialLoading, refreshWalletData } = useWalletData(
+    activeWallet || null,
+    authenticated
+  );
+
+  const formatNumberWithCommas = (value: number | undefined | null) => {
+    if (value === undefined || value === null) return '0';
+    
+    // Convert to string and split on decimal point
+    const parts = value.toString().split('.');
+    const wholePart = parts[0];
+    const decimalPart = parts[1];
+    
+    // Only add commas if the whole number part is greater than 1000
+    const formattedWholePart = Math.abs(parseInt(wholePart)) >= 1000 
+      ? wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : wholePart;
+    
+    // Return with decimal part if it exists
+    return decimalPart 
+      ? `${formattedWholePart}.${decimalPart}`
+      : formattedWholePart;
+  };
+  
+  const formatWalletAddress = (address: string | undefined | null) => {
+    if (!address) return '';
+    if (address.length <= 12) return address;
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+  
+  const formatCurrency = (value: number | undefined | null) => {
+    if (value === undefined || value === null) return '$0.00';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  };
+  
+  // Update the refresh function to use the hook's refreshWalletData
+  const handleRefreshWalletData = async () => {
+    if (!activeWallet || !authenticated) {
+      return;
+    }
+    
+    try {
+      setRefreshLoading(true);
+      await refreshWalletData();
+    } catch (error) {
+      console.error('Error refreshing wallet data:', error);
+    } finally {
+      setTimeout(() => setRefreshLoading(false), 1000);
+    }
+  };
+  
+  // Handler for funding the wallet
+  const handleFundingConfirm = async (amount: number) => {
+    if (activeWallet) {
+      try {
+        await fundWallet(activeWallet, {
+          amount: amount.toString(),
+        });
+        setIsFundingModalOpen(false);
+        handleRefreshWalletData();
+      } catch (error) {
+        console.error('Error funding wallet:', error);
+      }
+    }
+  };
+  
+  if (!authenticated) {
+    return (
+      <div className="p-8 text-center">
+        <WalletIcon className="mx-auto w-12 h-12 text-indigo-500 mb-4" />
+        <h2 className="text-xl font-semibold text-white mb-2">Connect your wallet</h2>
+        <p className="text-zinc-400 mb-6">
+          Connect your wallet to view your balance and tokens.
+        </p>
+        <button 
+          onClick={() => login()}
+          className="px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors w-full"
+        >
+          Connect Wallet
+        </button>
+      </div>
+    );
+  }
+  
+  if (!activeWallet) {
+    return (
+      <div className="p-8 text-center">
+        <WalletIcon className="mx-auto w-12 h-12 text-indigo-500 mb-4" />
+        <h2 className="text-xl font-semibold text-white mb-2">No wallet connected</h2>
+        <p className="text-zinc-400 mb-6">
+          No wallet address found. Please select a wallet to continue.
+        </p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="p-4 space-y-4">
+      {/* Wallet Address */}
+      <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <WalletIcon className="w-5 h-5 text-indigo-400" />
+            <div className="flex flex-col gap-1 wallet-selector-wrapper relative">
+              <div 
+                className="text-sm text-zinc-300 truncate max-w-[250px] cursor-pointer flex items-center gap-1 hover:text-white"
+                onClick={toggleWalletDropdown}
+              >
+                <span>{formatWalletAddress(activeWallet)}</span>
+                {wallets && wallets.length > 0 && (
+                  <ChevronDown className={`h-4 w-4 text-zinc-400 transition-transform ${isWalletDropdownOpen ? 'rotate-180' : ''}`} />
+                )}
+              </div>
+              
+              {/* Wallet dropdown when opened */}
+              {isWalletDropdownOpen && wallets && wallets.length > 0 && (
+                <div className="absolute z-50 mt-1 top-6 left-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg p-1 min-w-[250px]">
+                  {wallets.map((wallet) => (
+                    <div 
+                      key={wallet.address}
+                      onClick={() => {
+                        setSelectedWalletAddress(wallet.address);
+                        setIsWalletDropdownOpen(false);
+                      }}
+                      className={`flex items-center gap-2 p-2 hover:bg-zinc-700 rounded-md cursor-pointer ${
+                        activeWallet === wallet.address ? 'bg-zinc-700' : ''
+                      }`}
+                    >
+                      <WalletIcon className="w-4 h-4 text-indigo-400" />
+                      <div className="text-sm text-zinc-300 truncate max-w-[200px]">
+                        {formatWalletAddress(wallet.address)}
+                      </div>
+                      {activeWallet === wallet.address && (
+                        <CheckIcon className="w-4 h-4 text-green-500 ml-auto" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
+              title="Refresh wallet data"
+              onClick={async () => {
+                setRefreshLoading(true);
+                await handleRefreshWalletData();
+                setTimeout(() => setRefreshLoading(false), 1000);
+              }}
+            >
+              {refreshLoading ? <LoadingIndicator/> : <RefreshCcw className="w-4 h-4"/>}
+            </button>
+            <CopyButton text={activeWallet} />
+          </div>
+        </div>
+        
+        {/* Portfolio Value */}
+        {totalValue !== null ? (
+          <div className="pt-2 border-t border-zinc-700">
+            <div className="text-sm text-zinc-400">Total Value</div>
+            <div className="text-xl font-semibold text-white">
+              {formatCurrency(totalValue)}
+            </div>
+          </div>
+        ) : 
+        <div className="pt-2 border-t border-zinc-700">
+          <div className=" bg-zinc-700 w-20 h-4 rounded-lg animate-pulse h-[10px] mb-2"></div>
+          <div className="bg-zinc-700 w-32 h-4 rounded-lg animate-pulse h-[15px] mb-4"></div>
+        </div>
+        }
+      </div>
+      
+      <div className="flex flex-col gap-3 justify-center">
+        {/* Actions Section - Moved above the asset list */}
+        <div className="flex gap-3 justify-center">
+          <button 
+            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || tokens.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => setIsTransferModalOpen(true)}
+            disabled={initialLoading || !totalValue || tokens.length === 0}
+          >
+            <SendIcon className="w-4 h-4" />
+            Send
+          </button>
+          
+          <button 
+            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${initialLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => setIsReceiveModalOpen(true)}
+            disabled={initialLoading}
+          >
+            <QrCode className="w-4 h-4" />
+            Receive
+          </button>
+          
+          <button 
+            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || tokens.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => setIsSwapModalOpen(true)}
+            disabled={initialLoading || !totalValue || tokens.length === 0}
+          >
+            <Repeat2 className="w-4 h-4" />
+            Swap
+          </button>
+        </div>
+
+        <button 
+            className={`mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base ${initialLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => {
+              setIsFundingModalOpen(true);
+            }}
+            disabled={initialLoading}
+          >
+            Add Funds
+          </button>
+        </div>
+      
+      {/* Token List */}
+      <div className="space-y-2">
+        <h3 className="text-lg font-semibold text-white px-1">Your Assets</h3>
+        
+        {initialLoading ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse bg-zinc-800 p-3 rounded-lg border border-zinc-700 h-[65px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-zinc-700 w-10 h-10 rounded-full"></div>
+                    <div className="flex flex-col justify-start gap-1">
+                      <div className="bg-zinc-700 w-20 h-4 rounded-lg"></div>
+                      <div className="bg-zinc-700 w-10 h-3 rounded-lg"></div>
+                    </div>   
+                  </div>
+                  <div className="bg-zinc-700 w-10 h-3 rounded-lg"></div>      
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {portfolio && portfolio.holdings && portfolio.holdings[0] && (
+              <div className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {portfolio.holdings[0].logoURI && (
+                      <img 
+                        src={portfolio.holdings[0].logoURI} 
+                        alt="SOL" 
+                        width={40} 
+                        height={40} 
+                        className="rounded-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <div className="flex flex-col justify-start gap-1">
+                      <div className="text-white">Solana</div>
+                      <div className="flex items-center gap-1 text-sm text-zinc-400">
+                        <div className="text-sm">{formatNumberWithCommas(portfolio.holdings[0].amount)}</div>
+                        <div className="text-sm">SOL</div>
+                      </div> 
+                    </div>
+                  </div>
+                  <div className="text-sm text-zinc-400">
+                    {formatCurrency(portfolio.holdings[0].usdValue)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tokens.length > 0 ? (
+              tokens.map((token) => (
+                <div key={token.token_address} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700 mb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {token.token_icon && (
+                        <img 
+                          src={token.token_icon} 
+                          alt={token.token_name} 
+                          width={40} 
+                          height={40} 
+                          className="rounded-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div className="flex flex-col justify-start gap-1">
+                        <div className="text-white">{token.token_name}</div>
+                        <div className="flex items-center gap-1 text-sm text-zinc-400">
+                          <div className="text-sm">{formatNumberWithCommas(token.formatted_amount)}</div>
+                          <div className="text-sm">{token.token_symbol}</div>
+                        </div> 
+                      </div>
+                    </div>
+                    <div className="text-sm text-zinc-400">
+                      {token.usd_value && token.usd_value > 0.009 ? formatCurrency(token.usd_value) : '-'}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-zinc-400">
+                {!initialLoading && 'No tokens found in this wallet.'}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      
+      {/* Modal Components */}
+      {activeWallet && (
+        <>
+          <TransferModal
+            isOpen={isTransferModalOpen}
+            onClose={() => setIsTransferModalOpen(false)}
+            tokens={tokens}
+            solanaBalance={portfolio?.holdings[0] ? {
+              amount: portfolio.holdings[0].amount,
+              usdValue: portfolio.holdings[0].usdValue,
+              logoURI: portfolio.holdings[0].logoURI
+            } : undefined}
+            agent={{
+              wallets: { solana: activeWallet }
+            }}
+            onSwapComplete={handleRefreshWalletData}
+          />
+          
+          <ReceiveModal
+            isOpen={isReceiveModalOpen}
+            onClose={() => setIsReceiveModalOpen(false)}
+            agent={{
+              wallets: { solana: activeWallet }
+            }}
+          />
+          
+          <SwapModal
+            isOpen={isSwapModalOpen}
+            onClose={() => setIsSwapModalOpen(false)}
+            tokens={tokens}
+            solanaBalance={portfolio?.holdings[0] ? {
+              amount: portfolio.holdings[0].amount,
+              usdValue: portfolio.holdings[0].usdValue,
+              logoURI: portfolio.holdings[0].logoURI
+            } : undefined}
+            agent={{
+              wallets: { solana: activeWallet }
+            }}
+            onSwapComplete={handleRefreshWalletData}
+          />
+        </>
+      )}
+
+      {/* Standalone FundingModal */}
+      {isFundingModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold mb-6 text-white">Add Funds</h2>
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Image src="https://d1olseq3j3ep4p.cloudfront.net/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
+                  <label className="text-sm text-zinc-400">Amount (SOL)</label>
+                </div>
+                <input
+                  type="number"
+                  value={fundingAmount}
+                  onChange={(e) => setFundingAmount(parseFloat(e.target.value) || 0.1)}
+                  min="0.1"
+                  step="0.1"
+                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white"
+                />
+              </div>
+              <div className="flex gap-2">
+                {[0.1, 0.5, 1, 2].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setFundingAmount(value)}
+                    className={`flex-1 px-3 py-1 rounded text-sm ${
+                      fundingAmount === value
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+                    }`}
+                  >
+                    {value} SOL
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-end space-x-2 mt-4">
+                <button
+                  onClick={() => setIsFundingModalOpen(false)}
+                  className="px-4 py-2 bg-zinc-700 text-white rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleFundingConfirm(fundingAmount);
+                    setIsFundingModalOpen(false);
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+WalletContent.displayName = 'WalletContent';
+
 export default function Home() {
   return (
     <Suspense fallback={
@@ -262,47 +806,70 @@ export default function Home() {
           }
           
           .tool-wrapper {
-            max-width: 90vw !important;
-            overflow-x: scroll !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             display: block;
+            -webkit-overflow-scrolling: touch;
           }
           
-          table {
+          .tool-wrapper table {
             width: 100% !important;
             max-width: 100% !important;
             table-layout: fixed !important;
-            font-size: 0.85rem !important;
+            font-size: 0.75rem !important;
           }
           
-          td, th {
+          .tool-wrapper td, 
+          .tool-wrapper th {
             padding: 4px !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: nowrap !important;
-            max-width: 60px !important;
+            max-width: 40px !important;
           }
           
-          pre, code {
-            max-width: 90vw !important;
-            overflow-x: scroll !important;
+          .tool-wrapper pre, 
+          .tool-wrapper code {
+            max-width: 100% !important;
+            overflow-x: auto !important;
             white-space: pre-wrap !important;
+            font-size: 0.75rem !important;
           }
           
           .message-content {
-            max-width: 90vw !important;
+            max-width: 100% !important;
             overflow-wrap: break-word !important;
             padding-right: 0 !important;
           }
           
-          div[class*="market"], 
-          div[class*="token"], 
-          div[class*="chart"],
-          div[class*="holder"],
-          div[class*="transaction"] {
-            max-width: 90vw !important;
-            overflow-x: scroll !important;
+          .tool-wrapper div[class*="market"], 
+          .tool-wrapper div[class*="token"], 
+          .tool-wrapper div[class*="chart"],
+          .tool-wrapper div[class*="holder"],
+          .tool-wrapper div[class*="transaction"] {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+          }
+          
+          /* Make long text wrap properly */
+          .tool-wrapper p,
+          .tool-wrapper div,
+          .tool-wrapper span {
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+          }
+          
+          /* Smaller font for better fitting */
+          .tool-wrapper h3, 
+          .tool-wrapper h4 {
+            font-size: 0.95rem !important;
+          }
+          
+          .tool-wrapper p, 
+          .tool-wrapper div {
+            font-size: 0.85rem !important;
           }
         }
         
@@ -313,7 +880,7 @@ export default function Home() {
             overflow: visible;
           }
           
-          table {
+          .tool-wrapper table {
             width: auto;
             table-layout: auto;
           }
@@ -324,6 +891,128 @@ export default function Home() {
 }
 
 function HomeContent() {
+  // Move refreshKey to a ref to prevent re-renders
+  const refreshKeyRef = useRef(0);
+
+  // Update the refresh function to use the ref
+  const refreshTradingView = useCallback(() => {
+    refreshKeyRef.current += 1;
+    // Force a re-render of just the TradingView component
+    const event = new CustomEvent('tradingview-refresh', { detail: refreshKeyRef.current });
+    window.dispatchEvent(event);
+  }, []);
+
+  // Helper function to render tool invocations
+  const renderToolInvocation = (tool: any, wrapper?: (component: React.ReactNode) => React.ReactNode) => {
+    const wrappedTool = wrapper || ((component: React.ReactNode) => component);
+    
+    switch(tool.toolName) {
+      case 'getUserSolanaBalance':
+        return wrappedTool(<SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getAgentSolanaBalance':
+        return wrappedTool(<SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getUserPortfolioValue':
+        return wrappedTool(<PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getAgentPortfolioValue':
+        return wrappedTool(<PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getUserTokenHoldings':
+        return wrappedTool(<TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getFearAndGreedIndex':
+        return wrappedTool(<FearAndGreedIndex key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getSolanaTransactionVolume':
+        return wrappedTool(<SolanaTransactionVolume key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getAgentTokenHoldings':
+        return wrappedTool(<TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getMarketMovers':
+        return wrappedTool(<MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getRecentlyLaunchedCoins':
+        return wrappedTool(<RecentCoinsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getTokenInfo':
+        return wrappedTool(<TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'searchTokens':
+        return wrappedTool(<SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getContractAddress':
+        return wrappedTool(<SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getTotalCryptoMarketCap':
+        return wrappedTool(<TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getMarketCategories':
+        return wrappedTool(<MarketCategories key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getDerivativesExchanges':
+        return wrappedTool(<DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getTopHolders':
+        return wrappedTool(<TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getAccountDetails':
+        return wrappedTool(<AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getTrendingTokens':
+        return tool.args.chain === 'solana' 
+          ? wrappedTool(<TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>)
+          : wrappedTool(<TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+      case 'getTopNfts':
+        return wrappedTool(<TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
+      case 'swap':
+        return wrappedTool(<ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
+      case 'getRecentDexScreenerTokens':
+        return wrappedTool(<RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
+      case 'getCryptoNews':
+        return wrappedTool(
+          <RecentNews key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+        );
+      case 'stockAnalysis':
+        return wrappedTool(
+          <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+        );
+      
+      case 'optionsAnalysis':
+        return wrappedTool(
+          <OptionsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+        );
+      
+      case 'newsAnalysis':
+        return wrappedTool(
+          <NewsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+        );     
+        
+      case 'webResearch':
+        return wrappedTool(
+          <WebResearch key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+        );
+      case 'getTradingViewChart':
+        return wrappedTool(
+          <TradingViewChart 
+            key={tool.toolCallId}
+            toolCallId={tool.toolCallId} 
+            toolInvocation={tool} 
+          />
+        );
+      case 'getTechnicalAnalysis':
+        return "result" in tool ? wrappedTool(
+          <TechnicalAnalysis data={tool.result} />
+        ) : null;
+      case 'getFredSeries':
+        return wrappedTool(
+          <FredAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
+        );
+      case 'fredSearch':
+        return wrappedTool(
+          <FredSearch 
+            key={tool.toolCallId} 
+            toolCallId={tool.toolCallId} 
+            toolInvocation={tool}
+            onShowChart={(seriesId) => {
+              const command = `Show me the FRED series ${seriesId}`;
+              // Close the sidebar on mobile
+              if (window.innerWidth < 768) {
+                setSidebarOpen(false);
+              }
+              handleToolSelect(command);
+            }}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   const params = useParams();
   const agentId = 'cc425065-b039-48b0-be14-f8afa0704357'
   const searchParams = useSearchParams();
@@ -335,7 +1024,10 @@ function HomeContent() {
   const [isDragging, setIsDragging] = useState(false);
   const [savedInput, setSavedInput] = useState("");
   const [newChatId] = useState<string>(`chat_template_${Date.now()}`);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<'tools' | 'artifacts' | 'wallet'>('tools');
+  const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const { isAnyModalOpen } = useModal();
   // Handle tool query parameter (Now placed after dependencies)
@@ -354,6 +1046,22 @@ function HomeContent() {
   const templateWallet = params.userId === 'template' || pathname === '/' 
     ? savedWallet || wallets[0]?.address 
     : null
+  const [artifacts, setArtifacts] = useState<any[]>([]);
+  const { login } = useLogin();
+
+  // Remove input padding state since we're not using fixed positioning anymore
+  const [inputPadding, setInputPadding] = useState("16px");
+
+  // Update input padding based on sidebar state - we can remove this effect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (sidebarOpen && window.innerWidth >= 768) {
+        setInputPadding(activeTab === 'artifacts' ? 'calc(50% + 16px)' : '416px'); // 400px + 16px
+      } else {
+        setInputPadding('16px');
+      }
+    }
+  }, [sidebarOpen, activeTab]);
 
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } = useChat({
     headers,
@@ -371,8 +1079,178 @@ function HomeContent() {
     },
     onFinish: async (message) => {   
       // Debounced save is handled in a separate useEffect
-    },
+    }
   });
+
+  // Remove the useEffect with debounce and replace with a more predictable pattern
+  const previousMessagesRef = useRef<Message[]>([]);
+  
+  // Define updateChatInDB before it's used
+  const updateChatInDB = useCallback(async (messages: Message[]): Promise<string[]> => {
+    const lastMessage = messages[messages.length - 1];
+  
+    // Skip if there's no lastMessage or if the message has no content/tool invocations
+    if (
+      !lastMessage || 
+      (lastMessage.content === '' && (!lastMessage.toolInvocations || lastMessage.toolInvocations.length === 0)) || 
+      (lastMessage.role === 'assistant' && 
+       (!lastMessage.toolInvocations || lastMessage.toolInvocations.length === 0) && 
+       lastMessage.content && 
+       lastMessage.content.includes('Analysis Summary'))
+    ) {
+      return [];
+    }
+  
+    const token = await getAccessToken();
+    const currentChatId = chatId || newChatId;
+    
+    try {
+      // Update chat metadata
+      await fetch(`/api/chat/${currentChatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          userId: user?.id,
+          agentId,
+          agentName: agent?.name,
+          lastMessage: lastMessage.content,
+          lastUpdated: new Date().toISOString(),
+          isTemplate: true
+        })
+      });
+
+      // Process attachments if they exist
+      let processedAttachments = [] as any[];
+      if (lastMessage.experimental_attachments?.length) {
+        processedAttachments = await Promise.all(
+          lastMessage.experimental_attachments.map(async (attachment) => {
+            // Only process data URLs
+            if (attachment.url.startsWith('data:')) {
+              // Create blob from data URL
+              const blob = await fetch(attachment.url).then(r => r.blob());
+              
+              // Get presigned URL
+              const presignedResponse = await fetch(`/api/chat/presigned`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  fileName: attachment.name,
+                  contentType: attachment.contentType,
+                  chatId: currentChatId,
+                  messageId: lastMessage.id
+                })
+              });
+
+              if (!presignedResponse.ok) {
+                throw new Error('Failed to get upload URL');
+              }
+
+              const { url, fields, fileUrl } = await presignedResponse.json();
+
+              // Create FormData and append fields
+              const formData = new FormData();
+              Object.entries(fields).forEach(([key, value]) => {
+                formData.append(key, value as string);
+              });
+              formData.append('file', blob, attachment.name);
+
+              // Upload to S3
+              const uploadResponse = await fetch(url, {
+                method: 'POST',
+                body: formData
+              });
+
+              if (!uploadResponse.ok) {
+                throw new Error('Failed to upload file');
+              }
+
+              // Return processed attachment with S3 URL
+              return {
+                name: attachment.name,
+                contentType: attachment.contentType,
+                url: fileUrl
+              };
+            }
+            
+            // Return non-data URLs as-is
+            return attachment;
+          })
+        );
+      }
+  
+      // Store the message with processed attachments
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chatId: currentChatId,
+          messageId: lastMessage.id,
+          userId: user?.id,
+          isTemplate: true,
+          role: lastMessage.role,
+          content: lastMessage.content,
+          createdAt: lastMessage.createdAt,
+          attachments: processedAttachments,
+          toolInvocations: lastMessage.toolInvocations?.map(tool => ({
+            toolName: tool.toolName,
+            toolCallId: tool.toolCallId,
+            args: tool.args,
+            result: 'result' in tool ? tool.result : undefined
+          }))
+        })
+      });
+  
+      await refreshRecentChats();
+    } catch (error) {
+      console.error('Error updating chat:', error);
+      toast.error('Failed to save chat message');
+    }
+    
+    return [];
+  }, [chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, refreshRecentChats]);
+
+  // Stabilize the updateChatInDB function reference with useMemo
+  const memoizedUpdateChatInDB = useMemo(() => updateChatInDB, [updateChatInDB]);
+  
+  useEffect(() => {
+    // Only update if the agent is loaded and the new message array is different from the previous
+    if (agent && messages.length > 0 && messages.length !== previousMessagesRef.current.length) {
+      // Get only the last message, which is the one that was just added
+      const lastMessageIndex = messages.length - 1;
+      const lastMessage = messages[lastMessageIndex];
+      
+      // Skip certain types of messages that may cause loops
+      if (lastMessage && 
+          lastMessage.role === 'assistant' && 
+          (!lastMessage.toolInvocations || lastMessage.toolInvocations.length === 0) && 
+          lastMessage.content && 
+          lastMessage.content.includes('Analysis Summary')) {
+        // Skip updating these types of messages
+        return;
+      }
+      
+      // Update our ref with the current messages
+      previousMessagesRef.current = [...messages];
+      
+      // Run the save operation after a delay
+      const timeoutId = setTimeout(() => {
+        memoizedUpdateChatInDB(messages);
+      }, 1000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  // Remove memoizedUpdateChatInDB from the dependency array to fix the circular dependency issue
+  }, [messages, agent]);
 
   const getAgent = async () => {
     try {
@@ -430,6 +1308,7 @@ function HomeContent() {
   }, [getAccessToken, user, ready]);
 
   const handleToolSelect = useCallback(async (command: string) => {
+    
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
@@ -520,10 +1399,10 @@ function HomeContent() {
     }
   };
 
-  useEffect(() => {
-    // Auto-resize the textarea when input changes
-    autoResizeTextarea();
-  }, [input]);
+  // useEffect(() => {
+  //   // Auto-resize the textarea when input changes
+  //   autoResizeTextarea();
+  // }, [input]);
 
   useEffect(() => {
     if (topRef.current) {
@@ -697,151 +1576,6 @@ function HomeContent() {
     }
   }, [chatId, getAccessToken, user, ready]);
 
-  const updateChatInDB = useCallback(async (messages: Message[]): Promise<string[]> => {
-    const lastMessage = messages[messages.length - 1];
-  
-    // Skip if there's no lastMessage or if the message has no content/tool invocations
-    if (
-      !lastMessage || 
-      (lastMessage.content === '' && lastMessage.toolInvocations?.length === 0) || 
-      (lastMessage.role === 'assistant' && !lastMessage.toolInvocations?.length && lastMessage.content?.includes('Analysis Summary'))
-    ) {
-      return [];
-    }
-  
-    const token = await getAccessToken();
-    const currentChatId = chatId || newChatId;
-    
-    try {
-      // Update chat metadata
-      await fetch(`/api/chat/${currentChatId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          chatId: currentChatId,
-          userId: user?.id,
-          agentId,
-          agentName: agent?.name,
-          lastMessage: lastMessage.content,
-          lastUpdated: new Date().toISOString(),
-          isTemplate: true
-        })
-      });
-
-      // Process attachments if they exist
-      let processedAttachments = [] as any[];
-      if (lastMessage.experimental_attachments?.length) {
-        processedAttachments = await Promise.all(
-          lastMessage.experimental_attachments.map(async (attachment) => {
-            // Only process data URLs
-            if (attachment.url.startsWith('data:')) {
-              // Create blob from data URL
-              const blob = await fetch(attachment.url).then(r => r.blob());
-              
-              // Get presigned URL
-              const presignedResponse = await fetch(`/api/chat/presigned`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                  fileName: attachment.name,
-                  contentType: attachment.contentType,
-                  chatId: currentChatId,
-                  messageId: lastMessage.id
-                })
-              });
-
-              if (!presignedResponse.ok) {
-                throw new Error('Failed to get upload URL');
-              }
-
-              const { url, fields, fileUrl } = await presignedResponse.json();
-
-              // Create FormData and append fields
-              const formData = new FormData();
-              Object.entries(fields).forEach(([key, value]) => {
-                formData.append(key, value as string);
-              });
-              formData.append('file', blob, attachment.name);
-
-              // Upload to S3
-              const uploadResponse = await fetch(url, {
-                method: 'POST',
-                body: formData
-              });
-
-              if (!uploadResponse.ok) {
-                throw new Error('Failed to upload file');
-              }
-
-              // Return processed attachment with S3 URL
-              return {
-                name: attachment.name,
-                contentType: attachment.contentType,
-                url: fileUrl
-              };
-            }
-            
-            // Return non-data URLs as-is
-            return attachment;
-          })
-        );
-      }
-  
-      // Store the message with processed attachments
-      await fetch('/api/chat/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          chatId: currentChatId,
-          messageId: lastMessage.id,
-          userId: user?.id,
-          isTemplate: true,
-          role: lastMessage.role,
-          content: lastMessage.content,
-          createdAt: lastMessage.createdAt,
-          attachments: processedAttachments,
-          toolInvocations: lastMessage.toolInvocations?.map(tool => ({
-            toolName: tool.toolName,
-            toolCallId: tool.toolCallId,
-            args: tool.args,
-            result: 'result' in tool ? tool.result : undefined
-          }))
-        })
-      });
-  
-      await refreshRecentChats();
-    } catch (error) {
-      console.error('Error updating chat:', error);
-      toast.error('Failed to save chat message');
-    }
-    
-    return [];
-  }, [chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, refreshRecentChats]);
-
-  useEffect(() => {
-    if (agent) {
-      // Create a new debounced function for each message
-      const debouncedSave = debounce(async () => {
-        await updateChatInDB(messages);
-      }, 1000);
-    
-      debouncedSave();
-    
-      return () => {
-        debouncedSave.cancel();
-      };
-    }
-  }, [messages, agent]);
-
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
@@ -852,22 +1586,22 @@ function HomeContent() {
   };
 
   // Add scroll event listener to show/hide scroll button
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!chatContainerRef.current) return;
+  // useEffect(() => {
+  //   const handleScroll = () => {
+  //     if (!chatContainerRef.current) return;
       
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+  //     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+  //     const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
       
-      setShowScrollButton(isScrolledUp);
-    };
+  //     setShowScrollButton(isScrolledUp);
+  //   };
     
-    const container = chatContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll);
-      return () => container.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
+  //   const container = chatContainerRef.current;
+  //   if (container) {
+  //     container.addEventListener('scroll', handleScroll);
+  //     return () => container.removeEventListener('scroll', handleScroll);
+  //   }
+  // }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -942,15 +1676,15 @@ function HomeContent() {
     };
   }, []);
 
-  // Add a custom CSS class for desktop layout
+  // Add custom CSS class for desktop layout
   useEffect(() => {
     // Add a custom style element for the desktop layout
     const style = document.createElement('style');
     style.textContent = `
       @media (min-width: 768px) {
         .desktop-content-width {
-          width: ${sidebarOpen ? 'calc(100% - 400px)' : '100%'} !important;
-          transition: width 0.3s ease;
+          width: 100% !important;
+          transition: padding-right 0.3s ease;
         }
       }
     `;
@@ -959,7 +1693,7 @@ function HomeContent() {
     return () => {
       document.head.removeChild(style);
     };
-  }, [sidebarOpen]);
+  }, [sidebarOpen, activeTab]);
 
   const handleRemoveFile = (fileToRemove: File) => {
     if (!files) return;
@@ -980,24 +1714,231 @@ function HomeContent() {
     }
   };
 
+  // Use ref to track previous messages hash to prevent infinite loop
+  const prevMessagesHashRef = useRef("");
+  
+  useEffect(() => {
+    // Create a hash of the current messages to compare
+    const messagesHash = JSON.stringify(messages.map(m => 
+      m?.id + (m?.toolInvocations?.length || 0)
+    ));
+    
+    // Skip if messages haven't actually changed in a way that affects artifacts
+    if (messagesHash === prevMessagesHashRef.current) return;
+    
+    // Update hash reference
+    prevMessagesHashRef.current = messagesHash;
+    
+    // Collect artifacts from messages with tool invocations
+    const newArtifacts = [];
+    for (const message of messages) {
+      if (message?.toolInvocations?.length) {
+        for (const tool of message.toolInvocations) {
+          newArtifacts.push({
+            id: tool.toolCallId,
+            toolName: tool.toolName,
+            args: tool.args,
+            result: 'result' in tool ? tool.result : null,
+            timestamp: message.createdAt,
+            messageId: message.id,
+            tool: tool // Store the entire tool object for rendering
+          });
+        }
+      }
+    }
+    
+    setArtifacts(newArtifacts);
+    if (newArtifacts.length > 0) {
+      setActiveTab('artifacts');
+      setSelectedArtifact(newArtifacts[newArtifacts.length-1]);
+    }
+  }, [messages]);
+
+  // Add a useEffect to trigger rerender when a TradingView chart is selected
+  useEffect(() => {
+    if (selectedArtifact?.toolName === 'getTradingViewChart') {
+      // Force a layout recalculation and component remount
+      const timer = setTimeout(() => {
+        // First clean up any existing TradingView scripts
+        const existingScripts = document.querySelectorAll(`script[data-trading-view-artifact="${selectedArtifact.id}"]`);
+        existingScripts.forEach(script => script.remove());
+        
+        // Then increment the refresh key to force a remount
+        setRefreshKey(prev => prev + 1);
+      }, 200);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedArtifact]);
+
+  // Add another useEffect to handle tab changes
+  useEffect(() => {
+    if (activeTab === 'artifacts' && selectedArtifact?.toolName === 'getTradingViewChart') {
+      // When switching to the artifacts tab with a TradingView chart selected, refresh it
+      const timer = setTimeout(() => {
+        setRefreshKey(prev => prev + 1);
+      }, 200);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab, selectedArtifact]);
+
+  // Create a common function for rendering tool icons
+  const renderToolIcon = (toolName: string, size: number = 16) => {
+    const iconName = getToolIcon(toolName);
+    
+    switch(iconName) {
+      case 'wallet': return <WalletIcon className="text-indigo-400" size={size} />;
+      case 'piggyBank': return <PiggyBank className="text-indigo-400" size={size} />;
+      case 'coins': return <Coins className="text-indigo-400" size={size} />;
+      case 'trendingUp': return <TrendingUp className="text-indigo-400" size={size} />;
+      case 'pieChart': return <PieChart className="text-indigo-400" size={size} />;
+      case 'layers': return <Layers className="text-indigo-400" size={size} />;
+      case 'building': return <Building className="text-indigo-400" size={size} />;
+      case 'gauge': return <Gauge className="text-indigo-400" size={size} />;
+      case 'activity': return <Activity className="text-indigo-400" size={size} />;
+      case 'info': return <Info className="text-indigo-400" size={size} />;
+      case 'search': return <Search className="text-indigo-400" size={size} />;
+      case 'file': return <File className="text-indigo-400" size={size} />;
+      case 'users': return <Users className="text-indigo-400" size={size} />;
+      case 'rocket': return <Rocket className="text-indigo-400" size={size} />;
+      case 'flame': return <Flame className="text-indigo-400" size={size} />;
+      case 'image': return <ImageIcon className="text-indigo-400" size={size} />;
+      case 'list': return <List className="text-indigo-400" size={size} />;
+      case 'user': return <UserIcon className="text-indigo-400" size={size} />;
+      case 'arrowLeftRight': return <ArrowLeftRight className="text-indigo-400" size={size} />;
+      case 'lineChart': return <LineChart className="text-indigo-400" size={size} />;
+      case 'barChart': return <BarChart className="text-indigo-400" size={size} />;
+      case 'newspaper': return <Newspaper className="text-indigo-400" size={size} />;
+      case 'barChart2': return <BarChart2 className="text-indigo-400" size={size} />;
+      case 'percent': return <Percent className="text-indigo-400" size={size} />;
+      case 'fileText': return <FileText className="text-indigo-400" size={size} />;
+      case 'globe': return <Globe className="text-indigo-400" size={size} />;
+      case 'database': return <Database className="text-indigo-400" size={size} />;
+      case 'databaseSearch': return <Database className="text-indigo-400" size={size} />;
+      default: return (
+        <Activity className="text-indigo-400" size={size} />
+      );
+    }
+  };
+
+  // Add the ToolInvocationCard component definition BEFORE renderToolInvocationForArtifact
+  const ToolInvocationCard = ({ tool, onViewArtifact }: { tool: any, onViewArtifact: () => void }) => {
+    return (
+      <div 
+        className="bg-zinc-800 rounded-lg p-3 my-2 border border-zinc-700 hover:border-indigo-500 transition-colors cursor-pointer md:cursor-default"
+        onClick={(e) => {
+          // On mobile, make the whole card clickable
+          if (window.innerWidth < 768) {
+            e.stopPropagation();
+            onViewArtifact();
+            // Don't close the sidebar on mobile automatically
+          }
+        }}
+      >
+        <div className="flex justify-between items-center cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewArtifact();
+            }}        
+        >          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-indigo-500/20">
+              {renderToolIcon(tool.toolName)}
+            </div>
+            <div>
+              <div className="font-medium text-white">{getToolDisplayName(tool.toolName)}</div>
+              <div className="text-xs text-zinc-400 break-words overflow-wrap-anywhere line-clamp-2 w-full max-w-full md:max-w-[300px]">
+                {generateToolDescription(tool.toolName, tool.args)}
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewArtifact();
+            }}
+            className="hidden md:block px-3 py-1 text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 hover:border-indigo-500 rounded-md transition-colors"
+          >
+            View Result
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="fixed inset-0 bg-zinc-900 flex flex-col overflow-hidden ios-fix">
+    <div className="h-full w-full bg-zinc-900 flex flex-col overflow-hidden ios-fix">
       {/* Chat header - fixed height */}
       <div className="flex-none h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 justify-between z-10">
-        <div className="flex items-center gap-2 pl-[50px] md:pl-[250px]">
-          <div>
-                <img 
-                  src="https://d1olseq3j3ep4p.cloudfront.net/agents/cc425065-b039-48b0-be14-f8afa0704357/profile-1738538619696.jpg" 
-                  alt="Rhun Capital"
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-            </div>
-            <Link className="text-indigo-500 text-indigo-400" href={`/`}>          
-              <h1 className="text-lg font-medium text-white">Rhun Capital</h1>
-            </Link>
-          </div>
-        
         <div className="flex items-center gap-2">
+          <div>
+            <img 
+              src="https://d1olseq3j3ep4p.cloudfront.net/agents/cc425065-b039-48b0-be14-f8afa0704357/profile-1738538619696.jpg" 
+              alt="Rhun Capital"
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          </div>
+          <Link className="text-indigo-500 text-indigo-400" href={`/`}>          
+            <h1 className="text-lg font-medium text-white">Rhun Capital</h1>
+          </Link>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Tab navigation in header */}
+          <div className="hidden md:flex border-r border-zinc-700 pr-3 mr-2">
+            <button
+              onClick={() => {
+                setActiveTab('wallet')
+                setSidebarOpen(true);
+              }}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors rounded-md ${
+                activeTab === 'wallet' 
+                  ? 'text-white bg-zinc-800' 
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <WalletIcon size={16} />
+                <span>Wallet</span>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('tools')
+                setSidebarOpen(true);
+              }}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors rounded-md ${
+                activeTab === 'tools' 
+                  ? 'text-white bg-zinc-800' 
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <LayoutGrid size={16} />
+                <span>Tools</span>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('artifacts')
+                setSidebarOpen(true);
+              }}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors rounded-md ${
+                activeTab === 'artifacts' 
+                  ? 'text-white bg-zinc-800' 
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+                <span>Artifacts</span>
+                <span className="bg-zinc-700 text-zinc-300 rounded-full px-1.5 py-0.5 text-xs">{artifacts.length}</span>
+              </div>
+            </button>
+          </div>
+          
           {/* Mobile menu button */}
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -1025,401 +1966,469 @@ function HomeContent() {
               </svg>
             )}
           </button>
-          </div>
         </div>
+      </div>
 
-      {/* Main content area - flexible layout */}
-      <div className="flex flex-1 overflow-hidden w-full">
-        {/* Chat content */}
-        <div className="flex-1 flex flex-col relative desktop-content-width">
-          {/* Scrollable area */}
-          <div 
-            ref={chatContainerRef}
-            className="flex-1 overflow-y-auto hide-scrollbar chat-scrollable"
-            style={{ 
-              paddingBottom: '72px', 
-              overflowX: 'hidden'
-            }}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <AnimatePresence>
-              {isDragging && (
-                <motion.div
-                  className="fixed inset-0 z-50 bg-zinc-900/90 flex items-center justify-center"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <div className="text-center">
-                    <p className="text-white text-lg">Drop files here</p>
-                    <p className="text-zinc-400">(images and text only)</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-              
-            <div className="max-w-3xl mx-auto w-full pt-4 pl-4 pr-4 md:pl-8 md:pr-8">
-              {messages.length > 0 ? (
-                messages.map((message, index) => (
-                  <motion.div
-                    key={message.id}
-                    className={`flex gap-3 py-4`}
-                    initial={{ y: 5, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                  >
-                    <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
-                      {message.role === "assistant" ? (
-                          <img 
-                            src={agent.imageUrl}
-                            alt={agent.name}
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                      ) : (
-                        <UserIcon />
-                      )}
-                    </div>
-
-                    <div className="flex-1 space-y-2 max-w-[100%] text-white" ref={topRef}>
-                      {message.toolInvocations?.map((tool) => {
-                        const wrappedTool = (component: React.ReactNode) => (
-                          <div className="tool-wrapper">
-                            {component}
-                          </div>
-                        );
-                        
-                        switch(tool.toolName) {
-                          case 'getUserSolanaBalance':
-                            return wrappedTool(<SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getAgentSolanaBalance':
-                            return wrappedTool(<SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getUserPortfolioValue':
-                            return wrappedTool(<PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getAgentPortfolioValue':
-                            return wrappedTool(<PortfolioValue key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getUserTokenHoldings':
-                            return wrappedTool(<TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getFearAndGreedIndex':
-                            return wrappedTool(<FearAndGreedIndex key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getSolanaTransactionVolume':
-                            return wrappedTool(<SolanaTransactionVolume key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getAgentTokenHoldings':
-                            return wrappedTool(<TokenHoldings key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getMarketMovers':
-                            return wrappedTool(<MarketMovers key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getRecentlyLaunchedCoins':
-                            return wrappedTool(<RecentCoinsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getTokenInfo':
-                            return wrappedTool(<TokenInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'searchTokens':
-                            return wrappedTool(<SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getContractAddress':
-                            return wrappedTool(<SearchTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getTotalCryptoMarketCap':
-                            return wrappedTool(<TotalCryptoMarketCap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getMarketCategories':
-                            return wrappedTool(<MarketCategories key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getDerivativesExchanges':
-                            return wrappedTool(<DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getTopHolders':
-                            return wrappedTool(<TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getAccountDetails':
-                            return wrappedTool(<AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getTrendingTokens':
-                            return tool.args.chain === 'solana' 
-                              ? wrappedTool(<TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>)
-                              : wrappedTool(<TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getTopNfts':
-                            return wrappedTool(<TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
-                          case 'swap':
-                            return wrappedTool(<ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
-                          case 'getRecentDexScreenerTokens':
-                            return wrappedTool(<RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
-                          case 'getCryptoNews':
-                            return wrappedTool(
-                              <RecentNews key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            );
-                          case 'stockAnalysis':
-                            return wrappedTool(
-                              <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} append={append} />
-                            );
-                          
-                          case 'optionsAnalysis':
-                            return wrappedTool(
-                              <OptionsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            );
-                          
-                          case 'newsAnalysis':
-                            return wrappedTool(
-                              <NewsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            );     
-                            
-                          case 'webResearch':
-                            return wrappedTool(
-                              <WebResearch key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            );
-                          case 'getTradingViewChart':
-                            return wrappedTool(<TradingViewChart key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
-                          case 'getTechnicalAnalysis':
-                            return "result" in tool ? wrappedTool(
-                              <TechnicalAnalysis data={tool.result} />
-                            ) : null;
-                          case 'getFredSeries':
-                            return wrappedTool(
-                              <FredAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            );
-                          case 'fredSearch':
-                            return wrappedTool(
-                              <FredSearch 
-                                key={tool.toolCallId} 
-                                toolCallId={tool.toolCallId} 
-                                toolInvocation={tool}
-                                onShowChart={(seriesId) => handleToolSelect(`Show me the FRED series ${seriesId}`)}
+      {/* Main content area - flexible layout with new structure */}
+      <div className="flex flex-col flex-1 overflow-hidden w-full">
+        {/* Messages and sidebar in a row */}
+        <div className="flex flex-1 overflow-hidden w-full">
+          {/* Chat content */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Scrollable area and input area in a column flex */}
+            <div className="flex flex-col flex-1 overflow-hidden">
+              {/* Scrollable message area */}
+              <div 
+                ref={chatContainerRef}
+                className="flex-1 overflow-y-auto hide-scrollbar chat-scrollable pb-2"
+                style={{ 
+                  overflowX: 'hidden'
+                }}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <AnimatePresence>
+                  {isDragging && (
+                    <motion.div
+                      className="fixed inset-0 z-50 bg-zinc-900/90 flex items-center justify-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <div className="text-center">
+                        <p className="text-white text-lg">Drop files here</p>
+                        <p className="text-zinc-400">(images and text only)</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                <div className="max-w-3xl mx-auto w-full pt-4 pl-4 pr-4 md:pl-8 md:pr-8">
+                  {messages.length > 0 ? (
+                    messages.map((message, index) => (
+                      <motion.div
+                        key={message.id}
+                        className={`flex gap-3 py-4`}
+                        initial={{ y: 5, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                      >
+                        <div className="w-6 h-6 flex-shrink-0 text-zinc-400">
+                          {message.role === "assistant" ? (
+                              <img 
+                                src={agent.imageUrl}
+                                alt={agent.name}
+                                className="w-6 h-6 rounded-full object-cover"
                               />
-                            );
-                          default:
-                            return null;
-                        }
-                      })}
-
-                      {(message.experimental_attachments?.length ?? 0) > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {message.experimental_attachments?.map((attachment: any, idx: number) => (
-                            <AttachmentDisplay 
-                              key={`${attachment.name || idx}`} 
-                              attachment={attachment}
-                            />
-                          ))}
+                          ) : (
+                            <UserIcon />
+                          )}
                         </div>
-                      )}
-                      
-                      <div className="message-content">
-                        <Markdown>{message.content}</Markdown>
+    
+                        <div className="flex-1 space-y-2 max-w-[100%] text-white" ref={topRef}>
+                            {message.toolInvocations?.map((tool) => (
+                              <ToolInvocationCard
+                                key={tool.toolCallId} 
+                                tool={tool}
+                                onViewArtifact={() => {
+                                  // Find the corresponding artifact and select it
+                                  const artifact = artifacts.find(a => a.id === tool.toolCallId);
+                                  if (artifact) {
+                                    setActiveTab('artifacts');
+                                    setSelectedArtifact(artifact);
+                                    // On mobile, open the sidebar
+                                    if (window.innerWidth < 768) {
+                                      setSidebarOpen(true);
+                                    } else {
+                                      // On desktop, ensure sidebar is open
+                                      setSidebarOpen(true);
+                                    }
+                                  }
+                                }}
+                              />
+                            ))}
+    
+                          {(message.experimental_attachments?.length ?? 0) > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {message.experimental_attachments?.map((attachment: any, idx: number) => (
+                                <AttachmentDisplay 
+                                  key={`${attachment.name || idx}`} 
+                                  attachment={attachment}
+                                />
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="message-content">
+                            <Markdown>{message.content}</Markdown>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : !searchParams.get('tool') && (
+                    <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
+                      <div className="w-full max-w-md">
+                        <EmptyState 
+                          agent={agent}
+                          userId="template"
+                          agentId={agentId}
+                          onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
+                        />
                       </div>
                     </div>
-                  </motion.div>
-                ))
-              ) : !searchParams.get('tool') && (
-                <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
-                  <div className="w-full max-w-md">
-                    <EmptyState 
-                      agent={agent}
-                      userId="template"
-                      agentId={agentId}
-                      onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
-                    />
-                  </div>
+                  )}
+    
+                  {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                    <div className="flex gap-3 py-4 bg-zinc-900 text-zinc-500 text-sm">
+                      <LoadingIndicator /> <span className="animate-pulse">Thinking...</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+              
+              {/* Input area in the same flex column as the messages */}
+              <div className="flex-shrink-0 bg-zinc-900 border-t border-zinc-700 pt-3 pb-4 px-4 z-30 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
+                style={{
+                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+                }}
+              >
+                <AnimatePresence>
+                  {files && (
+                    <div className="flex gap-2 mb-2 overflow-x-auto pb-2 pt-2 max-w-3xl mx-auto">
+                    {files && Array.from(files).map((file) =>
+                        file.type.startsWith("image") ? (
+                          <motion.div
+                            key={file.name}
+                            className="relative"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                          >
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className="h-16 w-16 object-cover rounded-md"
+                            />
+                            <button
+                              onClick={() => handleRemoveFile(file)}
+                              className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
+                              aria-label="Remove file"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                              </svg>
+                            </button>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key={file.name}
+                            className="relative"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                          >
+                            <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
+                              <TextFilePreview file={file} />
+                            </div>
+                            <button
+                              onClick={() => handleRemoveFile(file)}
+                              className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
+                              aria-label="Remove file"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                              </svg>
+                            </button>
+                          </motion.div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </AnimatePresence>
 
-              {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex gap-3 py-4 bg-zinc-900 text-zinc-500 text-sm">
-                  <LoadingIndicator /> <span className="animate-pulse">Thinking...</span>
-                </div>
-              )}
+                <form onSubmit={(event) => {
+                  const options = files ? { experimental_attachments: files } : {};
+                  handleFormSubmit(event, options);
+                }} className="max-w-3xl mx-auto flex gap-2 relative">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    multiple
+                    accept="image/png,image/jpeg,image/jpg,text/*"
+                    onChange={handleFileChange}
+                  />
+                  
+                  <div className="flex-1 flex items-center bg-zinc-800 rounded-lg px-4">
+                    <button
+                      type="button"
+                      onClick={handleUploadClick}
+                      className="p-2 text-zinc-400 hover:text-white"
+                    >
+                      <AttachmentIcon />
+                    </button>
+                    
+                    <textarea
+                      ref={inputRef}
+                      className="flex-1 bg-transparent py-2 px-2 text-white outline-none resize-none overflow-y-auto"
+                      placeholder="Send a message..."
+                      value={input}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.shiftKey) {
+                          event.preventDefault();
+                          if (input.trim()) {
+                            const options = files ? { experimental_attachments: files } : {};
+                            handleFormSubmit(event, options);
+                          }
+                        }
+                      }}
+                      onPaste={handlePaste}
+                      rows={1}
+                      style={{ minHeight: '40px', maxHeight: '150px' }}
+                    />
+                    <button type="submit" className="p-2 text-zinc-400 hover:text-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
+                      </svg>
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
 
-          {/* Input area - fixed at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-700 p-4 z-30 pb-safe"
-            style={{
-              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)"
+          {/* Mobile overlay backdrop - placed outside the sidebar */}
+          {sidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-black/40 z-40 md:hidden" 
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          
+          {/* Sidebar */}
+          <div 
+            className={`bg-zinc-900 overflow-hidden transition-all duration-300 
+              ${sidebarOpen 
+                ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-auto z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
+                : 'w-0 md:border-l-0'}`}
+            style={{ 
+              bottom: 0,
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px))",
+              borderTopRightRadius: '16px'
             }}
           >
-            <AnimatePresence>
-              {files && (
-                <div className="flex gap-2 mb-2 overflow-x-auto pb-2 pt-2 max-w-3xl mx-auto">
-                  {Array.from(files).map((file) =>
-                    file.type.startsWith("image") ? (
-                      <motion.div
-                        key={file.name}
-                        className="relative"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                      >
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={file.name}
-                          className="h-16 w-16 object-cover rounded-md"
-                        />
-                        <button
-                          onClick={() => handleRemoveFile(file)}
-                          className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
-                          aria-label="Remove file"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                          </svg>
-                        </button>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key={file.name}
-                        className="relative"
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                      >
-                        <div className="h-16 w-16 p-2 text-[8px] bg-zinc-800 rounded-md border border-zinc-700 overflow-hidden">
-                          <TextFilePreview file={file} />
-                        </div>
-                        <button
-                          onClick={() => handleRemoveFile(file)}
-                          className="absolute -top-2 -right-2 bg-zinc-800 text-zinc-400 hover:text-white rounded-full p-1 w-6 h-6 flex items-center justify-center"
-                          aria-label="Remove file"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                          </svg>
-                        </button>
-                      </motion.div>
-                    )
-                  )}
-                </div>
-              )}
-            </AnimatePresence>
-
-            <form onSubmit={(event) => {
-              const options = files ? { experimental_attachments: files } : {};
-              handleFormSubmit(event, options);
-            }} className="max-w-3xl mx-auto flex gap-2 relative">
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                multiple
-                accept="image/png,image/jpeg,image/jpg,text/*"
-                onChange={handleFileChange}
-              />
-              
-              <div className="flex-1 flex items-center bg-zinc-800 rounded-lg px-4">
-                <button
-                  type="button"
-                  onClick={handleUploadClick}
-                  className="p-2 text-zinc-400 hover:text-white"
-                >
-                  <AttachmentIcon />
-                </button>
+            {sidebarOpen && (
+              <>
                 
-                <textarea
-                  ref={inputRef}
-                  className="flex-1 bg-transparent py-2 px-2 text-white outline-none resize-none overflow-y-auto"
-                  placeholder="Send a message..."
-                  value={input}
-                  onChange={(e) => {
-                    handleInputChange(e);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault();
-                      if (input.trim()) {
-                        const options = files ? { experimental_attachments: files } : {};
-                        handleFormSubmit(event, options);
-                      }
-                    }
-                  }}
-                  onPaste={handlePaste}
-                  rows={1}
-                  style={{ minHeight: '40px', maxHeight: '150px' }}
-                />
-                <button type="submit" className="p-2 text-zinc-400 hover:text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
-                  </svg>
-                </button>
-              </div>
-            </form>
+                <div className="h-[calc(100vh-100px)] flex flex-col flex-1 overflow-hidden bg-zinc-900">
+                  {/* Close button - only on mobile */}
+                  <div className="flex justify-between items-center p-4 border-b border-zinc-700 md:hidden bg-zinc-900">
+                    <h3 className="text-lg font-medium text-white">
+                      {activeTab === 'wallet' 
+                        ? 'Wallet' 
+                        : (activeTab === 'tools' 
+                          ? 'Tools' 
+                          : 'Artifacts')}
+                    </h3>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSidebarOpen(false);
+                      }} 
+                      className="text-zinc-400 hover:text-white"
+                    >
+                      <XIcon size={20} />
+                    </button>
+                  </div>
+                  
+                  {/* Tabs navigation - only on mobile */}
+                  <div className="flex border-b border-zinc-700 md:hidden px-2 bg-zinc-900">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab('wallet');
+                      }}
+                      className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                        activeTab === 'wallet' 
+                          ? 'text-white border-b-2 border-indigo-500' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1.5">
+                        <WalletIcon size={16} />
+                        <span>Wallet</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab('tools');
+                      }}
+                      className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                        activeTab === 'tools' 
+                          ? 'text-white border-b-2 border-indigo-500' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1.5">
+                        <LayoutGrid size={16} />
+                        <span>Tools</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveTab('artifacts');
+                      }}
+                      className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                        activeTab === 'artifacts' 
+                          ? 'text-white border-b-2 border-indigo-500' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        <span>Artifacts</span>
+                        <span className="bg-zinc-700 text-zinc-300 rounded-full px-1.5 py-0.5 text-xs">{artifacts.length}</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div 
+                    className="flex-1 overflow-y-auto p-4 bg-zinc-900" 
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {activeTab === 'wallet' ? (
+                      <WalletContent 
+                        templateWallet={templateWallet}
+                        user={user}
+                        authenticated={authenticated}
+                        login={login}
+                        wallets={wallets}
+                      />
+                    ) : activeTab === 'tools' ? (
+                      <ChatSidebar 
+                        agent={agent}
+                        isOpen={true}
+                        onToggle={() => setSidebarOpen(!sidebarOpen)}
+                        onToolSelect={(tool) => {
+
+                          // Prevent multiple selections
+                          if (isLoading) {
+                            return;
+                          }
+                          
+                          // Special handling for TradingView
+                          if (tool.toLowerCase().includes('tradingview') || 
+                              tool.toLowerCase().includes('chart')) {
+                            
+                            
+                            // Small delay before proceeding with the tool selection
+                            setTimeout(() => {
+                              handleToolSelect(tool);
+                            }, 200);
+                          } else {
+                            // For other tools, proceed normally
+                            handleToolSelect(tool);
+                          }
+                        }}
+                        refreshAgent={refreshAgent}
+                      />
+                    ) : (
+                      <div className="flex-1 overflow-y-auto">
+                        {/* <h3 className="text-xl font-medium text-white mb-4 hidden md:block">Artifacts</h3> */}
+                        {selectedArtifact ? (
+                          <div className="bg-zinc-800 rounded-lg p-4 mb-4 border border-zinc-700">
+                            <div className="flex justify-between items-center mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-full bg-indigo-500/20">
+                                  {renderToolIcon(selectedArtifact.toolName)}
+                                </div>
+                                <h3 className="text-lg font-medium text-white">
+                                  {getToolDisplayName(selectedArtifact.toolName)}
+                                </h3>
+                              </div>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedArtifact(null);
+                                }}
+                                className="text-zinc-400 hover:text-white"
+                              >
+                                <XIcon size={20} />
+                              </button>
+                            </div>
+                 
+                            <div className="tool-wrapper max-w-full overflow-x-auto" key={`artifact-${selectedArtifact.id}-${refreshKey}`}>
+                              {renderToolInvocation(selectedArtifact.tool)}
+                            </div>
+                          </div>
+                        ) : (
+                          artifacts.length === 0 ? (
+                            <div className="p-8 text-center">
+                              <div className="flex items-center justify-center mb-4 text-indigo-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                              </svg>   
+                              </div>
+                            <h2 className="text-xl font-semibold text-white mb-2">You don&apos;t have any artifacts yet</h2>
+                            <p className="text-zinc-400 mb-6">
+                              Use the tools to start your research and create artifacts.
+                            </p>
+                            <button
+                              onClick={() => setActiveTab('tools')}
+                              className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
+                            >
+                              View Available Tools
+                            </button>                            
+      
+                          </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {artifacts.map((artifact) => (
+                                <button
+                                  key={artifact.id}
+                                  className="w-full text-left p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 transition-colors cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedArtifact(artifact);
+                                    // On mobile, don't close the sidebar automatically
+                                    // Let the user see the artifact details inside the sidebar first
+                                  }}
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                      <div className="p-1.5 rounded-full bg-indigo-500/20">
+                                        {renderToolIcon(artifact.toolName, 14)}
+                                      </div>
+                                      <span className="font-medium text-white">{getToolDisplayName(artifact.toolName)}</span>
+                                    </div>
+                                    <span className="text-xs text-zinc-400">
+                                      {new Date(artifact.timestamp).toLocaleTimeString()}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-xs text-zinc-400 break-words overflow-wrap-anywhere line-clamp-2 md:truncate">
+                                    {generateToolDescription(artifact.toolName, artifact.args)}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
-
-        {/* Desktop sidebar with absolute positioning */}
-        <div 
-          className={`hidden md:block fixed top-[61px] right-0 bottom-0 border-l border-zinc-700 bg-zinc-900 overflow-y-auto z-10 transition-transform duration-300 w-[400px] ${
-            sidebarOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          style={{ 
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))', /* Add padding to account for input area height and iOS safe area */
-            height: 'auto',
-            maxHeight: 'calc(100vh - 61px)' /* Viewport height minus header */
-          }}
-        >
-      <ChatSidebar 
-        agent={agent}
-            isOpen={true}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onToolSelect={handleToolSelect}
-        refreshAgent={refreshAgent}
-      />
-        </div>
-      </div>
-
-      {/* Scroll to bottom button */}
-      <AnimatePresence>
-        {showScrollButton && (
-          <motion.button
-            className="fixed bottom-[84px] right-4 bg-indigo-500 text-white p-2 rounded-full shadow-lg z-30"
-            onClick={scrollToBottom}
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M8 15a.5.5 0 0 1-.5-.5V2.707L1.854 8.354a.5.5 0 1 1-.708-.708l6-6a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8.5 2.707V14.5a.5.5 0 0 1-.5.5z" transform="rotate(180, 8, 8)"/>
-            </svg>
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Mobile sidebar - slides up from bottom */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div 
-            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50"
-            onClick={() => setSidebarOpen(false)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div 
-              className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-xl overflow-hidden"
-              style={{ maxHeight: 'calc(75vh - 40px)' }}
-              onClick={e => e.stopPropagation()}
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              drag="y"
-              dragConstraints={{ top: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_, info) => {
-                if (info.offset.y > 100) {
-                  setSidebarOpen(false);
-                }
-              }}
-            >
-              {/* Drag handle */}
-              <div 
-                className="w-full h-10 flex justify-center items-center cursor-grab active:cursor-grabbing"
-                onTouchStart={e => e.stopPropagation()}
-              >
-                <div className="w-16 h-1.5 bg-zinc-600 rounded-full"></div>
-              </div>
-              <div className="overflow-hidden" style={{ height: 'calc(75vh - 40px)' }}>
-                <ChatSidebar 
-                  agent={agent}
-                  isOpen={true}
-                  onToggle={() => setSidebarOpen(false)}
-                  onToolSelect={handleToolSelect}
-                  refreshAgent={refreshAgent}
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

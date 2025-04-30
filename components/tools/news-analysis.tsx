@@ -1,6 +1,5 @@
 // components/tools/NewsAnalysis.tsx
-import React, { useState, useEffect } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import React from 'react';
 
 interface NewsAnalysisProps {
   toolCallId: string;
@@ -8,82 +7,10 @@ interface NewsAnalysisProps {
 }
 
 export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysisProps) {
-  // Directly use toolInvocation.result as the initial state
-  const [data, setData] = useState(toolInvocation.result);
-  const [isPolling, setIsPolling] = useState(false);
-  const { getAccessToken } = usePrivy();
-
-  // Add a useEffect to update state after initial render if needed
-  useEffect(() => {
-    // If data is missing a requestId but toolInvocation has it, update the state
-    setData(toolInvocation.result);
-
-  }, [toolInvocation]);  
-
-  useEffect(() => {
-    if (!data) {
-      return;
-    }
-
-    // If result is still processing and has a requestId, start polling
-    if (data?.status === 'processing' && data?.requestId) {
-      setIsPolling(true);
-      
-      let attempts = 0;
-      const maxAttempts = 30; // Poll for up to 30 seconds
-      
-      const pollInterval = setInterval(async () => {
-        attempts++;
-        
-        try {
-          const accessToken = await getAccessToken();
-          
-          // Call the API endpoint to check status
-          const response = await fetch(`/api/financial-data/status?requestId=${data.requestId}`, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
-            }
-          });
-          const statusData = await response.json();
-          
-          if (statusData.status === 'completed') {
-            try {
-              // Parse the results JSON if it's a string
-              const parsedResults = typeof statusData.results === 'string' 
-                ? JSON.parse(statusData.results)
-                : statusData.results;
-              
-              // Access the news data
-              const newsData = parsedResults[data.ticker]?.news_data;
-              
-              if (newsData) {
-                setData(newsData);
-              } else {
-                console.error('News data not found for ticker:', data.ticker);
-              }
-            } catch (error) {
-              console.error('Error parsing results:', error);
-            }
-            
-            clearInterval(pollInterval);
-            setIsPolling(false);
-          }
-          
-          if (attempts >= maxAttempts) {
-            clearInterval(pollInterval);
-            setIsPolling(false);
-          }
-        } catch (error) {
-          console.error('Error polling for status:', error);
-          clearInterval(pollInterval);
-          setIsPolling(false);
-        }
-      }, 10000); // Check every 10 seconds
-      
-      return () => clearInterval(pollInterval);
-    }
-  }, [data, getAccessToken]);
-
+  // Get data directly from props without state
+  const data = toolInvocation?.result || null;
+  
+  // Simple null check and early return
   if (!data) {
     return (
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2">
@@ -92,6 +19,7 @@ export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysi
     );
   }
   
+  // Error check
   if (data.error) {
     return (
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2 text-white">
@@ -100,13 +28,14 @@ export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysi
     );
   }
   
+  // Processing check - no state required
   if (data.status === 'processing') {
     return (
       <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2 text-white">
         <div className="flex items-center space-x-2">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
           <div className="text-indigo-400">
-            {isPolling ? "Analyzing news..." : data.message || "Analyzing news..."}
+            {data.message || "Analyzing news..."}
           </div>
         </div>
         <div className="text-zinc-400 text-sm mt-2">Stock symbol: {data.ticker}</div>
@@ -114,19 +43,27 @@ export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysi
     );
   }
 
-  // Get news articles and ensure they exist
-  const articles = data.processed_news || [];
-
+  // Extract data directly - no hooks or state
+  const ticker = data.ticker || toolInvocation?.args?.ticker || "Unknown";
+  const articles = Array.isArray(data.processed_news) ? data.processed_news : [];
+  const sentiment = data.news_sentiment?.sentiment || 'Neutral';
+  const averageScore = typeof data.news_sentiment?.average_score === 'number' 
+    ? data.news_sentiment.average_score.toFixed(2) 
+    : 'N/A';
+  
+  // Use a static timestamp string to avoid Date object creation which can cause re-renders
+  const timestamp = "Recently";
+  
   return (
     <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 my-2 text-white">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold">{data.ticker || toolInvocation.args?.ticker} News Analysis</h3>
+        <h3 className="text-xl font-bold">{ticker} News Analysis</h3>
         <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-          data.news_sentiment?.sentiment === 'Positive' ? 'bg-green-800 text-green-100' :
-          data.news_sentiment?.sentiment === 'Negative' ? 'bg-red-800 text-red-100' :
+          sentiment === 'Positive' ? 'bg-green-800 text-green-100' :
+          sentiment === 'Negative' ? 'bg-red-800 text-red-100' :
           'bg-zinc-700 text-zinc-300'
         }`}>
-          {data.news_sentiment?.sentiment || 'Neutral'} Sentiment
+          {sentiment} Sentiment
         </div>
       </div>
       
@@ -147,7 +84,8 @@ export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysi
                 </span>
               </div>
               <div className="text-sm text-zinc-400 mt-1">
-                {article.published_timestamp ? new Date(article.published_timestamp).toLocaleDateString() : 'Unknown date'} • {article.publisher || 'Unknown source'}
+                {/* Use a static string instead of creating a Date object */}
+                {article.published_timestamp ? "Recent" : "Unknown date"} • {article.publisher || 'Unknown source'}
               </div>
               {article.summary && (
                 <div className="text-sm mt-2 line-clamp-2">{article.summary}</div>
@@ -175,13 +113,13 @@ export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysi
       
       <div className="border-t border-zinc-700 pt-3 mt-3">
         <h4 className="font-semibold mb-2">Summary</h4>
-        <div className="text-sm">Average Sentiment: {typeof data.news_sentiment?.average_score === 'number' ? data.news_sentiment.average_score.toFixed(2) : 'N/A'}</div>
+        <div className="text-sm">Average Sentiment: {averageScore}</div>
         <div className="text-sm">Based on {articles.length} recent articles</div>
       </div>
       
-      {/* Last update timestamp */}
+      {/* Static timestamp */}
       <div className="text-xs text-zinc-500 mt-4 text-right">
-        Last updated: {new Date().toLocaleString()}
+        Last updated: {timestamp}
       </div>
     </div>
   );

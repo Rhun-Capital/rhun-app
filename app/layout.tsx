@@ -26,10 +26,11 @@ export default function RootLayout({
         <ModalProvider>
           <PrivyWrapper>
             <ChatProvider>
-              <div className="flex h-full bg-zinc-900">
-                <Sidebar>
+              <div className="flex flex-row h-full w-full bg-zinc-900 overflow-hidden">
+                <Sidebar />
+                <div className="flex-1 overflow-hidden h-full">
                   {children}
-                </Sidebar>
+                </div>
               </div>
               <Toaster />
             </ChatProvider>

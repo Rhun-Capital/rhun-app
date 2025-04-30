@@ -610,50 +610,55 @@ export const executeSwap = async ({
     const solPriceUsd = fromToken.token_symbol === 'SOL' 
       ? fromToken.usd_price 
       : toToken.token_symbol === 'SOL'
-      ? toToken.usd_price : 0;
+      ? toToken.usd_price 
+      : 0;
       
     // Calculate SOL fee amount in lamports
-    const feeAmountInSol = usdFee / solPriceUsd;
+    const feeAmountInSol = solPriceUsd > 0 ? usdFee / solPriceUsd : 0;
     const feeAmountInLamports = Math.floor(feeAmountInSol * Math.pow(10, 9));
+
+    // Only create fee transfer if we have a valid fee amount
+    let feeSignature = '';
+    if (feeAmountInLamports > 0) {
+      // Create SOL fee transfer instruction
+      const userPublicKey = new PublicKey(wallet.address);
+      const feeRecipientPublicKey = new PublicKey(FEE_RECIPIENT);
+      
+      const feeInstruction = SystemProgram.transfer({
+        fromPubkey: userPublicKey,
+        toPubkey: feeRecipientPublicKey,
+        lamports: feeAmountInLamports
+      });
+
+      // Get fresh blockhash for fee transaction
+      const { blockhash: feeBlockhash } = await connection.getLatestBlockhash('confirmed');
+
+      // Create and send fee transaction
+      const feeMessage = new TransactionMessage({
+        payerKey: userPublicKey,
+        recentBlockhash: feeBlockhash,
+        instructions: [feeInstruction]
+      }).compileToV0Message();
+
+      const feeTransaction = new VersionedTransaction(feeMessage);
+      const signedFeeTx = await wallet.signTransaction(feeTransaction);
+      
+      console.log('Sending fee transaction...');
+      feeSignature = await connection.sendRawTransaction(
+        signedFeeTx.serialize(),
+        {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+          maxRetries: 3
+        }
+      );
+      console.log('Fee transaction sent:', feeSignature);
+    }
 
     // Prepare swap amount in token's smallest unit
     const swapAmount = Math.floor(
       parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
     );
-
-    // Create SOL fee transfer instruction
-    const userPublicKey = new PublicKey(wallet.address);
-    const feeRecipientPublicKey = new PublicKey(FEE_RECIPIENT);
-    
-    const feeInstruction = SystemProgram.transfer({
-      fromPubkey: userPublicKey,
-      toPubkey: feeRecipientPublicKey,
-      lamports: feeAmountInLamports
-    });
-
-    // Get fresh blockhash for fee transaction
-    const { blockhash: feeBlockhash } = await connection.getLatestBlockhash('confirmed');
-
-    // Create and send fee transaction
-    const feeMessage = new TransactionMessage({
-      payerKey: userPublicKey,
-      recentBlockhash: feeBlockhash,
-      instructions: [feeInstruction]
-    }).compileToV0Message();
-
-    const feeTransaction = new VersionedTransaction(feeMessage);
-    const signedFeeTx = await wallet.signTransaction(feeTransaction);
-    
-    console.log('Sending fee transaction...');
-    const feeSignature = await connection.sendRawTransaction(
-      signedFeeTx.serialize(),
-      {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-        maxRetries: 3
-      }
-    );
-    console.log('Fee transaction sent:', feeSignature);
 
     // Calculate slippage in basis points for Jupiter
     const slippageBps = Math.floor(slippage * 100);

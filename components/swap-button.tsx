@@ -5,9 +5,23 @@ import { usePrivy, useSolanaWallets, getAccessToken } from '@privy-io/react-auth
 import { ProxyConnection, executeSwap, getQuote } from '../utils/solana';
 import { RefreshCw } from 'lucide-react';
 import { useParams, usePathname } from 'next/navigation';
+import { createPortal } from 'react-dom';
 
 import Image from 'next/image';
 import LoadingIndicator from './loading-indicator';
+
+// Modal portal component to ensure modal is rendered at the document root
+const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  return mounted ? createPortal(children, document.body) : null;
+};
+
 const TOKENS_PER_PAGE =   10;
 const JUPITER_TOKEN_LIST_URL = `https://tokens.jup.ag/tokens?tags=community`;  // Using strict list for better performance
 
@@ -568,149 +582,151 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-zinc-900 rounded-lg p-6 w-full mb-30 max-w-md mx-4 relative shadow-xl">
-        {/* Main Swap UI */}
-        {!selecting ? (
-          <>
-            <button
-              onClick={() => {
-                onClose();
-                resetForm();
-                onSwapComplete();
-              }}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+    <ModalPortal>
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]">
+        <div className="bg-zinc-900 rounded-lg p-6 w-full mb-30 max-w-md mx-4 relative shadow-xl">
+          {/* Main Swap UI */}
+          {!selecting ? (
+            <>
+              <button
+                onClick={() => {
+                  onClose();
+                  resetForm();
+                  onSwapComplete();
+                }}
+                className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
 
-            {success || pendingSignature ? renderSuccessState() :
+              {success || pendingSignature ? renderSuccessState() :
 
-                <div>
-                <h2 className="text-xl font-bold mb-6 text-white">Swap Tokens</h2>
+                  <div>
+                  <h2 className="text-xl font-bold mb-6 text-white">Swap Tokens</h2>
 
-                <div className="space-y-4">
-                {/* From Token Selection */}
-                <div className="space-y-2">
-                    <label className="text-sm text-zinc-400">From</label>
-                    <button
-                    onClick={() => setSelecting('from')}
-                    className="w-full bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors flex items-center justify-between"
-                    >
-                    {fromToken ? (
-                        <div className="flex items-center gap-2">
-                        <Image src={fromToken.token_icon} alt={fromToken.token_name} width={24} height={24} className="rounded-full"/>
-                        <span className="text-white">{fromToken.token_name}</span>
-                        <span className="text-zinc-400 text-sm">
-                            Balance: {fromToken.formatted_amount} {fromToken.token_symbol}
-                        </span>
-                        </div>
-                    ) : (
-                        <span className="text-zinc-400">Select token</span>
-                    )}
-                    <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    </button>
+                  <div className="space-y-4">
+                  {/* From Token Selection */}
+                  <div className="space-y-2">
+                      <label className="text-sm text-zinc-400">From</label>
+                      <button
+                      onClick={() => setSelecting('from')}
+                      className="w-full bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors flex items-center justify-between"
+                      >
+                      {fromToken ? (
+                          <div className="flex items-center gap-2">
+                          <Image src={fromToken.token_icon} alt={fromToken.token_name} width={24} height={24} className="rounded-full"/>
+                          <span className="text-white">{fromToken.token_name}</span>
+                          <span className="text-zinc-400 text-sm">
+                              Balance: {fromToken.formatted_amount} {fromToken.token_symbol}
+                          </span>
+                          </div>
+                      ) : (
+                          <span className="text-zinc-400">Select token</span>
+                      )}
+                      <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      </button>
 
-                    {/* Amount Input */}
-                    <div className="relative">
-                    <input
-                        type="number"
-                        placeholder="Enter amount"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white"
-                    />
-                    <button
-                        onClick={() => fromToken && setAmount(fromToken.formatted_amount.toString())}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                    >
-                        MAX
-                    </button>
-                    </div>
-                </div>
+                      {/* Amount Input */}
+                      <div className="relative">
+                      <input
+                          type="number"
+                          placeholder="Enter amount"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-white"
+                      />
+                      <button
+                          onClick={() => fromToken && setAmount(fromToken.formatted_amount.toString())}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                          MAX
+                      </button>
+                      </div>
+                  </div>
 
-                {/* Settings Button */}
-                <div className="flex justify-end">
-                    <button
-                    onClick={() => setShowSlippageSettings(!showSlippageSettings)}
-                    className="text-zinc-400 hover:text-zinc-200 flex items-center gap-1"
-                    >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span className="text-sm">{slippage}% slippage</span>
-                    </button>
-                </div>
+                  {/* Settings Button */}
+                  <div className="flex justify-end">
+                      <button
+                      onClick={() => setShowSlippageSettings(!showSlippageSettings)}
+                      className="text-zinc-400 hover:text-zinc-200 flex items-center gap-1"
+                      >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="text-sm">{slippage}% slippage</span>
+                      </button>
+                  </div>
 
-                {/* Slippage Settings */}
-                {showSlippageSettings && renderSlippageSettings()}              
+                  {/* Slippage Settings */}
+                  {showSlippageSettings && renderSlippageSettings()}              
 
-                {/* Swap Direction Arrow */}
-                <div className="flex justify-center">
-                    <button 
-                    onClick={() => {
-                        const temp = fromToken;
-                        setFromToken(toToken);
-                        setToToken(temp);
-                    }}
-                    className="bg-zinc-800 p-2 rounded-full hover:bg-zinc-700 transition-colors"
-                    >
-                    <svg className="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
-                    </button>
-                </div>
+                  {/* Swap Direction Arrow */}
+                  <div className="flex justify-center">
+                      <button 
+                      onClick={() => {
+                          const temp = fromToken;
+                          setFromToken(toToken);
+                          setToToken(temp);
+                      }}
+                      className="bg-zinc-800 p-2 rounded-full hover:bg-zinc-700 transition-colors"
+                      >
+                      <svg className="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                      </button>
+                  </div>
 
-                {/* To Token Selection */}
-                <div className="space-y-2">
-                    <label className="text-sm text-zinc-400">To</label>
-                    <button
-                    onClick={() => setSelecting('to')}
-                    className="w-full bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors flex items-center justify-between"
-                    >
-                    {toToken ? (
-                        <div className="flex items-center gap-2">
-                        <Image src={toToken.token_icon} alt={toToken.token_name} width={24} height={24} className="rounded-full"/>
-                        <span className="text-white">{toToken.token_name}</span>
-                        </div>
-                    ) : (
-                        <span className="text-zinc-400">Select token</span>
-                    )}
-                    <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                    </button>
-                </div>
+                  {/* To Token Selection */}
+                  <div className="space-y-2">
+                      <label className="text-sm text-zinc-400">To</label>
+                      <button
+                      onClick={() => setSelecting('to')}
+                      className="w-full bg-zinc-800 p-3 rounded-lg hover:bg-zinc-700 transition-colors flex items-center justify-between"
+                      >
+                      {toToken ? (
+                          <div className="flex items-center gap-2">
+                          <Image src={toToken.token_icon} alt={toToken.token_name} width={24} height={24} className="rounded-full"/>
+                          <span className="text-white">{toToken.token_name}</span>
+                          </div>
+                      ) : (
+                          <span className="text-zinc-400">Select token</span>
+                      )}
+                      <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      </button>
+                  </div>
 
-                {/* Swap Button */}
-                <button
-                    onClick={() => {
-                        handleSwap();
-                    }}
-                    disabled={loading || !fromToken || !toToken || !amount}
-                    className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    {loading ? 'Swapping...' : 'Swap'}
-                </button>
-                </div></div>}
-          </>
-        ) : renderTokenList()}
+                  {/* Swap Button */}
+                  <button
+                      onClick={() => {
+                          handleSwap();
+                      }}
+                      disabled={loading || !fromToken || !toToken || !amount}
+                      className="w-full bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                      {loading ? 'Swapping...' : 'Swap'}
+                  </button>
+                  </div></div>}
+            </>
+          ) : renderTokenList()}
 
-        {/* Error and Success Messages */}
-        {error && (
-          <div className="mt-4 bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40 max-w-full overflow-auto">
-            {error}
-          </div>
-        )}
+          {/* Error and Success Messages */}
+          {error && (
+            <div className="mt-4 bg-red-500/20 text-red-200 p-4 rounded-md border border-red-500/40 max-w-full overflow-auto">
+              {error}
+            </div>
+          )}
 
-        
+          
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };
 
