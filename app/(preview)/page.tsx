@@ -806,42 +806,42 @@ export default function Home() {
           }
           
           .tool-wrapper {
-            max-width: 100% !important;
-            overflow-x: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            max-width: 100%;
+            overflow-x: auto;
+            margin: 0;
+            padding: 0;
             display: block;
             -webkit-overflow-scrolling: touch;
           }
           
           .tool-wrapper table {
-            width: 100% !important;
-            max-width: 100% !important;
-            table-layout: fixed !important;
-            font-size: 0.75rem !important;
+            width: 100%;
+            max-width: 100%;
+            table-layout: fixed;
+            font-size: 0.75rem;
           }
           
           .tool-wrapper td, 
           .tool-wrapper th {
-            padding: 4px !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-            white-space: nowrap !important;
-            max-width: 40px !important;
+            padding: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 40px;
           }
           
           .tool-wrapper pre, 
           .tool-wrapper code {
-            max-width: 100% !important;
-            overflow-x: auto !important;
-            white-space: pre-wrap !important;
-            font-size: 0.75rem !important;
+            max-width: 100%;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-size: 0.75rem;
           }
           
           .message-content {
-            max-width: 100% !important;
-            overflow-wrap: break-word !important;
-            padding-right: 0 !important;
+            max-width: 100%;
+            overflow-wrap: break-word;
+            padding-right: 0;
           }
           
           .tool-wrapper div[class*="market"], 
@@ -849,63 +849,19 @@ export default function Home() {
           .tool-wrapper div[class*="chart"],
           .tool-wrapper div[class*="holder"],
           .tool-wrapper div[class*="transaction"] {
-            max-width: 100% !important;
-            overflow-x: auto !important;
+            max-width: 100%;
+            overflow-x: auto;
           }
           
-          /* Make long text wrap properly and ensure text colors */
-          .tool-wrapper p,
-          .tool-wrapper div,
-          .tool-wrapper span,
-          .tool-wrapper h1,
-          .tool-wrapper h2,
-          .tool-wrapper h3,
-          .tool-wrapper h4,
-          .tool-wrapper h5,
-          .tool-wrapper h6 {
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
+          /* Fix text colors without breaking Tailwind */
+          .tool-wrapper *:not([class*="text-"]) {
+            color: #fff;
           }
 
-          /* Explicit color overrides for mobile */
+          /* Ensure text wrapping */
           .tool-wrapper {
-            color: #fff !important;
-          }
-
-          .tool-wrapper h1,
-          .tool-wrapper h2,
-          .tool-wrapper h3,
-          .tool-wrapper h4,
-          .tool-wrapper h5,
-          .tool-wrapper h6 {
-            color: #fff !important;
-          }
-
-          .tool-wrapper p,
-          .tool-wrapper div:not([class*="text-"]),
-          .tool-wrapper span:not([class*="text-"]) {
-            color: #fff !important;
-          }
-
-          /* Preserve specific text color classes */
-          .tool-wrapper .text-zinc-400 {
-            color: rgb(161 161 170) !important;
-          }
-          
-          .tool-wrapper .text-zinc-500 {
-            color: rgb(113 113 122) !important;
-          }
-
-          .tool-wrapper .text-green-500 {
-            color: rgb(34 197 94) !important;
-          }
-
-          .tool-wrapper .text-red-500 {
-            color: rgb(239 68 68) !important;
-          }
-
-          .tool-wrapper .text-indigo-400 {
-            color: rgb(129 140 248) !important;
+            word-break: break-word;
+            overflow-wrap: break-word;
           }
         }
         
