@@ -86,10 +86,10 @@ export const Sidebar = () => {
       {/* Mobile menu button - positioned outside the sidebar */}
       <button
         onClick={toggleSidebar}
-        className="lg:hidden fixed top-4 left-4 z-[100] p-2 rounded-md bg-zinc-800 hover:bg-zinc-700 transition-colors"
+        className="lg:hidden fixed top-4 left-4 z-[100] p-2 rounded-md bg-zinc-800 hover:bg-zinc-700 transition-colors text-white"
         aria-label="Toggle menu"
       >
-        {isOpen ? <CloseIcon /> : <MenuIcon/>}
+        {isOpen ? <CloseIcon /> : <MenuIcon />}
       </button>
 
       {/* Overlay */}
