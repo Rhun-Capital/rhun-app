@@ -72,22 +72,22 @@ export const RecentChatsPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6 h-full flex flex-col">
       <h1 className="text-2xl font-bold text-white mb-8">Recent Chats</h1>
       
       {/* Search bar */}
       <div className="mb-8">
-      <input
-            type="text"
-            placeholder="Search chats..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-5 pr-4 py-2 bg-zinc-800 text-white rounded-lg border border-zinc-700 focus:outline-none focus:border-indigo-500"
-          />
+        <input
+          type="text"
+          placeholder="Search chats..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-5 pr-4 py-2 bg-zinc-800 text-white rounded-lg border border-zinc-700 focus:outline-none focus:border-indigo-500"
+        />
       </div>
 
       {/* Chats list */}
-      <div className="space-y-2">
+      <div className="space-y-2 overflow-y-auto flex-1">
         {filteredChats.map((chat) => (
           <button
             key={chat.chatId}
