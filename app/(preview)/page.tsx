@@ -1861,7 +1861,7 @@ function HomeContent() {
     <div className="h-full w-full bg-zinc-900 flex flex-col overflow-hidden ios-fix">
       {/* Chat header - fixed height */}
       <div className="flex-none h-[61px] bg-zinc-900 border-b border-zinc-700 flex items-center px-4 justify-between z-10">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pl-12 sm:pl-0">
           <div>
             <img 
               src="https://d1olseq3j3ep4p.cloudfront.net/agents/cc425065-b039-48b0-be14-f8afa0704357/profile-1738538619696.jpg" 
