@@ -853,16 +853,60 @@ export default function Home() {
             overflow-x: auto !important;
           }
           
-          /* Make long text wrap properly */
+          /* Make long text wrap properly and ensure text colors */
           .tool-wrapper p,
           .tool-wrapper div,
-          .tool-wrapper span {
+          .tool-wrapper span,
+          .tool-wrapper h1,
+          .tool-wrapper h2,
+          .tool-wrapper h3,
+          .tool-wrapper h4,
+          .tool-wrapper h5,
+          .tool-wrapper h6 {
             word-break: break-word !important;
             overflow-wrap: break-word !important;
-            color: inherit;
+          }
+
+          /* Explicit color overrides for mobile */
+          .tool-wrapper {
+            color: #fff !important;
+          }
+
+          .tool-wrapper h1,
+          .tool-wrapper h2,
+          .tool-wrapper h3,
+          .tool-wrapper h4,
+          .tool-wrapper h5,
+          .tool-wrapper h6 {
+            color: #fff !important;
+          }
+
+          .tool-wrapper p,
+          .tool-wrapper div:not([class*="text-"]),
+          .tool-wrapper span:not([class*="text-"]) {
+            color: #fff !important;
+          }
+
+          /* Preserve specific text color classes */
+          .tool-wrapper .text-zinc-400 {
+            color: rgb(161 161 170) !important;
           }
           
+          .tool-wrapper .text-zinc-500 {
+            color: rgb(113 113 122) !important;
+          }
 
+          .tool-wrapper .text-green-500 {
+            color: rgb(34 197 94) !important;
+          }
+
+          .tool-wrapper .text-red-500 {
+            color: rgb(239 68 68) !important;
+          }
+
+          .tool-wrapper .text-indigo-400 {
+            color: rgb(129 140 248) !important;
+          }
         }
         
         /* Desktop remains untouched */
