@@ -859,12 +859,6 @@ export default function Home() {
           .tool-wrapper span {
             word-break: break-word !important;
             overflow-wrap: break-word !important;
-          }
-          
-          /* Only apply white color to chat messages */
-          .chat-scrollable .message-content p,
-          .chat-scrollable .message-content div,
-          .chat-scrollable .message-content span {
             color: #fff;
           }
           
