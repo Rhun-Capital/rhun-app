@@ -859,7 +859,7 @@ export default function Home() {
           .tool-wrapper span {
             word-break: break-word !important;
             overflow-wrap: break-word !important;
-            color: #fff;
+            color: inherit;
           }
           
 
