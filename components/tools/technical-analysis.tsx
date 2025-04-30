@@ -1084,7 +1084,7 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
 
       {/* Market Sentiment */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg font-semibold mb-4 text-white">
           Market Sentiment
         </h3>
         <div className="bg-zinc-900 p-4 rounded-lg">
