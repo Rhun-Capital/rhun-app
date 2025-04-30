@@ -861,16 +861,7 @@ export default function Home() {
             overflow-wrap: break-word !important;
           }
           
-          /* Smaller font for better fitting */
-          .tool-wrapper h3, 
-          .tool-wrapper h4 {
-            font-size: 0.95rem !important;
-          }
-          
-          .tool-wrapper p, 
-          .tool-wrapper div {
-            font-size: 0.85rem !important;
-          }
+
         }
         
         /* Desktop remains untouched */
