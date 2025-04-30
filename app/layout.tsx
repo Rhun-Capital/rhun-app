@@ -26,9 +26,9 @@ export default function RootLayout({
         <ModalProvider>
           <PrivyWrapper>
             <ChatProvider>
-              <div className="flex flex-row h-full w-full bg-zinc-900 overflow-hidden">
+              <div className="flex flex-row h-full w-full bg-zinc-900 overflow-hidden relative">
                 <Sidebar />
-                <div className="flex-1 overflow-hidden h-full">
+                <div className="flex-1 overflow-hidden h-full w-full">
                   {children}
                 </div>
               </div>

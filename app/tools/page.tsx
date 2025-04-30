@@ -384,7 +384,7 @@ export default function HomePage() {
       <div className="sm:p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Hero Section */}
-          <div className="text-center py-8 sm:py-16 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black backdrop-blur-md text-white rounded-lg p-4 relative overflow-hidden border border-white/10">
+          <div className="text-center py-8 sm:py-16 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black backdrop-blur-md text-white rounded-lg p-4 relative overflow-hidden border border-white/10 m-2">
             {/* Stars background */}
             <div className="absolute inset-0 overflow-hidden">
               <div className="stars-small"></div>
@@ -429,7 +429,7 @@ export default function HomePage() {
           {/* Featured Cards - Side by Side */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Create Agent Card */}
-            <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
+            <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 m-2">
               <div 
                 className="group cursor-pointer h-full"
                 onClick={() => {
@@ -484,7 +484,7 @@ export default function HomePage() {
             </HolographicCard>
 
             {/* Buy RHUN Card */}
-            <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
+            <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 m-2">
               <Link href="https://jup.ag/swap/SOL-Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump" target="_blank">
                 <div className="group cursor-pointer h-full">
                   <div className="relative h-[300px] sm:h-[400px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
@@ -536,7 +536,7 @@ export default function HomePage() {
           </div>
 
           {/* Meteora Staking Card - Full Width */}
-          <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300">
+          <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 m-2">
             <Link href="https://www.meteora.ag/dlmm/2jxVjkPignEbR5pbGNtiRyCc6fAKZTKuFTf1MQED9pt5" target="_blank">
               <div className="group cursor-pointer w-full">
                 <div className="relative h-[300px] sm:h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
@@ -605,10 +605,10 @@ export default function HomePage() {
 
           {/* Tools Section */}
           <div className="space-y-8">
-            <h2 className="text-2xl font-bold text-white">Agent Tools</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <h2 className="text-2xl font-bold text-white pl-8">Agent Tools</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2">
               {tools.map((tool) => (
-                <HolographicCard key={tool.title}>
+                <HolographicCard key={tool.title} className="m-2">
                   <div 
                     className="group cursor-pointer h-full"
                     onClick={(e) => handleToolClick(e, tool)}
