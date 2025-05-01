@@ -113,7 +113,7 @@ export default function SettingsPage() {
 
   return (
     <div className="h-screen bg-zinc-900 text-gray-100 overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 w-full">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 w-full pb-20 sm:pb-6">
         {/* {showSubscriptionBanner && (
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg mb-6">
             <div className="flex items-center gap-2">

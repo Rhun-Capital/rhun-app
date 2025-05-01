@@ -147,7 +147,7 @@ export default function AgentsPage() {
 
   return (
     <div className="h-screen bg-zinc-900 text-white p-4 sm:p-6 overflow-y-auto w-full">
-      <div className="max-w-6xl mx-auto w-full">
+      <div className="max-w-6xl mx-auto w-full pb-20 sm:pb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left w-full sm:w-auto">My Agents</h1>
           {user && <CreateAgentButton />}
