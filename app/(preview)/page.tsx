@@ -885,6 +885,7 @@ export default function Home() {
 function HomeContent() {
   // Move refreshKey to a ref to prevent re-renders
   const refreshKeyRef = useRef(0);
+  const isFirstRender = useRef(true);
 
   // Update the refresh function to use the ref
   const refreshTradingView = useCallback(() => {
@@ -2201,240 +2202,225 @@ function HomeContent() {
           )}
           
           {/* Sidebar */}
-          <AnimatePresence>
-            {sidebarOpen && (
-              <motion.div 
-                initial={{ 
-                  y: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 0,
-                  opacity: 0
-                }}
-                animate={{ 
-                  y: 0,
-                  opacity: 1
-                }}
-                exit={{ 
-                  y: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : 0,
-                  opacity: 0
-                }}
-                transition={{ 
-                  type: 'tween',
-                  duration: 0.2,
-                  ease: 'easeOut'
-                }}
-                className={`bg-zinc-900 overflow-hidden transition-all duration-300 
-                  ${sidebarOpen 
-                    ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-auto z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
-                    : 'w-0 md:border-l-0'}`}
-                style={{ 
-                  bottom: 0,
-                  paddingBottom: "calc(env(safe-area-inset-bottom, 0px))",
-                  borderTopRightRadius: '16px'
-                }}
+          <div 
+            className={`bg-zinc-900 overflow-hidden transition-transform duration-300 ease-linear
+              ${sidebarOpen 
+                ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-auto z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none transform translate-x-0 translate-y-0' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
+                : 'w-0 md:border-l-0 transform md:translate-x-full translate-y-full'}`}
+            style={{ 
+              bottom: 0,
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px))",
+              borderTopLeftRadius: '16px',
+              borderTopRightRadius: '16px',
+              transform: sidebarOpen 
+                ? 'translate(0, 0)' 
+                : typeof window !== 'undefined' && window.innerWidth >= 768 
+                  ? 'translateX(100%)' 
+                  : 'translateY(100%)'
+            }}
+          >
+            <div className="h-[calc(100vh-140px)] flex flex-col flex-1 overflow-hidden bg-zinc-900">
+              {/* Close button - only on mobile */}
+              <div className="flex justify-between items-center p-4 border-b border-zinc-700 md:hidden bg-zinc-900">
+                <h3 className="text-lg font-medium text-white">
+                  {activeTab === 'wallet' 
+                    ? 'Wallet' 
+                    : (activeTab === 'tools' 
+                      ? 'Tools' 
+                      : 'Artifacts')}
+                </h3>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSidebarOpen(false);
+                  }} 
+                  className="text-zinc-400 hover:text-white"
+                >
+                  <XIcon size={20} />
+                </button>
+              </div>
+              
+              {/* Tabs navigation - only on mobile */}
+              <div className="flex border-b border-zinc-700 md:hidden px-2 bg-zinc-900">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('wallet');
+                  }}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                    activeTab === 'wallet' 
+                      ? 'text-white border-b-2 border-indigo-500' 
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <WalletIcon size={16} />
+                    <span>Wallet</span>
+                  </div>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('tools');
+                  }}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                    activeTab === 'tools' 
+                      ? 'text-white border-b-2 border-indigo-500' 
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <LayoutGrid size={16} />
+                    <span>Tools</span>
+                  </div>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveTab('artifacts');
+                  }}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                    activeTab === 'artifacts' 
+                      ? 'text-white border-b-2 border-indigo-500' 
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                    <span>Artifacts</span>
+                    <span className="bg-zinc-700 text-zinc-300 rounded-full px-1.5 py-0.5 text-xs">{artifacts.length}</span>
+                  </div>
+                </button>
+              </div>
+
+              <div 
+                className="flex-1 overflow-y-auto p-4 bg-zinc-900" 
+                onClick={(e) => e.stopPropagation()}
               >
-                <div className="h-[calc(100vh-140px)] flex flex-col flex-1 overflow-hidden bg-zinc-900">
-                  {/* Close button - only on mobile */}
-                  <div className="flex justify-between items-center p-4 border-b border-zinc-700 md:hidden bg-zinc-900">
-                    <h3 className="text-lg font-medium text-white">
-                      {activeTab === 'wallet' 
-                        ? 'Wallet' 
-                        : (activeTab === 'tools' 
-                          ? 'Tools' 
-                          : 'Artifacts')}
-                    </h3>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSidebarOpen(false);
-                      }} 
-                      className="text-zinc-400 hover:text-white"
-                    >
-                      <XIcon size={20} />
-                    </button>
-                  </div>
-                  
-                  {/* Tabs navigation - only on mobile */}
-                  <div className="flex border-b border-zinc-700 md:hidden px-2 bg-zinc-900">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTab('wallet');
-                      }}
-                      className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
-                        activeTab === 'wallet' 
-                          ? 'text-white border-b-2 border-indigo-500' 
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-center gap-1.5">
-                        <WalletIcon size={16} />
-                        <span>Wallet</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTab('tools');
-                      }}
-                      className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
-                        activeTab === 'tools' 
-                          ? 'text-white border-b-2 border-indigo-500' 
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-center gap-1.5">
-                        <LayoutGrid size={16} />
-                        <span>Tools</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTab('artifacts');
-                      }}
-                      className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
-                        activeTab === 'artifacts' 
-                          ? 'text-white border-b-2 border-indigo-500' 
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center justify-center gap-1.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                        </svg>
-                        <span>Artifacts</span>
-                        <span className="bg-zinc-700 text-zinc-300 rounded-full px-1.5 py-0.5 text-xs">{artifacts.length}</span>
-                      </div>
-                    </button>
-                  </div>
+                {activeTab === 'wallet' ? (
+                  <WalletContent 
+                    templateWallet={templateWallet}
+                    user={user}
+                    authenticated={authenticated}
+                    login={login}
+                    wallets={wallets}
+                  />
+                ) : activeTab === 'tools' ? (
+                  <ChatSidebar 
+                    agent={agent}
+                    isOpen={true}
+                    onToggle={() => setSidebarOpen(!sidebarOpen)}
+                    onToolSelect={(tool) => {
 
-                  <div 
-                    className="flex-1 overflow-y-auto p-4 bg-zinc-900" 
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {activeTab === 'wallet' ? (
-                      <WalletContent 
-                        templateWallet={templateWallet}
-                        user={user}
-                        authenticated={authenticated}
-                        login={login}
-                        wallets={wallets}
-                      />
-                    ) : activeTab === 'tools' ? (
-                      <ChatSidebar 
-                        agent={agent}
-                        isOpen={true}
-                        onToggle={() => setSidebarOpen(!sidebarOpen)}
-                        onToolSelect={(tool) => {
-
-                          // Prevent multiple selections
-                          if (isLoading) {
-                            return;
-                          }
-                          
-                          // Special handling for TradingView
-                          if (tool.toLowerCase().includes('tradingview') || 
-                              tool.toLowerCase().includes('chart')) {
-                            
-                            
-                            // Small delay before proceeding with the tool selection
-                            setTimeout(() => {
-                              handleToolSelect(tool);
-                            }, 200);
-                          } else {
-                            // For other tools, proceed normally
-                            handleToolSelect(tool);
-                          }
-                        }}
-                        refreshAgent={refreshAgent}
-                      />
+                      // Prevent multiple selections
+                      if (isLoading) {
+                        return;
+                      }
+                      
+                      // Special handling for TradingView
+                      if (tool.toLowerCase().includes('tradingview') || 
+                          tool.toLowerCase().includes('chart')) {
+                        
+                        
+                        // Small delay before proceeding with the tool selection
+                        setTimeout(() => {
+                          handleToolSelect(tool);
+                        }, 200);
+                      } else {
+                        // For other tools, proceed normally
+                        handleToolSelect(tool);
+                      }
+                    }}
+                    refreshAgent={refreshAgent}
+                  />
+                ) : (
+                  <div className="flex-1 overflow-y-auto">
+                    {/* <h3 className="text-xl font-medium text-white mb-4 hidden md:block">Artifacts</h3> */}
+                    {selectedArtifact ? (
+                      <div className="bg-zinc-800 rounded-lg p-4 mb-4 border border-zinc-700">
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 rounded-full bg-indigo-500/20">
+                              {renderToolIcon(selectedArtifact.toolName)}
+                            </div>
+                            <h3 className="text-lg font-medium text-white">
+                              {getToolDisplayName(selectedArtifact.toolName)}
+                            </h3>
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedArtifact(null);
+                            }}
+                            className="text-zinc-400 hover:text-white"
+                          >
+                            <XIcon size={20} />
+                          </button>
+                        </div>
+             
+                        <div className="tool-wrapper max-w-full overflow-x-auto" key={`artifact-${selectedArtifact.id}-${refreshKey}`}>
+                          {renderToolInvocation(selectedArtifact.tool)}
+                        </div>
+                      </div>
                     ) : (
-                      <div className="flex-1 overflow-y-auto">
-                        {/* <h3 className="text-xl font-medium text-white mb-4 hidden md:block">Artifacts</h3> */}
-                        {selectedArtifact ? (
-                          <div className="bg-zinc-800 rounded-lg p-4 mb-4 border border-zinc-700">
-                            <div className="flex justify-between items-center mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 rounded-full bg-indigo-500/20">
-                                  {renderToolIcon(selectedArtifact.toolName)}
-                                </div>
-                                <h3 className="text-lg font-medium text-white">
-                                  {getToolDisplayName(selectedArtifact.toolName)}
-                                </h3>
-                              </div>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedArtifact(null);
-                                }}
-                                className="text-zinc-400 hover:text-white"
-                              >
-                                <XIcon size={20} />
-                              </button>
-                            </div>
-                 
-                            <div className="tool-wrapper max-w-full overflow-x-auto" key={`artifact-${selectedArtifact.id}-${refreshKey}`}>
-                              {renderToolInvocation(selectedArtifact.tool)}
-                            </div>
+                      artifacts.length === 0 ? (
+                        <div className="p-8 text-center">
+                          <div className="flex items-center justify-center mb-4 text-indigo-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                          </svg>   
                           </div>
-                        ) : (
-                          artifacts.length === 0 ? (
-                            <div className="p-8 text-center">
-                              <div className="flex items-center justify-center mb-4 text-indigo-500">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                              </svg>   
-                              </div>
-                            <h2 className="text-xl font-semibold text-white mb-2">You don&apos;t have any artifacts yet</h2>
-                            <p className="text-zinc-400 mb-6">
-                              Use the tools to start your research and create artifacts.
-                            </p>
-                            <button
-                              onClick={() => setActiveTab('tools')}
-                              className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
-                            >
-                              View Available Tools
-                            </button>                            
+                        <h2 className="text-xl font-semibold text-white mb-2">You don&apos;t have any artifacts yet</h2>
+                        <p className="text-zinc-400 mb-6">
+                          Use the tools to start your research and create artifacts.
+                        </p>
+                        <button
+                          onClick={() => setActiveTab('tools')}
+                          className="w-full sm:w-auto px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-400/20 transition-colors text-sm sm:text-base"
+                        >
+                          View Available Tools
+                        </button>                            
         
-                          </div>
-                          ) : (
-                            <div className="space-y-3">
-                              {artifacts.map((artifact) => (
-                                <button
-                                  key={artifact.id}
-                                  className="w-full text-left p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 transition-colors cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedArtifact(artifact);
-                                    // On mobile, don't close the sidebar automatically
-                                    // Let the user see the artifact details inside the sidebar first
-                                  }}
-                                >
-                                  <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                      <div className="p-1.5 rounded-full bg-indigo-500/20">
-                                        {renderToolIcon(artifact.toolName, 14)}
-                                      </div>
-                                      <span className="font-medium text-white">{getToolDisplayName(artifact.toolName)}</span>
-                                    </div>
-                                    <span className="text-xs text-zinc-400">
-                                      {new Date(artifact.timestamp).toLocaleTimeString()}
-                                    </span>
-                                  </div>
-                                  <div className="mt-1 text-xs text-zinc-400 break-words overflow-wrap-anywhere line-clamp-2 md:truncate">
-                                    {generateToolDescription(artifact.toolName, artifact.args)}
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )
-                        )}
                       </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {artifacts.map((artifact) => (
+                            <button
+                              key={artifact.id}
+                              className="w-full text-left p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg border border-zinc-700 transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedArtifact(artifact);
+                                // On mobile, don't close the sidebar automatically
+                                // Let the user see the artifact details inside the sidebar first
+                              }}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                  <div className="p-1.5 rounded-full bg-indigo-500/20">
+                                    {renderToolIcon(artifact.toolName, 14)}
+                                  </div>
+                                  <span className="font-medium text-white">{getToolDisplayName(artifact.toolName)}</span>
+                                </div>
+                                <span className="text-xs text-zinc-400">
+                                  {new Date(artifact.timestamp).toLocaleTimeString()}
+                                </span>
+                              </div>
+                              <div className="mt-1 text-xs text-zinc-400 break-words overflow-wrap-anywhere line-clamp-2 md:truncate">
+                                {generateToolDescription(artifact.toolName, artifact.args)}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )
                     )}
                   </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
