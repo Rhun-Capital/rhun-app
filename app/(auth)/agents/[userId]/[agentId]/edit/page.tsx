@@ -69,7 +69,7 @@ export default function EditAgentPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-x-hidden">
+      <div className="h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           <LoadingIndicator />
         </div>
@@ -79,7 +79,7 @@ export default function EditAgentPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-x-hidden">
+      <div className="h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg">
             Error: {error}
@@ -90,8 +90,11 @@ export default function EditAgentPage() {
   }
 
   return (
-    <div className="overflow-x-hidden w-full">
-      <AgentForm initialData={agent} />
+    <div className="h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-y-auto">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center sm:text-left">Edit Agent</h1>
+        <AgentForm initialData={agent} />
+      </div>
     </div>
   );
 }

@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-x-hidden">
+      <div className="h-screen bg-zinc-900 text-gray-100 p-4 sm:p-6 overflow-y-auto">
         <div className="max-w-4xl mx-auto w-full">
           <div className="p-4 sm:p-6 bg-red-900/50 border border-red-500 rounded-lg flex items-center gap-2 text-sm sm:text-base">
             <AlertCircleIcon />
@@ -112,7 +112,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-900 text-gray-100 overflow-x-hidden">
+    <div className="h-screen bg-zinc-900 text-gray-100 overflow-y-auto">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 w-full">
         {/* {showSubscriptionBanner && (
           <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg mb-6">
@@ -123,7 +123,7 @@ export default function SettingsPage() {
           </div>
         )} */}
 
-        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Account</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center sm:text-left">Account</h1>
 
         <div className="space-y-6 sm:space-y-8">
           {/* Profile Section */}
