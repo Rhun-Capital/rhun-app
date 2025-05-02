@@ -414,8 +414,9 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
     }).format(num);
   };
 
-  const formatPercentage = (num: number) => {
-    return `${num >= 0 ? '+' : ''}${(num || 0).toFixed(2)}%`;
+  const formatPercentage = (num: number | null | undefined) => {
+    if (num === null || num === undefined) return '+0.00%';
+    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`;
   };
 
   const getTrendColor = (trend: string) => {
@@ -479,19 +480,19 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
         <div className="flex gap-4 mt-2">
           <div className="flex items-center gap-1">
             <span className="text-sm text-zinc-400">24h:</span>
-            <span className={`text-sm ${priceChange['24h'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <span className={`text-sm ${(priceChange['24h'] || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {formatPercentage(priceChange['24h'])}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-sm text-zinc-400">7d:</span>
-            <span className={`text-sm ${priceChange['7d'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <span className={`text-sm ${(priceChange['7d'] || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {formatPercentage(priceChange['7d'])}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-sm text-zinc-400">30d:</span>
-            <span className={`text-sm ${priceChange['30d'] >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <span className={`text-sm ${(priceChange['30d'] || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
               {formatPercentage(priceChange['30d'])}
             </span>
           </div>
@@ -1155,13 +1156,13 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
                 </div>
               </span>
               <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
-                {marketSentiment.strength.toFixed(1)}%
+                {(marketSentiment.strength || 0).toFixed(1)}%
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-white">Confidence</span>
               <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
-                {marketSentiment.confidence.toFixed(1)}%
+                {(marketSentiment.confidence || 0).toFixed(1)}%
               </span>
             </div>
           </div>
