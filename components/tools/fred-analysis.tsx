@@ -259,26 +259,26 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
   const filteredObservations = filterObservationsByTimeframe(observations);
   
   // Format value based on type
-  const formatValue = (value: number) => {
+  const formatValueForCard = (value: number) => {
     if (isPercentage) {
-      // Show percentage values with % symbol
       return `${value.toFixed(1)}%`;
     } else if (unitsLabel.toLowerCase().includes('dollar')) {
-      // Add dollar sign and commas for dollar values
-      const formattedValue = `$${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
-      // Since GDP is in billions, we need to divide by 1000 to get trillions
+      // Dollar formatting
       const trillionAmount = value / 1000;
-      if (trillionAmount >= 1) { // Only show if >= 1 trillion
-        return (
-          <div className="flex flex-col">
-            <span>{formattedValue}</span>
-            <span className="text-zinc-400 text-sm">({trillionAmount.toFixed(2)}T)</span>
-          </div>
-        );
+      if (trillionAmount >= 1) {
+        return <>${trillionAmount.toFixed(2)}T</>;
       }
-      return formattedValue;
+      return <>${value.toLocaleString('en-US', { maximumFractionDigits: 2 })}</>;
+    } else if (unitsLabel) {
+      // For units like 'Thousands of Persons', use a line break
+      return (
+        <>
+          {value.toLocaleString('en-US', { maximumFractionDigits: unitsLabel.toLowerCase().includes('thousands of persons') ? 0 : 2 })}
+          <br />
+          <span className="text-xs text-zinc-400">{unitsLabel}</span>
+        </>
+      );
     } else {
-      // Format other numbers with commas
       return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
     }
   };
@@ -630,23 +630,13 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
         <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
           <div className="text-sm text-zinc-400">Latest Value</div>
           <div className="text-xl font-semibold text-white">
-            {isPercentage 
-              ? `${latestObservation.value.toFixed(1)}%`
-              : unitsLabel.toLowerCase().includes('dollar') && latestObservation.value >= 1000
-                ? `$${(latestObservation.value / 1000).toFixed(2)}T`
-                : `$${latestObservation.value.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-            }
+            {formatValueForCard(latestObservation.value)}
           </div>
         </div>
         <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
           <div className="text-sm text-zinc-400">Change</div>
           <div className={`text-xl font-semibold ${change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {isPercentage 
-              ? `${change.toFixed(1)}%`
-              : unitsLabel.toLowerCase().includes('dollar') && Math.abs(change) >= 1000
-                ? `$${(change / 1000).toFixed(2)}T`
-                : `$${change.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-            }
+            {formatValueForCard(change)}
           </div>
         </div>
         <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
@@ -698,21 +688,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
                   <tr key={index} className="border-b border-zinc-700">
                     <td className="py-2">{new Date(obs.date).toLocaleDateString()}</td>
                     <td className="py-2">
-                      {isPercentage 
-                        ? `${obs.value.toFixed(1)}%`
-                        : unitsLabel.toLowerCase().includes('dollar')
-                          ? (
-                              <div className="flex flex-col">
-                                <span>${obs.value.toFixed(2)}</span>
-                                {obs.value >= 1000 && (
-                                  <span className="text-xs text-zinc-400">
-                                    ({(obs.value / 1000).toFixed(2)}T)
-                                  </span>
-                                )}
-                              </div>
-                            )
-                          : obs.value.toFixed(2)
-                      }
+                      {formatValueForCard(obs.value)}
                     </td>
                   </tr>
                 ))}
