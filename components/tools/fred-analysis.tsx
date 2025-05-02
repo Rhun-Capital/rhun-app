@@ -561,7 +561,7 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
                 </svg>
               </div>
-              <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity bg-zinc-900 text-sm text-zinc-200 rounded-lg p-3 absolute left-0 sm:left-auto sm:right-0 top-6 w-64 shadow-lg border border-zinc-700 z-50">
+              <div className="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity bg-zinc-900 text-sm text-zinc-200 rounded-lg p-3 absolute left-0 top-full mt-2 w-64 shadow-lg border border-zinc-700 z-[100]">
                 <div className="space-y-2">
                   <p><span className="font-semibold">Frequency:</span> {additionalMetadata?.frequency_short || metadata?.frequency || 'N/A'}</p>
                   <p><span className="font-semibold">Units:</span> {additionalMetadata?.units || metadata?.units || 'N/A'}</p>
