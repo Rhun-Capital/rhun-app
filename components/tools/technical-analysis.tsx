@@ -352,6 +352,108 @@ const analyzeIndicator = (indicator: string, value: any, data: TechnicalAnalysis
         ]
       };
 
+    case 'ADX':
+      const adx = technicalIndicators?.adx || 0;
+      const dmi = technicalIndicators?.dmi || { plus: 0, minus: 0 };
+      
+      if (adx > 25) {
+        if (dmi.plus > dmi.minus) {
+          return {
+            status: 'bullish',
+            summary: 'Strong upward trend',
+            details: [
+              `ADX (${adx.toFixed(2)}) indicates strong trend`,
+              `+DI (${dmi.plus.toFixed(2)}) > -DI (${dmi.minus.toFixed(2)})`,
+              'Bullish momentum confirmed'
+            ]
+          };
+        } else {
+          return {
+            status: 'bearish',
+            summary: 'Strong downward trend',
+            details: [
+              `ADX (${adx.toFixed(2)}) indicates strong trend`,
+              `+DI (${dmi.plus.toFixed(2)}) < -DI (${dmi.minus.toFixed(2)})`,
+              'Bearish momentum confirmed'
+            ]
+          };
+        }
+      }
+      return {
+        status: 'neutral',
+        summary: 'Weak or no trend',
+        details: [
+          `ADX (${adx.toFixed(2)}) indicates weak trend strength`,
+          `+DI: ${dmi.plus.toFixed(2)}, -DI: ${dmi.minus.toFixed(2)}`,
+          'Wait for stronger trend development'
+        ]
+      };
+
+    case 'DMI':
+      const dmiData = technicalIndicators?.dmi || { plus: 0, minus: 0 };
+      const dmiDiff = dmiData.plus - dmiData.minus;
+      
+      if (Math.abs(dmiDiff) > 20) {
+        if (dmiData.plus > dmiData.minus) {
+          return {
+            status: 'bullish',
+            summary: 'Strong positive directional movement',
+            details: [
+              `+DI (${dmiData.plus.toFixed(2)}) significantly above -DI (${dmiData.minus.toFixed(2)})`,
+              'Strong bullish trend indication'
+            ]
+          };
+        } else {
+          return {
+            status: 'bearish',
+            summary: 'Strong negative directional movement',
+            details: [
+              `-DI (${dmiData.minus.toFixed(2)}) significantly above +DI (${dmiData.plus.toFixed(2)})`,
+              'Strong bearish trend indication'
+            ]
+          };
+        }
+      }
+      return {
+        status: 'neutral',
+        summary: 'No clear directional movement',
+        details: [
+          `+DI: ${dmiData.plus.toFixed(2)}, -DI: ${dmiData.minus.toFixed(2)}`,
+          'Trend direction not clearly established'
+        ]
+      };
+
+    case 'Aroon':
+      const aroon = technicalIndicators?.aroon || { up: 0, down: 0 };
+      
+      if (aroon.up > 70 && aroon.up > aroon.down) {
+        return {
+          status: 'bullish',
+          summary: 'Strong upward trend potential',
+          details: [
+            `Aroon Up (${aroon.up.toFixed(2)}) > Aroon Down (${aroon.down.toFixed(2)})`,
+            'Recent highs indicate bullish momentum'
+          ]
+        };
+      } else if (aroon.down > 70 && aroon.down > aroon.up) {
+        return {
+          status: 'bearish',
+          summary: 'Strong downward trend potential',
+          details: [
+            `Aroon Down (${aroon.down.toFixed(2)}) > Aroon Up (${aroon.up.toFixed(2)})`,
+            'Recent lows indicate bearish momentum'
+          ]
+        };
+      }
+      return {
+        status: 'neutral',
+        summary: 'No clear trend direction',
+        details: [
+          `Aroon Up: ${aroon.up.toFixed(2)}, Down: ${aroon.down.toFixed(2)}`,
+          'Consolidation or trend transition phase'
+        ]
+      };
+
     default:
       return {
         status: 'neutral',
@@ -415,18 +517,20 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
   };
 
   const formatPercentage = (num: number | null | undefined) => {
-    if (num === null || num === undefined) return '+0.00%';
-    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`;
+    if (num === null || num === undefined) return '0%';
+    // Convert decimal to percentage and ensure it's between 0 and 100
+    const percentage = Math.min(Math.max(num * 100, 0), 100);
+    return `${percentage.toFixed(1)}%`;
   };
 
   const getTrendColor = (trend: string) => {
-    switch (trend) {
+    switch (trend.toLowerCase()) {
       case 'bullish':
-        return 'text-green-500';
+        return 'text-green-400';
       case 'bearish':
-        return 'text-red-500';
+        return 'text-red-400';
       default:
-        return 'text-yellow-500';
+        return 'text-zinc-400';
     }
   };
 
@@ -1144,9 +1248,10 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 bg-zinc-800 text-xs text-zinc-300 p-3 rounded-lg shadow-lg z-10">
                     <div className="font-medium mb-2">Strength Calculation</div>
                     <div className="space-y-1">
-                      <div>• Based on 24h price change</div>
-                      <div>• Calculated as: (price_change * 10)</div>
-                      <div>• Capped between -100% and +100%</div>
+                      <div>• Based on price movement relative to SMAs</div>
+                      <div>• Strong trend: {'>'} 70%</div>
+                      <div>• Moderate trend: 30-70%</div>
+                      <div>• Weak trend: {'<'} 30%</div>
                       <div className="mt-2 text-zinc-400">
                         Higher strength indicates stronger price movement in the trend direction.
                       </div>
@@ -1156,13 +1261,31 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
                 </div>
               </span>
               <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
-                {(marketSentiment.strength || 0).toFixed(1)}%
+                {formatPercentage(marketSentiment.strength)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-white">Confidence</span>
+              <span className="text-sm flex items-center gap-2 text-white">
+                Confidence
+                <div className="group relative">
+                  <Info className="h-3 w-3 text-zinc-500 cursor-help" />
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block w-64 bg-zinc-800 text-xs text-zinc-300 p-3 rounded-lg shadow-lg z-10">
+                    <div className="font-medium mb-2">Confidence Calculation</div>
+                    <div className="space-y-1">
+                      <div>• High confidence: {'>'} 70%</div>
+                      <div>• Moderate confidence: 30-70%</div>
+                      <div>• Low confidence: {'<'} 30%</div>
+                      <div>• Based on multiple indicator confirmations</div>
+                      <div className="mt-2 text-zinc-400">
+                        Higher confidence indicates stronger agreement among technical indicators.
+                      </div>
+                    </div>
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-zinc-800"></div>
+                  </div>
+                </div>
+              </span>
               <span className={`font-medium ${getStatusColor(marketSentiment.trend as 'bullish' | 'bearish' | 'neutral')}`}>
-                {(marketSentiment.confidence || 0).toFixed(1)}%
+                {formatPercentage(marketSentiment.confidence)}
               </span>
             </div>
           </div>
