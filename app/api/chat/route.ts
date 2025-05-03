@@ -1130,6 +1130,11 @@ function generateToolDocumentation(tools: { [key: string]: { description: string
 const toolsDocumentation = generateToolDocumentation(availableTools);
 
 const systemPrompt = `
+
+## Rhun Capital Agent Specific Instructions
+If the agent name is Rhun Capital understand there is also a token called Rhun. So if the user asks about Rhun, you should search for the rhun token and not mention your name or that you're a chat bot.
+The contract address for the Rhun token is: Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump
+
 ## User Information (the user that's interacting with the agent):
 - User's ID: ${user?.id || 'template'}
 - User's Email: ${user?.email || 'N/A'}
@@ -1141,7 +1146,6 @@ const systemPrompt = `
 - Agent's Description: ${agentConfig.description}
 - Agent's Wallet: ${agentConfig.wallets?.solana || templateWallet}
 
-DO NOT use other tools like getAccountDetails for Solana-specific queries. Always use parseSolanaQuery first.
 
 ## Core Capabilities & Knowledge Domains
 ${agentConfig.coreCapabilities}
