@@ -9,6 +9,13 @@
 - When adapting UI components, avoid using complex component structures with props unless those components are properly typed. Inline effects and styles can be more reliable when having issues with TypeScript errors.
 - When creating a TypeScript utility file with interface definitions, watch out for naming conflicts. If you define interfaces with the same name in multiple files, you'll need to use namespaces or rename them to avoid collisions.
 - In React projects with Next.js, prefer flex-based layouts over fixed positioning for better compatibility with different screen sizes and to avoid content overlapping issues.
+- To implement delegated wallets in Privy, you need both client and server components: a client-side component using useDelegatedActions to request delegation permission, and server-side components using the Privy API for signing and sending transactions.
+- Server-side Privy API endpoints for delegated wallets require proper authentication with app credentials (appId and appSecret) and must include the user's ID when making API calls.
+- When implementing delegated wallet functionality, always check if a wallet is delegated before attempting to perform transactions on behalf of the user.
+- For scheduled auto-trading with delegated wallets, a combination of DynamoDB for strategy storage and AWS Lambda with EventBridge for scheduled execution works well. The Lambda can use Privy's server API to execute transactions on behalf of users at scheduled intervals.
+- When creating client UI for trading automation, include all necessary details like strategy type, frequency, amount, and target token, and make sure to check delegation status before allowing users to set up automated strategies.
+- Use AWS EventBridge (formerly CloudWatch Events) rules with different schedules (hourly, daily, weekly) to trigger Lambda functions based on the trading frequency requirements.
+- Always handle transaction failures gracefully in serverless functions, updating the strategy status and scheduling the next execution regardless of success or failure.
 
 # Scratchpad
 
@@ -147,3 +154,66 @@ The implementation consists of:
 1. A client-side component that allows users to grant server-side access to their wallets
 2. Server-side utilities for using those delegated wallet powers
 3. API endpoints that use the delegation to perform operations on behalf of the user 
+
+## Implementing Privy Delegated Wallets
+
+[X] Create a delegate-wallet-button.tsx component that uses useDelegatedActions
+  [X] Implement the delegateWallet and revokeWallets functionality
+  [X] Add success/error state handling
+  [X] Add explanatory text for users
+
+[X] Create server-wallet.ts utility for server-side operations
+  [X] Implement sendSOL function for native token transfers
+  [X] Implement sendSPLToken function for token transfers
+  [X] Implement swapTokens function for executing swaps
+  [X] Add isDelegated function to check delegation status
+
+[X] Create API endpoints for delegated wallet operations
+  [X] Implement /api/transactions/send for token transfers
+  [X] Implement /api/trading/signals for automated trading signals
+  [X] Add proper authentication and validation
+
+[X] Add DelegateWalletButton to the wallet-tab.tsx Advanced Options section
+  [X] Integrate with existing UI
+  [X] Configure for Solana wallet
+  [X] Add refresh callback
+
+This implementation allows users to:
+1. Delegate control of their wallet to the server for automated actions
+2. Perform automated trading based on technical analysis signals
+3. Revoke delegation when they no longer want automated trading
+
+The server can now execute transactions on behalf of the user after they have granted permission through the delegation UI.
+
+## Implementing Auto-Trading with Delegated Wallets
+
+[X] Create a comprehensive UI for setting up auto-trading strategies:
+  [X] Build AutoTradingModal component with strategy selection
+  [X] Support different strategy types (DCA, Momentum, Limit, Rebalance)
+  [X] Add configuration options for frequency, amount, and target token
+  [X] Show active strategies in the wallet interface
+
+[X] Build backend API endpoints for strategy management:
+  [X] Create endpoint to save new strategies with user and wallet info
+  [X] Create endpoint to retrieve active strategies for a wallet
+  [X] Ensure the wallet is delegated before allowing strategy creation
+
+[X] Create AWS Lambda function for executing trading strategies:
+  [X] Implement logic for different strategy types (DCA, Momentum, etc.)
+  [X] Use Privy API to execute transactions with delegated wallets
+  [X] Handle success/failure scenarios and update strategy status
+  [X] Schedule next execution based on strategy frequency
+
+[X] Set up AWS infrastructure with CloudFormation:
+  [X] DynamoDB table for storing strategies
+  [X] Lambda function for executing trades
+  [X] EventBridge rules for different frequencies (hourly, daily, weekly)
+  [X] IAM roles and permissions for secure execution
+
+Key components:
+1. Client-side UI for strategy setup in `components/auto-trading-modal.tsx`
+2. Backend API for strategy management in `app/api/trading/schedule/route.ts` and `app/api/trading/strategies/[walletAddress]/route.ts`
+3. AWS Lambda function for executing trades in `lambda/trading-executor.js`
+4. CloudFormation template for infrastructure in `lambda/trading-infrastructure.yml`
+
+This implementation leverages Privy's delegated wallet functionality to allow the system to execute trades on behalf of users at scheduled intervals, creating a fully automated trading system. 

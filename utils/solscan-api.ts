@@ -126,3 +126,104 @@ export function extractQueryParams(query: string): Record<string, string | numbe
   
   return params;
 } 
+
+// Cache for token logos from the community token list
+const communityTokenLogoCache: Record<string, string> = {};
+
+// Initialize community token list
+async function initCommunityTokenList() {
+  try {
+    const response = await fetch('https://raw.githubusercontent.com/solana-labs/token-list/main/src/tokens/solana.tokenlist.json');
+    if (response.ok) {
+      const data = await response.json();
+      data.tokens.forEach((token: any) => {
+        if (token.address && token.logoURI) {
+          communityTokenLogoCache[token.address] = token.logoURI;
+        }
+      });
+      console.log(`Loaded ${Object.keys(communityTokenLogoCache).length} token logos from community token list`);
+    }
+  } catch (error) {
+    console.error('Error loading community token list:', error);
+  }
+}
+
+// Call this once when the server starts
+initCommunityTokenList();
+
+/**
+ * Fetch token metadata from Solscan API
+ * @param tokenAddress Solana token address
+ * @returns Token metadata or null if not found
+ */
+export async function fetchTokenMetadata(tokenAddress: string) {
+  try {
+    const response = await fetch(`https://api.solscan.io/token/meta?token=${tokenAddress}`, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+
+    if (!response.ok) {
+      console.error(`Error fetching token metadata: ${response.status} ${response.statusText}`);
+      // Try community list as fallback for logo
+      return createFallbackMetadata(tokenAddress);
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      console.error('Solscan API returned error:', data);
+      // Try community list as fallback for logo
+      return createFallbackMetadata(tokenAddress);
+    }
+
+    const metadata = {
+      address: data.data.address,
+      symbol: data.data.symbol,
+      name: data.data.name,
+      decimals: data.data.decimals,
+      logoURI: data.data.logoURI
+    };
+
+    // If no logo in Solscan data, try the community list
+    if (!metadata.logoURI && communityTokenLogoCache[tokenAddress]) {
+      metadata.logoURI = communityTokenLogoCache[tokenAddress];
+      console.log(`Added logo from community list for ${metadata.symbol} (${tokenAddress})`);
+    }
+
+    // If still no logo, try to generate one
+    if (!metadata.logoURI) {
+      try {
+        // Try Jupiter Aggregator's logo service
+        metadata.logoURI = `https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/${tokenAddress}/logo.png`;
+        console.log(`Using generated logo URL for ${metadata.symbol} (${tokenAddress})`);
+      } catch (logoError) {
+        console.error(`Could not generate logo for ${tokenAddress}:`, logoError);
+      }
+    }
+
+    return metadata;
+  } catch (error) {
+    console.error('Error fetching token metadata:', error);
+    return createFallbackMetadata(tokenAddress);
+  }
+}
+
+/**
+ * Create fallback metadata with best-effort logo
+ */
+function createFallbackMetadata(tokenAddress: string) {
+  // Try to get a logo from the community list
+  const logoURI = communityTokenLogoCache[tokenAddress] || 
+                  `https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/${tokenAddress}/logo.png`;
+  
+  return {
+    address: tokenAddress,
+    symbol: 'Unknown',
+    name: 'Unknown Token',
+    decimals: 9,
+    logoURI
+  };
+} 

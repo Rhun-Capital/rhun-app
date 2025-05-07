@@ -114,6 +114,7 @@ import {
 } from "lucide-react";
 
 import { useWalletData } from '@/app/hooks/useWalletData';
+import DelegateWalletButton from '@/components/delegate-wallet-button';
 
 interface Agent {
   id: string;
@@ -681,6 +682,23 @@ const WalletContent = memo(({
           </>
         )}
       </div>
+      
+      {/* Automated Trading Card - Only show for non-primary wallets */}
+      {activeWallet && user?.wallet?.address && activeWallet !== user.wallet.address && (
+        <div className="p-6 bg-zinc-800 bg-opacity-40 border border-zinc-700 rounded-lg mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Automated Trading</h3>
+          </div>
+          <p className="text-sm text-zinc-400 mb-4">
+            Enable automated trading based on technical analysis signals. This allows the system to execute trades on your behalf when specific conditions are met.
+          </p>
+          <DelegateWalletButton 
+            walletAddress={activeWallet} 
+            chainType="solana"
+            onSuccess={handleRefreshWalletData}
+          />
+        </div>
+      )}
       
       {/* Modal Components */}
       {activeWallet && (
