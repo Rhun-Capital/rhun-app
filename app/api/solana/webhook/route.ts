@@ -3,6 +3,62 @@ import { storeTokenHolderActivity, ensureTokenHoldersActivityTableExists } from 
 import { fetchTokenMetadata } from '@/utils/solscan-api';
 import { fetchCoinGeckoTokenMetadata, fetchTokenPrices, calculateTokenValue } from '@/utils/coingecko';
 
+// Add interfaces at the top of the file after imports
+interface CoinGeckoTokenMetadata {
+  symbol: string;
+  name: string;
+  detail_platforms?: {
+    solana?: {
+      decimal_place: number;
+    };
+  };
+  image?: {
+    small: string;
+  };
+  market_data?: {
+    current_price?: {
+      usd: number;
+    };
+    market_cap?: {
+      usd: number;
+    };
+    total_liquidity?: {
+      usd: number;
+    };
+  };
+}
+
+interface TokenMetadata {
+  symbol: string;
+  name: string;
+  decimals: number;
+  logoURI: string | null;
+  price: number;
+  liquidity: number;
+  marketCap?: number;
+}
+
+interface TokenInfo {
+  address?: string;
+  amount?: number;
+  symbol?: string;
+  decimals?: number;
+  metadata?: {
+    symbol?: string;
+    name?: string;
+    decimals?: number;
+    price?: number;
+    liquidity?: number;
+    logoURI?: string;
+  };
+}
+
+interface SwapInfo {
+  fromToken?: TokenInfo;
+  toToken?: TokenInfo;
+  action?: string;
+}
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Extend the timeout to 60 seconds
 
@@ -42,12 +98,13 @@ function logTransactionDetails(event: any, tokenInfo: any, fromTokenMetadata: an
   console.log(`Holder: ${event.accountData?.[0]?.account}`);
   
   console.log('\n=== From Token ===');
-  console.log(`Address: ${tokenInfo.fromToken?.address || 'SOL'}`);
-  if (tokenInfo.fromToken?.address) {
-    console.log(`Explorer: ${getSolanaExplorerLink(tokenInfo.fromToken.address, 'token')}`);
+  const fromAddress = tokenInfo.fromToken?.address || 'SOL';
+  console.log(`Address: ${fromAddress}`);
+  if (fromAddress !== 'SOL') {
+    console.log(`Explorer: ${getSolanaExplorerLink(fromAddress, 'token')}`);
   }
   console.log(`Amount: ${tokenInfo.fromToken?.amount}`);
-  console.log(`Symbol: ${fromTokenMetadata?.symbol || 'Unknown'}`);
+  console.log(`Symbol: ${tokenInfo.fromToken?.metadata?.symbol || tokenInfo.fromToken?.symbol || 'Unknown'}`);
   console.log(`Price: $${fromTokenMetadata?.price || 'N/A'}`);
   console.log(`Liquidity: $${fromTokenMetadata?.liquidity || 'N/A'}`);
   if (fromTokenMetadata?.price) {
@@ -60,12 +117,13 @@ function logTransactionDetails(event: any, tokenInfo: any, fromTokenMetadata: an
   }
   
   console.log('\n=== To Token ===');
-  console.log(`Address: ${tokenInfo.toToken?.address || 'SOL'}`);
-  if (tokenInfo.toToken?.address) {
-    console.log(`Explorer: ${getSolanaExplorerLink(tokenInfo.toToken.address, 'token')}`);
+  const toAddress = tokenInfo.toToken?.address || 'SOL';
+  console.log(`Address: ${toAddress}`);
+  if (toAddress !== 'SOL') {
+    console.log(`Explorer: ${getSolanaExplorerLink(toAddress, 'token')}`);
   }
   console.log(`Amount: ${tokenInfo.toToken?.amount}`);
-  console.log(`Symbol: ${toTokenMetadata?.symbol || 'Unknown'}`);
+  console.log(`Symbol: ${tokenInfo.toToken?.metadata?.symbol || tokenInfo.toToken?.symbol || 'Unknown'}`);
   console.log(`Price: $${toTokenMetadata?.price || 'N/A'}`);
   console.log(`Liquidity: $${toTokenMetadata?.liquidity || 'N/A'}`);
   if (toTokenMetadata?.price) {
@@ -86,12 +144,8 @@ function logTransactionDetails(event: any, tokenInfo: any, fromTokenMetadata: an
 /**
  * Extract token addresses and amounts from transaction description
  */
-function extractTokenInfo(description: string) {
-  const tokenInfo: {
-    fromToken?: { address?: string; amount?: number; symbol?: string },
-    toToken?: { address?: string; amount?: number; symbol?: string },
-    action?: string
-  } = {
+function extractTokenInfo(description: string, event: any): SwapInfo {
+  const tokenInfo: SwapInfo = {
     action: 'transaction'
   };
 
@@ -156,17 +210,36 @@ function extractTokenTransfers(event: any) {
     )[0];
     
     if (largestOutgoing && largestIncoming) {
+      // Helper function to determine if a mint is SOL
+      const isSOL = (mint: string) => mint === 'So11111111111111111111111111111111111111112';
+      
+      // Get token symbols and metadata from the transfer data
+      const outgoingSymbol = largestOutgoing.symbol || (isSOL(largestOutgoing.mint) ? 'SOL' : 'Unknown');
+      const incomingSymbol = largestIncoming.symbol || (isSOL(largestIncoming.mint) ? 'SOL' : 'Unknown');
+      
+      // For SOL, we should use 'SOL' as both address and symbol
+      const outgoingAddress = isSOL(largestOutgoing.mint) ? 'SOL' : largestOutgoing.mint;
+      const incomingAddress = isSOL(largestIncoming.mint) ? 'SOL' : largestIncoming.mint;
+
+      // Get token metadata from the event if available
+      const outgoingMetadata = event.tokenMetadata?.[largestOutgoing.mint] || {};
+      const incomingMetadata = event.tokenMetadata?.[largestIncoming.mint] || {};
+      
       return {
         action: 'swap',
         fromToken: {
-          address: largestOutgoing.mint,
+          address: outgoingAddress,
           amount: largestOutgoing.tokenAmount,
-          symbol: largestOutgoing.mint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'Unknown'
+          symbol: outgoingMetadata.symbol || outgoingSymbol,
+          decimals: largestOutgoing.decimals || outgoingMetadata.decimals || 9,
+          metadata: outgoingMetadata
         },
         toToken: {
-          address: largestIncoming.mint,
+          address: incomingAddress,
+          symbol: incomingMetadata.symbol || incomingSymbol,
           amount: largestIncoming.tokenAmount,
-          symbol: largestIncoming.mint === 'So11111111111111111111111111111111111111112' ? 'SOL' : 'Unknown'
+          decimals: largestIncoming.decimals || incomingMetadata.decimals || 9,
+          metadata: incomingMetadata
         }
       };
     }
@@ -178,10 +251,11 @@ function extractTokenTransfers(event: any) {
 /**
  * Get token metadata and cache it
  */
-async function getTokenMetadata(tokenAddress: string) {
+async function getTokenMetadata(tokenAddress: string, symbol?: string): Promise<TokenMetadata | null> {
   if (!tokenAddress) return null;
-  if (tokenAddress === 'So11111111111111111111111111111111111111112') {
-    // Fetch SOL price from CoinGecko
+  
+  // If it's SOL, handle it specially
+  if (tokenAddress === 'So11111111111111111111111111111111111111112' || symbol === 'SOL') {
     try {
       const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
       const data = await response.json();
@@ -191,7 +265,8 @@ async function getTokenMetadata(tokenAddress: string) {
         name: 'Solana',
         decimals: 9,
         logoURI: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
-        price: solPrice
+        price: solPrice,
+        liquidity: 1000000000 // High liquidity for SOL
       };
     } catch (err) {
       console.error('Error fetching SOL price from CoinGecko:', err);
@@ -200,25 +275,28 @@ async function getTokenMetadata(tokenAddress: string) {
         name: 'Solana',
         decimals: 9,
         logoURI: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
-        price: 0
+        price: 0,
+        liquidity: 0
       };
     }
   }
   
+  // Check cache first
   if (tokenMetadataCache[tokenAddress]) {
-    return tokenMetadataCache[tokenAddress];
+    return tokenMetadataCache[tokenAddress] as TokenMetadata;
   }
   
   try {
     // Try CoinGecko first
-    const coingeckoData = await fetchCoinGeckoTokenMetadata(tokenAddress);
+    const coingeckoData = await fetchCoinGeckoTokenMetadata(tokenAddress) as CoinGeckoTokenMetadata;
     if (coingeckoData) {
-      const metadata = {
+      const metadata: TokenMetadata = {
         symbol: coingeckoData.symbol,
         name: coingeckoData.name,
-        decimals: 9, // Default to 9 for Solana tokens
+        decimals: coingeckoData.detail_platforms?.solana?.decimal_place || 9,
         logoURI: coingeckoData.image?.small || null,
         price: coingeckoData.market_data?.current_price?.usd || 0,
+        liquidity: coingeckoData.market_data?.total_liquidity?.usd || 0,
         marketCap: coingeckoData.market_data?.market_cap?.usd || 0
       };
       tokenMetadataCache[tokenAddress] = metadata;
@@ -228,13 +306,130 @@ async function getTokenMetadata(tokenAddress: string) {
     // Fallback to Solscan if CoinGecko fails
     const metadata = await fetchTokenMetadata(tokenAddress);
     if (metadata) {
-      tokenMetadataCache[tokenAddress] = metadata;
-      return metadata;
+      const enrichedMetadata: TokenMetadata = {
+        ...metadata,
+        liquidity: (metadata as any).liquidity || 0,
+        price: (metadata as any).price || 0
+      };
+      tokenMetadataCache[tokenAddress] = enrichedMetadata;
+      return enrichedMetadata;
     }
   } catch (error) {
     console.error(`Error fetching metadata for ${tokenAddress}:`, error);
   }
   
+  return null;
+}
+
+// Add a helper to fetch Solscan transaction details
+async function fetchSolscanTransactionDetail(signature: string) {
+  const apiKey = process.env.SOLSCAN_API_KEY; // Set your API key in env
+  if (!apiKey) {
+    console.error('SOLSCAN_API_KEY is not set in environment variables');
+    return null;
+  }
+
+  const url = `https://pro-api.solscan.io/v2.0/transaction/detail?tx=${signature}`;
+  console.log('Fetching Solscan transaction details for:', signature);
+  
+  try {
+    const res = await fetch(url, {
+      headers: { 'token': apiKey }
+    });
+    
+    if (!res.ok) {
+      console.error('Solscan API error:', {
+        status: res.status,
+        statusText: res.statusText,
+        signature
+      });
+      return null;
+    }
+
+    const data = await res.json();
+    console.log('Solscan API response:', {
+      signature,
+      hasData: !!data.data,
+      hasInstructions: !!data.data?.parsed_instructions,
+      hasTokenChanges: !!data.data?.token_bal_change,
+      tokenCount: data.data?.token_bal_change?.length || 0
+    });
+
+    return data.data; // The transaction detail object
+  } catch (error) {
+    console.error('Error fetching from Solscan:', error);
+    return null;
+  }
+}
+
+// Helper to extract swap tokens from parsed_instructions
+function extractSwapFromInstructions(parsedInstructions: any[], tokenMeta: any) {
+  if (!Array.isArray(parsedInstructions)) {
+    console.log('No parsed instructions array found');
+    return null;
+  }
+
+  console.log('Processing parsed instructions:', {
+    instructionCount: parsedInstructions.length,
+    hasTokenMeta: !!tokenMeta,
+    tokenMetaKeys: Object.keys(tokenMeta || {})
+  });
+
+  for (const instr of parsedInstructions) {
+    console.log('Checking instruction:', {
+      type: instr.parsed_type,
+      hasData: !!instr.data,
+      hasToken1: !!instr.data?.token_1,
+      hasToken2: !!instr.data?.token_2
+    });
+
+    if (
+      instr.parsed_type?.toLowerCase().includes('swap') &&
+      instr.data &&
+      instr.data.token_1 &&
+      instr.data.token_2
+    ) {
+      const swap = {
+        fromToken: {
+          address: instr.data.token_1,
+          amount: Number(instr.data.amount_1) / Math.pow(10, instr.data.token_decimal_1),
+          symbol: tokenMeta[instr.data.token_1]?.token_symbol || 'Unknown',
+          metadata: {
+            symbol: tokenMeta[instr.data.token_1]?.token_symbol || 'Unknown',
+            name: tokenMeta[instr.data.token_1]?.token_name || 'Unknown Token',
+            decimals: instr.data.token_decimal_1,
+            logoURI: tokenMeta[instr.data.token_1]?.token_icon || null,
+          },
+        },
+        toToken: {
+          address: instr.data.token_2,
+          amount: Number(instr.data.amount_2) / Math.pow(10, instr.data.token_decimal_2),
+          symbol: tokenMeta[instr.data.token_2]?.token_symbol || 'Unknown',
+          metadata: {
+            symbol: tokenMeta[instr.data.token_2]?.token_symbol || 'Unknown',
+            name: tokenMeta[instr.data.token_2]?.token_name || 'Unknown Token',
+            decimals: instr.data.token_decimal_2,
+            logoURI: tokenMeta[instr.data.token_2]?.token_icon || null,
+          },
+        },
+      };
+
+      console.log('Found swap:', {
+        fromToken: {
+          address: swap.fromToken.address,
+          symbol: swap.fromToken.symbol,
+          amount: swap.fromToken.amount
+        },
+        toToken: {
+          address: swap.toToken.address,
+          symbol: swap.toToken.symbol,
+          amount: swap.toToken.amount
+        }
+      });
+
+      return swap;
+    }
+  }
   return null;
 }
 
@@ -265,96 +460,181 @@ export async function POST(request: Request) {
       }
       
       try {
-        // First try to extract info from description
-        let tokenInfo = extractTokenInfo(event.description || '');
-        
-        // If description didn't have swap info, try to extract from token transfers
-        if (tokenInfo.action !== 'swap') {
-          const transferInfo = extractTokenTransfers(event);
-          if (transferInfo && transferInfo.action === 'swap') {
-            tokenInfo = transferInfo;
+        // Initialize token variables in outer scope
+        let fromToken: any = null;
+        let toToken: any = null;
+        let fromTokenMetadata: any = null;
+        let toTokenMetadata: any = null;
+        let solscanTx: any = null;
+        let solscanMeta: any = {};
+
+        // Fetch transaction details from Solscan
+        try {
+          const solscanResp = await fetchSolscanTransactionDetail(event.signature);
+          solscanTx = solscanResp;
+          solscanMeta = solscanResp?.metadata?.tokens || {};
+          
+          // Log token metadata
+          console.log('Solscan token metadata:', {
+            tokenCount: Object.keys(solscanMeta).length,
+            tokens: Object.entries(solscanMeta).map(([address, meta]: [string, any]) => ({
+              address,
+              symbol: meta.token_symbol,
+              name: meta.token_name
+            }))
+          });
+
+          // Process token balance changes to identify the swap
+          if (solscanTx?.token_bal_change) {
+            const changes = solscanTx.token_bal_change;
+            
+            // Find the largest negative change (token being sold)
+            const outgoing = changes
+              .filter((t: any) => Number(t.change_amount) < 0)
+              .sort((a: any, b: any) => Math.abs(Number(b.change_amount)) - Math.abs(Number(a.change_amount)));
+
+            // Find the largest positive change (token being bought)
+            const incoming = changes
+              .filter((t: any) => Number(t.change_amount) > 0)
+              .sort((a: any, b: any) => Math.abs(Number(b.change_amount)) - Math.abs(Number(a.change_amount)));
+
+            // Get the largest outgoing and incoming changes
+            const from = outgoing[0];
+            // Find the largest positive change for a different token
+            const to = incoming.find((t: any) => t.token_address !== from?.token_address);
+
+            if (from && to) {
+              const fromMeta = solscanMeta[from.token_address] || {};
+              const toMeta = solscanMeta[to.token_address] || {};
+
+              // Handle SOL specially
+              const isSOL = (address: string) => address === 'So11111111111111111111111111111111111111112';
+              
+              fromToken = {
+                address: from.token_address,
+                amount: Math.abs(Number(from.change_amount)) / Math.pow(10, from.decimals),
+                symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || 'Unknown'),
+                decimals: from.decimals,
+                metadata: {
+                  symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || 'Unknown'),
+                  name: isSOL(from.token_address) ? 'Solana' : (fromMeta.token_name || 'Unknown Token'),
+                  decimals: from.decimals,
+                  logoURI: fromMeta.token_icon || null,
+                },
+              };
+
+              toToken = {
+                address: to.token_address,
+                amount: Math.abs(Number(to.change_amount)) / Math.pow(10, to.decimals),
+                symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || 'Unknown'),
+                decimals: to.decimals,
+                metadata: {
+                  symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || 'Unknown'),
+                  name: isSOL(to.token_address) ? 'Solana' : (toMeta.token_name || 'Unknown Token'),
+                  decimals: to.decimals,
+                  logoURI: toMeta.token_icon || null,
+                },
+              };
+            }
           }
+
+          // Fallback to old logic if we couldn't determine the swap from balance changes
+          if (!fromToken || !toToken) {
+            let tokenInfo = extractTokenInfo(event.description || '', event);
+            if (tokenInfo.action !== 'swap') {
+              const transferInfo = extractTokenTransfers(event);
+              if (transferInfo && transferInfo.action === 'swap') {
+                tokenInfo = transferInfo;
+              }
+            }
+            fromToken = tokenInfo.fromToken;
+            toToken = tokenInfo.toToken;
+          }
+        } catch (err) {
+          console.error('Error fetching Solscan transaction detail:', err);
+          // Fallback to old logic if Solscan fails
+          let tokenInfo = extractTokenInfo(event.description || '', event);
+          if (tokenInfo.action !== 'swap') {
+            const transferInfo = extractTokenTransfers(event);
+            if (transferInfo && transferInfo.action === 'swap') {
+              tokenInfo = transferInfo;
+            }
+          }
+          fromToken = tokenInfo.fromToken;
+          toToken = tokenInfo.toToken;
         }
-        
-        // Skip if we couldn't extract swap info
-        if (tokenInfo.action !== 'swap') {
-          continue;
+
+        // Get metadata for both tokens (price, etc)
+        if (fromToken?.address) {
+          fromTokenMetadata = await getTokenMetadata(fromToken.address, fromToken.symbol);
         }
-        
-        let fromTokenMetadata = null;
-        let toTokenMetadata = null;
-        
-        // Get metadata for both tokens
-        if (tokenInfo.fromToken?.address) {
-          fromTokenMetadata = await getTokenMetadata(tokenInfo.fromToken.address);
+        if (toToken?.address) {
+          toTokenMetadata = await getTokenMetadata(toToken.address, toToken.symbol);
         }
-        
-        if (tokenInfo.toToken?.address) {
-          toTokenMetadata = await getTokenMetadata(tokenInfo.toToken.address);
-        }
-        
+
         // Calculate USD values for the swap
         const fromTokenValue = fromTokenMetadata?.price
           ? calculateSwapValue(
-              tokenInfo.fromToken?.amount || 0,
+              fromToken?.amount || 0,
               fromTokenMetadata.price,
               fromTokenMetadata.decimals
             )
           : 0;
-          
         const toTokenValue = toTokenMetadata?.price
           ? calculateSwapValue(
-              tokenInfo.toToken?.amount || 0,
+              toToken?.amount || 0,
               toTokenMetadata.price,
               toTokenMetadata.decimals
             )
           : 0;
-          
-        // Use the larger of the two values to determine if this is a significant swap
-        const swapValueUSD = Math.max(fromTokenValue, toTokenValue);
-        
+        let swapValueUSD = Math.max(fromTokenValue, toTokenValue);
+
         // Log detailed transaction information
-        logTransactionDetails(event, tokenInfo, fromTokenMetadata, toTokenMetadata, swapValueUSD);
-        
+        logTransactionDetails(event, { fromToken, toToken }, fromTokenMetadata, toTokenMetadata, swapValueUSD);
+
         // Skip if the swap value is below the minimum threshold
         if (swapValueUSD < MIN_SWAP_VALUE_USD) {
           console.log(`Skipping swap with value $${swapValueUSD.toFixed(2)} (below minimum of $${MIN_SWAP_VALUE_USD})`);
           continue;
         }
-        
-        // Log if we're using low liquidity price data
-        if (fromTokenMetadata?.liquidity && fromTokenMetadata.liquidity < MIN_LIQUIDITY_USD) {
-          console.log(`Warning: Low liquidity for ${fromTokenMetadata.symbol} ($${fromTokenMetadata.liquidity})`);
+
+        // Log token balance changes if available
+        if (solscanTx?.token_bal_change) {
+          console.log('Token balance changes:', solscanTx.token_bal_change.map((change: any) => ({
+            token: change.token_address,
+            symbol: solscanMeta[change.token_address]?.token_symbol || 'Unknown',
+            change: change.change_amount,
+            decimals: change.decimals
+          })));
         }
-        if (toTokenMetadata?.liquidity && toTokenMetadata.liquidity < MIN_LIQUIDITY_USD) {
-          console.log(`Warning: Low liquidity for ${toTokenMetadata.symbol} ($${toTokenMetadata.liquidity})`);
-        }
-        
+
         // Create enriched event data
         const enrichedEvent = {
           signature: event.signature,
           timestamp: event.timestamp,
           type: 'SWAP',
-          description: event.description || `Swapped ${tokenInfo.fromToken?.amount} ${tokenInfo.fromToken?.symbol} for ${tokenInfo.toToken?.amount} ${tokenInfo.toToken?.symbol}`,
+          description: event.description || `Swapped ${fromToken?.amount} ${fromToken?.symbol} for ${toToken?.amount} ${toToken?.symbol}`,
           holder_address: event.accountData?.[0]?.account || '',
           native_balance_change: event.accountData?.[0]?.nativeBalanceChange || 0,
           token_transfers: [], // Minimize stored data
           fromToken: {
-            symbol: fromTokenMetadata?.symbol || tokenInfo.fromToken?.symbol || 'Unknown',
-            amount: tokenInfo.fromToken?.amount || 0,
-            metadata: fromTokenMetadata || {
-              symbol: tokenInfo.fromToken?.symbol || 'Unknown',
-              name: tokenInfo.fromToken?.symbol || 'Unknown Token',
+            address: fromToken?.address || null,
+            symbol: fromToken?.symbol || 'Unknown',
+            amount: fromToken?.amount || 0,
+            metadata: fromTokenMetadata || fromToken?.metadata || {
+              symbol: fromToken?.symbol || 'Unknown',
+              name: fromToken?.symbol || 'Unknown Token',
               decimals: 9
             },
             usd_value: fromTokenValue
           },
           toToken: {
-            symbol: toTokenMetadata?.symbol || tokenInfo.toToken?.symbol || 'Unknown',
-            amount: tokenInfo.toToken?.amount || 0,
-            metadata: toTokenMetadata || {
-              symbol: tokenInfo.toToken?.symbol || 'Unknown',
-              name: tokenInfo.toToken?.symbol || 'Unknown Token',
+            address: toToken?.address || null,
+            symbol: toToken?.symbol || 'Unknown',
+            amount: toToken?.amount || 0,
+            metadata: toTokenMetadata || toToken?.metadata || {
+              symbol: toToken?.symbol || 'Unknown',
+              name: toToken?.symbol || 'Unknown Token',
               decimals: 9
             },
             usd_value: toTokenValue

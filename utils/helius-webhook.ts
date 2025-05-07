@@ -31,7 +31,7 @@ export async function registerWebhook(config: WebhookConfig): Promise<WebhookRes
     },
     body: JSON.stringify({
       webhookURL: config.webhookURL,
-      transactionTypes: config.transactionTypes || ['ANY'],
+      transactionTypes: config.transactionTypes || ['SWAP'],
       accountAddresses: config.accountAddresses || [],
       webhookType: config.webhookType || 'enhanced',
       authHeader: config.authHeader,

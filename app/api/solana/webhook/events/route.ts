@@ -31,45 +31,46 @@ export async function GET() {
     );
 
     // Get token holder mappings for all holder addresses in the events
-    const holderAddresses = [...new Set(sortedItems.map(item => item.holder_address))];
-    const holderMappings: Record<string, any> = {};
+    // const holderAddresses = [...new Set(sortedItems.map(item => item.holder_address))];
+    // const holderMappings: Record<string, any> = {};
 
-    if (holderAddresses.length > 0) {
-      // Query each holder address individually since DynamoDB doesn't support IN with multiple values
-      const mappingPromises = holderAddresses.map(async (address) => {
-        try {
-          const response = await docClient.send(
-            new QueryCommand({
-              TableName: TOKEN_HOLDERS_MAPPING_TABLE_NAME,
-              KeyConditionExpression: 'holder_address = :address',
-              ExpressionAttributeValues: {
-                ':address': address
-              }
-            })
-          );
+    // if (holderAddresses.length > 0) {
+    //   // Query each holder address individually since DynamoDB doesn't support IN with multiple values
+    //   // TODO: optimize this
+    //   const mappingPromises = holderAddresses.map(async (address) => {
+    //     try {
+    //       const response = await docClient.send(
+    //         new QueryCommand({
+    //           TableName: TOKEN_HOLDERS_MAPPING_TABLE_NAME,
+    //           KeyConditionExpression: 'holder_address = :address',
+    //           ExpressionAttributeValues: {
+    //             ':address': address
+    //           }
+    //         })
+    //       );
+    //       if (response.Items && response.Items.length > 0) {
+    //         const mapping = response.Items[0];
+    //         console.log('mapping', mapping);
+    //         holderMappings[address] = {
+    //           token_address: mapping.token_address,
+    //           token_symbol: mapping.token_symbol,
+    //           token_name: mapping.token_name,
+    //           webhook_id: mapping.webhook_id
+    //         };
+    //       }
+    //     } catch (error) {
+    //       console.error(`Error fetching mapping for address ${address}:`, error);
+    //     }
+    //   });
 
-          if (response.Items && response.Items.length > 0) {
-            const mapping = response.Items[0];
-            holderMappings[address] = {
-              token_address: mapping.token_address,
-              token_symbol: mapping.token_symbol,
-              token_name: mapping.token_name,
-              webhook_id: mapping.webhook_id
-            };
-          }
-        } catch (error) {
-          console.error(`Error fetching mapping for address ${address}:`, error);
-        }
-      });
-
-      // Wait for all queries to complete
-      await Promise.all(mappingPromises);
-    }
+    //   // Wait for all queries to complete
+    //   await Promise.all(mappingPromises);
+    // }
 
     // Enrich events with token holder mapping info
     const enrichedEvents = sortedItems.map(event => ({
       ...event,
-      holder_mapping: holderMappings[event.holder_address] || null
+      // holder_mapping: holderMappings[event.holder_address] || null
     }));
 
     return NextResponse.json({
