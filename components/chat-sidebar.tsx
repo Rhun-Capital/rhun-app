@@ -160,7 +160,7 @@ const fredTools: Tool[] = [
     requiresAuth: false
   },
   {
-    name: 'Market Data',
+    name: 'S&P 500',
     description: 'Access S&P 500 and other market indicators',
     command: getToolCommand('fred-market') || 'Show me the S&P 500 index from FRED',
     isNew: true,
@@ -209,35 +209,35 @@ const portfolioTools: Tool[] = [
     name: 'Swap Tokens',
     description: 'Swap tokens directly through the chat interface',
     command: getToolCommand('swap-tokens') || 'Swap tokens',
-    isNew: true,
+    isNew: false,
     requiresAuth: true
   },
   {
     name: 'Portfolio Value',
     description: 'View your current portfolio value and holdings',
     command: getToolCommand('portfolio-value') || 'Show me my portfolio value',
-    isNew: true,
+    isNew: false,
     requiresAuth: true
   },
   {
     name: 'Agent Portfolio Value',
     description: 'View the agent\'s portfolio value and holdings',
     command: getToolCommand('agent-portfolio-value') || 'Show me your portfolio value',
-    isNew: true,
+    isNew: false,
     requiresAuth: true
   },
   {
     name: 'Token Holdings',
     description: 'View your current token holdings and balances',
     command: getToolCommand('token-holdings') || 'Show me my token holdings',
-    isNew: true,
+    isNew: false,
     requiresAuth: true
   },
   {
     name: 'Agent Token Holdings',
     description: 'View the agent\'s token holdings and balances',
     command: getToolCommand('agent-token-holdings') || 'Show me your token holdings',
-    isNew: true,
+    isNew: false,
     requiresAuth: true
   }
 ];
@@ -247,7 +247,7 @@ const technicalAnalysisTools: Tool[] = [
   {
     name: 'Technical Analysis',
     description: 'Get detailed technical analysis for any cryptocurrency',
-    command: getToolCommand('technical-analysis') || 'Show me a technical analysis for',
+    command: getToolCommand('technical-analysis') || 'Show me technical analysis for',
     isNew: true,
     requiresAuth: false
   },
@@ -266,35 +266,35 @@ const marketAnalysisTools: Tool[] = [
     name: 'Market Movers',
     description: 'Track the biggest price movers in the market',
     command: getToolCommand('market-movers') || 'Show me the top market movers today',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Fear & Greed Index',
     description: 'Check the current market sentiment',
     command: getToolCommand('fear-greed-index') || 'What is the current fear and greed index?',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Get Market Categories',
     description: 'Explore different categories of tokens and their performance',
     command: getToolCommand('market-categories') || 'Show me the market categories',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Get Total Crypto Market Cap',
     description: 'View the total market capitalization of all cryptocurrencies',
     command: getToolCommand('total-market-cap') || 'Show me the total crypto market cap',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Get Derivatives Exchanges',
     description: 'View comprehensive data about cryptocurrency derivatives exchanges',
     command: getToolCommand('derivatives-exchanges') || 'Show me derivatives exchanges',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   }
 ];
@@ -305,14 +305,14 @@ const researchTools: Tool[] = [
     name: 'Deep Research',
     description: 'Perform deep research on cryptocurrency and finance using browser automation',
     command: getToolCommand('web-research') || 'Start research',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Stock Analysis',
     description: 'Get comprehensive financial data, news sentiment, and options analysis for any stock',
     command: getToolCommand('stock-analysis') || 'Analyze stock data',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
@@ -330,35 +330,35 @@ const tokenDiscoveryTools: Tool[] = [
     name: 'Get Recent Tokens on DexScreener',
     description: 'Discover the latest tokens listed on DexScreener',
     command: getToolCommand('recent-dexscreener-tokens') || 'Search for recently listed tokens on DexScreener',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Get Trending Tokens',
     description: 'Discover trending tokens on CoinGecko across all chains',
     command: getToolCommand('trending-tokens') || 'Search for trending tokens',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Get Solana Trending Tokens',
     description: 'Discover trending tokens on Solana',
     command: getToolCommand('trending-solana-tokens') || 'Search for trending tokens on Solana',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Get Latest Tokens',
     description: 'Discover newly listed tokens on CoinGecko',
     command: getToolCommand('recent-tokens') || 'Search for recently listed tokens',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Search Tokens',
     description: 'Search through the complete database of tokens',
     command: getToolCommand('search-tokens') || 'Search for tokens',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   }
 ];
@@ -369,21 +369,21 @@ const walletTools: Tool[] = [
     name: 'Get Wallet Info',
     description: 'Examine detailed information about any Solana wallet address',
     command: getToolCommand('wallet-info') || 'Show me information about a solana account',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Track Wallet Activity',
     description: 'Track wallet activity for any Solana wallet address',
     command: getToolCommand('wallet-activity') || 'Show me information about a solana account and track activity',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   },
   {
     name: 'Get Top Token Holders',
     description: 'Identify the largest holders of any specific token',
     command: getToolCommand('top-holders') || 'Show me the top token holders',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   }
 ];
@@ -394,7 +394,7 @@ const nftTools: Tool[] = [
     name: 'Get Top NFTs',
     description: 'Discover the top NFTs. Filter by volume, floor price, and more',
     command: getToolCommand('top-nfts') || 'Show me the top NFTs',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   }
 ];
@@ -405,7 +405,7 @@ const networkTools: Tool[] = [
     name: 'Get Solana Transaction Volume',
     description: 'Check the current transaction volume across the Solana network',
     command: getToolCommand('solana-transaction-volume') || 'Show me the transaction volume on Solana',
-    isNew: true,
+    isNew: false,
     requiresAuth: false
   }
 ];

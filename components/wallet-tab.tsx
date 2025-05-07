@@ -4,13 +4,15 @@ import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
-import { SendIcon, QrCode, Repeat2, RefreshCcw } from 'lucide-react';
+import { SendIcon, QrCode, Repeat2, RefreshCcw, Clock } from 'lucide-react';
 import CopyButton from '@/components/copy-button';
 import FundingModal from '@/components/funding-amount-modal';
 import LoadingIndicator from '@/components/loading-indicator';
 import dynamic from 'next/dynamic';
 import {useFundWallet} from '@privy-io/react-auth/solana';
 import { useModal } from '@/contexts/modal-context'; // Adjust path as needed
+import DelegateWalletButton from '@/components/delegate-wallet-button';
+import AutoTradingModal from '@/components/auto-trading-modal';
 
 
 const TransferModal = dynamic(() => import('@/components/send-button'), {
@@ -42,6 +44,8 @@ export default function WalletTab({ agentId }: { agentId: string }) {
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [showFundingModal, setShowFundingModal] = useState(false);
   const { openModal, closeModal } = useModal();
+  const [isAutoTradingModalOpen, setIsAutoTradingModalOpen] = useState(false);
+  const [activeStrategies, setActiveStrategies] = useState<any[]>([]);
 
   const params = useParams();
   const { fundWallet } = useFundWallet();
@@ -225,6 +229,33 @@ useEffect(() => {
 
   }
 
+  // New function to fetch active strategies
+  const fetchActiveStrategies = async () => {
+    if (!walletAddress) return;
+    
+    try {
+      const token = await getAccessToken();
+      const response = await fetch(`/api/trading/strategies/${walletAddress}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setActiveStrategies(data.strategies || []);
+      }
+    } catch (error) {
+      console.error('Error fetching active strategies:', error);
+    }
+  };
+
+  // Fetch active strategies on mount and when wallet changes
+  useEffect(() => {
+    if (walletAddress) {
+      fetchActiveStrategies();
+    }
+  }, [walletAddress]);
 
   if (!agentId) {
     return (
@@ -368,8 +399,8 @@ useEffect(() => {
               ))}
             </div>
 
-            {/* Wallet Actions - Moved below token list with square button style */}
-            <div className="flex justify-center gap-4 mt-4">
+            {/* Wallet Actions - Left aligned instead of centered */}
+            <div className="flex justify-start gap-4 mt-4 border-t border-zinc-700 pt-4">
               <button 
                 onClick={() => setIsReceiveModalOpen(true)}
                 className="w-24 h-24 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-3 border border-zinc-700"
@@ -429,6 +460,60 @@ useEffect(() => {
             </div>
           </div>
 
+          {/* Automated Trading - Separate Card */}
+          <div className="p-6 bg-zinc-800 bg-opacity-40 border border-zinc-700 rounded-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Automated Trading</h3>
+            </div>
+            <p className="text-sm text-zinc-400 mb-4">
+              Enable automated trading based on technical analysis signals. This allows the system to execute trades on your behalf when specific conditions are met.
+            </p>
+            <div className="space-y-4">
+              <DelegateWalletButton 
+                walletAddress={walletAddress || ''} 
+                chainType="solana"
+                onSuccess={refreshWalletData}
+              />
+              
+              {/* Auto-Trading Scheduler Button */}
+              <button
+                onClick={() => {
+                  setIsAutoTradingModalOpen(true);
+                  openModal();
+                }}
+                disabled={!walletAddress}
+                className="w-full px-4 py-2 rounded-lg transition text-sm bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>Schedule Auto-Trading</span>
+                </div>
+              </button>
+              
+              {/* Active Strategies (if any) */}
+              {activeStrategies.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <h4 className="text-sm font-medium text-zinc-300">Active Strategies</h4>
+                  {activeStrategies.map((strategy, index) => (
+                    <div key={index} className="bg-zinc-800 p-3 rounded-lg border border-zinc-700">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="text-xl">{strategy.icon}</div>
+                          <div>
+                            <div className="text-white">{strategy.name}</div>
+                            <div className="text-xs text-zinc-400">
+                              {strategy.frequency} • {strategy.amount} SOL → {strategy.targetToken}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Modal Components */}
           {walletAddress && (
             <ReceiveModal
@@ -470,6 +555,20 @@ useEffect(() => {
           />)}
         </div>
       )}
+
+      <AutoTradingModal
+        isOpen={isAutoTradingModalOpen}
+        onClose={() => {
+          setIsAutoTradingModalOpen(false);
+          closeModal();
+        }}
+        walletAddress={walletAddress || ''}
+        onSetupComplete={() => {
+          fetchActiveStrategies();
+          setIsAutoTradingModalOpen(false);
+          closeModal();
+        }}
+      />
 
       <FundingModal
           isOpen={showFundingModal}

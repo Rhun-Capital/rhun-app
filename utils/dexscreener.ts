@@ -9,6 +9,28 @@
 
 // Base API URL
 const DEX_SCREENER_API_BASE = 'https://api.dexscreener.com';
+const DEXSCREENER_API_URL = 'https://api.dexscreener.com/latest/dex';
+
+// Cache configuration
+const CACHE_TTL = 3600000; // 1 hour
+let tokenMetadataCache: { [address: string]: any } = {};
+let lastCacheCleanup = Date.now();
+
+// Rate limiting configuration
+const RATE_LIMITS = {
+  tokenProfiles: {
+    maxRequests: 60,
+    timeWindow: 60000, // 1 minute
+    currentRequests: 0,
+    lastReset: Date.now()
+  },
+  pairs: {
+    maxRequests: 300,
+    timeWindow: 60000, // 1 minute
+    currentRequests: 0,
+    lastReset: Date.now()
+  }
+};
 
 // =========================================
 // Types and Interfaces
@@ -681,5 +703,93 @@ export async function retrieveDexScreenerTokens(
   } catch (error) {
     console.error('Error retrieving DexScreener tokens:', error);
     return [];
+  }
+}
+
+// Rate limiting helper
+function checkRateLimit(type: 'tokenProfiles' | 'pairs'): boolean {
+  const limit = RATE_LIMITS[type];
+  const now = Date.now();
+  
+  // Reset counter if time window has passed
+  if (now - limit.lastReset > limit.timeWindow) {
+    limit.currentRequests = 0;
+    limit.lastReset = now;
+  }
+  
+  // Check if we're under the limit
+  if (limit.currentRequests >= limit.maxRequests) {
+    return false;
+  }
+  
+  // Increment counter
+  limit.currentRequests++;
+  return true;
+}
+
+// Wait helper
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Rate-limited fetch wrapper
+async function rateLimitedFetch(url: string, type: 'tokenProfiles' | 'pairs', options?: RequestInit): Promise<Response> {
+  // Wait until we're under the rate limit
+  while (!checkRateLimit(type)) {
+    await wait(1000); // Wait 1 second before retrying
+  }
+  
+  const response = await fetch(url, options);
+  
+  // Handle rate limit errors
+  if (response.status === 403) {
+    console.warn(`Rate limit hit for ${type}, waiting before retry...`);
+    await wait(5000); // Wait 5 seconds before retrying
+    return rateLimitedFetch(url, type, options);
+  }
+  
+  return response;
+}
+
+// Update the getTokenMetadataFromDexScreener function
+async function getTokenMetadataFromDexScreener(address: string) {
+  // Clean the cache occasionally
+  const now = Date.now();
+  if (now - lastCacheCleanup > CACHE_TTL) {
+    tokenMetadataCache = {};
+    lastCacheCleanup = now;
+  }
+  
+  // Return cached data if available
+  if (tokenMetadataCache[address]) {
+    return tokenMetadataCache[address];
+  }
+  
+  try {
+    console.log(`Fetching token metadata from DexScreener for ${address}`);
+    
+    // Try first with the tokens endpoint
+    let response = await rateLimitedFetch(`${DEXSCREENER_API_URL}/tokens/${address}`, 'tokenProfiles');
+    
+    // If that fails, try with the solana-specific endpoint
+    if (!response.ok) {
+      console.log(`Trying alternative DexScreener endpoint for Solana token: ${address}`);
+      response = await rateLimitedFetch(`${DEXSCREENER_API_URL}/tokens/solana/${address}`, 'tokenProfiles');
+    }
+    
+    if (!response.ok) {
+      // If both fail, try one more approach with pairs endpoint
+      console.log(`Trying token-pairs endpoint for token: ${address}`);
+      response = await rateLimitedFetch(`https://api.dexscreener.com/token-pairs/v1/solana/${address}`, 'pairs');
+      
+      if (!response.ok) {
+        throw new Error(`All DexScreener API endpoints failed: ${response.status}`);
+      }
+    }
+    
+    // ... rest of the existing function code ...
+  } catch (error) {
+    console.error('Error fetching from DexScreener:', error);
+    return null;
   }
 } 

@@ -1,92 +1,112 @@
-import React, { useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useSolanaWallets } from '@privy-io/react-auth/solana';
-import { useDelegatedActions } from '@privy-io/react-auth';
-import type { WalletWithMetadata } from '@privy-io/react-auth';
+import React, { useState, useEffect } from 'react';
+import { useHeadlessDelegatedActions, usePrivy } from '@privy-io/react-auth';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 interface DelegateWalletButtonProps {
-  agentWalletAddress: string | null;
-  onDelegationComplete?: () => void;
+  walletAddress: string;
+  chainType: 'ethereum' | 'solana';
+  onSuccess?: () => void;
 }
 
-export default function DelegateWalletButton({ agentWalletAddress, onDelegationComplete }: DelegateWalletButtonProps) {
+export default function DelegateWalletButton({ 
+  walletAddress, 
+  chainType = 'solana',
+  onSuccess
+}: DelegateWalletButtonProps) {
+  const { delegateWallet, revokeWallets } = useHeadlessDelegatedActions();
   const { user } = usePrivy();
-  const { wallets, ready } = useSolanaWallets();
-  const { delegateWallet, revokeWallets } = useDelegatedActions();
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [delegateSuccess, setDelegateSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Find the wallet to delegate
-  const walletToDelegate = wallets.find(
-    (wallet) => wallet.address === agentWalletAddress && wallet.walletClientType === 'privy'
-  );
-
-  // Check if the wallet is already delegated
-  const isWalletDelegated = !!user?.linkedAccounts.find(
-    (account): account is WalletWithMetadata => 
-      account.type === 'wallet' && 
-      account.address === agentWalletAddress && 
-      account.delegated
-  );
+  // Check delegation status on component mount
+  useEffect(() => {
+    if (!user || !walletAddress) return;
+    
+    // Find the wallet in user's linked accounts
+    const isDelegated = user.linkedAccounts.some(
+      account => 
+        account.type === 'wallet' && 
+        account.address.toLowerCase() === walletAddress.toLowerCase() && 
+        account.delegated === true
+    );
+    
+    setDelegateSuccess(isDelegated);
+  }, [user, walletAddress]);
 
   const handleDelegateWallet = async () => {
-    if (!walletToDelegate || !ready || !agentWalletAddress) return;
+    if (!walletAddress) return;
+    
+    setLoading(true);
+    setError(null);
     
     try {
-      setIsLoading(true);
       await delegateWallet({
-        address: agentWalletAddress,
-        chainType: 'solana'
+        address: walletAddress,
+        chainType: chainType
       });
-      if (onDelegationComplete) {
-        onDelegationComplete();
-      }
-    } catch (error) {
-      console.error('Error delegating wallet:', error);
+      
+      setDelegateSuccess(true);
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      console.error('Error delegating wallet:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delegate wallet');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleRevokeAccess = async () => {
-    if (!isWalletDelegated) return;
+  const handleRevokeWallet = async () => {
+    setLoading(true);
+    setError(null);
     
     try {
-      setIsLoading(true);
       await revokeWallets();
-    } catch (error) {
-      console.error('Error revoking delegated access:', error);
+      setDelegateSuccess(false);
+    } catch (err) {
+      console.error('Error revoking wallet delegation:', err);
+      setError(err instanceof Error ? err.message : 'Failed to revoke wallet delegation');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  if (!agentWalletAddress) {
-    return null;
-  }
 
   return (
-    <div className="mt-4">
-      {isWalletDelegated ? (
-        <button
-          onClick={handleRevokeAccess}
-          disabled={isLoading}
-          className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition disabled:opacity-50 text-sm"
-        >
-          {isLoading ? 'Processing...' : 'Revoke Server Access'}
-        </button>
-      ) : (
-        <button
-          onClick={handleDelegateWallet}
-          disabled={isLoading || !walletToDelegate || !ready}
-          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition disabled:opacity-50 text-sm"
-        >
-          {isLoading ? 'Processing...' : 'Enable Server Access'}
-        </button>
+    <div className="space-y-2">
+      {delegateSuccess ? (
+        <div className="flex items-center gap-2 text-green-400 text-sm mb-2">
+          <CheckCircle className="h-4 w-4" />
+          <span>Wallet successfully delegated</span>
+        </div>
+      ) : null}
+      
+      {error && (
+        <div className="flex items-center gap-2 text-red-400 text-sm mb-2">
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
       )}
-      <p className="text-xs text-zinc-400 mt-1">
-        {isWalletDelegated
-          ? 'Server has access to perform actions with this wallet'
-          : 'Enable server to perform actions with this wallet'}
+      
+      <button
+        onClick={delegateSuccess ? handleRevokeWallet : handleDelegateWallet}
+        disabled={loading || !walletAddress}
+        className={`w-full px-4 py-2 rounded-lg transition text-sm ${
+          delegateSuccess 
+            ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50' 
+            : 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 border border-indigo-500/50'
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        {loading 
+          ? 'Processing...' 
+          : delegateSuccess 
+            ? 'Revoke Delegation' 
+            : 'Delegate Wallet'}
+      </button>
+      
+      <p className="text-xs text-zinc-400">
+        {delegateSuccess 
+          ? 'Your wallet is delegated. The system can now perform transactions on your behalf.'
+          : 'Delegate your wallet to allow automated trading based on TA signals.'}
       </p>
     </div>
   );
