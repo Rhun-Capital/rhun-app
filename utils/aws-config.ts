@@ -2,7 +2,7 @@ import type { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import type { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
 export const HOLDERS_ACTIVITY_TABLE_NAME = process.env.DYNAMODB_HOLDERS_ACTIVITY_TABLE_NAME || "TokenHoldersActivity";
-export const TOKEN_HOLDERS_MAPPING_TABLE_NAME = process.env.DYNAMODB_TOKEN_HOLDERS_MAPPING_TABLE_NAME || "TokenHolderMapping";
+export const TOKEN_HOLDERS_MAPPING_TABLE_NAME = process.env.DYNAMODB_TOKEN_HOLDERS_MAPPING_TABLE_NAME || "TokenHoldersMapping";
 
 // Define token holder activity interface
 export interface TokenHolderActivity {
