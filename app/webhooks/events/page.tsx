@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { Copy, Check, User, ChevronDown, ArrowUpRight } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 
 interface TokenMetadata {
   symbol: string;
@@ -41,6 +42,8 @@ interface WebhookEvent {
     token_symbol: string;
     token_name: string;
     webhook_id: string;
+    token_logo_uri?: string;
+    token_decimals?: number;
   } | null;
   swap_value_usd?: number;
 }
@@ -358,6 +361,162 @@ const CURATED_TOKENS: TokenOption[] = [
   // Add more tokens as needed
 ];
 
+function WhaleEventHeader({ event }: { event: WebhookEvent }) {
+  const tokenSymbol = event.holder_mapping?.token_symbol || event.tracked_token?.symbol;
+  const tokenName = event.holder_mapping?.token_name || event.tracked_token?.name;
+  const logoURI = event.holder_mapping?.token_logo_uri || event.tracked_token?.logoURI;
+
+  return (
+    <div className="flex items-center gap-2 mb-3 w-full">
+      <TokenIcon 
+        symbol={tokenSymbol || ''} 
+        logoURI={logoURI}
+      />
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-400 font-bold">
+              {tokenSymbol?.toUpperCase()} Whale
+            </span>
+            <span className="text-gray-300 flex items-center gap-2">
+              just bought {formatAmount(event.toToken.amount)}{' '}
+              <div className="flex items-center gap-1">
+                <TokenIcon 
+                  symbol={event.toToken.symbol}
+                  logoURI={event.toToken.metadata?.logoURI}
+                />
+                <span>{event.toToken.symbol}</span>
+              </div>
+              {event.toToken.usd_value && (
+                <span className="text-gray-400">
+                  ({formatAmount(event.toToken.usd_value, 0, true)})
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <div className="text-xs text-gray-500 flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {formatAddress(event.holder_address)}
+            <CopyButton text={event.holder_address} />
+          </div>
+          <div className="text-xs text-gray-400">
+            {formatDistanceToNow(new Date(event.timestamp * 1000), { addSuffix: true })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getTokenName(token: Token) {
+  if (token.symbol === 'SOL') return 'Solana';
+  return token.metadata?.name || token.symbol;
+}
+
+function formatTime(timestamp: number) {
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleString();
+}
+
+function EventAccordion({ event }: { event: WebhookEvent }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      {/* Main whale buy info - always visible */}
+      <div 
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <WhaleEventHeader event={event} />
+        <button 
+          className={`p-2 hover:bg-gray-700/50 rounded-full transition-all ${isExpanded ? 'rotate-180' : ''}`}
+          aria-label="Toggle details"
+        >
+          <ChevronDown className="w-5 h-5 text-gray-400" />
+        </button>
+      </div>
+
+      {/* Expandable details */}
+      <div 
+        className={`grid transition-all duration-200 ease-in-out ${
+          isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="pt-2 space-y-4">
+            {/* Token transfer details */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-4">
+                {/* From Token */}
+                <div className="flex items-center space-x-2">
+                  <TokenIcon 
+                    symbol={event.fromToken.symbol} 
+                    logoURI={event.fromToken.metadata?.logoURI}
+                  />
+                  <div>
+                    <div className="font-medium">
+                      {formatAmount(event.fromToken.amount)}
+                    </div>
+                    <div className="text-sm text-gray-400">{getTokenName(event.fromToken)}</div>
+                    {event.fromToken.usd_value && (
+                      <div className="text-xs text-gray-500">
+                        {formatAmount(event.fromToken.usd_value, 0, true)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Arrow */}
+                <div className="text-gray-400">→</div>
+
+                {/* To Token */}
+                <div className="flex items-center space-x-2">
+                  <TokenIcon 
+                    symbol={event.toToken.symbol} 
+                    logoURI={event.toToken.metadata?.logoURI}
+                  />
+                  <div>
+                    <div className="font-medium">
+                      {formatAmount(event.toToken.amount)}
+                    </div>
+                    <div className="text-sm text-gray-400">{getTokenName(event.toToken)}</div>
+                    {event.toToken.usd_value && (
+                      <div className="text-xs text-gray-500">
+                        {formatAmount(event.toToken.usd_value, 0, true)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Timestamp moved under token details */}
+              <div className="text-sm text-gray-400 pl-10">
+                {formatTime(event.timestamp)}
+              </div>
+            </div>
+
+            {/* Footer with additional info */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-700/50">
+              <WhaleMovementNotification event={event} />
+              <a 
+                href={`https://solscan.io/tx/${event.signature}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                View on Solscan
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WebhookEventsPage() {
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -551,17 +710,6 @@ export default function WebhookEventsPage() {
     return () => clearInterval(interval);
   }, [trackedTokens]);
 
-  const formatTime = (timestamp: number) => {
-    // Convert Unix timestamp from seconds to milliseconds
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleString();
-  };
-
-  const getTokenName = (token: Token) => {
-    if (token.symbol === 'SOL') return 'Solana';
-    return token.metadata?.name || token.symbol;
-  };
-
   // Add token selection handler
   const toggleToken = (tokenAddress: string) => {
     setSelectedTokens(prev => 
@@ -573,6 +721,13 @@ export default function WebhookEventsPage() {
 
   // Add filtered events
   const filteredEvents = events.filter(event => {
+    // Filter out swaps where user is selling tokens for SOL or USDC
+    if (
+      (event.toToken.symbol === 'SOL' && event.fromToken.symbol !== 'SOL') ||
+      (event.toToken.symbol === 'USDC' && event.fromToken.symbol !== 'USDC')
+    ) return false;
+    
+    // Apply token filter if any tokens are selected
     if (selectedTokens.length === 0) return true;
     return selectedTokens.includes(event.tracked_token?.address || '');
   });
@@ -676,140 +831,7 @@ export default function WebhookEventsPage() {
                   
                   {/* Content */}
                   <div className="relative p-4">
-                    {event.holder_mapping && (
-                      <div className="mb-2 flex items-center text-yellow-400">
-                        <TokenIcon 
-                          symbol={event.holder_mapping.token_symbol} 
-                          logoURI={event.tracked_token?.logoURI} 
-                        />
-                        <span className="ml-2 font-bold">
-                          {event.holder_mapping.token_symbol} Whale
-                        </span>
-                        <span className="ml-2 text-gray-300">
-                          just bought {formatAmount(event.toToken.amount)} {event.toToken.symbol}
-                          {event.toToken.usd_value && (
-                            <> ({formatAmount(event.toToken.usd_value, 0, true)})</>
-                          )}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* Show tracked token info for all events */}
-                    {(event.holder_mapping || event.tracked_token) && (
-                      <div className="mb-2 text-xs text-yellow-400 flex items-center">
-                        <div className="flex items-center">
-                          <TokenIcon 
-                            symbol={event.holder_mapping?.token_symbol || event.tracked_token?.symbol || ''} 
-                            logoURI={event.tracked_token?.logoURI} 
-                          />
-                          <span className="ml-2">
-                            {event.holder_mapping?.token_symbol || event.tracked_token?.symbol} Holder
-                            {(event.holder_mapping?.token_name || event.tracked_token?.name) && 
-                              (event.holder_mapping?.token_name !== event.holder_mapping?.token_symbol || 
-                               event.tracked_token?.name !== event.tracked_token?.symbol) && (
-                                <span className="text-gray-400 ml-1">
-                                  ({event.holder_mapping?.token_name || event.tracked_token?.name})
-                                </span>
-                              )}
-                            {(event.holder_mapping?.token_address || event.tracked_token?.address) && (
-                              <span className="ml-1 text-gray-400">
-                                {formatAddress(event.holder_mapping?.token_address || event.tracked_token?.address)}
-                                <CopyButton text={event.holder_mapping?.token_address || event.tracked_token?.address || ''} />
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-4">
-                        {/* From Token */}
-                        <div className="flex items-center space-x-2">
-                          <TokenIcon 
-                            symbol={event.fromToken.symbol} 
-                            logoURI={event.fromToken.metadata?.logoURI}
-                          />
-                          <div>
-                            <div className="font-medium">
-                              {formatAmount(event.fromToken.amount)}
-                            </div>
-                            <div className="text-sm text-gray-400">{getTokenName(event.fromToken)}</div>
-                            {event.fromToken.usd_value && (
-                              <div className="text-xs text-gray-500">
-                                {formatAmount(event.fromToken.usd_value, 0, true)}
-                              </div>
-                            )}
-                            {event.fromToken.metadata?.address && (
-                              <div className="text-xs text-gray-500 flex items-center">
-                                {formatAddress(event.fromToken.metadata.address)}
-                                <CopyButton text={event.fromToken.metadata.address} />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Arrow */}
-                        <div className="text-gray-400">→</div>
-
-                        {/* To Token */}
-                        <div className="flex items-center space-x-2">
-                          <TokenIcon 
-                            symbol={event.toToken.symbol} 
-                            logoURI={event.toToken.metadata?.logoURI}
-                          />
-                          <div>
-                            <div className="font-medium">
-                              {formatAmount(event.toToken.amount)}
-                            </div>
-                            <div className="text-sm text-gray-400">{getTokenName(event.toToken)}</div>
-                            {event.toToken.usd_value && (
-                              <div className="text-xs text-gray-500">
-                                {formatAmount(event.toToken.usd_value, 0, true)}
-                              </div>
-                            )}
-                            {event.toToken.metadata?.address && (
-                              <div className="text-xs text-gray-500 flex items-center">
-                                {formatAddress(event.toToken.metadata.address)}
-                                <CopyButton text={event.toToken.metadata.address} />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-sm text-gray-400">
-                        {formatTime(event.timestamp)}
-                      </div>
-                    </div>
-
-                    {/* Add Swap Summary */}
-                    {event.swap_value_usd && (
-                      <div className="mt-2 p-2 bg-zinc-800/50 rounded-lg">
-                        <div className="text-sm font-medium text-gray-300">
-                          Swap Value: {formatAmount(event.swap_value_usd, 0, true)}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="mt-2 text-sm text-gray-400 flex items-center justify-between">
-                      <WhaleMovementNotification event={event} />
-                      <div className="flex items-center gap-4">
-                        <a 
-                          href={`https://solscan.io/tx/${event.signature}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-white transition-colors"
-                        >
-                          View on Solscan
-                        </a>
-                        <div className="text-xs text-gray-500 flex items-center">
-                          <User className="h-3 w-3 mr-1" />
-                          {formatAddress(event.holder_address)}
-                          <CopyButton text={event.holder_address} />
-                        </div>
-                      </div>
-                    </div>
+                    <EventAccordion event={event} />
                   </div>
                 </div>
               </HolographicCard>

@@ -24,10 +24,11 @@ export async function registerWebhook(config: WebhookConfig): Promise<WebhookRes
     throw new Error('HELIUS_API_KEY is not set in environment variables');
   }
 
-  const response = await fetch('https://api.helius.xyz/v0/webhooks', {
+  const response = await fetch(`https://api.helius.xyz/v0/webhooks?api-key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
       webhookURL: config.webhookURL,

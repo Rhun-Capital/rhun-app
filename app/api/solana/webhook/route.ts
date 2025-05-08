@@ -1,7 +1,20 @@
 import { NextResponse } from 'next/server';
-import { storeTokenHolderActivity, ensureTokenHoldersActivityTableExists } from '@/utils/aws-config';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { storeTokenHolderActivity, ensureTokenHoldersActivityTableExists, TOKEN_HOLDERS_MAPPING_TABLE_NAME } from '@/utils/aws-config';
 import { fetchTokenMetadata } from '@/utils/solscan-api';
 import { fetchCoinGeckoTokenMetadata, fetchTokenPrices, calculateTokenValue } from '@/utils/coingecko';
+
+// Initialize DynamoDB client
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const docClient = DynamoDBDocumentClient.from(client);
 
 // Add interfaces at the top of the file after imports
 interface CoinGeckoTokenMetadata {
@@ -436,7 +449,6 @@ function extractSwapFromInstructions(parsedInstructions: any[], tokenMeta: any) 
 export async function POST(request: Request) {
   try {
     const webhookData = await request.json();
-    console.log('Received webhook data');
     
     if (!webhookData || (!Array.isArray(webhookData) && !webhookData.accountData)) {
       return NextResponse.json(
@@ -608,13 +620,48 @@ export async function POST(request: Request) {
           })));
         }
 
+        // Find potential recipient addresses (addresses that received the toToken)
+        const potentialRecipients = solscanTx?.token_bal_change
+          ?.filter((change: any) => 
+            Number(change.change_amount) > 0 &&
+            change.owner
+          )
+          .map((change: any) => change.owner) || [];
+
+
+        // If we have potential recipients, check which ones are in our TOKEN_HOLDERS_MAPPING_TABLE
+        let trackedHolder = null;
+        if (potentialRecipients.length > 0) {
+          for (const recipient of potentialRecipients) {
+            try {
+              const response = await docClient.send(
+                new QueryCommand({
+                  TableName: TOKEN_HOLDERS_MAPPING_TABLE_NAME,
+                  KeyConditionExpression: 'holder_address = :address',
+                  ExpressionAttributeValues: {
+                    ':address': recipient
+                  }
+                })
+              );
+              
+              if (response.Items && response.Items.length > 0) {
+                trackedHolder = recipient;
+                break;
+              }
+            } catch (error) {
+              console.error(`Error checking holder mapping for address ${recipient}:`, error);
+            }
+          }
+        }
+
+
         // Create enriched event data
         const enrichedEvent = {
           signature: event.signature,
           timestamp: event.timestamp,
           type: 'SWAP',
           description: event.description || `Swapped ${fromToken?.amount} ${fromToken?.symbol} for ${toToken?.amount} ${toToken?.symbol}`,
-          holder_address: event.accountData?.[0]?.account || '',
+          holder_address: trackedHolder || event.accountData?.[0]?.account || '',
           native_balance_change: event.accountData?.[0]?.nativeBalanceChange || 0,
           token_transfers: [], // Minimize stored data
           fromToken: {

@@ -158,16 +158,21 @@ initCommunityTokenList();
  */
 export async function fetchTokenMetadata(tokenAddress: string) {
   try {
-    const response = await fetch(`https://api.solscan.io/token/meta?token=${tokenAddress}`, {
+    const apiKey = process.env.SOLSCAN_API_KEY;
+    if (!apiKey) {
+      console.error('SOLSCAN_API_KEY is not set in environment variables');
+      return createFallbackMetadata(tokenAddress);
+    }
+
+    const response = await fetch(`https://pro-api.solscan.io/v2.0/token/meta?address=${tokenAddress}`, {
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0'
+        'token': apiKey
       }
     });
 
     if (!response.ok) {
       console.error(`Error fetching token metadata: ${response.status} ${response.statusText}`);
-      // Try community list as fallback for logo
       return createFallbackMetadata(tokenAddress);
     }
 
@@ -175,7 +180,6 @@ export async function fetchTokenMetadata(tokenAddress: string) {
     
     if (!data.success) {
       console.error('Solscan API returned error:', data);
-      // Try community list as fallback for logo
       return createFallbackMetadata(tokenAddress);
     }
 
@@ -184,7 +188,18 @@ export async function fetchTokenMetadata(tokenAddress: string) {
       symbol: data.data.symbol,
       name: data.data.name,
       decimals: data.data.decimals,
-      logoURI: data.data.logoURI
+      logoURI: data.data.icon,
+      price: data.data.price,
+      volume_24h: data.data.volume_24h,
+      market_cap: data.data.market_cap,
+      market_cap_rank: data.data.market_cap_rank,
+      price_change_24h: data.data.price_change_24h,
+      supply: data.data.supply,
+      holder_count: data.data.holder,
+      creator: data.data.creator,
+      created_time: data.data.created_time,
+      mint_authority: data.data.metadata?.mint_authority,
+      freeze_authority: data.data.metadata?.freeze_authority
     };
 
     // If no logo in Solscan data, try the community list
