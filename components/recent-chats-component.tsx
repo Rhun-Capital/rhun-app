@@ -1,3 +1,4 @@
+'use client';
 import React, { useEffect, useState, Dispatch, SetStateAction } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
@@ -33,10 +34,6 @@ export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => 
   const router = useRouter();
   const { recentChats } = useRecentChats();
   
-  // Log when component mounts to verify props
-  useEffect(() => {
-    console.log("RecentChats mounted with setIsOpen:", setIsOpen ? "function provided" : "no function");
-  }, [setIsOpen]);
 
   // No longer checking for user here since we want to show template chats even when logged out
   if (!recentChats || recentChats.length === 0) {
@@ -51,6 +48,17 @@ export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => 
   const hasMore = recentChats.length > maxVisible;
 
   const navigateToChat = (chat: Chat) => {
+
+    if (chat.isTemplate) {
+      const path = `/?chatId=${chat.chatId}`;
+      if (setIsOpen) {
+        setIsOpen(false);
+      }
+      console.log("Navigating to template chat:", path);
+      window.location.href = path;
+      return;
+    }
+
     const userId = chat.isTemplate ? 'template' : user?.id;
     const path = `/agents/${userId}/${chat.agentId}?chatId=${chat.chatId}`;
     if (setIsOpen) {
@@ -59,7 +67,6 @@ export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => 
     // Short delay to ensure the sidebar closes before navigating
     setTimeout(() => {
       router.push(path);
-      router.refresh();
     }, 10);
   };
 
@@ -71,25 +78,51 @@ export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => 
 
       <div className="space-y-1 mb-3">
         {visibleChats.map((chat) => (
-          <button
-            key={chat.chatId}
-            onClick={() => navigateToChat(chat)}
-            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-800 transition-colors text-left group"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium text-zinc-300 truncate">
-                  {chat.agentName}
+          chat.isTemplate ? (
+            <button
+              key={chat.chatId}
+              onClick={() => {
+                setIsOpen?.(false);
+                window.location.href = `/?chatId=${chat.chatId}`;
+              }}
+              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-800 transition-colors text-left group"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium text-zinc-300 truncate">
+                    {chat.agentName}
+                  </div>
+                </div>
+                <div className="text-xs text-zinc-500 truncate">
+                  {chat.lastMessage}
                 </div>
               </div>
-              <div className="text-xs text-zinc-500 truncate">
-                {chat.lastMessage}
+              <div className="text-xs text-zinc-600">
+                {formatTimeAgo(chat.lastUpdated)}
               </div>
-            </div>
-            <div className="text-xs text-zinc-600">
-              {formatTimeAgo(chat.lastUpdated)}
-            </div>
-          </button>
+            </button>
+          ) : (
+            <Link
+              key={chat.chatId}
+              href={`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`}
+              onClick={() => setIsOpen?.(false)}
+              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-800 transition-colors text-left group block"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium text-zinc-300 truncate">
+                    {chat.agentName}
+                  </div>
+                </div>
+                <div className="text-xs text-zinc-500 truncate">
+                  {chat.lastMessage}
+                </div>
+              </div>
+              <div className="text-xs text-zinc-600">
+                {formatTimeAgo(chat.lastUpdated)}
+              </div>
+            </Link>
+          )
         ))}
       </div>
 
