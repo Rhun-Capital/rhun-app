@@ -460,7 +460,7 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Automated Trading - Separate Card */}
+          {/* Automated Trading - Temporarily Disabled
           <div className="p-6 bg-zinc-800 bg-opacity-40 border border-zinc-700 rounded-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Automated Trading</h3>
@@ -475,7 +475,6 @@ useEffect(() => {
                 onSuccess={refreshWalletData}
               />
               
-              {/* Auto-Trading Scheduler Button */}
               <button
                 onClick={() => {
                   setIsAutoTradingModalOpen(true);
@@ -490,7 +489,6 @@ useEffect(() => {
                 </div>
               </button>
               
-              {/* Active Strategies (if any) */}
               {activeStrategies.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <h4 className="text-sm font-medium text-zinc-300">Active Strategies</h4>
@@ -513,6 +511,7 @@ useEffect(() => {
               )}
             </div>
           </div>
+          */}
 
           {/* Modal Components */}
           {walletAddress && (

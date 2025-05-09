@@ -193,6 +193,26 @@ export async function GET(
       throw new Error(`Invalid token address format: ${params.address}`);
     }
 
+    // Try Jupiter API first as it's most reliable for token metadata
+    try {
+      const jupiterResponse = await fetch(`https://token.jup.ag/strict/${params.address}`);
+      if (jupiterResponse.ok) {
+        const jupiterData = await jupiterResponse.json();
+        if (jupiterData) {
+          console.log('Found token metadata from Jupiter:', jupiterData);
+          const metadata: TokenMetadata = {
+            symbol: jupiterData.symbol || 'Unknown',
+            name: jupiterData.name || 'Unknown Token',
+            decimals: jupiterData.decimals || 9,
+            logoURI: jupiterData.logoURI || null
+          };
+          return NextResponse.json(metadata);
+        }
+      }
+    } catch (jupiterError) {
+      console.error('Error fetching from Jupiter:', jupiterError);
+    }
+
     const rpcUrl = `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`;
     
     // Try to fetch token metadata from Solscan API first

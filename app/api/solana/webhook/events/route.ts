@@ -30,6 +30,8 @@ export async function GET() {
       (b.timestamp || 0) - (a.timestamp || 0)
     );
 
+    console.log('sortedItems', sortedItems);
+
     // Get token holder mappings for all holder addresses in the events
     const holderAddresses = [...new Set(sortedItems.map(item => item.holder_address))];
     const holderMappings: Record<string, any> = {};

@@ -522,30 +522,74 @@ export async function POST(request: Request) {
               // Handle SOL specially
               const isSOL = (address: string) => address === 'So11111111111111111111111111111111111111112';
               
+              // Try to get additional metadata from Jupiter for non-SOL tokens
+              interface TokenAdditionalMetadata {
+                token_symbol?: string;
+                token_name?: string;
+                token_icon?: string;
+              }
+              
+              let fromAdditionalMeta: TokenAdditionalMetadata = {};
+              let toAdditionalMeta: TokenAdditionalMetadata = {};
+              
+              if (!isSOL(from.token_address)) {
+                try {
+                  const response = await fetch(`https://token.jup.ag/strict/${from.token_address}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    fromAdditionalMeta = {
+                      token_symbol: data.symbol,
+                      token_name: data.name,
+                      token_icon: data.logoURI
+                    };
+                  }
+                } catch (error) {
+                  console.error(`Error fetching metadata for ${from.token_address}:`, error);
+                }
+              }
+              
+              if (!isSOL(to.token_address)) {
+                try {
+                  const response = await fetch(`https://token.jup.ag/strict/${to.token_address}`);
+                  if (response.ok) {
+                    const data = await response.json();
+                    toAdditionalMeta = {
+                      token_symbol: data.symbol,
+                      token_name: data.name,
+                      token_icon: data.logoURI
+                    };
+                  }
+                } catch (error) {
+                  console.error(`Error fetching metadata for ${to.token_address}:`, error);
+                }
+              }
+              
               fromToken = {
                 address: from.token_address,
                 amount: Math.abs(Number(from.change_amount)) / Math.pow(10, from.decimals),
-                symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || 'Unknown'),
                 decimals: from.decimals,
                 metadata: {
-                  symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || 'Unknown'),
-                  name: isSOL(from.token_address) ? 'Solana' : (fromMeta.token_name || 'Unknown Token'),
+                  symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || fromAdditionalMeta.token_symbol || 'Unknown'),
+                  name: isSOL(from.token_address) ? 'Solana' : (fromMeta.token_name || fromAdditionalMeta.token_name || 'Unknown Token'),
                   decimals: from.decimals,
-                  logoURI: fromMeta.token_icon || null,
+                  logoURI: fromMeta.token_icon || fromAdditionalMeta.token_icon || null,
                 },
+                // Use metadata symbol for the main symbol property
+                symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || fromAdditionalMeta.token_symbol || 'Unknown'),
               };
 
               toToken = {
                 address: to.token_address,
                 amount: Math.abs(Number(to.change_amount)) / Math.pow(10, to.decimals),
-                symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || 'Unknown'),
                 decimals: to.decimals,
                 metadata: {
-                  symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || 'Unknown'),
-                  name: isSOL(to.token_address) ? 'Solana' : (toMeta.token_name || 'Unknown Token'),
+                  symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || toAdditionalMeta.token_symbol || 'Unknown'),
+                  name: isSOL(to.token_address) ? 'Solana' : (toMeta.token_name || toAdditionalMeta.token_name || 'Unknown Token'),
                   decimals: to.decimals,
-                  logoURI: toMeta.token_icon || null,
+                  logoURI: toMeta.token_icon || toAdditionalMeta.token_icon || null,
                 },
+                // Use metadata symbol for the main symbol property
+                symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || toAdditionalMeta.token_symbol || 'Unknown'),
               };
             }
           }
@@ -645,7 +689,7 @@ export async function POST(request: Request) {
               );
               
               if (response.Items && response.Items.length > 0) {
-                trackedHolder = recipient;
+                trackedHolder = response.Items[0];
                 break;
               }
             } catch (error) {
@@ -653,6 +697,8 @@ export async function POST(request: Request) {
             }
           }
         }
+
+        console.log('trackedHolder', trackedHolder);
 
 
         // Create enriched event data
@@ -662,26 +708,33 @@ export async function POST(request: Request) {
           type: 'SWAP',
           description: event.description || `Swapped ${fromToken?.amount} ${fromToken?.symbol} for ${toToken?.amount} ${toToken?.symbol}`,
           holder_address: trackedHolder || event.accountData?.[0]?.account || '',
+          holder_mapping: {
+            token_address: trackedHolder?.token_address,
+            token_symbol: trackedHolder?.token_symbol,
+            token_name: trackedHolder?.token_name,
+            token_logo_uri: trackedHolder?.token_logo_uri,
+            token_decimals: trackedHolder?.token_decimals
+          },
           native_balance_change: event.accountData?.[0]?.nativeBalanceChange || 0,
           token_transfers: [], // Minimize stored data
           fromToken: {
             address: fromToken?.address || null,
-            symbol: fromToken?.symbol || 'Unknown',
+            symbol: fromToken?.metadata?.symbol || 'Unknown',
             amount: fromToken?.amount || 0,
             metadata: fromTokenMetadata || fromToken?.metadata || {
-              symbol: fromToken?.symbol || 'Unknown',
-              name: fromToken?.symbol || 'Unknown Token',
+              symbol: fromToken?.metadata?.symbol || 'Unknown',
+              name: fromToken?.metadata?.name || 'Unknown Token',
               decimals: 9
             },
             usd_value: fromTokenValue
           },
           toToken: {
             address: toToken?.address || null,
-            symbol: toToken?.symbol || 'Unknown',
+            symbol: toToken?.metadata?.symbol || 'Unknown',
             amount: toToken?.amount || 0,
             metadata: toTokenMetadata || toToken?.metadata || {
-              symbol: toToken?.symbol || 'Unknown',
-              name: toToken?.symbol || 'Unknown Token',
+              symbol: toToken?.metadata?.symbol || 'Unknown',
+              name: toToken?.metadata?.name || 'Unknown Token',
               decimals: 9
             },
             usd_value: toTokenValue
