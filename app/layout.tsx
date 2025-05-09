@@ -22,13 +22,13 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body className={`${inter.className} h-full overflow-hidden`}>
+      <body className={`${inter.className} h-full`}>
         <ModalProvider>
           <PrivyWrapper>
             <ChatProvider>
-              <div className="flex flex-row h-full w-full bg-zinc-900 overflow-hidden relative">
+              <div className="flex flex-row h-full w-full bg-zinc-900 relative">
                 <Sidebar />
-                <div className="flex-1 overflow-hidden h-full w-full">
+                <div className="flex-1 h-full w-full overflow-y-auto">
                   {children}
                 </div>
               </div>
