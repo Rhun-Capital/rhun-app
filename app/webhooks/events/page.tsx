@@ -721,10 +721,11 @@ export default function WebhookEventsPage() {
 
   // Add filtered events
   const filteredEvents = events.filter(event => {
-    // Filter out swaps where user is selling tokens for SOL or USDC
+    // Filter out swaps where user is selling tokens for SOL, USDC, or USDT
     if (
       (event.toToken.symbol === 'SOL' && event.fromToken.symbol !== 'SOL') ||
-      (event.toToken.symbol === 'USDC' && event.fromToken.symbol !== 'USDC')
+      (event.toToken.symbol === 'USDC' && event.fromToken.symbol !== 'USDC') ||
+      (event.toToken.symbol === 'USDT' && event.fromToken.symbol !== 'USDT')
     ) return false;
     
     // Apply token filter if any tokens are selected
@@ -745,7 +746,7 @@ export default function WebhookEventsPage() {
       {/* Fixed Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Swap Events</h1>
+          <h1 className="text-2xl font-bold">Whale Movements</h1>
           <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 rounded-full">
             <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
             <span className="text-sm text-indigo-400 font-medium">Live Feed</span>

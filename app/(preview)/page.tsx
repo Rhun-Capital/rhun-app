@@ -683,7 +683,7 @@ const WalletContent = memo(({
         )}
       </div>
       
-      {/* Automated Trading Card - Only show for non-primary wallets */}
+      {/* Automated Trading Card - Only show for non-primary wallets - Temporarily Disabled
       {activeWallet && user?.wallet?.address && activeWallet !== user.wallet.address && (
         <div className="p-6 bg-zinc-800 bg-opacity-40 border border-zinc-700 rounded-lg mt-4">
           <div className="flex items-center justify-between mb-4">
@@ -699,6 +699,7 @@ const WalletContent = memo(({
           />
         </div>
       )}
+      */}
       
       {/* Modal Components */}
       {activeWallet && (

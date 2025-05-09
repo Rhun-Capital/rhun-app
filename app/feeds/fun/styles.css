@@ -1,0 +1,167 @@
+/* Feed Manager Theme Styles */
+.feed-theme {
+  --sky-primary: #87CEEB;
+  --sky-secondary: #E0F6FF;
+  --cloud-white: rgba(255, 255, 255, 0.9);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+}
+
+/* Custom scrollbar */
+.hide-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(186, 230, 253, 0.3) transparent;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hide-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hide-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(186, 230, 253, 0.3);
+  border-radius: 3px;
+  border: 2px solid transparent;
+}
+
+.hide-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(186, 230, 253, 0.5);
+}
+
+/* Event card styles */
+.event-card {
+  background: var(--glass-bg);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.4s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 48px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Holographic effects */
+.holographic-shine {
+  background: linear-gradient(
+    125deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.1) 40%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  transition: all 0.3s ease;
+}
+
+.holographic-card:hover .holographic-shine {
+  opacity: 1;
+  background-position: 200% center;
+}
+
+/* Loading animation */
+.loading-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Live indicator pulse */
+.live-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+}
+
+/* Enhanced button styles */
+.sky-button {
+  background: var(--glass-bg);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(4px);
+}
+
+.sky-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 
+    0 6px 8px rgba(0, 0, 0, 0.15),
+    0 2px 4px rgba(0, 0, 0, 0.12);
+  background: var(--cloud-white);
+}
+
+/* Input field styles */
+.sky-input {
+  background: var(--glass-bg);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.sky-input:focus {
+  outline: none;
+  border-color: var(--sky-primary);
+  box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.3);
+  background: var(--cloud-white);
+}
+
+/* Card container styles */
+.sky-card {
+  background: var(--glass-bg);
+  border-radius: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.4s ease;
+}
+
+.sky-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 48px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .event-card {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .sky-card {
+    border-radius: 16px;
+    padding: 1rem;
+  }
+  
+  .sky-button {
+    padding: 0.5rem 1rem;
+  }
+} 
