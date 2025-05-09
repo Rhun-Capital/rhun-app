@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { DynamoDB } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDB } from 'aws-sdk';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
+const dynamodb = new DynamoDB.DocumentClient();
 const s3Client = new S3Client({ 
   region: process.env.AWS_REGION,
   credentials: {
@@ -13,47 +13,7 @@ const s3Client = new S3Client({
   }
 }) as any;
 
-const ddbClient = DynamoDBDocument.from(new DynamoDB({ 
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-  }
-}), {
-  marshallOptions: {
-    removeUndefinedValues: true
-  }
-});
-
-// Utility function to remove undefined values from objects
-const removeUndefined = (obj: any): any => {
-  if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
-  
-  if (Array.isArray(obj)) {
-    return obj.map(removeUndefined).filter(item => item !== undefined);
-  }
-  
-  return Object.entries(obj).reduce((acc: any, [key, value]) => {
-    const processedValue = removeUndefined(value);
-    if (processedValue !== undefined) {
-      acc[key] = processedValue;
-    }
-    return acc;
-  }, {});
-};
-
-// Get presigned URL for upload
-async function getPresignedUrl(key: string, contentType: string) {
-  const command = new PutObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: key,
-    ContentType: contentType
-  });
-
-  return getSignedUrl(s3Client, command, { expiresIn: 300 });
-}
-
-// Get presigned URL for download
+// Helper function to get presigned download URL from S3
 async function getPresignedDownloadUrl(key: string) {
   const command = new GetObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
@@ -63,9 +23,34 @@ async function getPresignedDownloadUrl(key: string) {
   return getSignedUrl(s3Client, command, { expiresIn: 3600 }); // 1 hour expiry
 }
 
-// Store large data in S3
+// Helper function to get mime type from data URL
+function getMimeType(dataUrl: string) {
+  const matches = dataUrl.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+).*,/);
+  if (matches && matches.length > 1) {
+    return matches[1];
+  }
+  return 'application/octet-stream';
+}
+
+// Helper function to remove undefined values from an object
+function removeUndefined(obj: any) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+// Helper function to get presigned URL for S3 upload
+async function getPresignedUrl(key: string, contentType: string) {
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+    ContentType: contentType
+  });
+
+  return getSignedUrl(s3Client, command, { expiresIn: 3600 });
+}
+
+// Helper function to store data in S3
 async function storeDataInS3(data: any, chatId: string, toolCallId: string) {
-  const key = `tool-results/${chatId}/${toolCallId}.json`;
+  const key = `chat-data/${chatId}/${toolCallId}.json`;
   
   await s3Client.send(new PutObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
@@ -73,78 +58,62 @@ async function storeDataInS3(data: any, chatId: string, toolCallId: string) {
     Body: JSON.stringify(data),
     ContentType: 'application/json'
   }));
-  
-  return {
-    bucket: process.env.S3_BUCKET_NAME,
-    key: key
-  };
+
+  return { key };
 }
 
-// Utility function to get MIME type from data URL
-const getMimeType = (dataUrl: string) => {
-  return dataUrl.split(',')[0].split(':')[1].split(';')[0];
-};
+// Helper function to process tool invocations
+async function processToolInvocations(toolInvocations: any[], chatId: string) {
+  if (!toolInvocations) return undefined;
 
-// Helper function to process tool invocations and store large data in S3
-const processToolInvocations = async (toolInvocations: any[] = [], chatId: string) => {
-  if (!toolInvocations || toolInvocations.length === 0) return [];
-  
-  const processedInvocations = await Promise.all(toolInvocations.map(async invocation => {
-    // Deep clone the invocation to avoid modifying the original and remove any undefined values
-    const processedInvocation = removeUndefined(JSON.parse(JSON.stringify(invocation)));
-    
-    // Check if this is a FRED data result or other large data
-    if (processedInvocation.result) {
-      const resultSize = JSON.stringify(processedInvocation.result).length;
+  return Promise.all(toolInvocations.map(async (invocation) => {
+    // If result is too large (over 350KB), store in S3
+    const resultSize = new TextEncoder().encode(JSON.stringify(invocation.result)).length;
+    if (resultSize > 350000) {
+      const s3Reference = await storeDataInS3(
+        removeUndefined(invocation.result), 
+        chatId, 
+        invocation.toolCallId
+      );
       
-      // If the result is larger than 100KB, store it in S3
-      if (resultSize > 100000) {
-        
-        // Store the full result in S3
-        const s3Reference = await storeDataInS3(
-          processedInvocation.result, 
-          chatId, 
-          processedInvocation.toolCallId
-        );
-        
-        // Replace the full result with a minimal reference plus preview data
-        processedInvocation.result = {
+      return removeUndefined({
+        toolName: invocation.toolName,
+        toolCallId: invocation.toolCallId,
+        args: invocation.args,
+        status: invocation.status,
+        result: {
           _storedInS3: true,
-          _s3Reference: s3Reference,
-          _originalSize: resultSize,
-          
-          // For FRED data, include a preview with essential metadata and a few observations
-          ...(processedInvocation.toolName === 'getFredSeries' ? {
-            seriesId: processedInvocation.result.seriesId,
-            metadata: removeUndefined(processedInvocation.result.metadata),
-            title: processedInvocation.result.title,
-            // Include a small preview of observations
-            observations: processedInvocation.result.observations?.slice(-10) || []
-          } : {})
-        };
-      }
+          _s3Reference: s3Reference
+        }
+      });
     }
     
-    return processedInvocation;
+    return removeUndefined(invocation);
   }));
-  
-  return processedInvocations;
-};
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { 
-      chatId, 
-      messageId, 
-      userId, 
-      role, 
-      content, 
+    const {
+      chatId,
+      messageId,
+      userId,
+      role,
+      content,
       createdAt,
       toolInvocations,
       attachments,
       isTemplate
     } = body;
+
+    // Only require userId for non-template chats
+    if (!isTemplate && !userId) {
+      return NextResponse.json(
+        { error: 'User ID is required for non-template chats' },
+        { status: 400 }
+      );
+    }
 
     // Process attachments if they exist
     let processedAttachments;
@@ -183,7 +152,7 @@ export async function POST(request: Request) {
       Item: removeUndefined({
         chatId,
         messageId,
-        userId,
+        userId: userId || 'template', // Use 'template' as userId for template chats
         role,
         content,
         createdAt,
@@ -194,7 +163,7 @@ export async function POST(request: Request) {
     };
 
     try {
-      await ddbClient.put(params);
+      await dynamodb.put(params).promise();
     } catch (error: any) {
       if (error.name === 'ValidationException' && error.message.includes('exceeded the maximum allowed size')) {
         console.warn('Message size exceeded DynamoDB limits, applying aggressive truncation');
@@ -222,13 +191,13 @@ export async function POST(request: Request) {
         }));
         
         // Retry with minimal data
-        await ddbClient.put({
+        await dynamodb.put({
           ...params,
           Item: removeUndefined({
             ...params.Item,
             toolInvocations: minimalToolInvocations
           })
-        });
+        }).promise();
       } else {
         // If it's not a size issue, rethrow the error
         throw error;

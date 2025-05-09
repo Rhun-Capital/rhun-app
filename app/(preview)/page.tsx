@@ -9,12 +9,73 @@ import Link from "next/link";
 import Image from "next/image";
 import { Markdown } from "@/components/markdown";
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
-import type { Message } from 'ai';
+import type { Message } from '@ai-sdk/ui-utils';
 import { debounce, set } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
+import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
+
+// Define custom types for tool invocations
+interface ToolResult {
+  _storedInS3?: boolean;
+  _s3Reference?: {
+    key: string;
+  };
+  preview?: string;
+  [key: string]: any;
+}
+
+interface BaseToolInvocation {
+  toolName: string;
+  toolCallId: string;
+  args: Record<string, any>;
+  status?: string;
+  result?: any;
+}
+
+interface ToolResultInvocation extends BaseToolInvocation {
+  state: 'result';
+  result: any;
+}
+
+interface ToolPartialInvocation extends BaseToolInvocation {
+  state: 'partial-call';
+  result?: any;
+}
+
+type CustomToolInvocation = ToolResultInvocation | ToolPartialInvocation;
+
+// Define our own Message type to match the AI SDK's Message type
+interface CustomMessage extends Omit<Message, 'toolInvocations'> {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'data';
+  content: string;
+  toolInvocations?: CustomToolInvocation[];
+  messageId?: string;
+  createdAt?: Date;
+  experimental_attachments?: Array<{
+    name: string;
+    url: string;
+    contentType: string;
+  }>;
+}
+
+// Create a type guard to check if a message has tool invocations
+function hasToolInvocations(message: any): message is CustomMessage {
+  return message && Array.isArray(message.toolInvocations);
+}
+
+// Create a type guard for result invocations
+function isToolResultInvocation(tool: CustomToolInvocation): tool is ToolResultInvocation {
+  return 'state' in tool && tool.state === 'result';
+}
+
+// Create a type guard for tool invocations with S3 results
+function hasS3Result(tool: CustomToolInvocation): tool is ToolResultInvocation & { result: { _storedInS3: true } } {
+  return isToolResultInvocation(tool) && tool.result && '_storedInS3' in tool.result && tool.result._storedInS3 === true;
+}
 
 // UI Components
 import LoadingIndicator from "@/components/loading-indicator";
@@ -66,7 +127,6 @@ import TradingViewChart from "@/components/tools/tradingview-chart";
 import TechnicalAnalysis from '@/components/tools/technical-analysis';
 import FredAnalysis from '@/components/tools/fred-analysis';
 import { FredSearch } from '@/components/tools/fred-search';
-import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 
 // Utility functions
 import { getToolCommand } from '@/app/config/tool-commands';
@@ -918,6 +978,22 @@ function HomeContent() {
   const renderToolInvocation = (tool: any, wrapper?: (component: React.ReactNode) => React.ReactNode) => {
     const wrappedTool = wrapper || ((component: React.ReactNode) => component);
     
+    // If the result is stored in S3, show a loading state
+    if (tool.result?._storedInS3) {
+      return wrappedTool(
+        <div className="p-4 bg-zinc-800 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin">
+              <RefreshCcw size={16} className="text-indigo-400" />
+            </div>
+            <div className="text-sm text-zinc-400">
+              {tool.result.preview || 'Loading result...'}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     switch(tool.toolName) {
       case 'getUserSolanaBalance':
         return wrappedTool(<SolanaBalance key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
@@ -1075,15 +1151,20 @@ function HomeContent() {
     }
   }, [sidebarOpen, activeTab]);
 
+  // Check if this is a template chat
+  const isTemplate = chatId?.startsWith('chat_template_');
+
+  // Initialize chat with template settings if needed
   const { messages, input, handleSubmit, handleInputChange, isLoading, append } = useChat({
     headers,
     body: { 
       agent, 
       user,
-      templateWallet
+      templateWallet,
+      isTemplate
     },
     maxSteps: 30,
-    initialMessages,
+    initialMessages: initialMessages as Message[],
     sendExtraMessageFields: true,
     id: chatId || newChatId,
     onError: () => {
@@ -1092,13 +1173,104 @@ function HomeContent() {
     onFinish: async (message) => {   
       // Debounced save is handled in a separate useEffect
     }
-  });
+  }) as {
+    messages: CustomMessage[];
+    input: string;
+    handleSubmit: (e: any, options?: any) => void;
+    handleInputChange: (e: any) => void;
+    isLoading: boolean;
+    append: (message: { role: 'user' | 'assistant' | 'system' | 'function'; content: string }) => void;
+  };
+
+  // Load initial messages
+  const loadInitialMessages = useCallback(async (): Promise<void> => {
+    if (!chatId) return;
+    
+    try {
+      const token = await getAccessToken();
+      const response = await fetch(
+        `/api/chat/${chatId}?userId=${encodeURIComponent(user?.id || '')}&isTemplate=${isTemplate}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!response.ok) throw new Error('Failed to load chat history');
+      
+      const data = await response.json();
+      
+      if (data.messages && data.messages.length > 0) {
+        // Convert string dates to Date objects and preserve all tool data
+        const formattedMessages: CustomMessage[] = data.messages.map((msg: any) => ({
+          id: msg.messageId,
+          createdAt: new Date(msg.createdAt),
+          role: msg.role,
+          content: msg.content,
+          experimental_attachments: msg.attachments?.map((attachment: any) => ({
+            name: attachment.name,
+            url: attachment.url,
+            contentType: attachment.contentType,
+          })),            
+          toolInvocations: msg.toolInvocations?.map((tool: any) => {
+            // Base tool invocation properties
+            const baseTool = {
+              toolName: tool.toolName,
+              toolCallId: tool.toolCallId,
+              args: tool.args,
+              status: tool.status
+            };
+
+            // If the tool has a result, it's a result invocation
+            if (tool.result) {
+              return {
+                ...baseTool,
+                state: 'result' as const,
+                result: {
+                  ...tool.result,
+                  // Preserve S3 metadata if present
+                  ...(tool.result._storedInS3 && {
+                    _storedInS3: true,
+                    _s3Reference: tool.result._s3Reference,
+                    preview: tool.result.preview || 'Loading full result...'
+                  })
+                }
+              };
+            }
+
+            // If no result, it's a partial call
+            return {
+              ...baseTool,
+              state: 'partial-call' as const
+            };
+          })
+        }));
+        
+        setInitialMessages(formattedMessages);
+      }
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      toast.error('Failed to load chat history');
+    }
+  }, [chatId, user?.id, isTemplate, getAccessToken]);
+
+  // Use a ref to track if initial load has happened
+  const initialLoadDone = useRef(false);
+
+  useEffect(() => {
+    // Only load messages if we haven't loaded them yet
+    if (chatId && !initialLoadDone.current) {
+      loadInitialMessages();
+      initialLoadDone.current = true;
+    }
+  }, [chatId, loadInitialMessages]);
 
   // Remove the useEffect with debounce and replace with a more predictable pattern
   const previousMessagesRef = useRef<Message[]>([]);
   
   // Define updateChatInDB before it's used
-  const updateChatInDB = useCallback(async (messages: Message[]): Promise<string[]> => {
+  const updateChatInDB = useCallback(async (messages: CustomMessage[]): Promise<string[]> => {
     const lastMessage = messages[messages.length - 1];
   
     // Skip if there's no lastMessage or if the message has no content/tool invocations
@@ -1196,8 +1368,47 @@ function HomeContent() {
           })
         );
       }
+
+      // Process tool invocations
+      const processedToolInvocations = lastMessage.toolInvocations?.map(tool => {
+        // Base tool invocation properties
+        const baseTool = {
+          toolName: tool.toolName,
+          toolCallId: tool.toolCallId,
+          args: tool.args,
+          status: tool.status
+        };
+
+        // If it's a result invocation with S3 storage
+        if (hasS3Result(tool)) {
+          return {
+            ...baseTool,
+            state: 'result' as const,
+            result: {
+              _storedInS3: true,
+              _s3Reference: tool.result._s3Reference,
+              preview: tool.result.preview || 'Loading full result...'
+            }
+          };
+        }
+
+        // If it's a regular result invocation
+        if (isToolResultInvocation(tool)) {
+          return {
+            ...baseTool,
+            state: 'result' as const,
+            result: tool.result
+          };
+        }
+
+        // If it's a partial call
+        return {
+          ...baseTool,
+          state: 'partial-call' as const
+        };
+      });
   
-      // Store the message with processed attachments
+      // Store the message with processed attachments and tool invocations
       await fetch('/api/chat/messages', {
         method: 'POST',
         headers: {
@@ -1208,35 +1419,31 @@ function HomeContent() {
           chatId: currentChatId,
           messageId: lastMessage.id,
           userId: user?.id,
-          isTemplate: true,
+          isTemplate,
           role: lastMessage.role,
           content: lastMessage.content,
           createdAt: lastMessage.createdAt,
           attachments: processedAttachments,
-          toolInvocations: lastMessage.toolInvocations?.map(tool => ({
-            toolName: tool.toolName,
-            toolCallId: tool.toolCallId,
-            args: tool.args,
-            result: 'result' in tool ? tool.result : undefined
-          }))
+          toolInvocations: processedToolInvocations
         })
       });
   
       await refreshRecentChats();
+
+      return processedAttachments.map(a => a.url);
     } catch (error) {
       console.error('Error updating chat:', error);
-      toast.error('Failed to save chat message');
+      toast.error('Failed to save chat');
+      return [];
     }
-    
-    return [];
-  }, [chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, refreshRecentChats]);
+  }, [agent?.name, agentId, chatId, getAccessToken, newChatId, refreshRecentChats, user?.id, isTemplate]);
 
   // Stabilize the updateChatInDB function reference with useMemo
   const memoizedUpdateChatInDB = useMemo(() => updateChatInDB, [updateChatInDB]);
   
   useEffect(() => {
-    // Only update if the agent is loaded and the new message array is different from the previous
-    if (agent && messages.length > 0 && messages.length !== previousMessagesRef.current.length) {
+    // Only update if the agent is loaded and we have messages
+    if (agent && messages.length > 0) {
       // Get only the last message, which is the one that was just added
       const lastMessageIndex = messages.length - 1;
       const lastMessage = messages[lastMessageIndex];
@@ -1251,17 +1458,24 @@ function HomeContent() {
         return;
       }
       
-      // Update our ref with the current messages
-      previousMessagesRef.current = [...messages];
+      // Check if the message content or tool invocations have changed
+      const previousMessage = previousMessagesRef.current[lastMessageIndex];
+      const hasNewContent = !previousMessage || previousMessage.content !== lastMessage.content;
+      const hasToolUpdates = !previousMessage || 
+        JSON.stringify(previousMessage.toolInvocations) !== JSON.stringify(lastMessage.toolInvocations);
       
-      // Run the save operation after a delay
-      const timeoutId = setTimeout(() => {
-        memoizedUpdateChatInDB(messages);
-      }, 1000);
-      
-      return () => clearTimeout(timeoutId);
+      if (hasNewContent || hasToolUpdates) {
+        // Update our ref with the current messages
+        previousMessagesRef.current = [...messages];
+        
+        // Run the save operation after a delay
+        const timeoutId = setTimeout(() => {
+          memoizedUpdateChatInDB(messages);
+        }, 1000);
+        
+        return () => clearTimeout(timeoutId);
+      }
     }
-  // Remove memoizedUpdateChatInDB from the dependency array to fix the circular dependency issue
   }, [messages, agent]);
 
   const getAgent = async () => {
@@ -1520,74 +1734,6 @@ function HomeContent() {
     }
   };
 
-  useEffect(() => {
-    const loadInitialMessages = async (): Promise<void> => {
-      if (!chatId || !user?.id) return;
-      
-      try {
-        const token = await getAccessToken();
-        const response = await fetch(
-          `/api/chat/${chatId}?userId=${encodeURIComponent(user?.id as string)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-  
-        if (!response.ok) throw new Error('Failed to load chat history');
-        
-        const data = await response.json();
-        
-        if (data.messages && data.messages.length > 0) {
-          // Convert string dates to Date objects and preserve all tool data
-          const formattedMessages: Message[] = data.messages.map((msg: any) => ({
-            id: msg.messageId,
-            createdAt: new Date(msg.createdAt),
-            role: msg.role,
-            content: msg.content,
-            experimental_attachments: msg.attachments?.map((attachment: any) => ({
-              name: attachment.name,
-              url: attachment.url,
-              contentType: attachment.contentType,
-            })),            
-            toolInvocations: msg.toolInvocations?.map((tool: any) => {
-              // Ensure we preserve all S3 references and metadata for tool results
-              const mappedTool = {
-                ...tool, 
-                toolName: tool.toolName,
-                toolCallId: tool.toolCallId,
-                args: tool.args,
-                result: tool.result
-              };
-              
-              // Make sure we keep the special fields for S3 references intact
-              if (mappedTool.result && mappedTool.result._storedInS3) {
-                mappedTool.result = {
-                  ...mappedTool.result,
-                  _storedInS3: true,
-                  _s3Reference: mappedTool.result._s3Reference
-                };
-              }
-              
-              return mappedTool;
-            })
-          }));
-          
-          setInitialMessages(formattedMessages);
-        }
-      } catch (error) {
-        console.error('Error loading chat history:', error);
-        toast.error('Failed to load chat history');
-      }
-    };
-  
-    // Only load messages if user is authenticated
-    if (user?.id && ready) {
-      loadInitialMessages();
-    }
-  }, [chatId, getAccessToken, user, ready]);
-
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
@@ -1730,10 +1876,16 @@ function HomeContent() {
   const prevMessagesHashRef = useRef("");
   
   useEffect(() => {
-    // Create a hash of the current messages to compare
-    const messagesHash = JSON.stringify(messages.map(m => 
-      m?.id + (m?.toolInvocations?.length || 0)
-    ));
+    // Create a more detailed hash of the messages that includes tool data
+    const messagesHash = JSON.stringify(messages.map(m => ({
+      id: m?.id,
+      toolCount: m?.toolInvocations?.length || 0,
+      toolData: m?.toolInvocations?.map(t => ({
+        id: t.toolCallId,
+        result: isToolResultInvocation(t) ? t.result : undefined,
+        status: t.status
+      }))
+    })));
     
     // Skip if messages haven't actually changed in a way that affects artifacts
     if (messagesHash === prevMessagesHashRef.current) return;
@@ -1746,25 +1898,41 @@ function HomeContent() {
     for (const message of messages) {
       if (message?.toolInvocations?.length) {
         for (const tool of message.toolInvocations) {
-          newArtifacts.push({
-            id: tool.toolCallId,
-            toolName: tool.toolName,
-            args: tool.args,
-            result: 'result' in tool ? tool.result : null,
-            timestamp: message.createdAt,
-            messageId: message.id,
-            tool: tool // Store the entire tool object for rendering
-          });
+          // Only add tools that have results
+          if (tool.result) {
+            // Handle S3-stored results
+            const result = tool.result._storedInS3 ? {
+              ...tool.result,
+              _storedInS3: true,
+              _s3Reference: tool.result._s3Reference,
+              // Add a preview if available
+              preview: tool.result.preview || 'Loading full result...'
+            } : tool.result;
+
+            newArtifacts.push({
+              id: tool.toolCallId,
+              toolName: tool.toolName,
+              args: tool.args,
+              result,
+              timestamp: message.createdAt,
+              messageId: message.id,
+              tool: {
+                ...tool,
+                result // Use the processed result
+              }
+            });
+          }
         }
       }
     }
     
     setArtifacts(newArtifacts);
-    if (newArtifacts.length > 0) {
+    // Only switch to artifacts tab and select the latest artifact if we have new artifacts
+    if (newArtifacts.length > 0 && (!artifacts.length || newArtifacts.length > artifacts.length)) {
       setActiveTab('artifacts');
       setSelectedArtifact(newArtifacts[newArtifacts.length-1]);
     }
-  }, [messages]);
+  }, [messages, artifacts.length]);
 
   // Add a useEffect to trigger rerender when a TradingView chart is selected
   useEffect(() => {

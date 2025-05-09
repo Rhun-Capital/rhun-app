@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { debounce } from 'lodash';
 
@@ -15,76 +15,64 @@ interface Chat {
 
 interface ChatContextType {
   recentChats: Chat[];
-  refreshRecentChats: () => Promise<void>;
+  refreshRecentChats: () => void;
 }
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
+const ChatContext = createContext<ChatContextType>({
+  recentChats: [],
+  refreshRecentChats: () => {}
+});
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const { user, getAccessToken } = usePrivy();
   const [recentChats, setRecentChats] = useState<Chat[]>([]);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const FETCH_COOLDOWN = 5000; // 5 seconds cooldown between fetches
   const [newChatId, setNewChatId] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
 
-  const fetchUserChats = async () => {
-    const token = await getAccessToken();
-    const response = await fetch(`/api/chat/recent?userId=${user?.id}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (!response.ok) throw new Error('Failed to fetch user chats');
-    
-    const data = await response.json();
-    return data.chats.map((chat: Chat) => ({ ...chat }));
-  };
-
-  // const fetchTemplateChats = async () => {
-  //   const token = await getAccessToken();
-  //   const response = await fetch(`/api/chat/recent?userId=template`, {
-  //     headers: {
-  //       'Authorization': `Bearer ${token}`
-  //     }
-  //   });
-    
-  //   if (!response.ok) throw new Error('Failed to fetch template chats');
-    
-  //   const data = await response.json();
-  //   return data.chats.map((chat: Chat) => ({ ...chat, isTemplate: true }));
-  // };
-
-  const fetchRecentChats = async () => {
-    try {
-      
-      
-      // // Fetch both user and template chats in parallel
-      // const [userChats, templateChats] = await Promise.all([
-      //   user && user.id ? fetchUserChats() : Promise.resolve([]),
-      //   fetchTemplateChats()
-      // ]);
-
-      const userChats = await fetchUserChats();
-
-      // Combine and sort all chats by lastUpdated
-      // const allChats = [...userChats, ...templateChats].sort(
-      //   (a, b) => b.lastUpdated - a.lastUpdated
-      // );
-
-      const allChats = [...userChats].sort(
-        (a, b) => b.lastUpdated - a.lastUpdated
-      );      
-
-      setRecentChats(allChats);
-    } catch (error) {
-      console.error('Error fetching chats:', error);
+  const fetchRecentChats = useCallback(async () => {
+    // Skip if we fetched recently
+    const now = Date.now();
+    if (now - lastFetchTime < FETCH_COOLDOWN) {
+      return;
     }
-  };
+
+    if (!user?.id) return;
+
+    try {
+      const token = await getAccessToken();
+      const response = await fetch(`/api/chat/recent?userId=${encodeURIComponent(user.id)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch recent chats');
+      
+      const data = await response.json();
+      setRecentChats(data.chats || []);
+      setLastFetchTime(now);
+    } catch (error) {
+      console.error('Error fetching recent chats:', error);
+    }
+  }, [user?.id, getAccessToken, lastFetchTime]);
+
+  // Debounce the fetch function
+  const debouncedFetchRecentChats = useMemo(
+    () => debounce(fetchRecentChats, 1000),
+    [fetchRecentChats]
+  );
 
   useEffect(() => {
-    fetchRecentChats();
-  }, [user?.id]);
+    if (user?.id) {
+      debouncedFetchRecentChats();
+    }
+    return () => {
+      debouncedFetchRecentChats.cancel();
+    };
+  }, [user?.id, debouncedFetchRecentChats]);
 
   useEffect(() => {
     if (newChatId && !chatId) {
@@ -121,7 +109,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const contextValue = {
     recentChats,
-    refreshRecentChats: fetchRecentChats
+    refreshRecentChats: debouncedFetchRecentChats
   };
 
   return (
