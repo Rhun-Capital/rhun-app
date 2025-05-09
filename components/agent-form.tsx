@@ -633,11 +633,12 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               id={field.name}
               name={field.name}
               disabled={params.userId === 'template'}
-              placeholder={field.placeholder.split('\n').join(' ').substring(0, 100) + '...'}
+              placeholder={field.placeholder}
               value={formData[field.name]}
               onChange={handleChange}
               rows={field.rows || 8}
-              className="w-full px-3 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm break-words overflow-x-hidden"
+              className="w-full px-3 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm whitespace-pre-wrap font-mono"
+              style={{ whiteSpace: 'pre-wrap' }}
             />
           </div>
         ))}
