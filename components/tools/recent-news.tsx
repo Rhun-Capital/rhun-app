@@ -64,16 +64,6 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
   // Safely get the articles array
   const articles = Array.isArray(toolInvocation.result) ? toolInvocation.result : [];
   
-  // Debug log the entire result
-  useEffect(() => {
-    console.log('Crypto News Component received data:', toolInvocation.result);
-    if (articles.length > 0) {
-      console.log('First article:', articles[0]);
-      console.log('Categories type:', articles[0].categories && typeof articles[0].categories);
-      console.log('Categories:', articles[0].categories);
-    }
-  }, [toolInvocation.result, articles]);
-
   useEffect(() => {
     if (selectedArticle && topRef.current) {
       topRef.current.scrollIntoView({ behavior: 'smooth' });

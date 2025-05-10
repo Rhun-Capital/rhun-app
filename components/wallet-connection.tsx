@@ -29,7 +29,7 @@ export default function WalletConnection() {
       }, 2000);
     },
     onError: (error) => {
-      console.log(error);
+      // console.log(error);
     },
   });
 

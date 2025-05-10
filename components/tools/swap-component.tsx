@@ -31,9 +31,6 @@ export default function SwapComponent({ quote, agent }: { quote: Quote, agent: a
   // Find the wallet object for the active wallet
   const agentWallet = wallets.find(w => w.address === activeWallet);
 
-  console.log('agentWallet', agentWallet);
-  console.log('activeWallet', activeWallet);
-
   if (!ready || !wallets[0]) return;
 
   const handleSwap = async () => {

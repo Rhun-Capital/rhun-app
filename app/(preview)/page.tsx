@@ -985,7 +985,13 @@ function HomeContent() {
       case 'getDerivativesExchanges':
         return wrappedTool(<DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
       case 'getTopHolders':
-        return wrappedTool(<TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
+        return wrappedTool(
+          <TopHoldersDisplay 
+            key={tool.toolCallId} 
+            toolCallId={tool.toolCallId} 
+            toolInvocation={tool}  // Pass the entire tool object instead of reconstructing it
+          />
+        );
       case 'getAccountDetails':
         return wrappedTool(<AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
       case 'getTrendingTokens':
