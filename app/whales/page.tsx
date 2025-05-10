@@ -200,22 +200,6 @@ function WhaleEventHeader({ event }: { event: WebhookEvent }) {
   const toTokenSymbol = event.toToken.metadata?.symbol || event.toToken.symbol;
   const isSellEvent = toTokenSymbol.toUpperCase() === 'USDC' || toTokenSymbol.toUpperCase() === 'SOL';
   
-  console.log('Event Debug:', {
-    fromToken: {
-      symbol: event.fromToken.symbol,
-      metadata: event.fromToken.metadata,
-      amount: event.fromToken.amount,
-      usd_value: event.fromToken.usd_value
-    },
-    toToken: {
-      symbol: event.toToken.symbol,
-      metadata: event.toToken.metadata,
-      amount: event.toToken.amount,
-      usd_value: event.toToken.usd_value
-    },
-    isSellEvent
-  });
-  
   // Get the correct amount and token for display
   const displayAmount = isSellEvent ? event.fromToken.usd_value : event.toToken.usd_value;
   
@@ -297,9 +281,7 @@ function WhaleMovementNotification({ event }: { event: WebhookEvent }) {
   };
 
   // Determine if this is a sell event (when receiving USDC or SOL)
-  console.log('Event:', event);
   const toTokenSymbol = event.toToken.metadata?.symbol || event.toToken.symbol;
-  console.log('To Token Symbol:', toTokenSymbol);
   const isSellEvent = toTokenSymbol.toUpperCase() === 'USDC' || toTokenSymbol.toUpperCase() === 'SOL';
   const isWhaleBuy = !isSellEvent && isWhaleMovement(event.toToken.amount, event.toToken.symbol);
   const isWhaleSell = isSellEvent && isWhaleMovement(event.fromToken.amount, event.fromToken.symbol);
@@ -334,42 +316,6 @@ function WhaleMovementNotification({ event }: { event: WebhookEvent }) {
   );
 }
 
-// Add HolographicCard component
-const HolographicCard = ({ children, className = '', style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setMousePosition({ x, y });
-  };
-
-  return (
-    <div
-      ref={cardRef}
-      className={`relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 ${className}`}
-      onMouseMove={handleMouseMove}
-      style={style}
-    >
-      {/* Holographic effect */}
-      <div 
-        className="absolute inset-0 opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, 
-            rgba(59, 130, 246, 0.2) 0%, 
-            rgba(99, 102, 241, 0.1) 20%, 
-            rgba(168, 85, 247, 0.05) 40%, 
-            transparent 60%)`,
-        }}
-      />
-      
-      {children}
-    </div>
-  );
-};
 
 // Add global fade-in animation CSS
 // Place this at the top of the file
@@ -488,7 +434,7 @@ const CURATED_TOKENS: TokenOption[] = [
   {
     symbol: 'BOME',
     name: 'Book of Meme',
-    address: 'BomeD9Gp6Yj6X9X9X9X9X9X9X9X9X9X9X9X9X9X9X9X',
+    address: 'BomeD9Gp6Yj6X9X9X9X9X9X9X9X9X9X9X9X9X9X9X',
     logoURI: 'https://arweave.net/8PhnCqzqk3U5J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3'
   },
   // Add more tokens as needed
@@ -618,6 +564,22 @@ function AnalysisPanel({ events }: { events: WebhookEvent[] }) {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [whaleLeaderboard, setWhaleLeaderboard] = useState<Array<{
+    holder_address: string;
+    totalTrades: number;
+    last_trade_timestamp: number;
+    holder_mapping: {
+      token_address: string;
+      token_symbol: string;
+      token_name: string;
+      webhook_id: string;
+      token_logo_uri?: string;
+      token_decimals?: number;
+    } | null;
+  }>>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastAnalyzedKeyRef = useRef<string>('');
   const isFirstRender = useRef(true);
@@ -625,6 +587,64 @@ function AnalysisPanel({ events }: { events: WebhookEvent[] }) {
   const analysisTimeoutRef = useRef<NodeJS.Timeout>();
   const lastAnalysisTimeRef = useRef<number>(0);
   const isAnalyzing = useRef(false);
+
+  // Move fetchWhaleLeaderboard outside useEffect
+  const fetchWhaleLeaderboard = async () => {
+    setLeaderboardLoading(true);
+    setLeaderboardError(null);
+    try {
+      console.log('Fetching whale leaderboard...');
+      const response = await fetch('/api/solana/webhook/events?type=whale-leaderboard');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch whale leaderboard: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Whale leaderboard data:', data);
+      if (!data.whales || !Array.isArray(data.whales)) {
+        throw new Error('Invalid whale leaderboard data format');
+      }
+      setWhaleLeaderboard(data.whales);
+    } catch (error) {
+      console.error('Error fetching whale leaderboard:', error);
+      setLeaderboardError(error instanceof Error ? error.message : 'Failed to fetch whale leaderboard');
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWhaleLeaderboard();
+    const interval = setInterval(fetchWhaleLeaderboard, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper to get fallback token symbol for a whale
+  function getWhaleTokenSymbol(whale: any) {
+    if (whale.holder_mapping?.token_symbol) return whale.holder_mapping.token_symbol;
+    // Fallback: try to find the most common token in events for this address
+    const whaleEvents = events.filter(e => e.holder_address === whale.holder_address);
+    const tokenCounts: Record<string, number> = {};
+    whaleEvents.forEach(e => {
+      const symbol = e.tracked_token?.symbol || e.holder_mapping?.token_symbol || e.fromToken?.symbol || e.toToken?.symbol || 'Unknown';
+      if (!symbol) return;
+      tokenCounts[symbol] = (tokenCounts[symbol] || 0) + 1;
+    });
+    const sorted = Object.entries(tokenCounts).sort((a, b) => b[1] - a[1]);
+    return sorted.length > 0 ? sorted[0][0] : 'Unknown';
+  }
+
+  // Helper to get fallback token logo for a whale
+  function getWhaleTokenLogo(whale: any) {
+    if (whale.holder_mapping?.token_logo_uri) return whale.holder_mapping.token_logo_uri;
+    const whaleEvents = events.filter(e => e.holder_address === whale.holder_address);
+    for (const e of whaleEvents) {
+      if (e.tracked_token?.logoURI) return e.tracked_token.logoURI;
+      if (e.holder_mapping?.token_logo_uri) return e.holder_mapping.token_logo_uri;
+      if (e.fromToken?.metadata?.logoURI) return e.fromToken.metadata.logoURI;
+      if (e.toToken?.metadata?.logoURI) return e.toToken.metadata.logoURI;
+    }
+    return undefined;
+  }
 
   // Calculate statistics from events
   const getTradeStats = (events: WebhookEvent[]) => {
@@ -882,6 +902,61 @@ Provide actionable insights for traders looking to identify early opportunities.
     };
   }, [generateAnalysis]);
 
+  // Function to get summary from messages
+  const getSummary = () => {
+    if (messages.length === 0) return '';
+    const lastMessage = messages[messages.length - 1].content;
+    // Get first paragraph or first 200 characters
+    const firstParagraph = lastMessage.split('\n\n')[0];
+    return firstParagraph.length > 200 ? firstParagraph.slice(0, 200) + '...' : firstParagraph;
+  };
+
+  // Helper to normalize address to string
+  function normalizeAddress(address: any): string {
+    if (typeof address === 'string') {
+      // Try to parse as JSON, if possible
+      try {
+        const parsed = JSON.parse(address);
+        if (typeof parsed === 'object' && parsed !== null) {
+          if (typeof parsed.holder_address === 'string') return parsed.holder_address;
+          // fallback: try address property
+          if (typeof parsed.address === 'string') return parsed.address;
+          return '[complex address]';
+        }
+      } catch {
+        // Not JSON, just return as is
+        return address;
+      }
+    }
+    if (typeof address === 'object' && address !== null) {
+      if (typeof address.holder_address === 'string') return address.holder_address;
+      if (typeof address.address === 'string') return address.address;
+      if (typeof address.toBase58 === 'function') return address.toBase58();
+      return '[complex address]';
+    }
+    return '';
+  }
+
+  // Helper to extract token symbol (prefer over name) from JSON string address
+  function extractTokenSymbol(address: any): string {
+    if (typeof address === 'string') {
+      try {
+        const parsed = JSON.parse(address);
+        if (typeof parsed === 'object' && parsed !== null) {
+          if (typeof parsed.token_symbol === 'string') return parsed.token_symbol;
+          if (typeof parsed.token_name === 'string') return parsed.token_name;
+        }
+      } catch {
+        return '';
+      }
+    }
+    if (typeof address === 'object' && address !== null) {
+      if (typeof address.token_symbol === 'string') return address.token_symbol;
+      if (typeof address.token_name === 'string') return address.token_name;
+    }
+    return '';
+  }
+
   return (
     <div className="w-96 border-l border-zinc-800 flex flex-col h-full">
       <div className="p-6 border-b border-zinc-800">
@@ -896,32 +971,9 @@ Provide actionable insights for traders looking to identify early opportunities.
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
-          {/* Overall Stats */}
+          {/* AI Analysis Summary */}
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-zinc-400">Overall Activity</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700 hover:border-emerald-500/50 transition-all duration-300 group">
-                <div className="relative z-10">
-                  <div className="text-2xl font-bold text-white">
-                    {formatAmount(stats.totalVolume, 0, true)}
-                  </div>
-                  <div className="text-xs text-zinc-400">Total Volume</div>
-                </div>
-              </div>
-              <div className="bg-zinc-800 rounded-lg p-3 border border-zinc-700 hover:border-emerald-500/50 transition-all duration-300 group">
-                <div className="relative z-10">
-                  <div className="text-2xl font-bold text-white">
-                    {stats.uniqueWhales.size}
-                  </div>
-                  <div className="text-xs text-zinc-400">Active Whales</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Analysis */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-zinc-400">AI Analysis</h3>
+            <h3 className="text-sm font-medium text-zinc-400">Market Analysis</h3>
             <div className="space-y-4">
               {loading ? (
                 <div className="bg-zinc-800 rounded-lg flex items-center justify-center py-8 gap-3 border border-zinc-700 hover:border-emerald-500/50 transition-all duration-300 group">
@@ -946,21 +998,120 @@ Provide actionable insights for traders looking to identify early opportunities.
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`bg-zinc-800 rounded-lg p-4 border border-zinc-700 hover:border-emerald-500/50 transition-all duration-300 group ${
-                        index === messages.length - 1 ? 'animate-fade-in' : ''
-                      }`}
-                    >
-                      <div className="relative z-10 text-sm whitespace-pre-wrap text-zinc-300">
-                        {message.content}
+              ) : messages.length > 0 ? (
+                <div className="bg-zinc-800 rounded-lg border border-zinc-700 hover:border-emerald-500/50 transition-all duration-300 group">
+                  <div className="relative z-10 p-4">
+                    <div className="text-sm text-zinc-300">
+                      {getSummary()}
+                    </div>
+                    {messages[0].content.length > 200 && (
+                      <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="mt-2 text-emerald-400 hover:text-emerald-300 text-sm flex items-center gap-1"
+                      >
+                        {isExpanded ? 'Show Less' : 'Read More'}
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Expanded Analysis */}
+                  {isExpanded && (
+                    <div className="border-t border-zinc-700 p-4">
+                      <div className="space-y-4">
+                        {messages.map((message, index) => (
+                          <div
+                            key={index}
+                            className="text-sm whitespace-pre-wrap text-zinc-300"
+                          >
+                            {message.content}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Whale Leaderboard */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-zinc-400">Top Traders (24h)</h3>
+            <div className="space-y-2">
+              {leaderboardLoading ? (
+                <div className="bg-zinc-800 rounded-lg flex items-center justify-center py-8 gap-3 border border-zinc-700">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-400" />
+                  <span className="text-sm text-emerald-400">Loading leaderboard...</span>
+                </div>
+              ) : leaderboardError ? (
+                <div className="bg-zinc-800 rounded-lg flex flex-col items-center justify-center py-8 text-red-400 border border-zinc-700">
+                  <XCircle className="w-8 h-8 mb-2" />
+                  <p className="text-sm text-center">{leaderboardError}</p>
+                  <button 
+                    onClick={() => {
+                      setLeaderboardError(null);
+                      fetchWhaleLeaderboard();
+                    }}
+                    className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : whaleLeaderboard.length === 0 ? (
+                <div className="bg-zinc-800 rounded-lg flex items-center justify-center py-8 border border-zinc-700">
+                  <span className="text-sm text-gray-400">No trading activity in the last 24 hours</span>
+                </div>
+              ) : (
+                whaleLeaderboard.map((whale, index) => {
+                  const addressStr = normalizeAddress(whale.holder_address);
+                  // Use token_symbol from mapping, or extract from address JSON if mapping is null
+                  const whaleTokenSymbol = whale.holder_mapping?.token_symbol ||
+                    extractTokenSymbol(whale.holder_address) ||
+                    getWhaleTokenSymbol(whale)?.toUpperCase() || 'Unknown';
+                  return (
+                    <div key={addressStr} className="bg-zinc-800 rounded-lg p-3 border border-zinc-700 hover:border-emerald-500/50 transition-all duration-300 group">
+                      <div className="relative z-10 flex items-center gap-3">
+                        {/* Rank */}
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center text-sm font-medium">
+                          {index + 1}
+                        </div>
+                        
+                        {/* Whale Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <TokenIcon 
+                              symbol={getWhaleTokenSymbol(whale) || 'Unknown'} 
+                              logoURI={getWhaleTokenLogo(whale)}
+                            />
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center gap-1">
+                                <span className="text-yellow-400 font-medium">
+                                  {whaleTokenSymbol.toUpperCase()} Whale
+                                </span>
+                                <span className="text-gray-400 text-xs flex items-center gap-1">
+                                  {formatAddress(addressStr)}
+                                  {addressStr && <CopyButton text={addressStr} />}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                Last trade {formatDistanceToNow(new Date(whale.last_trade_timestamp * 1000), { addSuffix: true })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Trade Count */}
+                        <div className="flex-shrink-0 text-right">
+                          <div className="text-lg font-bold text-white">
+                            {whale.totalTrades}
+                          </div>
+                          <div className="text-xs text-gray-400">trades</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

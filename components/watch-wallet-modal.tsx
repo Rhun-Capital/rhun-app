@@ -4,6 +4,20 @@ import { usePrivy } from '@privy-io/react-auth';
 import { CloseIcon } from '@/components/icons';
 import { Loader2, Edit2, X, Save, Tag as TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { createPortal } from 'react-dom';
+import { useModal } from '@/contexts/modal-context';
+
+// Modal portal component to ensure modal is rendered at the document root
+const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  return mounted ? createPortal(children, document.body) : null;
+};
 
 const PAGE_SIZE = 10;
 
@@ -54,6 +68,7 @@ const formatActivityType = (type: string) => {
 
 const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClose, onUpdate }) => {
   const { getAccessToken, user } = usePrivy();
+  const { openModal, closeModal } = useModal();
   const [activities, setActivities] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +76,14 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({ watcher, onClos
   const [hasMore, setHasMore] = useState(true);
   const [lastKey, setLastKey] = useState<string | null>(null);
 
-  
+  // Handle modal context state
+  useEffect(() => {
+    openModal();
+    return () => {
+      closeModal();
+    };
+  }, [openModal, closeModal]);
+
   // New state for editing name and tags
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(watcher.name || '');
@@ -245,358 +267,367 @@ const loadMore = () => {
     return (numAmount / Math.pow(10, decimals)).toFixed(decimals > 6 ? 6 : decimals);
   };
 
+  const handleClose = () => {
+    closeModal();
+    onClose();
+  };
+
   if (!watcher) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-zinc-800 rounded-lg w-full max-w-2xl h-[100vh] sm:h-auto sm:max-h-[90vh] flex flex-col">
-        {/* Modal Header */}
-        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-zinc-700">
-          <div className="flex-1 space-y-1">
-            {isEditing ? (
-              <div className="flex-1 pr-2">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={`Wallet ${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
-                  className="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 text-lg"
-                />
-              </div>
-            ) : (
-              <div className="flex items-center">
-                <h2 className="text-lg sm:text-xl font-semibold text-white mr-2">
-                  {watcher.name || `Wallet ${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
-                </h2>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="text-zinc-400 hover:text-indigo-300 transition-colors p-1"
-                  title="Edit name and tags"
-                >
-                  <Edit2 size={16} />
-                </button>
-              </div>
-            )}
-            <p className="text-xs sm:text-sm text-zinc-400 font-mono truncate">
-              {watcher.walletAddress}
-            </p>
-          </div>
-          <button 
-            onClick={onClose}
-            className="text-zinc-400 hover:text-white transition-colors p-2"
+    <ModalPortal>
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]">
+        <div className="bg-zinc-900 rounded-lg w-full max-w-2xl mx-4 relative shadow-xl max-h-[90vh] flex flex-col">
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
           >
-            <CloseIcon />
+            <X className="w-6 h-6" />
           </button>
-        </div>
 
-        {/* Modal Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
-          {/* Editing Mode for Tags */}
-          {isEditing && (
-            <div className="bg-zinc-700 bg-opacity-40 p-4 rounded-lg space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-2">
-                  Tags
-                </label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {tags.map(tag => (
-                    <div key={tag} className="bg-indigo-900/50 text-indigo-200 px-2 py-1 rounded-md flex items-center text-sm">
-                      <TagIcon size={12} className="mr-1" />
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="ml-1 text-indigo-300 hover:text-white"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex">
+          {/* Modal Header */}
+          <div className="flex justify-between items-center p-4 sm:p-6 border-b border-zinc-700">
+            <div className="flex-1 space-y-1">
+              {isEditing ? (
+                <div className="flex-1 pr-2">
                   <input
                     type="text"
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    onKeyDown={handleTagInput}
-                    onBlur={addTag}
-                    placeholder="Add tags (comma or enter to separate)"
-                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-500 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={`Wallet ${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 text-lg"
                   />
                 </div>
-              </div>
-
-              <div className="flex justify-end pt-2 space-x-3">
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setName(watcher.name || '');
-                    setTags(watcher.tags || []);
-                  }}
-                  className="px-3 py-1 text-zinc-300 hover:text-white transition-colors"
-                  disabled={isSaving}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <span className="flex items-center">
-                      <Loader2 size={14} className="animate-spin mr-1" />
-                      Saving...
-                    </span>
-                  ) : (
-                    <span className="flex items-center">
-                      <Save size={14} className="mr-1" />
-                      Save
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Tags display (when not editing) */}
-          {!isEditing && watcher.tags && watcher.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {watcher.tags.map(tag => (
-                <span 
-                  key={tag}
-                  className="text-xs bg-indigo-900/40 text-indigo-200 px-2 py-1 rounded-md flex items-center"
-                >
-                  <TagIcon size={12} className="mr-1" />
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 gap-4">
-            {/* Status and Last Updated */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
-                <div className="text-sm text-zinc-400">Last Updated</div>
-                <div className="text-sm sm:text-base text-white mt-1">
-                  {watcher.lastChecked
-                    ? new Date(watcher.lastChecked).toLocaleString()
-                    : 'Never'
-                  }
+              ) : (
+                <div className="flex items-center">
+                  <h2 className="text-lg sm:text-xl font-semibold text-white mr-2">
+                    {watcher.name || `Wallet ${watcher.walletAddress.slice(0, 4)}...${watcher.walletAddress.slice(-4)}`}
+                  </h2>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-zinc-400 hover:text-indigo-300 transition-colors p-1"
+                    title="Edit name and tags"
+                  >
+                    <Edit2 size={16} />
+                  </button>
                 </div>
-              </div>
-
-              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
-                <div className="text-sm text-zinc-400">Status</div>
-                <div className={`mt-1 flex items-center gap-2 ${
-                  watcher.isActive ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${
-                    watcher.isActive ? 'bg-green-400' : 'bg-red-400'
-                  }`} />
-                  {watcher.isActive ? 'Active' : 'Inactive'}
-                </div>
-              </div>
+              )}
+              <p className="text-xs sm:text-sm text-zinc-400 font-mono truncate">
+                {watcher.walletAddress}
+              </p>
             </div>
+          </div>
 
-            {/* Active Filters */}
-            {watcher.filters && (
-              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
-                <div className="text-sm text-zinc-400 mb-2">Active Filters</div>
-                <div className="space-y-2">
-                  {watcher.filters.minAmount != null && watcher.filters.minAmount > 0 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-400">Min Amount:</span>
-                      <span className="text-xs text-white">${watcher.filters.minAmount}</span>
-                    </div>
-                  )}
-                  {watcher.filters.specificToken && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-400">Specific Token:</span>
-                      <span className="text-xs text-white font-mono">
-                        {`${watcher.filters.specificToken.slice(0, 4)}...${watcher.filters.specificToken.slice(-4)}`}
+          {/* Modal Content - Scrollable Area */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+            {/* Editing Mode for Tags */}
+            {isEditing && (
+              <div className="bg-zinc-700 bg-opacity-40 p-4 rounded-lg space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    Tags
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {tags.map(tag => (
+                      <div key={tag} className="bg-indigo-900/50 text-indigo-200 px-2 py-1 rounded-md flex items-center text-sm">
+                        <TagIcon size={12} className="mr-1" />
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="ml-1 text-indigo-300 hover:text-white"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={tagsInput}
+                      onChange={(e) => setTagsInput(e.target.value)}
+                      onKeyDown={handleTagInput}
+                      onBlur={addTag}
+                      placeholder="Add tags (comma or enter to separate)"
+                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-500 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2 space-x-3">
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setName(watcher.name || '');
+                      setTags(watcher.tags || []);
+                    }}
+                    className="px-3 py-1 text-zinc-300 hover:text-white transition-colors"
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-3 py-1 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <span className="flex items-center">
+                        <Loader2 size={14} className="animate-spin mr-1" />
+                        Saving...
                       </span>
-                    </div>
-                  )}
-                  {watcher.filters.activityTypes && watcher.filters.activityTypes.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-xs text-zinc-400">Activity Types:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {watcher.filters.activityTypes.map(type => (
-                          <span 
-                            key={type}
-                            className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded"
-                          >
-                            {type.replace('ACTIVITY_', '')}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {watcher.filters.platform && watcher.filters.platform.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-xs text-zinc-400">Platforms:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {watcher.filters.platform.map(p => (
-                          <span 
-                            key={p}
-                            className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded"
-                          >
-                            {p}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {!watcher.filters.minAmount && 
-                   !watcher.filters.specificToken && 
-                   (!watcher.filters.activityTypes || watcher.filters.activityTypes.length === 0) &&
-                   (!watcher.filters.platform || watcher.filters.platform.length === 0) && (
-                    <span className="text-xs text-zinc-500">No active filters</span>
-                  )}
+                    ) : (
+                      <span className="flex items-center">
+                        <Save size={14} className="mr-1" />
+                        Save
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Activities */}
-          <div>
-            <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Activities</h3>
-            <div className="space-y-3">
-              {activities.map((activity) => {
-                // Add null checks
-                if (!activity) return null;
-                const tokenDetails = formatTokenDetails(activity);
-                if (!tokenDetails) return null;
-
-                return (
-                  <div 
-                    key={activity.transactionId || activity.trans_id}
-                    className="border border-zinc-700 p-4 bg-zinc-900 rounded-lg"
+            {/* Tags display (when not editing) */}
+            {!isEditing && watcher.tags && watcher.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {watcher.tags.map(tag => (
+                  <span 
+                    key={tag}
+                    className="text-xs bg-indigo-900/40 text-indigo-200 px-2 py-1 rounded-md flex items-center"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-sm font-medium text-zinc-300">
-                        {formatActivityType(activity.type)}
-                      </span>
-                      <span className="text-xs text-zinc-400">
-                        {new Date(activity.timestamp || activity.time).toLocaleString()}
-                      </span>
-                    </div>
+                    <TagIcon size={12} className="mr-1" />
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
-                        {/* Token 1 */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center">
-                            {tokenDetails.token1.metadata?.token_icon ? (
-                              <img 
-                                src={tokenDetails.token1.metadata.token_icon} 
-                                alt={tokenDetails.token1.metadata.token_symbol || 'token'} 
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-xs">?</span>
-                            )}
-                          </div>
-                          <span className="text-sm text-zinc-100">
-                            {formatTokenAmount(tokenDetails.token1.amount, tokenDetails.token1.decimals)}{' '}
-                            {tokenDetails.token1.metadata?.token_symbol || 'Unknown'}
-                          </span>
-                        </div>
-
-                        <span className="text-zinc-500">→</span>
-
-                        {/* Token 2 */}
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center">
-                            {tokenDetails.token2.metadata?.token_icon ? (
-                              <img 
-                                src={tokenDetails.token2.metadata.token_icon} 
-                                alt={tokenDetails.token2.metadata.token_symbol || 'token'} 
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-xs">?</span>
-                            )}
-                          </div>
-                          <span className="text-sm text-zinc-100">
-                            {formatTokenAmount(tokenDetails.token2.amount, tokenDetails.token2.decimals)}{' '}
-                            {tokenDetails.token2.metadata?.token_symbol || 'Unknown'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-sm text-zinc-400">
-                        ${(activity.value || 0).toLocaleString(undefined, { 
-                          minimumFractionDigits: 2, 
-                          maximumFractionDigits: 2 
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Transaction Details */}
-                    <div className="mt-3 space-y-1 text-xs">
-                      {activity.platform && (
-                        <div className="text-xs text-zinc-500 flex items-center gap-2">
-                          <span className="text-zinc-400">Platform:</span>
-                          <span className="truncate">
-                            {Array.isArray(activity.platform) ? activity.platform.join(', ') : activity.platform}
-                          </span>
-                        </div>
-                      )}
-                      <div className="text-xs text-zinc-500 flex items-center gap-2">
-                        <span className="text-zinc-400">Tx:</span>
-                        <a 
-                          href={`https://solscan.io/tx/${activity.transactionId || activity.trans_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="truncate text-indigo-400 transition-colors"
-                        >
-                          View Transaction
-                        </a>
-                      </div>
-                    </div>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Status and Last Updated */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-sm text-zinc-400">Last Updated</div>
+                  <div className="text-sm sm:text-base text-white mt-1">
+                    {watcher.lastChecked
+                      ? new Date(watcher.lastChecked).toLocaleString()
+                      : 'Never'
+                    }
                   </div>
-                );
-              })}
+                </div>
 
-              {/* Load More Button */}
-              {hasMore && !isLoading && (
-                <button
-                  onClick={loadMore}
-                  className="w-full py-2 px-4 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors text-sm"
-                >
-                  Load More
-                </button>
-              )}
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-sm text-zinc-400">Status</div>
+                  <div className={`mt-1 flex items-center gap-2 ${
+                    watcher.isActive ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${
+                      watcher.isActive ? 'bg-green-400' : 'bg-red-400'
+                    }`} />
+                    {watcher.isActive ? 'Active' : 'Inactive'}
+                  </div>
+                </div>
+              </div>
 
-              {/* Loading State */}
-              {isLoading && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+              {/* Active Filters */}
+              {watcher.filters && (
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-sm text-zinc-400 mb-2">Active Filters</div>
+                  <div className="space-y-2">
+                    {watcher.filters.minAmount != null && watcher.filters.minAmount > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-400">Min Amount:</span>
+                        <span className="text-xs text-white">${watcher.filters.minAmount}</span>
+                      </div>
+                    )}
+                    {watcher.filters.specificToken && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-400">Specific Token:</span>
+                        <span className="text-xs text-white font-mono">
+                          {`${watcher.filters.specificToken.slice(0, 4)}...${watcher.filters.specificToken.slice(-4)}`}
+                        </span>
+                      </div>
+                    )}
+                    {watcher.filters.activityTypes && watcher.filters.activityTypes.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs text-zinc-400">Activity Types:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {watcher.filters.activityTypes.map(type => (
+                            <span 
+                              key={type}
+                              className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded"
+                            >
+                              {type.replace('ACTIVITY_', '')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {watcher.filters.platform && watcher.filters.platform.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs text-zinc-400">Platforms:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {watcher.filters.platform.map(p => (
+                            <span 
+                              key={p}
+                              className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded"
+                            >
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {!watcher.filters.minAmount && 
+                     !watcher.filters.specificToken && 
+                     (!watcher.filters.activityTypes || watcher.filters.activityTypes.length === 0) &&
+                     (!watcher.filters.platform || watcher.filters.platform.length === 0) && (
+                      <span className="text-xs text-zinc-500">No active filters</span>
+                    )}
+                  </div>
                 </div>
               )}
+            </div>
 
-              {/* No Activities State */}
-              {!isLoading && activities.length === 0 && (
-                <div className="text-center text-zinc-400 py-8">
-                  No activities found
-                </div>
-              )}
+            {/* Activities */}
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Activities</h3>
+              <div className="space-y-3">
+                {activities.map((activity) => {
+                  // Add null checks
+                  if (!activity) return null;
+                  const tokenDetails = formatTokenDetails(activity);
+                  if (!tokenDetails) return null;
 
-              {/* Error State */}
-              {error && (
-                <div className="text-center text-red-400 py-4">
-                  {error}
-                </div>
-              )}
+                  return (
+                    <div 
+                      key={activity.transactionId || activity.trans_id}
+                      className="border border-zinc-700 p-4 bg-zinc-900 rounded-lg"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm font-medium text-zinc-300">
+                          {formatActivityType(activity.type)}
+                        </span>
+                        <span className="text-xs text-zinc-400">
+                          {new Date(activity.timestamp || activity.time).toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                          {/* Token 1 */}
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center">
+                              {tokenDetails.token1.metadata?.token_icon ? (
+                                <img 
+                                  src={tokenDetails.token1.metadata.token_icon} 
+                                  alt={tokenDetails.token1.metadata.token_symbol || 'token'} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-xs">?</span>
+                              )}
+                            </div>
+                            <span className="text-sm text-zinc-100">
+                              {formatTokenAmount(tokenDetails.token1.amount, tokenDetails.token1.decimals)}{' '}
+                              {tokenDetails.token1.metadata?.token_symbol || 'Unknown'}
+                            </span>
+                          </div>
+
+                          <span className="text-zinc-500">→</span>
+
+                          {/* Token 2 */}
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center">
+                              {tokenDetails.token2.metadata?.token_icon ? (
+                                <img 
+                                  src={tokenDetails.token2.metadata.token_icon} 
+                                  alt={tokenDetails.token2.metadata.token_symbol || 'token'} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-xs">?</span>
+                              )}
+                            </div>
+                            <span className="text-sm text-zinc-100">
+                              {formatTokenAmount(tokenDetails.token2.amount, tokenDetails.token2.decimals)}{' '}
+                              {tokenDetails.token2.metadata?.token_symbol || 'Unknown'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-sm text-zinc-400">
+                          ${(activity.value || 0).toLocaleString(undefined, { 
+                            minimumFractionDigits: 2, 
+                            maximumFractionDigits: 2 
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Transaction Details */}
+                      <div className="mt-3 space-y-1 text-xs">
+                        {activity.platform && (
+                          <div className="text-xs text-zinc-500 flex items-center gap-2">
+                            <span className="text-zinc-400">Platform:</span>
+                            <span className="truncate">
+                              {Array.isArray(activity.platform) ? activity.platform.join(', ') : activity.platform}
+                            </span>
+                          </div>
+                        )}
+                        <div className="text-xs text-zinc-500 flex items-center gap-2">
+                          <span className="text-zinc-400">Tx:</span>
+                          <a 
+                            href={`https://solscan.io/tx/${activity.transactionId || activity.trans_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate text-indigo-400 transition-colors"
+                          >
+                            View Transaction
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Load More Button */}
+                {hasMore && !isLoading && (
+                  <button
+                    onClick={loadMore}
+                    className="w-full py-2 px-4 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors text-sm"
+                  >
+                    Load More
+                  </button>
+                )}
+
+                {/* Loading State */}
+                {isLoading && (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                  </div>
+                )}
+
+                {/* No Activities State */}
+                {!isLoading && activities.length === 0 && (
+                  <div className="text-center text-zinc-400 py-8">
+                    No activities found
+                  </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                  <div className="text-center text-red-400 py-4">
+                    {error}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 };
 
