@@ -480,9 +480,15 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       <p className="mb-4">Click on a holder to view their recent activities like token swaps, staking, and more.</p>
 
       <div className="space-y-3">
-        {toolInvocation.result && toolInvocation.result.map((holder, index) => (
-          <HolderCard key={holder.owner} holder={holder} index={index} />
-        ))}
+        {Array.isArray(toolInvocation.result) && toolInvocation.result.length > 0 ? (
+          toolInvocation.result.map((holder, index) => (
+            <HolderCard key={holder.owner} holder={holder} index={index} />
+          ))
+        ) : (
+          <div className="text-center text-zinc-400 py-8">
+            No holders found
+          </div>
+        )}
       </div>
     </div>
   );
