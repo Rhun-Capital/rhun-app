@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "init-db": "npx tsx scripts/init-db.ts"
+    "init-db": "npx tsx scripts/init-db.ts",
+    "clear-activities": "npx tsx scripts/clear-token-holders-activity.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.1.15",

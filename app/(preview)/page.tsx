@@ -170,7 +170,8 @@ import {
   ChevronDown,
   CheckIcon,
   Repeat2,
-  FileImage as AttachmentIcon
+  FileImage as AttachmentIcon,
+  RefreshCw
 } from "lucide-react";
 
 import { useWalletData } from '@/app/hooks/useWalletData';
@@ -491,6 +492,7 @@ const WalletContent = memo(({
           amount: amount.toString(),
         });
         setIsFundingModalOpen(false);
+        closeModal();
         handleRefreshWalletData();
       } catch (error) {
         console.error('Error funding wallet:', error);
@@ -640,6 +642,7 @@ const WalletContent = memo(({
             className={`mt-4 w-full px-6 py-2.5 rounded-lg border border-indigo-400 text-white hover:bg-indigo-600/20 transition-colors text-sm sm:text-base ${initialLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => {
               setIsFundingModalOpen(true);
+              openModal();
             }}
             disabled={initialLoading}
           >
@@ -805,61 +808,15 @@ const WalletContent = memo(({
       )}
 
       {/* Standalone FundingModal */}
-      {isFundingModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-bold mb-6 text-white">Add Funds</h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Image src="https://d1olseq3j3ep4p.cloudfront.net/images/chains/solana.svg" alt="Solana Logo" width={14} height={14} />
-                  <label className="text-sm text-zinc-400">Amount (SOL)</label>
-                </div>
-                <input
-                  type="number"
-                  value={fundingAmount}
-                  onChange={(e) => setFundingAmount(parseFloat(e.target.value) || 0.1)}
-                  min="0.1"
-                  step="0.1"
-                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white"
-                />
-              </div>
-              <div className="flex gap-2">
-                {[0.1, 0.5, 1, 2].map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => setFundingAmount(value)}
-                    className={`flex-1 px-3 py-1 rounded text-sm ${
-                      fundingAmount === value
-                        ? 'bg-indigo-500 text-white'
-                        : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
-                    }`}
-                  >
-                    {value} SOL
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-end space-x-2 mt-4">
-                <button
-                  onClick={() => setIsFundingModalOpen(false)}
-                  className="px-4 py-2 bg-zinc-700 text-white rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    handleFundingConfirm(fundingAmount);
-                    setIsFundingModalOpen(false);
-                  }}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md"
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <FundingModal
+        isOpen={isFundingModalOpen}
+        onClose={() => {
+          setIsFundingModalOpen(false);
+          closeModal();
+        }}
+        onConfirm={handleFundingConfirm}
+        defaultAmount={fundingAmount}
+      />
     </div>
   );
 });

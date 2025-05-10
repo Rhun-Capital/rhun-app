@@ -665,41 +665,73 @@ export async function POST(request: Request) {
         }
 
         // Find potential recipient addresses (addresses that received the toToken)
-        const potentialRecipients = solscanTx?.token_bal_change
-          ?.filter((change: any) => 
-            Number(change.change_amount) > 0 &&
-            change.owner
-          )
-          .map((change: any) => change.owner) || [];
-
-
-        // If we have potential recipients, check which ones are in our TOKEN_HOLDERS_MAPPING_TABLE
-        let trackedHolder = null;
-        if (potentialRecipients.length > 0) {
-          for (const recipient of potentialRecipients) {
-            try {
-              const response = await docClient.send(
-                new QueryCommand({
-                  TableName: TOKEN_HOLDERS_MAPPING_TABLE_NAME,
-                  KeyConditionExpression: 'holder_address = :address',
-                  ExpressionAttributeValues: {
-                    ':address': recipient
-                  }
-                })
-              );
-              
-              if (response.Items && response.Items.length > 0) {
-                trackedHolder = response.Items[0];
-                break;
-              }
-            } catch (error) {
-              console.error(`Error checking holder mapping for address ${recipient}:`, error);
+        const potentialRecipients = new Set<string>();
+        
+        // 1. Check token balance changes from Solscan
+        if (solscanTx?.token_bal_change) {
+          solscanTx.token_bal_change
+            .filter((change: any) => Number(change.change_amount) > 0 && change.owner)
+            .forEach((change: any) => potentialRecipients.add(change.owner));
+        }
+        
+        // 2. Check account data from the event
+        if (event.accountData && Array.isArray(event.accountData)) {
+          event.accountData.forEach((account: any) => {
+            if (account.account) {
+              potentialRecipients.add(account.account);
             }
+          });
+        }
+        
+        // 3. Check token transfers if available
+        if (event.tokenTransfers && Array.isArray(event.tokenTransfers)) {
+          event.tokenTransfers.forEach((transfer: any) => {
+            if (transfer.toUserAccount) {
+              potentialRecipients.add(transfer.toUserAccount);
+            }
+          });
+        }
+
+        console.log('Potential holder addresses found:', {
+          fromSolscan: solscanTx?.token_bal_change?.length || 0,
+          fromAccountData: event.accountData?.length || 0,
+          fromTokenTransfers: event.tokenTransfers?.length || 0,
+          uniqueAddresses: Array.from(potentialRecipients)
+        });
+
+        // Find tracked holder from potential recipients
+        let trackedHolder = null;
+        for (const recipient of potentialRecipients) {
+          try {
+            console.log('Checking holder mapping for address:', recipient);
+            const response = await docClient.send(
+              new QueryCommand({
+                TableName: TOKEN_HOLDERS_MAPPING_TABLE_NAME,
+                KeyConditionExpression: 'holder_address = :address',
+                ExpressionAttributeValues: {
+                  ':address': recipient
+                }
+              })
+            );
+            
+            if (response.Items && response.Items.length > 0) {
+              trackedHolder = response.Items[0];
+              console.log('Found tracked holder:', {
+                address: trackedHolder.holder_address,
+                token: trackedHolder.token_symbol
+              });
+              break;
+            }
+          } catch (error) {
+            console.error(`Error checking holder mapping for address ${recipient}:`, error);
           }
         }
 
-        console.log('trackedHolder', trackedHolder);
+        if (!trackedHolder) {
+          console.log('No tracked holder found for addresses:', Array.from(potentialRecipients));
+        }
 
+        console.log('Final trackedHolder result:', trackedHolder);
 
         // Create enriched event data
         const enrichedEvent = {
@@ -707,14 +739,14 @@ export async function POST(request: Request) {
           timestamp: event.timestamp,
           type: 'SWAP',
           description: event.description || `Swapped ${fromToken?.amount} ${fromToken?.symbol} for ${toToken?.amount} ${toToken?.symbol}`,
-          holder_address: trackedHolder || event.accountData?.[0]?.account || '',
-          holder_mapping: {
-            token_address: trackedHolder?.token_address,
-            token_symbol: trackedHolder?.token_symbol,
-            token_name: trackedHolder?.token_name,
-            token_logo_uri: trackedHolder?.token_logo_uri,
-            token_decimals: trackedHolder?.token_decimals
-          },
+          holder_address: trackedHolder?.holder_address || event.accountData?.[0]?.account || '',
+          holder_mapping: trackedHolder ? {
+            token_address: trackedHolder.token_address,
+            token_symbol: trackedHolder.token_symbol,
+            token_name: trackedHolder.token_name,
+            token_logo_uri: trackedHolder.token_logo_uri,
+            token_decimals: trackedHolder.token_decimals
+          } : null,
           native_balance_change: event.accountData?.[0]?.nativeBalanceChange || 0,
           token_transfers: [], // Minimize stored data
           fromToken: {
