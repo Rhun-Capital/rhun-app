@@ -47,7 +47,6 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
       toolInvocation.result?.requestId && 
       !requestId
     ) {
-      console.log(`Setting requestId: ${toolInvocation.result.requestId}`);
       setRequestId(toolInvocation.result.requestId);
     }
   }, [toolInvocation, requestId]);
@@ -59,7 +58,6 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
       return;
     }
 
-    console.log(`Starting to poll for requestId: ${requestId}`);
     setIsPolling(true);
     
     // Clear any existing interval
@@ -71,7 +69,6 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
     const pollStatus = async () => {
       try {
         const accessToken = await getAccessToken();
-        console.log(`Polling for status: ${requestId}`);
         
         const response = await fetch(`/api/financial-data/status?requestId=${requestId}`, {
           headers: { 
@@ -85,7 +82,6 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
         }
         
         const statusData = await response.json();
-        console.log('Status data:', statusData);
         
         // If analysis is complete
         if (statusData.status === 'completed') {

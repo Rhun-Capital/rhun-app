@@ -54,7 +54,6 @@ export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => 
       if (setIsOpen) {
         setIsOpen(false);
       }
-      console.log("Navigating to template chat:", path);
       window.location.href = path;
       return;
     }
@@ -131,10 +130,8 @@ export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => 
           href="/recent-chats" 
           className="text-xs text-zinc-400 hover:text-indigo-300 flex items-center"
           onClick={() => {
-            console.log("View all clicked, setIsOpen:", !!setIsOpen);
             if (setIsOpen) {
               setIsOpen(false);
-              console.log("setIsOpen called with false from View all");
             }
           }}
         >

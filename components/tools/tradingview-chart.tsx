@@ -65,7 +65,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
 
   // Mount/unmount effect
   useEffect(() => {
-    console.log(`TradingView chart mounted: ${containerId}`);
     setMounted(true);
     
     // Global error handler for TradingView widget
@@ -80,7 +79,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
     window.addEventListener('error', handleError);
     
     return () => {
-      console.log(`TradingView chart unmounting: ${containerId}`);
       setMounted(false);
       window.removeEventListener('error', handleError);
       cleanup();
@@ -94,8 +92,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
     }
 
     try {
-      console.log(`Initializing TradingView chart for ${containerIdStr}`);
-      
       // Clean up existing scripts first
       cleanup();
       
@@ -148,7 +144,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
       script.setAttribute('data-container-id', containerIdStr);
       
       // Add load and error handlers
-      script.onload = () => console.log(`TradingView script loaded for ${containerIdStr}`);
       script.onerror = (e) => {
         console.error(`Error loading TradingView script for ${containerIdStr}:`, e);
         setError('Failed to load chart. Please refresh and try again.');
@@ -174,7 +169,6 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
       // Store reference and append to container
       scriptRef.current = script;
       containerElement.appendChild(script);
-      console.log(`TradingView script appended to ${containerIdStr}`);
       
       // Mark as initialized
       setInitialized(true);

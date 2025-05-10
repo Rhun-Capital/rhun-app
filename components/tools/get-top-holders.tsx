@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
-import { ChevronLeftIcon } from '@/components/icons';
+import { ChevronLeftIcon, AlertCircleIcon } from '@/components/icons';
 import { usePrivy } from '@privy-io/react-auth';
 import _ from 'lodash';
-import { AlertCircleIcon } from '@/components/icons';
 import LoadingIndicator from '@/components/loading-indicator';
 import CopyButton from '@/components/copy-button';
 import TrackWalletModal from '@/components/tools/track-wallet-modal';
@@ -12,7 +11,7 @@ import Image from 'next/image';
 interface TokenHolder {
   owner: string;
   amount: number;
-  percentage: number;
+  percentage?: number;
 }
 
 interface TokenMetadata {
@@ -57,12 +56,18 @@ interface FilterState {
   token: string;
 }
 
+interface HolderData {
+  owner: string;
+  amount: number;
+}
+
 interface TopHoldersDisplayProps {
   toolCallId: string;
   toolInvocation: {
     toolName: string;
-    args: { message: string };
-    result?: TokenHolder[];
+    args: { address: string };
+    result: HolderData[] | Record<string, HolderData>;
+    state: string;
   };
 }
 
@@ -133,16 +138,36 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       if (filters.token) params.append('token', filters.token);
   
       const response = await fetch(`/api/tools/account-activities?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
   
-      if (!response.ok) throw new Error('Failed to fetch activities');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: errorData
+        });
+        throw new Error(
+          errorData?.error || 
+          `Failed to fetch activities: ${response.status} ${response.statusText}`
+        );
+      }
+
       const data = await response.json();
+      
+      if (!data || !data.data) {
+        throw new Error('Invalid response format from API');
+      }
+
       setActivities(data);
       setSelectedHolder(address);
     } catch (error) {
-      setError('Failed to load holder activities');
-      console.error('Error fetching activities:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load holder activities';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -154,28 +179,43 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     }
   }, [selectedHolder, currentPage, fetchActivities]);
 
-  const HolderCard: React.FC<{ holder: TokenHolder; index: number }> = ({ holder, index }) => (
-    <div 
-      className="flex items, start border border-zinc-900 justify-between p-3 bg-zinc-900 rounded-lg 
-               hover:border-indigo-400 hover:shadow-lg transition-all duration-200 ease-in-out cursor-pointer"
-      onClick={() => fetchActivities(holder.owner)}
-    >
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs text-zinc-400">
-          #{index + 1}
-        </div>
-        <div>
-          <div className="font-medium font-mono">
-            {holder.owner.slice(0, 4)}...{holder.owner.slice(-4)}
+  const HolderCard: React.FC<{ holder: TokenHolder; index: number }> = ({ holder, index }) => {
+    const formatNumber = (num: number) => {
+      if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
+      if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+      if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+      if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
+      return num.toFixed(2);
+    };
+
+    return (
+      <div 
+        className="flex items-center justify-between p-3 bg-zinc-800 rounded-lg border border-zinc-700
+                 hover:border-indigo-500 hover:bg-zinc-700 transition-all duration-200 ease-in-out cursor-pointer"
+        onClick={() => fetchActivities(holder.owner)}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-sm font-medium text-white">
+            #{index + 1}
           </div>
-          <div className="text-sm text-zinc-400">
-            {holder.amount.toLocaleString()} tokens
+          <div>
+            <div className="font-medium font-mono text-white">
+              {holder.owner.slice(0, 4)}...{holder.owner.slice(-4)}
+            </div>
+            <div className="text-sm text-zinc-400">
+              {formatNumber(holder.amount)} tokens
+              {holder.percentage && (
+                <span className="ml-2 text-indigo-400">
+                  ({holder.percentage.toFixed(2)}%)
+                </span>
+              )}
+            </div>
           </div>
         </div>
+        <CopyButton text={holder.owner} />
       </div>
-      <CopyButton text={holder.owner} />
-    </div>
-  );
+    );
+  };
 
   const ActivityCard: React.FC<{ activity: Activity; token1: TokenMetadata; token2: TokenMetadata }> = ({ activity, token1, token2 }) => (
     <div className="border border-zinc-900 p-4 bg-zinc-900 rounded-lg">
@@ -352,19 +392,41 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
 
   FiltersPanel.displayName = 'FiltersPanel';
 
+  // Transform the data to match the TokenHolder interface
+  const holders = React.useMemo(() => {
+    if (!toolInvocation?.result) {
+      return [];
+    }
+    
+    // Convert result to array if it's an object
+    const resultArray: HolderData[] = Array.isArray(toolInvocation.result) 
+      ? toolInvocation.result 
+      : Object.values(toolInvocation.result);
+    
+    if (!resultArray.length) {
+      return [];
+    }
+
+    const totalAmount = resultArray.reduce((sum, holder) => sum + holder.amount, 0);
+    
+    return resultArray.map(holder => ({
+      owner: holder.owner,
+      amount: holder.amount,
+      percentage: totalAmount > 0 ? (holder.amount / totalAmount) * 100 : 0
+    }));
+  }, [toolInvocation?.result]);
+
   if (isLoading) {
     return (
-      <div className="p-6 bg-zinc-800 rounded-lg">
-        <div className="text-center text-zinc-400">
-          <LoadingIndicator/>
-        </div>
+      <div className="p-4 bg-zinc-800 rounded-lg">
+        <LoadingIndicator />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 bg-zinc-800 rounded-lg">
+      <div className="p-4 bg-zinc-800 rounded-lg">
         <div className="flex items-center gap-2 text-red-500">
           <AlertCircleIcon />
           <span>{error}</span>
@@ -373,123 +435,90 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     );
   }
 
-  if (selectedHolder && activities) {
-    const isTracked = trackedWallets.has(selectedHolder);
-    
-    return (
-      <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg space-y-4">
-        {/* Header with back button */}
-        <div className="flex items-center justify-between mb-6">
-          <button 
-            onClick={() => setSelectedHolder(null)}
-            className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors"
-          >
-            <ChevronLeftIcon />
-            Back to holders
-          </button>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-3 py-1 rounded-md bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
-          >
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="16" 
-              height="16" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-            </svg>
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
-        </div>
-
-        {/* Filters */}
-        {showFilters && <FiltersPanel />}
-
-        {/* Wallet Info Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-zinc-900 rounded-lg border border-zinc-700">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold">Wallet Activities</h2>
-              <CopyButton text={selectedHolder}/>
-            </div>
-            <p className="text-zinc-400 font-mono text-sm mt-1">
-              {selectedHolder.slice(0, 4)}...{selectedHolder.slice(-4)}
-            </p>
-          </div>
-          
-          <div className="mt-4 sm:mt-0">
-            {isTracked ? (
-              <div className="flex items-center gap-2 text-green-400">
-                <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                <span>Wallet Tracked</span>
-              </div>
-            ) : (
-              <button
-                onClick={() => setIsTrackModalOpen(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center gap-2"
-              >
-                Track Wallet
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Activity list */}
-        <div className="space-y-3">
-          {activities.data.length > 0 ? (
-            <>
-              {activities.data.map((activity, index) => (
-                <ActivityCard
-                  key={index}
-                  activity={activity}
-                  token1={activities.metadata.tokens[activity.routers.token1]}
-                  token2={activities.metadata.tokens[activity.routers.token2]}
-                />
-              ))}
-              <PaginationControls />
-            </>
-          ) : (
-            <div className="text-center text-zinc-400 py-8">
-              No activities found
-            </div>
-          )}
-        </div>
-
-        {/* Track Wallet Modal */}
-        <TrackWalletModal
-          isOpen={isTrackModalOpen}
-          onClose={() => setIsTrackModalOpen(false)}
-          onSuccess={() => handleTrackSuccess(selectedHolder)}
-          walletAddress={selectedHolder}
-          userId={user?.id || ''}
-        />
-      </div>
-    );
-  }
-
   // Default view - holders list
   return (
-    <div key={toolCallId} className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
-      <h3 className="text-lg font-semibold mb-4">Top Token Holders</h3>
-      <p className="mb-4">Click on a holder to view their recent activities like token swaps, staking, and more.</p>
+    <div className="p-4 bg-zinc-800 rounded-lg">
+      {selectedHolder ? (
+        <div>
+          <button
+            onClick={() => setSelectedHolder(null)}
+            className="flex items-center gap-2 text-zinc-400 hover:text-white mb-4"
+          >
+            <ChevronLeftIcon /> Back to Holders List
+          </button>
 
-      <div className="space-y-3">
-        {Array.isArray(toolInvocation.result) && toolInvocation.result.length > 0 ? (
-          toolInvocation.result.map((holder, index) => (
-            <HolderCard key={holder.owner} holder={holder} index={index} />
-          ))
-        ) : (
-          <div className="text-center text-zinc-400 py-8">
-            No holders found
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Holder Activities</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="px-3 py-1 text-sm rounded-md bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+              {user && (
+                <button
+                  onClick={() => setIsTrackModalOpen(true)}
+                  className="px-3 py-1 text-sm rounded-md bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 transition-colors"
+                >
+                  Track Wallet
+                </button>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+
+          {showFilters && <FiltersPanel />}
+
+          {activities?.data && activities.data.length > 0 ? (
+            <div className="space-y-3">
+              {activities.data.map((activity, index) => {
+                const token1 = activities.metadata.tokens[activity.routers.token1];
+                const token2 = activities.metadata.tokens[activity.routers.token2];
+                return (
+                  <ActivityCard 
+                    key={index} 
+                    activity={activity} 
+                    token1={token1} 
+                    token2={token2} 
+                  />
+                );
+              })}
+              <PaginationControls />
+            </div>
+          ) : (
+            <div className="text-center text-zinc-400 py-8">
+              No activities found for this holder
+            </div>
+          )}
+
+          {isTrackModalOpen && user && (
+            <TrackWalletModal
+              isOpen={isTrackModalOpen}
+              onClose={() => setIsTrackModalOpen(false)}
+              onSuccess={() => handleTrackSuccess(selectedHolder)}
+              walletAddress={selectedHolder}
+              userId={user.id}
+            />
+          )}
+        </div>
+      ) : (
+        <>
+          <h3 className="text-lg font-semibold mb-4">Top Token Holders</h3>
+          <p className="mb-4">Click on a holder to view their recent activities like token swaps, staking, and more.</p>
+
+          <div className="space-y-3">
+            {holders.length > 0 ? (
+              holders.map((holder, index) => (
+                <HolderCard key={holder.owner} holder={holder} index={index} />
+              ))
+            ) : (
+              <div className="text-center text-zinc-400 py-8">
+                No holders found
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

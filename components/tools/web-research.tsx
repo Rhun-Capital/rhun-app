@@ -150,7 +150,6 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       // Clean up when component unmounts or when isPolling changes
       return () => {
         if (pollIntervalRef.current) {
-          console.log('Clearing polling interval');
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
         }
@@ -169,10 +168,8 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       const shouldPoll = (data?.status === 'running' || data?.status === 'created' || data?.status === 'paused');
       
       if (shouldPoll && !isPolling) {
-        console.log('Starting polling for task:', taskIdRef);
         setIsPolling(true);
       } else if (!shouldPoll && isPolling) {
-        console.log('Stopping polling for task:', taskIdRef);
         setIsPolling(false);
       }
     }

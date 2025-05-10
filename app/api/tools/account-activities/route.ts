@@ -2,7 +2,6 @@ import { sortBy } from 'lodash';
 import { NextResponse, NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,7 +20,10 @@ export async function GET(request: NextRequest) {
       token: params.get('token')
     };
 
+    console.log('Received request with params:', paramConfig);
+
     if (!paramConfig.address) {
+      console.error('Missing required address parameter');
       return NextResponse.json(
         { error: 'Account address is required' },
         { status: 400 }
@@ -49,25 +51,63 @@ export async function GET(request: NextRequest) {
     paramConfig.platforms.forEach(p => apiParams.append('platform[]', p));
     paramConfig.sources.forEach(s => apiParams.append('source[]', s));
     if (paramConfig.token) apiParams.append('token', paramConfig.token);
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`,
-      {
-        headers: {
-          'token': process.env.SOLSCAN_API_KEY || '',
-          'Content-Type': 'application/json'
-        }
+
+    const solscanUrl = `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`;
+    console.log('Calling Solscan API:', solscanUrl);
+
+    const response = await fetch(solscanUrl, {
+      headers: {
+        'token': process.env.SOLSCAN_API_KEY || '',
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
     if (!response.ok) {
-      throw new Error(`Solscan API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Solscan API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        url: solscanUrl
+      });
+      
+      if (response.status === 404) {
+        return NextResponse.json({ data: [], metadata: { tokens: {} } });
+      }
+      
+      return NextResponse.json(
+        { error: `Failed to fetch activities: ${response.status} ${response.statusText}` },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    console.log('Solscan API response success:', {
+      dataLength: data?.data?.length,
+      hasMetadata: !!data?.metadata,
+      tokenCount: Object.keys(data?.metadata?.tokens || {}).length
+    });
+
+    if (!data || !data.data) {
+      console.error('Invalid response format:', data);
+      return NextResponse.json(
+        { error: 'Invalid response format from Solscan API' },
+        { status: 500 }
+      );
+    }
+
+    // Ensure we have the expected data structure
+    const formattedResponse = {
+      data: data.data || [],
+      metadata: {
+        tokens: data.metadata?.tokens || {}
+      }
+    };
+
+    return NextResponse.json(formattedResponse);
 
   } catch (error: any) {
-    console.error('Error fetching account activities:', error);
+    console.error('Error in account activities endpoint:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to fetch account activities' },
       { status: 500 }

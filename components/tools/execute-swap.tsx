@@ -84,11 +84,6 @@ const ExecuteSwap: React.FC<{
   useEffect(() => {
     // Only validate if we have all required parameters
     if (!fromTokenName || !toTokenName || !amount) {
-      console.log('Waiting for all required parameters:', {
-        fromToken: fromTokenName,
-        toToken: toTokenName,
-        amount: amount
-      });
       return;
     }
 
@@ -112,14 +107,6 @@ const ExecuteSwap: React.FC<{
 
     // Clear any previous validation errors
     setValidationErrors({});
-
-    // If we get here, the parameters are valid
-    console.log('Valid parameters received:', {
-      fromToken: fromTokenName,
-      toToken: toTokenName,
-      amount: amountToSwap,
-      slippage
-    });
   }, [fromTokenName, toTokenName, amount, slippage]);
 
   useEffect(() => {
@@ -175,11 +162,6 @@ const ExecuteSwap: React.FC<{
   const validateParameters = () => {
     // Only validate if we have all required parameters
     if (!fromTokenName || !toTokenName || !amount) {
-      console.log('Waiting for all required parameters:', {
-        fromToken: fromTokenName,
-        toToken: toTokenName,
-        amount: amount
-      });
       return false;
     }
 
@@ -205,12 +187,6 @@ const ExecuteSwap: React.FC<{
     setValidationErrors({});
 
     // If we get here, the parameters are valid
-    console.log('Valid parameters received:', {
-      fromToken: fromTokenName,
-      toToken: toTokenName,
-      amount: amountToSwap,
-      slippage
-    });
     return true;
   };
 
@@ -268,7 +244,6 @@ const ExecuteSwap: React.FC<{
 
       // If token is not found in the list but is a valid Solana address, create a dummy token object
       if (!token && isAddress) {
-        console.log(`Token not found in list, using address directly: ${tokenIdentifier}`);
         return {
           token_address: tokenIdentifier,
           token_icon: '',
@@ -309,7 +284,6 @@ const ExecuteSwap: React.FC<{
       // If we can't find the token but the input is a valid Solana address, 
       // try to use it directly as a last resort
       if (SOLANA_ADDRESS_REGEX.test(tokenIdentifier)) {
-        console.log(`Falling back to using address directly after error: ${tokenIdentifier}`);
         return {
           token_address: tokenIdentifier,
           token_icon: '',
@@ -352,7 +326,6 @@ const ExecuteSwap: React.FC<{
         const errorData = await response.json();
         // Handle 404 errors gracefully - this is expected for new tool invocations
         if (response.status === 404) {
-          console.log('Tool invocation not found - this is expected for new invocations');
           return null;
         }
         throw new Error(errorData.error || 'Failed to update tool invocation');
@@ -432,14 +405,6 @@ const ExecuteSwap: React.FC<{
         throw new Error(`Could not find ${!fromToken ? fromTokenName : toTokenName}`);
       }
   
-      // Debug logs for amount
-      console.log('Amount validation:', {
-        rawAmount: amount,
-        type: typeof amount,
-        parsedAmount: parseFloat(amount),
-        isNaN: isNaN(parseFloat(amount))
-      });
-
       // Validate amount and balance
       const amountToSwap = parseFloat(amount);
       if (isNaN(amountToSwap)) {
@@ -468,11 +433,6 @@ const ExecuteSwap: React.FC<{
           console.warn(`Using unknown token with address ${fromToken.token_address}. Make sure you have this token in your wallet.`);
         }
         
-        console.log('Executing swap with amount:', {
-          amount: amountToSwap.toString(),
-          type: typeof amountToSwap.toString()
-        });
-
         signature = await executeSwap({
           fromToken,
           toToken,

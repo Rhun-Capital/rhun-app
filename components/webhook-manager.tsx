@@ -178,7 +178,6 @@ export function WebhookManager() {
     try {
       setIsLoadingMetadata(true);
       const accessToken = await getAccessToken();
-      console.log(`Fetching metadata for token: ${address}`);
       
       const metadataResponse = await fetch(`/api/solana/token/${address}/metadata`, {
         headers: {
@@ -188,16 +187,13 @@ export function WebhookManager() {
       
       if (metadataResponse.ok) {
         const metadata = await metadataResponse.json();
-        console.log('Fetched token metadata:', metadata);
         
         // Update state and webhook data in one go
         if (metadata.symbol) {
           setTokenSymbol(metadata.symbol);
-          console.log(`Setting token symbol to: ${metadata.symbol}`);
         }
         if (metadata.name) {
           setTokenName(metadata.name);
-          console.log(`Setting token name to: ${metadata.name}`);
         }
         
         // Also update the newWebhook object with this metadata
@@ -208,7 +204,6 @@ export function WebhookManager() {
             tokenSymbol: metadata.symbol || 'Unknown',
             tokenName: metadata.name || 'Unknown Token'
           };
-          console.log('Updated webhook data:', updated);
           return updated;
         });
         
@@ -216,11 +211,9 @@ export function WebhookManager() {
       } else {
         // Handle API error
         const errorData = await metadataResponse.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Metadata fetch failed:', errorData);
         toast.error(`Failed to load token metadata: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Failed to fetch token metadata:', error);
       toast.error('Failed to load token metadata');
     } finally {
       setIsLoadingMetadata(false);

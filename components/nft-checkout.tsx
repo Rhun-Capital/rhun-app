@@ -11,17 +11,13 @@ const NFTCheckoutWrapper = ({ collectionId }: { collectionId: string }) => {
     if (order) {
       switch (order.phase) {
         case "quote":
-            console.log(`Preparing order: ${order.lineItems.length} items`);
             break;
         case "payment":
-            console.log(`Processing ${order.payment.method} payment`);
             break;
         case "delivery":
-            console.log("Delivering NFTs to wallet...");
             break;
         case "completed":
             // write order database
-            console.log(`Order completed: ${order}`);
             writeOrderIdToDatabase(order)
             break;
       }
