@@ -57,17 +57,20 @@ interface FilterState {
 }
 
 interface HolderData {
-  owner: string;
-  amount: number;
+  address?: string;
+  owner?: string;
+  balance?: string;
+  amount?: number;
+  percentage?: number;
 }
 
 interface TopHoldersDisplayProps {
   toolCallId: string;
   toolInvocation: {
     toolName: string;
-    args: { address: string };
-    result: HolderData[] | Record<string, HolderData>;
-    state: string;
+    args: Record<string, any>;
+    result?: any;
+    state: 'call' | 'partial-call' | 'result';
   };
 }
 
@@ -407,16 +410,22 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       return [];
     }
 
-    const totalAmount = resultArray.reduce((sum, holder) => sum + holder.amount, 0);
+    const totalAmount = resultArray.reduce((sum, holder) => {
+      const amount = holder.amount || parseFloat(holder.balance || '0');
+      return sum + amount;
+    }, 0);
     
     return resultArray.map(holder => ({
-      owner: holder.owner,
-      amount: holder.amount,
-      percentage: totalAmount > 0 ? (holder.amount / totalAmount) * 100 : 0
+      owner: holder.owner || holder.address || '',
+      amount: holder.amount || parseFloat(holder.balance || '0'),
+      percentage: totalAmount > 0 
+        ? ((holder.amount || parseFloat(holder.balance || '0')) / totalAmount) * 100 
+        : holder.percentage || 0
     }));
   }, [toolInvocation?.result]);
 
-  if (isLoading) {
+  // Show loading state for both 'call' and 'partial-call' states
+  if (toolInvocation.state !== 'result' || !toolInvocation.result) {
     return (
       <div className="p-4 bg-zinc-800 rounded-lg">
         <LoadingIndicator />

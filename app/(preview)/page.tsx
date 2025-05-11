@@ -27,6 +27,13 @@ interface ToolResult {
   [key: string]: any;
 }
 
+interface HolderData {
+  address: string;
+  balance: string;
+  percentage: number;
+  rank?: number;
+}
+
 interface BaseToolInvocation {
   toolName: string;
   toolCallId: string;
@@ -45,7 +52,12 @@ interface ToolPartialInvocation extends BaseToolInvocation {
   result?: any;
 }
 
-type CustomToolInvocation = ToolResultInvocation | ToolPartialInvocation;
+interface ToolCallInvocation extends BaseToolInvocation {
+  state: 'call';
+  result?: any;
+}
+
+type CustomToolInvocation = ToolResultInvocation | ToolPartialInvocation | ToolCallInvocation;
 
 // Define our own Message type to match the AI SDK's Message type
 interface CustomMessage extends Omit<Message, 'toolInvocations'> {
@@ -985,11 +997,14 @@ function HomeContent() {
       case 'getDerivativesExchanges':
         return wrappedTool(<DerivativesExchanges key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
       case 'getTopHolders':
+        if (!('address' in tool.args) || typeof tool.args.address !== 'string') {
+          return null;
+        }
         return wrappedTool(
           <TopHoldersDisplay 
             key={tool.toolCallId} 
             toolCallId={tool.toolCallId} 
-            toolInvocation={tool}  // Pass the entire tool object instead of reconstructing it
+            toolInvocation={tool as CustomToolInvocation}
           />
         );
       case 'getAccountDetails':
