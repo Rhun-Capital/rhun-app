@@ -139,8 +139,6 @@ import TradingViewChart from "@/components/tools/tradingview-chart";
 import TechnicalAnalysis from '@/components/tools/technical-analysis';
 import FredAnalysis from '@/components/tools/fred-analysis';
 import { FredSearch } from '@/components/tools/fred-search';
-import FredSeries from '@/components/tools/fred-series';
-import WhaleActivity from '@/components/tools/whale-activity';
 
 // Utility functions
 import { getToolCommand } from '@/app/config/tool-commands';
@@ -393,12 +391,12 @@ const WalletContent = memo(({
   const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false);
   const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
   const [isFundingModalOpen, setIsFundingModalOpen] = useState(false);
+  const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const [refreshLoading, setRefreshLoading] = useState(false);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
-  const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
-  const { openModal, closeModal } = useModal();
+  const [fundingAmount, setFundingAmount] = useState(0.1);
   const { fundWallet } = useFundWallet();
-  const [fundingAmount] = useState(0.1);
+  const { openModal, closeModal } = useModal();
   
   // Function to toggle wallet dropdown
   const toggleWalletDropdown = () => {
@@ -625,9 +623,9 @@ const WalletContent = memo(({
         {/* Actions Section - Moved above the asset list */}
         <div className="flex gap-3 justify-center">
           <button 
-            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || (tokens.length === 0 && !portfolio?.has_sol)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || tokens.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => setIsTransferModalOpen(true)}
-            disabled={initialLoading || !totalValue || (tokens.length === 0 && !portfolio?.has_sol)}
+            disabled={initialLoading || !totalValue || tokens.length === 0}
           >
             <SendIcon className="w-4 h-4" />
             Send
@@ -643,9 +641,9 @@ const WalletContent = memo(({
           </button>
           
           <button 
-            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || (tokens.length === 0 && !portfolio?.has_sol)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || tokens.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => setIsSwapModalOpen(true)}
-            disabled={initialLoading || !totalValue || (tokens.length === 0 && !portfolio?.has_sol)}
+            disabled={initialLoading || !totalValue || tokens.length === 0}
           >
             <Repeat2 className="w-4 h-4" />
             Swap
@@ -1075,10 +1073,6 @@ function HomeContent() {
               handleToolSelect(command);
             }}
           />
-        );
-      case 'getWhaleActivity':
-        return wrappedTool(
-          <WhaleActivity key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
         );
       default:
         return null;

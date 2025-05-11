@@ -18,7 +18,7 @@ import {
   getTokenHoldings,
   getFinancialData,
   getFredSeries,
-  searchFredSeries,
+  searchFredSeries
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
@@ -425,8 +425,6 @@ export async function POST(req: Request) {
         return response;
       },
     },
-
-    
   
     getTotalCryptoMarketCap: {
       description: "Show the total market capitalization of all cryptocurrencies",
@@ -1078,27 +1076,6 @@ export async function POST(req: Request) {
     //   }
     // },
 
-  //   getWhaleActivity: {
-  //     description: "Get a summary of whale trading activity over the last 24 hours",
-  //     parameters: z.object({}),
-  //     execute: async () => {
-  //       try {
-  //         const data = await getWhaleActivity();
-  //         console.log(data, ':::data')
-  //         return {
-  //           whales: data.whales,
-  //           timeRange: data.timeRange,
-  //           count: data.count
-  //         };
-  //       } catch (error) {
-  //         console.error('Error fetching whale activity:', error);
-  //         return {
-  //           error: 'Failed to fetch whale activity',
-  //           message: error instanceof Error ? error.message : 'An unexpected error occurred'
-  //         };
-  //       }
-  //     }
-  //   }
   }
 
   // Define tool sets for different user tiers
@@ -1129,7 +1106,6 @@ export async function POST(req: Request) {
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
     getFredSeries: allTools.getFredSeries,
     fredSearch: allTools.fredSearch,
-    // getWhaleActivity: allTools.getWhaleActivity,
     // parseSolanaQuery: allTools.parseSolanaQuery
   };
 
@@ -1165,54 +1141,51 @@ The contract address for the Rhun token is: Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5X
 - User's Primary Wallet: ${user?.wallet?.address || 'N/A'}
 
 ## Agent Information (the agent that's answering the user's query):
-- Agent's ID: ${agentConfig.id}
-- Agent's Name: ${agentConfig.name}
-- Agent's Description: ${agentConfig.description}
-- Agent's Wallet: ${agentConfig.wallets?.solana || templateWallet}
+- Agent's ID: ${agentConfig?.id}
+- Agent's Name: ${agentConfig?.name}
+- Agent's Description: ${agentConfig?.description}
+- Agent's Wallet: ${agentConfig?.wallets?.solana || templateWallet}
 
 
 ## Core Capabilities & Knowledge Domains
-${agentConfig.coreCapabilities}
+${agentConfig?.coreCapabilities}
 
 ### Interaction Style
-${agentConfig.interactionStyle}
+${agentConfig?.interactionStyle}
 
 ### Analysis Approach
-${agentConfig.analysisApproach}
+${agentConfig?.analysisApproach}
 
 ### Risk Communication
-${agentConfig.riskCommunication}
+${agentConfig?.riskCommunication}
 
 ## Response Format
-${agentConfig.responseFormat}
+${agentConfig?.responseFormat}
 
 ## Limitations & Disclaimers
-${agentConfig.limitationsDisclaimers}
+${agentConfig?.limitationsDisclaimers}
 
 ## Prohibited Behaviors
-${agentConfig.prohibitedBehaviors}
+${agentConfig?.prohibitedBehaviors}
 
 ## Knowledge Updates
-${agentConfig.knowledgeUpdates}
+${agentConfig?.knowledgeUpdates}
 
 ## Response Priority Order
-${agentConfig.responsePriorityOrder}
+${agentConfig?.responsePriorityOrder}
 
 ## Special Instructions
-${agentConfig.specialInstructions}
+${agentConfig?.specialInstructions}
 
 
 ## Style Guide
-${agentConfig.styleGuide}
+${agentConfig?.styleGuide}
 
 # Tool Documentation
 ${toolsDocumentation}
 
 # Relevant Context for This Query:
 ${contextText}
-
-## getTechnicalAnalysis tool
-When using the getTechnicalAnalysis tool, ALWAYS summarize the results in the response.
 
 ## Browser Use Tools
 Whenever the user asks to do "research" or "analysis" you should run the webResearch tool.
@@ -1266,4 +1239,3 @@ Always suggest one FRED tool, one stock analysis tool, and one web research tool
 
   return result.toDataStreamResponse();
 }
-
