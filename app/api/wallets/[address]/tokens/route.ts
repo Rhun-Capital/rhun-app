@@ -1,5 +1,6 @@
 // app/api/tokens/route.ts
 import { NextResponse } from 'next/server'
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 
 interface TokenAccount {
   token_account: string
@@ -40,6 +41,7 @@ interface JupiterPriceResponse {
 
 const SOLSCAN_API_URL = 'https://pro-api.solscan.io/v2.0/account/token-accounts'
 const JUPITER_PRICE_API_URL = 'https://api.jup.ag/price/v2'
+const WRAPPED_SOL_MINT = 'So11111111111111111111111111111111111111112'
 
 // List of known stablecoin addresses
 const STABLECOIN_ADDRESSES = new Set([
@@ -55,14 +57,14 @@ function formatTokenBalance(amount: number, decimals: number): number {
 
 async function getTokenPrices(tokenAddresses: string[]): Promise<{ [key: string]: number }> {
   try {
-    // Filter out stablecoins as they're always $1
-    const nonStableTokens = tokenAddresses.filter(addr => !STABLECOIN_ADDRESSES.has(addr))
+    // Always include WRAPPED_SOL_MINT to get SOL price
+    const addressesToFetch = [...new Set([WRAPPED_SOL_MINT, ...tokenAddresses.filter(addr => !STABLECOIN_ADDRESSES.has(addr))])];
     
-    if (nonStableTokens.length === 0) {
-      return {}
+    if (addressesToFetch.length === 0) {
+      return {};
     }
 
-    const queryParams = nonStableTokens.map(String).join(',');
+    const queryParams = addressesToFetch.map(String).join(',');
 
     const response = await fetch(`${JUPITER_PRICE_API_URL}?ids=${queryParams}`)
     if (!response.ok) {
@@ -135,6 +137,7 @@ export async function GET(
       )
     }
 
+    // Get token balances
     const queryParams = new URLSearchParams({
       address,
       type: 'token',
@@ -150,7 +153,7 @@ export async function GET(
           'Content-Type': 'application/json',
           'token': process.env.SOLSCAN_API_KEY || ''
         },
-        next: { revalidate: 60 }
+        cache: 'no-store'
       }
     )
 
@@ -164,17 +167,40 @@ export async function GET(
       throw new Error('Failed to fetch token data from Solscan')
     }
 
-    const enrichedData = await enrichTokenData(rawData.data, rawData.metadata)
+    // Filter out SOL/Wrapped SOL from token data
+    const nonSolTokens = rawData.data.filter(token => 
+      token.token_address !== WRAPPED_SOL_MINT
+    );
 
-    // Calculate total portfolio value
-    const totalUsdValue = enrichedData.reduce((sum, token) => sum + (token.usd_value || 0), 0)
+    // Enrich the non-SOL tokens data
+    const enrichedData = await enrichTokenData(nonSolTokens, rawData.metadata)
+
+    // Get SOL balance for total value calculation only
+    const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    const pubKey = new PublicKey(address);
+    const solBalance = await connection.getBalance(pubKey);
+    const solInWallet = solBalance / LAMPORTS_PER_SOL;
+
+    // Get SOL price
+    const prices = await getTokenPrices([WRAPPED_SOL_MINT]);
+    const solPrice = prices[WRAPPED_SOL_MINT] || 0;
+    const solUsdValue = solInWallet * solPrice;
+
+    // Calculate total portfolio value including SOL
+    const tokensValue = enrichedData.reduce((sum, token) => sum + (token.usd_value || 0), 0);
+    const totalUsdValue = tokensValue + solUsdValue;
 
     return NextResponse.json({
       success: true,
       data: enrichedData,
       metadata: rawData.metadata,
       portfolio: {
-        total_usd_value: totalUsdValue
+        total_usd_value: totalUsdValue,
+        has_sol: solInWallet > 0
+      }
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, max-age=0',
       }
     })
 

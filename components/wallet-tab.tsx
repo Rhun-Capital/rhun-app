@@ -410,7 +410,7 @@ useEffect(() => {
               </button>
               
               <button 
-                disabled={!totalValue || tokens.data.length === 0}
+                disabled={!totalValue || (tokens.data.length === 0 && !tokens.portfolio?.has_sol)}
                 onClick={() => {
                   setIsTransferModalOpen(true)
                   openModal();
@@ -422,7 +422,7 @@ useEffect(() => {
               </button>
               
               <button 
-                disabled={!totalValue || tokens.data.length === 0}
+                disabled={!totalValue || (tokens.data.length === 0 && !tokens.portfolio?.has_sol)}
                 onClick={() => setIsSwapModalOpen(true)}
                 className="w-24 h-24 bg-zinc-800 rounded-lg flex flex-col items-center justify-center hover:bg-zinc-700 transition-colors p-3 border border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
