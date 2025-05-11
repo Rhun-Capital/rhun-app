@@ -5,6 +5,12 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { getBulkPriceData } from '@/utils/prices';
 import { getTokenMetadata } from '@/utils/tokens';
 import { getTransactionCount, getTransactionVolume } from '@/utils/network-activity';
+import { ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { 
+  DynamoDBDocumentClient, 
+} from '@aws-sdk/lib-dynamodb';
+import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
 const lambda = new AWS.Lambda();
 const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
@@ -24,6 +30,10 @@ const STABLECOIN_ADDRESSES = new Set([
 // Table name for financial data
 const FINANCIAL_DATA_TABLE = 'financial-data-requests';
 
+// Add table name constants
+const HOLDERS_ACTIVITY_TABLE = process.env.HOLDERS_ACTIVITY_TABLE_NAME || 'TokenHoldersActivity';
+const TOKEN_HOLDERS_MAPPING_TABLE = process.env.TOKEN_HOLDERS_MAPPING_TABLE_NAME || 'TokenHoldersMapping';
+
 // Configure AWS SDK
 AWS.config.update({
   region: process.env.AWS_REGION,
@@ -31,11 +41,9 @@ AWS.config.update({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
 });
 
-const dynamodb = new DynamoDB.DocumentClient({
-  region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
+// Initialize the DynamoDB client
+const client = new DynamoDBClient({});
+const dynamodb = DynamoDBDocumentClient.from(client);
 
 interface ActivityParams {
   page?: number;
@@ -276,12 +284,12 @@ interface TokenHolder {
   }
 
   export async function getAgentConfig(userId: string, agentId: string) {
-    const result = await dynamodb.get({
-      TableName: 'Agents',
-      Key: { id: agentId, userId }
-    }).promise();
-  
-    if (!result.Item) throw new Error('Agent not found');
+    const result = await dynamodb.send(
+      new GetCommand({
+        TableName: 'Agents',
+        Key: { id: agentId, userId }
+      })
+    );
     return result.Item;
   }  
 
@@ -916,18 +924,17 @@ export async function fetchAccountActivitiesInTool(address: string) {
 
 export async function storeFinancialData(requestId: string, data: any, ttlSeconds: number = 3600) {
   try {
-    // Calculate expiry time (TTL) in seconds since epoch
-    const ttl = Math.floor(Date.now() / 1000) + ttlSeconds;
-    
     // Store data in DynamoDB
-    await dynamodb.put({
-      TableName: FINANCIAL_DATA_TABLE,
-      Item: {
-        requestId,
-        data,
-        ttl
-      }
-    }).promise();
+    await dynamodb.send(
+      new PutCommand({
+        TableName: FINANCIAL_DATA_TABLE,
+        Item: {
+          requestId,
+          data,
+          ttl: Math.floor(Date.now() / 1000) + ttlSeconds
+        }
+      })
+    );
     
     return true;
   } catch (error) {
@@ -1129,6 +1136,107 @@ export async function searchFredSeries(query: string) {
       success: false,
       error: 'Failed to search FRED series. Please try again later.',
       results: [],
+      count: 0
+    };
+  }
+}
+
+interface HolderMapping {
+  token_address: string;
+  token_symbol: string;
+  token_name: string;
+  webhook_id: string;
+  token_logo_uri?: string;
+  token_decimals?: number;
+}
+
+interface WhaleActivity {
+  totalTrades: number;
+  holder_address: string;
+  last_trade_timestamp: number;
+  holder_mapping?: HolderMapping | null;
+}
+
+export async function getWhaleActivity() {
+  try {
+    const twentyFourHoursAgo = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000);
+
+    // Get all events from the last 24 hours
+    const eventsResponse = await dynamodb.send(
+      new ScanCommand({
+        TableName: HOLDERS_ACTIVITY_TABLE,
+        FilterExpression: '#ts >= :timestamp',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+        ExpressionAttributeValues: {
+          ':timestamp': twentyFourHoursAgo
+        }
+      })
+    );
+
+    // Aggregate trades by holder address
+    const whaleActivity: Record<string, WhaleActivity> = {};
+
+    (eventsResponse.Items || []).forEach(event => {
+      const holderAddress = event.holder_address;
+      if (!holderAddress) return;
+
+      if (!whaleActivity[holderAddress]) {
+        whaleActivity[holderAddress] = {
+          totalTrades: 0,
+          holder_address: holderAddress,
+          last_trade_timestamp: event.timestamp,
+          holder_mapping: event.holder_mapping || null
+        };
+      }
+
+      whaleActivity[holderAddress].totalTrades++;
+      if (event.timestamp > whaleActivity[holderAddress].last_trade_timestamp) {
+        whaleActivity[holderAddress].last_trade_timestamp = event.timestamp;
+      }
+    });
+
+    // Convert to array and sort by total trades
+    const whaleLeaderboard = Object.values(whaleActivity)
+      .sort((a, b) => b.totalTrades - a.totalTrades)
+      .slice(0, 10); // Get top 10 whales
+
+    // Get token mappings for each whale
+    const mappingPromises = whaleLeaderboard.map(async (whale) => {
+      try {
+        const response = await dynamodb.send(
+          new QueryCommand({
+            TableName: TOKEN_HOLDERS_MAPPING_TABLE,
+            KeyConditionExpression: 'holder_address = :address',
+            ExpressionAttributeValues: {
+              ':address': whale.holder_address
+            }
+          })
+        );
+
+        if (response.Items && response.Items.length > 0) {
+          const mapping = response.Items[0] as HolderMapping;
+          whale.holder_mapping = mapping;
+        }
+        return whale;
+      } catch (error) {
+        console.error('Error fetching token mapping:', error);
+        return whale;
+      }
+    });
+
+    const whalesWithMappings = await Promise.all(mappingPromises);
+
+    return {
+      whales: whalesWithMappings,
+      timeRange: '24h',
+      count: whalesWithMappings.length
+    };
+
+  } catch (error) {
+    console.error('Error fetching whale leaderboard:', error);
+    return {
+      whales: [],
+      timeRange: '24h',
       count: 0
     };
   }

@@ -360,6 +360,13 @@ const tokenDiscoveryTools: Tool[] = [
     command: getToolCommand('search-tokens') || 'Search for tokens',
     isNew: false,
     requiresAuth: false
+  },
+  {
+    name: 'Get Whale Activity',
+    description: 'View the most active whales in the last 24 hours',
+    command: getToolCommand('whale-activity') || 'Show me whale activity',
+    isNew: true,
+    requiresAuth: false
   }
 ];
 

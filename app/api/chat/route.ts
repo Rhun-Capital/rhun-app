@@ -18,7 +18,8 @@ import {
   getTokenHoldings,
   getFinancialData,
   getFredSeries,
-  searchFredSeries
+  searchFredSeries,
+  getWhaleActivity
  } from '@/utils/agent-tools';
 import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
@@ -425,6 +426,8 @@ export async function POST(req: Request) {
         return response;
       },
     },
+
+    
   
     getTotalCryptoMarketCap: {
       description: "Show the total market capitalization of all cryptocurrencies",
@@ -1076,7 +1079,28 @@ export async function POST(req: Request) {
     //   }
     // },
 
-  }
+  //   getWhaleActivity: {
+  //     description: "Get a summary of whale trading activity over the last 24 hours",
+  //     parameters: z.object({}),
+  //     execute: async () => {
+  //       try {
+  //         const data = await getWhaleActivity();
+  //         console.log(data, ':::data')
+  //         return {
+  //           whales: data.whales,
+  //           timeRange: data.timeRange,
+  //           count: data.count
+  //         };
+  //       } catch (error) {
+  //         console.error('Error fetching whale activity:', error);
+  //         return {
+  //           error: 'Failed to fetch whale activity',
+  //           message: error instanceof Error ? error.message : 'An unexpected error occurred'
+  //         };
+  //       }
+  //     }
+  //   }
+  // }
 
   // Define tool sets for different user tiers
   const availableTools = {
@@ -1106,6 +1130,7 @@ export async function POST(req: Request) {
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
     getFredSeries: allTools.getFredSeries,
     fredSearch: allTools.fredSearch,
+    getWhaleActivity: allTools.getWhaleActivity,
     // parseSolanaQuery: allTools.parseSolanaQuery
   };
 
@@ -1186,6 +1211,9 @@ ${toolsDocumentation}
 
 # Relevant Context for This Query:
 ${contextText}
+
+## getTechnicalAnalysis tool
+When using the getTechnicalAnalysis tool, ALWAYS summarize the results in the response.
 
 ## Browser Use Tools
 Whenever the user asks to do "research" or "analysis" you should run the webResearch tool.

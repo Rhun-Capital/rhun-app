@@ -139,6 +139,8 @@ import TradingViewChart from "@/components/tools/tradingview-chart";
 import TechnicalAnalysis from '@/components/tools/technical-analysis';
 import FredAnalysis from '@/components/tools/fred-analysis';
 import { FredSearch } from '@/components/tools/fred-search';
+import FredSeries from '@/components/tools/fred-series';
+import WhaleActivity from '@/components/tools/whale-activity';
 
 // Utility functions
 import { getToolCommand } from '@/app/config/tool-commands';
@@ -1073,6 +1075,10 @@ function HomeContent() {
               handleToolSelect(command);
             }}
           />
+        );
+      case 'getWhaleActivity':
+        return wrappedTool(
+          <WhaleActivity key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
         );
       default:
         return null;

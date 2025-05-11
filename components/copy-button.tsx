@@ -6,31 +6,31 @@ interface CopyButtonProps {
 }
 
 const CopyButton: React.FC<CopyButtonProps> = ({ text }) => {
-    const [copied, setCopied] = useState(false);
-  
-    const handleCopy = async () => {
-      try {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy text:', err);
-      }
-    };
-  
-    return (
-      <button
-        onClick={handleCopy}
-        className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-700"
-        title={copied ? "Copied!" : "Copy to clipboard"}
-      >
-        {copied ? (
-          <Check className="w-4 h-4 text-green-500" />
-        ) : (
-          <Copy className="w-4 h-4" />
-        )}
-      </button>
-    );
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
   };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="inline-flex items-center justify-center p-1 text-gray-400 hover:text-gray-300 transition-colors"
+      title="Copy to clipboard"
+    >
+      {copied ? (
+        <Check className="h-4 w-4" />
+      ) : (
+        <Copy className="h-4 w-4" />
+      )}
+    </button>
+  );
+};
 
 export default CopyButton;
