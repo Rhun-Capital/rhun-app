@@ -19,10 +19,29 @@ interface CoinData {
     activated_at: number;
     score: number;
     thumb?: string;
-    homepage?: string;      // Added
-    twitter?: string;      // Added
+    homepage?: string;
+    twitter?: string;
     contract_address: string;
-  }
+}
+
+type ToolInvocationState = 'result' | 'partial-call';
+
+interface BaseToolInvocation {
+  state: ToolInvocationState;
+  toolCallId: string;
+  toolName: string;
+}
+
+interface ResultToolInvocation extends BaseToolInvocation {
+  state: 'result';
+  result: CoinData[];
+}
+
+interface PartialCallToolInvocation extends BaseToolInvocation {
+  state: 'partial-call';
+}
+
+type ToolInvocationResult = ResultToolInvocation | PartialCallToolInvocation;
 
 interface TableColumn {
   header: string;
@@ -31,10 +50,31 @@ interface TableColumn {
   sortable?: boolean;
 }
 
-const RecentCoinsResults: React.FC<{ 
-  toolCallId: string; 
-  toolInvocation: AIToolInvocation 
-}> = ({ toolCallId, toolInvocation }) => {
+interface Message {
+  role: string;
+  toolInvocations?: {
+    result: CoinData[];
+  }[];
+}
+
+interface RecentCoinsProps {
+  toolCallId: string;
+  toolInvocation: AIToolInvocation & {
+    result?: {
+      [key: string]: CoinData;
+    };
+  };
+}
+
+const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvocation }) => {
+  console.log('Tool invocation received:', {
+    fullObject: toolInvocation,
+    state: toolInvocation.state,
+    result: toolInvocation.result,
+    args: toolInvocation.args,
+    keys: Object.keys(toolInvocation)
+  });
+  
   const [selectedCoin, setSelectedCoin] = useState<CoinData | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<{
@@ -44,7 +84,18 @@ const RecentCoinsResults: React.FC<{
   const detailsRef = React.useRef<HTMLDivElement>(null);
 
   const pageSize = 10;
-  const coins = ('result' in toolInvocation) ? toolInvocation.result : [];
+  
+  const coins = useMemo(() => {
+    if (toolInvocation.result && typeof toolInvocation.result === 'object') {
+      // Convert the object with numeric keys to an array
+      const coinsArray = Object.values(toolInvocation.result) as CoinData[];
+      console.log('Converted coins array:', coinsArray);
+      return coinsArray;
+    }
+    return [] as CoinData[];
+  }, [toolInvocation]);
+
+  console.log('Processed coins:', coins);
 
   const formatPrice = (price: number | undefined) => {
     if (price === undefined) return 'N/A';
@@ -105,6 +156,14 @@ const RecentCoinsResults: React.FC<{
       )
     },
     {
+      header: 'Listed',
+      accessorKey: 'activated_at',
+      sortable: true,
+      cell: (coin) => (
+        <div className="text-right">{formatDate(coin.activated_at)}</div>
+      )
+    },
+    {
       header: 'Price',
       accessorKey: 'current_price_usd',
       sortable: true,
@@ -119,27 +178,24 @@ const RecentCoinsResults: React.FC<{
       cell: (coin) => (
         <div className="text-right">{formatMarketCap(coin.total_volume_usd)}</div>
       )
-    },
-    {
-      header: 'Listed',
-      accessorKey: 'activated_at',
-      sortable: true,
-      cell: (coin) => (
-        <div className="text-right">{formatDate(coin.activated_at)}</div>
-      )
     }
   ];
 
   // Handle sorting
   const sortedData = useMemo(() => {
-    if (!sortConfig.key) return coins;
+    if (!sortConfig.key || !Array.isArray(coins) || !coins.length) return [];
 
-    return [...coins].sort((a, b) => {
+    return [...coins].sort((a: CoinData, b: CoinData) => {
       const key = sortConfig.key as keyof CoinData;
-      if (a[key] < b[key]) {
+      const aValue = a[key];
+      const bValue = b[key];
+      
+      if (aValue === undefined || bValue === undefined) return 0;
+      
+      if (aValue < bValue) {
         return sortConfig.direction === 'asc' ? -1 : 1;
       }
-      if (a[key] > b[key]) {
+      if (aValue > bValue) {
         return sortConfig.direction === 'asc' ? 1 : -1;
       }
       return 0;
