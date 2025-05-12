@@ -72,6 +72,8 @@ export const Sidebar = () => {
   }
 
   const handleLogout = async () => {
+    // clear localStorage.rhun_selected_wallet_address
+    localStorage.removeItem('rhun_selected_wallet_address');
     await clearCookies(); // Clear access tokens
     await logout(); // Clear Privy state
     if (pathname === '/tools') {
