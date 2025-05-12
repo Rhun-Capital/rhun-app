@@ -308,13 +308,13 @@ const researchTools: Tool[] = [
     isNew: false,
     requiresAuth: false
   },
-  {
-    name: 'Stock Analysis',
-    description: 'Get comprehensive financial data, news sentiment, and options analysis for any stock',
-    command: getToolCommand('stock-analysis') || 'Analyze stock data',
-    isNew: false,
-    requiresAuth: false
-  },
+  // {
+  //   name: 'Stock Analysis',
+  //   description: 'Get comprehensive financial data, news sentiment, and options analysis for any stock',
+  //   command: getToolCommand('stock-analysis') || 'Analyze stock data',
+  //   isNew: false,
+  //   requiresAuth: false
+  // },
   {
     name: 'Get Latest News',
     description: 'Stay up-to-date with the latest news in the cryptocurrency space',
@@ -361,13 +361,13 @@ const tokenDiscoveryTools: Tool[] = [
     isNew: false,
     requiresAuth: false
   },
-  {
-    name: 'Get Whale Activity',
-    description: 'View the most active whales in the last 24 hours',
-    command: getToolCommand('whale-activity') || 'Show me whale activity',
-    isNew: true,
-    requiresAuth: false
-  }
+  // {
+  //   name: 'Get Whale Activity',
+  //   description: 'View the most active whales in the last 24 hours',
+  //   command: getToolCommand('whale-activity') || 'Show me whale activity',
+  //   isNew: true,
+  //   requiresAuth: false
+  // }
 ];
 
 // Wallet Tools Section
@@ -564,7 +564,7 @@ const ChatSidebar: React.FC<SidebarProps> = ({ onToolSelect }) => {
             <div className="mb-6">
               <div className="flex items-center gap-2 my-4">
                 <LineChart className="w-5 h-5 text-indigo-500" />
-                <h3 className="text-lg font-semibold text-white">FRED Economic Data</h3>
+                <h3 className="text-lg font-semibold text-white">Economic Data</h3>
               </div>
               <div className="space-y-2">
                 {fredTools.map((tool) => (

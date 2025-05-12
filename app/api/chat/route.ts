@@ -16,7 +16,6 @@ import {
   getDerivativesExchanges,
   getTopHolders,
   getTokenHoldings,
-  getFinancialData,
   getFredSeries,
   searchFredSeries
  } from '@/utils/agent-tools';
@@ -336,8 +335,11 @@ export async function POST(req: Request) {
           .default('trending'),
       }),
       execute: async ({ chain, filters, maxResults, sortBy }) => {
+        console.log('Executing getTrendingTokens with:', { chain, filters, maxResults, sortBy });
+        
         if (chain === 'solana') {
           let trendingTokens = await retrieveTrendingSolanaTokens(undefined, filters);
+          console.log('Retrieved Solana trending tokens:', trendingTokens);
           
           // Apply sorting using numeric fields
           if (sortBy === 'price_change') {
@@ -346,20 +348,21 @@ export async function POST(req: Request) {
               .sort((a, b) => (b.price_change_24h || 0) - (a.price_change_24h || 0));
           } else if (sortBy === 'market_cap') {
             trendingTokens = trendingTokens
-              .sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0)); // Now uses numeric field
+              .sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
           } else if (sortBy === 'volume') {
             trendingTokens = trendingTokens
-              .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0)); // Now uses numeric field
+              .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
           } else if (sortBy === 'holders') {
             trendingTokens = trendingTokens
               .sort((a, b) => (b.holder || 0) - (a.holder || 0));
           }
-    
-          return trendingTokens.slice(0, maxResults)
+
+          return trendingTokens.slice(0, maxResults);
         }
         
         const trendingCoins = await retrieveTrendingCoins(filters);
-        return trendingCoins.slice(0, maxResults)
+        console.log('Retrieved trending coins:', trendingCoins);
+        return trendingCoins.slice(0, maxResults);
       },
     },
  
@@ -659,25 +662,25 @@ export async function POST(req: Request) {
     },
 
     // Add these to your allTools object
-    stockAnalysis: {
-      description: "Analyze financial stock data using yfinance, showing comprehensive analysis of financials, news sentiment, and technical indicators",
-      parameters: z.object({ 
-        ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
-      }),
-      execute: async ({ ticker }: { ticker: string }) => {
-        try {
-          // Use your existing getFinancialData function
-          const result = await getFinancialData([ticker], 'comprehensive');
-          return result;
-        } catch (error) {
-          console.error('Error in stock analysis:', error);
-          return { 
-            error: 'Failed to analyze stock data',
-            ticker 
-          };
-        }
-      }
-    },   
+    // stockAnalysis: {
+    //   description: "Analyze financial stock data using yfinance, showing comprehensive analysis of financials, news sentiment, and technical indicators",
+    //   parameters: z.object({ 
+    //     ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
+    //   }),
+    //   execute: async ({ ticker }: { ticker: string }) => {
+    //     try {
+    //       // Use your existing getFinancialData function
+    //       const result = await getFinancialData([ticker], 'comprehensive');
+    //       return result;
+    //     } catch (error) {
+    //       console.error('Error in stock analysis:', error);
+    //       return { 
+    //         error: 'Failed to analyze stock data',
+    //         ticker 
+    //       };
+    //     }
+    //   }
+    // },   
 
     webResearch: {
       description: "Perform comprehensive web research using browser automation",
@@ -1100,7 +1103,7 @@ export async function POST(req: Request) {
     swap: allTools.swap,
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
     getCryptoNews: allTools.getCryptoNews,
-    stockAnalysis: allTools.stockAnalysis,
+    // stockAnalysis: allTools.stockAnalysis,
     webResearch: allTools.webResearch,
     getTradingViewChart: allTools.getTradingViewChart,
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
@@ -1198,7 +1201,6 @@ Your AI agent can now perform browser automation tasks to gather real-time finan
 ## Traditional Financial Analysis Capabilities
 This agent can analyze stock market data using comprehensive financial tools:
 - Stock Analysis: Get detailed financial data including ratios, price targets, and sentiment
-- When users ask about stocks, the agent should use the stockAnalysis tool
 
 ## Response Format Guidelines
 1. After using any tool, ALWAYS analyz the reponse and provide a summary and a recommmend suggested anlysis step. Also Suggest 2-3 relevant follow-up tools from our tool list. 

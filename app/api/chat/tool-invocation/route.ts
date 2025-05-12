@@ -75,11 +75,11 @@ export async function POST(request: Request) {
         const updatedTool = {
           ...tool,
           status,
-          result: {
-            ...removeUndefined(tool.result || {}),
+          result: removeUndefined({
+            ...tool.result,
             ...sanitizedResult,
             updatedAt: new Date().toISOString()
-          }
+          })
         };
         return removeUndefined(updatedTool);
       }

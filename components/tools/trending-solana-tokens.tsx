@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import CopyButton from '@/components/copy-button';
 
@@ -24,7 +24,21 @@ interface SolanaToken {
 interface TrendingSolanaProps {
   toolCallId: string;
   toolInvocation: AIToolInvocation & {
-    result?: SolanaToken[];
+    result?: any;
+    args?: {
+      result?: any;
+      [key: string]: any;
+    };
+    toolInvocations?: Array<{
+      args?: {
+        result?: any;
+        [key: string]: any;
+      };
+      result?: any;
+      state: string;
+      toolName: string;
+      [key: string]: any;
+    }>;
   };
 }
 
@@ -35,6 +49,13 @@ interface SortableColumn {
 }
 
 const TrendingSolana: React.FC<TrendingSolanaProps> = ({ toolCallId, toolInvocation }) => {
+  console.log('TrendingSolana received toolInvocation:', {
+    toolCallId,
+    toolInvocation,
+    result: toolInvocation.result,
+    isArray: Array.isArray(toolInvocation.result)
+  });
+
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedToken, setSelectedToken] = useState<SolanaToken | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: keyof SolanaToken; direction: 'asc' | 'desc' }>({
@@ -51,7 +72,68 @@ const TrendingSolana: React.FC<TrendingSolanaProps> = ({ toolCallId, toolInvocat
     { key: 'volume_24h', label: 'Volume (24h)', sortable: true },
   ];
 
-  const tokens = toolInvocation.result || [];
+  // Enhanced result handling
+  let tokens: SolanaToken[] = [];
+  
+  const extractTokens = (data: any): SolanaToken[] => {
+    if (!data) return [];
+    
+    // Direct array of tokens
+    if (Array.isArray(data)) {
+      return data;
+    }
+    
+    // Nested in result property
+    if (data.result && Array.isArray(data.result)) {
+      return data.result;
+    }
+    
+    // Nested in tokens property
+    if (data.tokens && Array.isArray(data.tokens)) {
+      return data.tokens;
+    }
+    
+    // Try to extract from object values
+    if (typeof data === 'object') {
+      const possibleTokens = Object.values(data).filter(value => 
+        value && typeof value === 'object' && 'name' in value && 'symbol' in value
+      );
+      if (possibleTokens.length > 0) {
+        return possibleTokens as SolanaToken[];
+      }
+    }
+    
+    return [];
+  };
+
+  // Try to find tokens in different possible locations
+  if (toolInvocation.result) {
+    tokens = extractTokens(toolInvocation.result);
+  }
+  
+  if (tokens.length === 0 && toolInvocation.args?.result) {
+    tokens = extractTokens(toolInvocation.args.result);
+  }
+  
+  if (tokens.length === 0 && toolInvocation.toolInvocations) {
+    for (const invocation of toolInvocation.toolInvocations) {
+      if (invocation.result) {
+        const foundTokens = extractTokens(invocation.result);
+        if (foundTokens.length > 0) {
+          tokens = foundTokens;
+          break;
+        }
+      }
+      if (invocation.args?.result) {
+        const foundTokens = extractTokens(invocation.args.result);
+        if (foundTokens.length > 0) {
+          tokens = foundTokens;
+          break;
+        }
+      }
+    }
+  }
+
   const pageSize = 5;
 
   const formatUsdPrice = (price?: number) => {
@@ -288,13 +370,26 @@ const TrendingSolana: React.FC<TrendingSolanaProps> = ({ toolCallId, toolInvocat
     );
   }
 
-  if (!toolInvocation.result) {
+  if (!toolInvocation.result && !toolInvocation.args?.result && !toolInvocation.toolInvocations) {
     return (
       <div className="w-full bg-zinc-800 rounded-lg overflow-hidden">
         <div className="p-4 sm:p-6">
           <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">
             Loading trending Solana tokens...
           </h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokens.length === 0) {
+    return (
+      <div className="w-full bg-zinc-800 rounded-lg overflow-hidden">
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-2 text-red-400">
+            <AlertCircle className="w-5 h-5" />
+            <span>No trending Solana tokens data available</span>
+          </div>
         </div>
       </div>
     );

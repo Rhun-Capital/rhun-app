@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 
 interface Coin {
@@ -19,7 +19,21 @@ interface Coin {
 interface TrendingCoinsProps {
   toolCallId: string;
   toolInvocation: AIToolInvocation & {
-    result?: Coin[];
+    result?: any;
+    args?: {
+      result?: any;
+      [key: string]: any;
+    };
+    toolInvocations?: Array<{
+      args?: {
+        result?: any;
+        [key: string]: any;
+      };
+      result?: any;
+      state: string;
+      toolName: string;
+      [key: string]: any;
+    }>;
   };
 }
 
@@ -30,6 +44,13 @@ interface SortableColumn {
   }
   
   const TrendingCoins: React.FC<TrendingCoinsProps> = ({ toolCallId, toolInvocation }) => {
+    console.log('TrendingCoins received toolInvocation:', {
+      toolCallId,
+      toolInvocation,
+      result: toolInvocation.result,
+      isArray: Array.isArray(toolInvocation.result)
+    });
+
     const [currentPage, setCurrentPage] = useState(0);
     const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: keyof Coin; direction: 'asc' | 'desc' }>({
@@ -47,7 +68,68 @@ interface SortableColumn {
       { key: 'sparkline', label: 'Chart', sortable: false },
     ];
   
-    const coins = toolInvocation.result || [];
+    // Enhanced result handling
+    let coins: Coin[] = [];
+    
+    const extractCoins = (data: any): Coin[] => {
+      if (!data) return [];
+      
+      // Direct array of coins
+      if (Array.isArray(data)) {
+        return data;
+      }
+      
+      // Nested in result property
+      if (data.result && Array.isArray(data.result)) {
+        return data.result;
+      }
+      
+      // Nested in coins property
+      if (data.coins && Array.isArray(data.coins)) {
+        return data.coins;
+      }
+      
+      // Try to extract from object values
+      if (typeof data === 'object') {
+        const possibleCoins = Object.values(data).filter(value => 
+          value && typeof value === 'object' && 'name' in value && 'symbol' in value
+        );
+        if (possibleCoins.length > 0) {
+          return possibleCoins as Coin[];
+        }
+      }
+      
+      return [];
+    };
+
+    // Try to find coins in different possible locations
+    if (toolInvocation.result) {
+      coins = extractCoins(toolInvocation.result);
+    }
+    
+    if (coins.length === 0 && toolInvocation.args?.result) {
+      coins = extractCoins(toolInvocation.args.result);
+    }
+    
+    if (coins.length === 0 && toolInvocation.toolInvocations) {
+      for (const invocation of toolInvocation.toolInvocations) {
+        if (invocation.result) {
+          const foundCoins = extractCoins(invocation.result);
+          if (foundCoins.length > 0) {
+            coins = foundCoins;
+            break;
+          }
+        }
+        if (invocation.args?.result) {
+          const foundCoins = extractCoins(invocation.args.result);
+          if (foundCoins.length > 0) {
+            coins = foundCoins;
+            break;
+          }
+        }
+      }
+    }
+
     const pageSize = 5;
   
     const formatUsdPrice = (price: number) => {
@@ -77,6 +159,10 @@ interface SortableColumn {
     };
   
     const getSortedCoins = (coinsToSort: Coin[]) => {
+      if (!coinsToSort || !Array.isArray(coinsToSort)) {
+        return [];
+      }
+      
       return [...coinsToSort].sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
@@ -245,13 +331,14 @@ interface SortableColumn {
     );
   }
 
-  if (!toolInvocation.result) {
+  if (coins.length === 0) {
     return (
       <div className="w-full bg-zinc-800 rounded-lg overflow-hidden">
         <div className="p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">
-            Loading trending cryptocurrencies...
-          </h2>
+          <div className="flex items-center gap-2 text-red-400">
+            <AlertCircle className="w-5 h-5" />
+            <span>No trending tokens data available</span>
+          </div>
         </div>
       </div>
     );
