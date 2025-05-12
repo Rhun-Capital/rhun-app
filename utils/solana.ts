@@ -26,8 +26,6 @@ import {
 } from '@solana/spl-token';
  
 const JUPITER_V6_QUOTE_API = 'https://quote-api.jup.ag/v6';
-const FEE_PERCENTAGE = 0.01; // 1% fee
-const FEE_RECIPIENT = 'Gv85m1prXqiJCq7tWKA5YGtXLVKpNk55tBRBCuThYWdt'; // Rhun Recipient Wallet
 
 interface Token {
   token_address: string;
@@ -602,59 +600,6 @@ export const executeSwap = async ({
       ? 'So11111111111111111111111111111111111111112'
       : toToken?.token_address;
 
-    // Calculate USD value of the swap
-    const swapUsdAmount = parseFloat(amount) * fromToken.usd_price;
-    const usdFee = swapUsdAmount * FEE_PERCENTAGE;
-    
-    // Get SOL price and convert fee to SOL
-    const solPriceUsd = fromToken.token_symbol === 'SOL' 
-      ? fromToken.usd_price 
-      : toToken.token_symbol === 'SOL'
-      ? toToken.usd_price 
-      : 0;
-      
-    // Calculate SOL fee amount in lamports
-    const feeAmountInSol = solPriceUsd > 0 ? usdFee / solPriceUsd : 0;
-    const feeAmountInLamports = Math.floor(feeAmountInSol * Math.pow(10, 9));
-
-    // Only create fee transfer if we have a valid fee amount
-    let feeSignature = '';
-    if (feeAmountInLamports > 0) {
-      // Create SOL fee transfer instruction
-      const userPublicKey = new PublicKey(wallet.address);
-      const feeRecipientPublicKey = new PublicKey(FEE_RECIPIENT);
-      
-      const feeInstruction = SystemProgram.transfer({
-        fromPubkey: userPublicKey,
-        toPubkey: feeRecipientPublicKey,
-        lamports: feeAmountInLamports
-      });
-
-      // Get fresh blockhash for fee transaction
-      const { blockhash: feeBlockhash } = await connection.getLatestBlockhash('confirmed');
-
-      // Create and send fee transaction
-      const feeMessage = new TransactionMessage({
-        payerKey: userPublicKey,
-        recentBlockhash: feeBlockhash,
-        instructions: [feeInstruction]
-      }).compileToV0Message();
-
-      const feeTransaction = new VersionedTransaction(feeMessage);
-      const signedFeeTx = await wallet.signTransaction(feeTransaction);
-      
-      console.log('Sending fee transaction...');
-      feeSignature = await connection.sendRawTransaction(
-        signedFeeTx.serialize(),
-        {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-          maxRetries: 3
-        }
-      );
-      console.log('Fee transaction sent:', feeSignature);
-    }
-
     // Prepare swap amount in token's smallest unit
     const swapAmount = Math.floor(
       parseFloat(amount) * Math.pow(10, fromToken?.token_decimals || 9)
@@ -688,10 +633,9 @@ export const executeSwap = async ({
     const computeUnits = feeEstimator.getComputeUnitsForFee(feeEstimate);
     console.log('Priority Fee Estimate:', feeEstimate);
 
-    
-    // NEW: Add priority fee instructions
+    // Add priority fee instructions
     const priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({ 
-      microLamports: computeUnits // Adjust this value based on network conditions
+      microLamports: computeUnits
     });
     
     const computeUnitsIx = ComputeBudgetProgram.setComputeUnitLimit({
@@ -701,9 +645,8 @@ export const executeSwap = async ({
     const swapRequest = {
       quoteResponse: quoteData,
       userPublicKey: wallet.address,
-      computeUnitPriceMicroLamports: computeUnits, // Matching priority fee
+      computeUnitPriceMicroLamports: computeUnits,
       useTokenLedger: false,
-      // NEW: Include priority fee instructions
       additionalInstructions: [
         priorityFeeIx,
         computeUnitsIx

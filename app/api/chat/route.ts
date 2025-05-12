@@ -515,8 +515,15 @@ export async function POST(req: Request) {
         amount: z.string().describe('Amount to swap '),
         slippage: z.number().optional().default(1.0).describe('Slippage tolerance in percentage') 
       }),
-      execute: async ({ fromToken, toToken, amount }) => {
-        return {fromToken, toToken, amount}  
+      execute: async ({ fromToken, toToken, amount, slippage = 1.0 }) => {
+        console.log('Executing swap with params:', { fromToken, toToken, amount, slippage });
+        return {
+          fromToken,
+          toToken,
+          amount,
+          slippage,
+          status: 'pending'
+        };
       },
     },
 

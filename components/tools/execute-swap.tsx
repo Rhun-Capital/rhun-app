@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSolanaWallets } from '@privy-io/react-auth';
 import { ProxyConnection } from '@/utils/solana';
 import { executeSwap, getQuote } from '@/utils/solana';
@@ -7,7 +7,6 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useParams, useSearchParams, usePathname } from 'next/navigation';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { CrossmintNFTCollectionView } from '@crossmint/client-sdk-react-ui';
 import { toast } from 'sonner';
 
 // Add constant for localStorage key
@@ -43,602 +42,479 @@ interface UpdateToolInvocationParams {
   };
 }
 
-const ExecuteSwap: React.FC<{ 
-  toolCallId: string; 
-  toolInvocation: AIToolInvocation;
-}> = ({ toolCallId, toolInvocation }) => {
-  const { user, getAccessToken} = usePrivy();
-  const { wallets: solanaWallets } = useSolanaWallets();
-  const [agent, setAgent] = useState<any>();
-  const [activeWallet, setActiveWallet] = useState<any>();
-  const [transactionHash, setTransactionHash] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const connection = new ProxyConnection({ commitment: 'confirmed' });
-  const params = useParams();
-  const searchParams = useSearchParams(); 
-  const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
-  const pathname = usePathname();
-  
-  const existingResult = 'result' in toolInvocation ? toolInvocation.result : null;
-  const existingStatus = 'status' in toolInvocation ? toolInvocation.status : null;    
-  // Set initial status based on existing result
-  const getInitialStatus = () => {
-    if (existingStatus === 'success') return 'success';
-    if (existingStatus === 'error') return 'error';
-    return 'searching';
-  };
-  const [status, setStatus] = useState<'searching' | 'swapping' | 'confirming' | 'success' | 'error'>(getInitialStatus());
-  const [hasExecuted, setHasExecuted] = useState(!!existingResult);
+interface SwapToolResult {
+  transactionHash?: string;
+  status?: 'success' | 'error';
+  error?: string;
+  fromToken?: string;
+  toToken?: string;
+  amount?: string;
+  slippage?: number;
+}
 
-  // Get parameters from the tool invocation result
-  const toolParams = 'result' in toolInvocation ? toolInvocation.result : {
-    fromToken: '',
-    toToken: '',
-    amount: '',
-    slippage: 1.0
+interface SwapToolInvocation {
+  toolName: string;
+  toolCallId: string;
+  status?: 'success' | 'error';
+  args: {
+    fromToken: string;
+    toToken: string;
+    amount: string;
+    slippage?: number;
   };
+  result?: SwapToolResult;
+}
+
+const ExecuteSwapComponent: React.FC<{ 
+  toolCallId: string; 
+  toolInvocation: SwapToolInvocation;
+}> = ({ toolCallId, toolInvocation }) => {
+  const renderCount = React.useRef(0);
+  React.useEffect(() => {
+    renderCount.current += 1;
+    console.log('Render count:', renderCount.current);
+  });
+
+  const initRef = React.useRef(false);
+
+  const { user, getAccessToken } = usePrivy();
+  const { wallets: solanaWallets, ready } = useSolanaWallets();
+  const [status, setStatus] = useState<'searching' | 'ready' | 'executing' | 'success' | 'error'>('searching');
+  const [error, setError] = useState<string | null>(null);
+  const [fromToken, setFromToken] = useState<Token | null>(null);
+  const [toToken, setToToken] = useState<Token | null>(null);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const chatId = searchParams.get('chatId');
+
+  // Check if this is a historical tool invocation with a result
+  useEffect(() => {
+    if ('result' in toolInvocation) {
+      const result = toolInvocation.result as any;
+      // Check both result and status fields
+      if (result?.status === 'success') {
+        setTransactionHash(result.transactionHash || null);
+        setStatus('success');
+        return;
+      } else if (result?.status === 'error') {
+        setError(result.error || 'An error occurred');
+        setStatus('error');
+        return;
+      }
+    }
+  }, [toolInvocation]);
+
+  // Extract swap parameters from tool invocation
+  const toolParams = useMemo(() => {
+    console.log('Recalculating tool params');
+    if ('args' in toolInvocation) {
+      return toolInvocation.args as {
+        fromToken: string;
+        toToken: string;
+        amount: string;
+        slippage: number;
+      };
+    }
+    return {
+      fromToken: '',
+      toToken: '',
+      amount: '',
+      slippage: 1.0
+    };
+  }, [toolInvocation]);
 
   const { fromToken: fromTokenName, toToken: toTokenName, amount, slippage = 1.0 } = toolParams;
 
-  // Move validation to useEffect and add proper checks
-  useEffect(() => {
-    // Only validate if we have all required parameters
-    if (!fromTokenName || !toTokenName || !amount) {
-      return;
+  // Get the active wallet with improved logic
+  const activeWallet = useMemo(() => {
+    console.log('Recalculating active wallet');
+    if (!solanaWallets || solanaWallets.length === 0) return null;
+    
+    const storedWallet = localStorage.getItem(SELECTED_WALLET_KEY);
+    
+    let selectedWallet = null;
+    if (storedWallet) {
+      selectedWallet = solanaWallets.find(w => w.address.toLowerCase() === storedWallet.toLowerCase());
     }
-
-    // Validate amount
-    const amountToSwap = parseFloat(amount);
-    if (isNaN(amountToSwap)) {
-      console.error('Invalid amount format:', amount);
-      setStatus('error');
-      setErrorMessage('Invalid swap amount: Amount must be a valid number');
-      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
-      return;
-    }
-
-    if (amountToSwap <= 0) {
-      console.error('Invalid amount value:', amountToSwap);
-      setStatus('error');
-      setErrorMessage('Invalid swap amount: Amount must be greater than 0');
-      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
-      return;
-    }
-
-    // Clear any previous validation errors
-    setValidationErrors({});
-  }, [fromTokenName, toTokenName, amount, slippage]);
-
-  useEffect(() => {
-    // get agent and set agent name
-    if (!user) return;
-    getAgent().then((agent) => {
-      setAgent(agent);
-  
-      // Determine active wallet with proper checks
-      let wallet = localStorage.getItem(SELECTED_WALLET_KEY);
-      let activeWallet = null;
-      
-      if (wallet && solanaWallets.find(w => w.address.toLowerCase() === wallet.toLowerCase())) {
-        activeWallet = solanaWallets.find(w => w.address.toLowerCase() === wallet.toLowerCase())
-      } else if (agent?.wallets?.solana && solanaWallets.find(w => w.address.toLowerCase() === agent.wallets.solana.toLowerCase())) {
-        activeWallet = solanaWallets.find(w => w.address.toLowerCase() === agent.wallets.solana.toLowerCase())
-      } else {
-        activeWallet = solanaWallets[0] || null
+    if (!selectedWallet) {
+      selectedWallet = solanaWallets.find(w => w.connectedAt) || solanaWallets[0];
+      if (selectedWallet) {
+        localStorage.setItem(SELECTED_WALLET_KEY, selectedWallet.address);
       }
-
-      setActiveWallet(activeWallet)
-    });
-  }, [user]);
-
-  const getAgent = async () => {
-
-    if (params.userId === 'template' || pathname === '/template') {
-      return null;
     }
+    
+    return selectedWallet;
+  }, [solanaWallets]);
 
-    const accessToken = await getAccessToken();
-    const response = await fetch(
-      `/api/agents/${decodeURIComponent(params.userId as string || 'template')}/${params.agentId || 'cc425065-b039-48b0-be14-f8afa0704357'} `,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-    if (!response.ok) {
-      throw new Error("Failed to fetch agent configuration");
-    }
-    return response.json();
-  }  
-
+  // Add wallet connection effect
   useEffect(() => {
-    if (activeWallet) {
-      // Just validate parameters, don't execute
-      validateParameters();
+    if (!activeWallet) {
+      setError('No wallet connected. Please connect a wallet first.');
+      setStatus('error');
+      return;
     }
   }, [activeWallet]);
 
-  const validateParameters = () => {
-    // Only validate if we have all required parameters
-    if (!fromTokenName || !toTokenName || !amount) {
-      return false;
-    }
-
-    // Validate amount
-    const amountToSwap = parseFloat(amount);
-    if (isNaN(amountToSwap)) {
-      console.error('Invalid amount format:', amount);
+  // Add user authentication effect
+  useEffect(() => {
+    if (!user) {
+      setError('Please sign in to use the swap feature');
       setStatus('error');
-      setErrorMessage('Invalid swap amount: Amount must be a valid number');
-      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
-      return false;
+      return;
     }
+  }, [user]);
 
-    if (amountToSwap <= 0) {
-      console.error('Invalid amount value:', amountToSwap);
-      setStatus('error');
-      setErrorMessage('Invalid swap amount: Amount must be greater than 0');
-      setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
-      return false;
-    }
+  // Add detailed logging for wallet state
+  useEffect(() => {
+    if (initRef.current) return;
+    console.log('Wallet connection state:', {
+      isUserAuthenticated: !!user,
+      privyReady: ready,
+      numberOfWallets: solanaWallets?.length || 0,
+      walletDetails: solanaWallets?.map(w => ({
+        address: w.address,
+        connectedAt: w.connectedAt,
+        type: w.type
+      }))
+    });
+  }, [user, solanaWallets, ready]);
 
-    // Clear any previous validation errors
-    setValidationErrors({});
-
-    // If we get here, the parameters are valid
-    return true;
-  };
-
-  const getPrice = async (id: string) => {
-    try {
-        const accessToken = await getAccessToken();
-        const coin = await fetch('/api/coingecko/coins/' + id, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            },
-        });
-        if (!coin.ok) {
-            throw new Error(`Failed to fetch price for ${id}: ${coin.statusText}`);
-        }
-        const coinItem = await coin.json();
-        if (!coinItem?.market_data?.current_price?.usd) {
-            throw new Error(`No price data available for ${id}`);
-        }
-        return coinItem.market_data.current_price.usd;
-    } catch (error) {
-        console.error('Error fetching price:', error);
-        throw error; // Propagate the error
-    }
-  }
-
+  // Function to find a token
   const findToken = async (tokenIdentifier: string): Promise<Token | null> => {
+    console.log('Finding token:', tokenIdentifier);
     try {
-        // Handle SOL case
-        if (tokenIdentifier.toUpperCase() === 'SOL') {
-            try {
-                const price = await getPrice('solana');
-                return {
-                    token_address: 'SOL',
-                    token_icon: '',
-                    token_name: 'Solana',
-                    token_symbol: 'SOL',
-                    token_decimals: 9,
-                    usd_price: price,
-                    usd_value: 0,
-                    formatted_amount: 0
-                };
-            } catch (solError) {
-                console.error('Error fetching SOL price:', solError);
-                throw new Error(`Failed to get SOL price: ${solError instanceof Error ? solError.message : 'Unknown error'}`);
-            }
-        }
-
-        const response = await fetch(JUPITER_TOKEN_LIST_URL);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch token list: ${response.statusText}`);
-        }
-        
-        const tokens = await response.json();
-        
-        // Determine search strategy based on input format
-        const isAddress = SOLANA_ADDRESS_REGEX.test(tokenIdentifier);
-        let token;
-
-        if (isAddress) {
-            token = tokens.find((t: any) => 
-                t.address.toLowerCase() === tokenIdentifier.toLowerCase()
-            );
-        } else {
-            const searchTerm = tokenIdentifier.toLowerCase();
-            token = tokens.find((t: any) => 
-                t.name.toLowerCase() === searchTerm ||
-                t.symbol.toLowerCase() === searchTerm
-            );
-        }
-
-        // If token is not found in the list but is a valid Solana address, create a dummy token object
-        if (!token && isAddress) {
-            console.warn(`Creating dummy token for address: ${tokenIdentifier}`);
-            return {
-                token_address: tokenIdentifier,
-                token_icon: '',
-                token_name: `Token ${tokenIdentifier.substring(0, 8)}...`,
-                token_symbol: `UNK`,
-                token_decimals: 9,
-                usd_price: 0,
-                usd_value: 0,
-                formatted_amount: 0
-            };
-        }
-
-        if (!token) {
-            throw new Error(`Token not found: ${tokenIdentifier}`);
-        }
-
-        // Get price using CoinGecko ID if available
-        let price = 0;
+      // Handle SOL case
+      if (tokenIdentifier.toUpperCase() === 'SOL') {
+        console.log('Handling SOL token case');
         try {
-            if (token.extensions?.coingeckoId) {
-                price = await getPrice(token.extensions.coingeckoId);
-            }
-        } catch (priceError) {
-            console.warn('Could not fetch price for token:', tokenIdentifier, priceError);
-            // Continue with price = 0
-        }
-
-        return {
-            token_address: token.address,
-            token_icon: token.logoURI || '',
-            token_name: token.name,
-            token_symbol: token.symbol,
-            token_decimals: token.decimals,
-            usd_price: price,
+          const accessToken = await getAccessToken();
+          console.log('Got access token for SOL lookup');
+          const coin = await fetch('/api/coingecko/coins/solana', {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            },
+          });
+          console.log('Fetched SOL price data, status:', coin.status);
+          const coinItem = await coin.json();
+          console.log('Parsed SOL price data:', coinItem);
+          
+          const solToken = {
+            token_address: 'So11111111111111111111111111111111111111112', // Wrapped SOL address
+            token_icon: '',
+            token_name: 'Solana',
+            token_symbol: 'SOL',
+            token_decimals: 9,
+            usd_price: coinItem.market_data?.current_price?.usd || 0,
             usd_value: 0,
             formatted_amount: 0
-        };
-    } catch (error) {
-        console.error('Error finding token:', error);
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to find token');
-        setStatus('error');
-        throw error; // Propagate the error up
-    }
-  };
+          };
+          console.log('Returning SOL token:', solToken);
+          return solToken;
+        } catch (error) {
+          console.error('Error fetching SOL price:', error);
+          // Don't throw here, return basic SOL token info
+          const basicSolToken = {
+            token_address: 'So11111111111111111111111111111111111111112',
+            token_icon: '',
+            token_name: 'Solana',
+            token_symbol: 'SOL',
+            token_decimals: 9,
+            usd_price: 0,
+            usd_value: 0,
+            formatted_amount: 0
+          };
+          console.log('Returning basic SOL token:', basicSolToken);
+          return basicSolToken;
+        }
+      }
 
-  const updateToolInvocation = async ({
-    chatId,
-    toolCallId,
-    status,
-    result
-  }: UpdateToolInvocationParams) => {
-    try {
-      const accessToken = await getAccessToken();
-      const response = await fetch('/api/chat/tool-invocation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          chatId,
-          toolCallId,
-          status,
-          result
-        })
-      });
-  
+      // If tokenIdentifier is a valid Solana address, try to get its metadata directly
+      if (SOLANA_ADDRESS_REGEX.test(tokenIdentifier)) {
+        console.log('Looking up token by address:', tokenIdentifier);
+        const accessToken = await getAccessToken();
+        try {
+          console.log('Got access token for token lookup');
+          const metadataResponse = await fetch(`/api/solana/token/${tokenIdentifier}/metadata`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          
+          console.log('Metadata response status:', metadataResponse.status);
+          if (metadataResponse.ok) {
+            const metadata = await metadataResponse.json();
+            console.log('Found token metadata:', metadata);
+            return {
+              token_address: tokenIdentifier,
+              token_icon: metadata.logoURI || '',
+              token_name: metadata.name || 'Unknown Token',
+              token_symbol: metadata.symbol || 'UNKNOWN',
+              token_decimals: metadata.decimals || 9,
+              usd_price: metadata.price || 0,
+              usd_value: 0,
+              formatted_amount: 0
+            };
+          } else {
+            const errorText = await metadataResponse.text();
+            console.log('Metadata fetch failed, status:', metadataResponse.status, 'error:', errorText);
+            console.log('Falling back to Jupiter list');
+          }
+        } catch (error) {
+          console.error('Error fetching token metadata:', error);
+        }
+      }
+
+      // Try Jupiter token list as fallback
+      console.log('Fetching Jupiter token list');
+      const response = await fetch(JUPITER_TOKEN_LIST_URL);
+      console.log('Jupiter list response status:', response.status);
       if (!response.ok) {
-        const errorData = await response.json();
-        // Handle 404 errors gracefully - this is expected for new tool invocations
-        if (response.status === 404) {
-          return null;
-        }
-        throw new Error(errorData.error || 'Failed to update tool invocation');
+        throw new Error('Failed to fetch Jupiter token list');
       }
-  
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating tool invocation:', error);
-      // Don't throw the error, just log it and continue
-      return null;
-    }
-  };  
+      const tokens = await response.json();
+      console.log('Got Jupiter tokens:', tokens.length);
 
-  const checkTransactionStatus = async (signature: string) => {
-    try {
-      const status = await connection.getSignatureStatus(signature);
-      if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
-        setStatus('success');
-        setTransactionHash(signature);
-        // Update tool invocation with success status
-        await updateToolInvocation({
-          chatId,
-          toolCallId,
-          status: 'success',
-          result: {
-            transactionHash: signature,
-            status: 'success',
-            fromToken: fromTokenName,
-            toToken: toTokenName,
-            amount,
-            slippage
-          }
-        });        
+      let foundToken = null;
 
-        return true;
+      // Try to find by address first
+      if (SOLANA_ADDRESS_REGEX.test(tokenIdentifier)) {
+        foundToken = tokens.find((t: any) => t.address === tokenIdentifier);
+        console.log('Looked up by address in Jupiter list, found:', !!foundToken);
       }
-
-      if (status?.value?.err) {
-        setStatus('error');
-        setErrorMessage(`Transaction failed: ${JSON.stringify(status.value.err)}`);
-        await updateToolInvocation({
-          chatId,
-          toolCallId,
-          status: 'error',
-          result: {
-            transactionHash: signature,
-            status: 'error',
-            error: JSON.stringify(status.value.err),
-            fromToken: fromTokenName,
-            toToken: toTokenName,
-            amount,
-            slippage
-          }
-        });           
-        return false;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error checking transaction status:', error);
-      return null;
-    }
-  };
-
-  const executeTokenSwap = async () => {
-    try {
-        if (!activeWallet) {
-            throw new Error('No wallet connected');
-        }
-
-        console.log('Executing token swap');
-        
-        // Find tokens
-        setStatus('searching');
-        let fromToken, toToken;
-        
-        try {
-            fromToken = await findToken(fromTokenName);
-            if (!fromToken) {
-                throw new Error(`Could not find token: ${fromTokenName}`);
-            }
-        } catch (error) {
-            throw new Error(`Error finding from token (${fromTokenName}): ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-
-        try {
-            toToken = await findToken(toTokenName);
-            if (!toToken) {
-                throw new Error(`Could not find token: ${toTokenName}`);
-            }
-        } catch (error) {
-            throw new Error(`Error finding to token (${toTokenName}): ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-
-        // Validate amount and balance
-        const amountToSwap = parseFloat(amount);
-        if (isNaN(amountToSwap)) {
-            console.error('Amount parsing failed:', {
-                amount,
-                parsedAmount: amountToSwap,
-                type: typeof amount
-            });
-            setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
-            throw new Error('Invalid swap amount: Amount must be a valid number');
-        }
-        if (amountToSwap <= 0) {
-            setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
-            throw new Error('Invalid swap amount: Amount must be greater than 0');
-        }
-
-        // Clear validation errors if we get here
-        setValidationErrors({});
-
-        // Execute swap
-        setStatus('swapping');
-        let signature;
-        try {
-            // Add warning for direct contract address usage
-            if (fromToken.token_symbol === 'UNK') {
-                console.warn(`Using unknown token with address ${fromToken.token_address}. Make sure you have this token in your wallet.`);
-            }
-            
-            signature = await executeSwap({
-                fromToken,
-                toToken,
-                amount: amountToSwap.toString(),
-                slippage,
-                wallet: activeWallet
-            });
-        } catch (swapError: any) {
-            console.error('Swap Execution Error:', swapError);
-            
-            // Handle specific Solana errors with better error messages
-            if (swapError.message?.includes('Attempt to debit an account but found no record of a prior credit')) {
-                throw new Error(`You don't have any ${fromToken.token_symbol} tokens in your wallet. The token account may not exist.`);
-            } else if (swapError.message?.includes('insufficient funds')) {
-                throw new Error(`Insufficient ${fromToken.token_symbol} tokens in your wallet.`);
-            } else {
-                throw swapError;
-            }
-        }
-  
-        // Validate signature
-        if (!signature) {
-            throw new Error('No transaction signature received');
-        }
-  
-        // Check status
-        setStatus('confirming');
-  
-        // Initial check
-        const initialStatus = await checkTransactionStatus(signature);
-        if (initialStatus !== null) return;
-  
-        // Poll for status
-        let retries = 0;
-        const maxRetries = 45; // 90 seconds total
-        const intervalId = setInterval(async () => {
-            retries++;
-            try {
-                const status = await checkTransactionStatus(signature);
-
-                if (status === true) {
-                    clearInterval(intervalId);
-                    return
-                } 
-                
-                if (status !== null || retries >= maxRetries) {
-                    clearInterval(intervalId);
-                    if (status === null && retries >= maxRetries) {
-                        setStatus('error');
-                        setErrorMessage('Transaction confirmation timed out');
-                        console.error('Transaction confirmation timed out');
-                        await updateToolInvocation({
-                            chatId,
-                            toolCallId,
-                            status: 'error',
-                            result: {
-                                transactionHash: signature,
-                                status: 'error',
-                                error: 'Transaction confirmation timed out',
-                                fromToken: fromTokenName,
-                                toToken: toTokenName,
-                                amount,
-                                slippage
-                            }
-                        });
-                    }
-                }
-            } catch (statusError: unknown) {
-                clearInterval(intervalId);
-                setStatus('error');
-                setErrorMessage(`Status check error: ${(statusError as Error).message}`);
-                console.error('Error checking transaction status:', statusError);
-                await updateToolInvocation({
-                    chatId,
-                    toolCallId,
-                    status: 'error',
-                    result: {
-                        transactionHash: signature,
-                        status: 'error',
-                        error: (statusError as Error).message,
-                        fromToken: fromTokenName,
-                        toToken: toTokenName,
-                        amount,
-                        slippage
-                    }
-                });
-            }
-        }, 2000);
-  
-        return () => clearInterval(intervalId);
-        
-    } catch (error) {
-        setStatus('error');
-        setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
-        console.error('Swap process error:', {
-            message: error instanceof Error ? error.message : 'Unknown error',
-            name: error instanceof Error ? error.name : 'Unknown',
-            stack: error instanceof Error ? error.stack : undefined
-        });
-        throw error;
-    }
-  };
-
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  // Add validation state
-  const isValid = !error && Object.keys(validationErrors).length === 0;
-
-  const handleExecuteSwap = async () => {
-    if (!activeWallet) {
-      setError('No wallet connected');
-      return;
-    }
-
-    if (!validateParameters()) {
-      return;
-    }
-
-    try {
-      setIsExecuting(true);
-      setError(null);
-      setValidationErrors({});
-
-      // Update tool invocation status to 'in_progress'
-      const updateResult = await updateToolInvocation({
-        chatId,
-        toolCallId,
-        status: 'in_progress',
-        result: {
-          status: 'in_progress',
-          message: 'Starting swap execution...'
-        }
-      });
-
-      // If update fails, log it but continue with the swap
-      if (!updateResult) {
-        console.log('Failed to update tool invocation status, but continuing with swap');
-      }
-
-      // Execute the swap
-      await executeTokenSwap();
       
-      // Show success message
-      toast.success("Swap Executed", {
-        description: "Your swap has been executed successfully.",
-      });
-
-    } catch (error) {
-      console.error('Error executing swap:', error);
-      setError(error instanceof Error ? error.message : 'Failed to execute swap');
-      
-      // Try to update tool invocation with error status
-      try {
-        await updateToolInvocation({
-          chatId,
-          toolCallId,
-          status: 'error',
-          result: {
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Failed to execute swap'
-          }
-        });
-      } catch (updateError) {
-        console.error('Failed to update tool invocation with error:', updateError);
+      // If not found by address, try symbol/name
+      if (!foundToken) {
+        foundToken = tokens.find((t: any) => 
+          t.symbol.toLowerCase() === tokenIdentifier.toLowerCase() ||
+          t.name.toLowerCase() === tokenIdentifier.toLowerCase()
+        );
+        console.log('Looked up by symbol/name in Jupiter list, found:', !!foundToken);
       }
-    } finally {
-      setIsExecuting(false);
+
+      if (foundToken) {
+        console.log('Found token in Jupiter list:', foundToken);
+        return {
+          token_address: foundToken.address,
+          token_icon: foundToken.logoURI || '',
+          token_name: foundToken.name,
+          token_symbol: foundToken.symbol,
+          token_decimals: foundToken.decimals,
+          usd_price: 0,
+          usd_value: 0,
+          formatted_amount: 0
+        };
+      }
+
+      console.log('Token not found:', tokenIdentifier);
+      throw new Error(`Token not found: ${tokenIdentifier}`);
+    } catch (error) {
+      console.error('Error finding token:', error);
+      throw error;
     }
   };
 
-  // Update the useEffect to execute swap when parameters are valid
+  // Effect to find tokens and execute swap
   useEffect(() => {
-    if (activeWallet && !hasExecuted) {
-      const isValid = validateParameters();
-      if (isValid) {
-        handleExecuteSwap();
+    // Don't initialize if we don't have the required parameters
+    // or if we already have a transaction hash or success status
+    if (!fromTokenName || !toTokenName || !amount || transactionHash || status === 'success') {
+      return;
+    }
+
+    // Reset init ref when parameters change
+    initRef.current = false;
+    
+    if (initRef.current) {
+      return;
+    }
+    initRef.current = true;
+
+    let mounted = true;
+    
+    const init = async () => {
+      if (!mounted) return;
+
+      try {
+        // Find fromToken
+        let from: Token | null = null;
+        try {
+          from = await findToken(fromTokenName);
+          if (!mounted) return;
+          
+          if (!from) {
+            throw new Error(`Could not find token: ${fromTokenName}`);
+          }
+          
+          // Set fromToken state immediately
+          setFromToken(from);
+          
+          // Find toToken
+          let to: Token | null = null;
+          try {
+            to = await findToken(toTokenName);
+            if (!mounted) return;
+            
+            if (!to) {
+              throw new Error(`Could not find token: ${toTokenName}`);
+            }
+            
+            // Set toToken state and ready status
+            setToToken(to);
+            setStatus('ready');
+            
+          } catch (error: any) {
+            if (mounted) {
+              setError(`Failed to find ${toTokenName}: ${error.message}`);
+              setStatus('error');
+            }
+          }
+        } catch (error: any) {
+          if (mounted) {
+            setError(`Failed to find ${fromTokenName}: ${error.message}`);
+            setStatus('error');
+          }
+        }
+      } catch (error: any) {
+        if (mounted) {
+          setError(error.message || 'Failed to find tokens');
+          setStatus('error');
+        }
+      }
+    };
+
+    init().catch(error => {
+      if (mounted) {
+        setError(error.message || 'An unexpected error occurred');
+        setStatus('error');
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [fromTokenName, toTokenName, amount, slippage]);
+
+  // Separate effect to handle swap execution after tokens are ready
+  useEffect(() => {
+    // Add check for existing transaction hash to prevent re-execution
+    if (transactionHash) {
+      return;
+    }
+    
+    if (
+      status === 'ready' &&
+      fromToken &&
+      toToken &&
+      activeWallet &&
+      user
+    ) {
+      executeTokenSwap();
+    }
+  }, [status, fromToken, toToken, activeWallet, user, transactionHash]);
+
+  // Function to execute the swap
+  const executeTokenSwap = async () => {
+    if (!activeWallet) {
+      const error = 'No wallet connected';
+      setError(error);
+      setStatus('error');
+      return;
+    }
+
+    try {
+      setStatus('executing');
+      setError(null);
+
+      if (!fromToken?.token_address || !toToken?.token_address) {
+        throw new Error('Complete token information not available');
+      }
+
+      const signature = await executeSwap({
+        fromToken,
+        toToken,
+        amount,
+        slippage,
+        wallet: activeWallet
+      });
+
+      setTransactionHash(signature);
+      setStatus('success');
+
+      // Update tool invocation status
+      if (chatId) {
+        try {
+          const updateResult = await fetch('/api/chat/tool-invocation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chatId,
+              toolCallId,
+              status: 'success',
+              result: {
+                transactionHash: signature,
+                status: 'success',
+                fromToken: fromToken.token_symbol,
+                toToken: toToken.token_symbol,
+                amount,
+                slippage
+              }
+            } as UpdateToolInvocationParams)
+          });
+
+          if (!updateResult.ok) {
+            const errorText = await updateResult.text();
+            console.error('Failed to update tool invocation:', errorText);
+          }
+        } catch (error) {
+          console.error('Error updating tool invocation:', error);
+        }
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Failed to execute swap';
+      setError(errorMessage);
+      setStatus('error');
+
+      // Update tool invocation status
+      if (chatId) {
+        try {
+          const updateResult = await fetch('/api/chat/tool-invocation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chatId,
+              toolCallId,
+              status: 'error',
+              result: {
+                status: 'error',
+                error: errorMessage,
+                fromToken: fromToken?.token_symbol,
+                toToken: toToken?.token_symbol,
+                amount,
+                slippage
+              }
+            } as UpdateToolInvocationParams)
+          });
+
+          if (!updateResult.ok) {
+            const errorText = await updateResult.text();
+            console.error('Failed to update tool invocation:', errorText);
+          }
+        } catch (error) {
+          console.error('Error updating tool invocation:', error);
+        }
       }
     }
-  }, [activeWallet, fromTokenName, toTokenName, amount, slippage]);
+  };
 
-  // Render a simple status indicator
+  // Render UI based on status
   return (
     <div className="p-4 bg-zinc-800 rounded-lg">
       <div className="flex flex-col gap-2">
+        {/* Status indicator */}
         <div className="flex items-center gap-2">
           {status === 'searching' && (
             <>
@@ -646,81 +522,56 @@ const ExecuteSwap: React.FC<{
               <span className="text-sm text-zinc-400">Looking up tokens...</span>
             </>
           )}
-          {status === 'swapping' && (
+          {status === 'ready' && (
+            <>
+              <div className="w-4 h-4 rounded-full bg-green-500/20" />
+              <span className="text-sm text-zinc-400">Found tokens, preparing swap...</span>
+            </>
+          )}
+          {status === 'executing' && (
             <>
               <div className="w-4 h-4 rounded-full bg-blue-500/20 animate-pulse" />
               <span className="text-sm text-zinc-400">Executing swap...</span>
             </>
           )}
-          {status === 'confirming' && (
-            <>
-              <div className="w-4 h-4 rounded-full bg-purple-500/20 animate-pulse" />
-              <span className="text-sm text-zinc-400">Waiting for confirmation...</span>
-            </>
-          )}
           {status === 'success' && (
             <>
               <div className="w-4 h-4 rounded-full bg-green-500/20" />
-              <span className="text-sm text-green-400">Swap completed successfully!</span>
+              <span className="text-sm text-zinc-400">
+                Swap completed! Transaction hash:{' '}
+                <a
+                  href={`https://solscan.io/tx/${transactionHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300"
+                >
+                  {transactionHash?.slice(0, 8)}...{transactionHash?.slice(-8)}
+                </a>
+              </span>
             </>
           )}
           {status === 'error' && (
             <>
               <div className="w-4 h-4 rounded-full bg-red-500/20" />
-              <span className="text-sm text-red-400">Swap failed</span>
-              {errorMessage && (
-                <span className="text-sm text-red-300 ml-2">({errorMessage})</span>
-              )}
+              <span className="text-sm text-red-400">{error}</span>
             </>
           )}
         </div>
-
-        {/* Show transaction hash if set */}
-        {transactionHash && (
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
-            <span>Transaction:</span>
-            <Link 
-              href={`https://solscan.io/tx/${transactionHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-            >
-              {transactionHash.slice(0, 8)}...{transactionHash.slice(-8)}
-              <ExternalLink size={12} />
-            </Link>
-          </div>
-        )}
-
-        {/* Show transaction details if available */}
-        {existingResult && existingResult.transactionHash && (
-          <div className="mt-2 space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <span>Transaction:</span>
-              <Link 
-                href={`https://solscan.io/tx/${existingResult.transactionHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-              >
-                {existingResult.transactionHash.slice(0, 8)}...{existingResult.transactionHash.slice(-8)}
-                <ExternalLink size={12} />
-              </Link>
-            </div>
-            <div className="flex flex-col gap-1 text-zinc-400">
-              <div>From: {existingResult.fromToken} ({existingResult.amount})</div>
-              <div>To: {existingResult.toToken}</div>
-              {existingResult.error && (
-                <div className="text-red-300">Error: {existingResult.error}</div>
-              )}
-              <div className="text-xs">
-                Updated: {new Date(existingResult.updatedAt).toLocaleString()}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 };
+
+// Wrap component in memo to prevent unnecessary re-renders
+const ExecuteSwap = React.memo(ExecuteSwapComponent, (prevProps, nextProps) => {
+  // Only re-render if toolCallId or toolInvocation.args changes
+  const prevArgs = 'args' in prevProps.toolInvocation ? prevProps.toolInvocation.args : null;
+  const nextArgs = 'args' in nextProps.toolInvocation ? nextProps.toolInvocation.args : null;
+  
+  const argsEqual = JSON.stringify(prevArgs) === JSON.stringify(nextArgs);
+  const idEqual = prevProps.toolCallId === nextProps.toolCallId;
+  
+  return argsEqual && idEqual;
+});
 
 export default ExecuteSwap;
