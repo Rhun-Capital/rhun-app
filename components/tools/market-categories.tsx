@@ -11,17 +11,30 @@ interface Category {
   change24h: number;
 }
 
+type ToolInvocationState = 'call' | 'partial-call' | 'result';
+
 interface MarketCategoriesProps {
   toolCallId: string;
   toolInvocation: {
     toolName: string;
-    args: { message: string };
-    result?: Category[];
+    args: Record<string, any>;
+    result?: Record<string, Category>;
+    state: ToolInvocationState;
   };
 }
 
 const MarketCategories: React.FC<MarketCategoriesProps> = ({ toolCallId, toolInvocation }) => {
-  if (!("result" in toolInvocation) || !toolInvocation.result) return null;
+  // Add console.log to help debug
+  console.log('MarketCategories props:', { toolCallId, toolInvocation });
+
+  // Only process categories if we have a result
+  const categories = toolInvocation?.state === 'result' && toolInvocation?.result ? Object.values(toolInvocation.result) : [];
+  
+  console.log('Processed categories:', categories);
+
+  if (!Array.isArray(categories) || categories.length === 0) {
+    return <div className="p-6 bg-zinc-800 rounded-lg">Loading market categories...</div>;
+  }
 
   const formatNumber = (num: number) => {
     if (num > 1_000_000_000_000) {
@@ -45,7 +58,7 @@ const MarketCategories: React.FC<MarketCategoriesProps> = ({ toolCallId, toolInv
       <h3 className="text-lg font-semibold mb-4">Top Crypto Categories</h3>
       
       <div className="space-y-4">
-        {toolInvocation.result.map((category) => (
+        {categories.map((category: Category) => (
           <div key={category.id} className="bg-zinc-900 p-4 rounded-lg">
             <div className="flex justify-between items-start mb-3">
               <div>
