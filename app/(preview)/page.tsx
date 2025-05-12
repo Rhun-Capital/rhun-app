@@ -943,9 +943,11 @@ function HomeContent() {
     window.dispatchEvent(event);
   }, []);
 
-  // Helper function to render tool invocations
-  const renderToolInvocation = (tool: any, wrapper?: (component: React.ReactNode) => React.ReactNode) => {
-    const wrappedTool = wrapper || ((component: React.ReactNode) => component);
+  // Memoize the renderToolInvocation function
+  const renderToolInvocation = useCallback((tool: any, wrapper?: (component: React.ReactNode) => React.ReactNode) => {
+    const wrappedTool = (component: React.ReactNode) => {
+      return wrapper ? wrapper(component) : component;
+    };
     
     // If the result is stored in S3, show a loading state
     if (tool.result?._storedInS3) {
@@ -1016,7 +1018,13 @@ function HomeContent() {
       case 'getTopNfts':
         return wrappedTool(<TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
       case 'swap':
-        return wrappedTool(<ExecuteSwap key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
+        return wrappedTool(
+          <ExecuteSwap 
+            key={tool.toolCallId} 
+            toolCallId={tool.toolCallId} 
+            toolInvocation={tool} 
+          />
+        );
       case 'getRecentDexScreenerTokens':
         return wrappedTool(<RecentDexScreenerTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
       case 'getCryptoNews':
@@ -1077,7 +1085,7 @@ function HomeContent() {
       default:
         return null;
     }
-  };
+  }, []); // Empty dependency array since this function doesn't depend on any props or state
 
   const params = useParams();
   const agentId = 'cc425065-b039-48b0-be14-f8afa0704357'
