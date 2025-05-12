@@ -85,6 +85,7 @@ export default function WalletConnection() {
   }  
 
   const handleLogout = async () => {
+    localStorage.removeItem('rhun_selected_wallet_address');
     await clearCookies(); // Clear access tokens
     await logout(); // Clear Privy state
     router.push('/login');
