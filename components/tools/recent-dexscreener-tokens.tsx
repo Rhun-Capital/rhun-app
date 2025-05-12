@@ -56,6 +56,22 @@ interface RecentDexScreenerProps {
   toolCallId: string;
   toolInvocation: AIToolInvocation & {
     result?: DexScreenerPair[];
+    args?: {
+      result?: DexScreenerPair[];
+      chainId?: string;
+      [key: string]: any;
+    };
+    toolInvocations?: Array<{
+      args?: {
+        result?: DexScreenerPair[];
+        chainId?: string;
+        [key: string]: any;
+      };
+      result: any;
+      state: string;
+      toolName: string;
+      [key: string]: any;
+    }>;
   };
 }
 
@@ -104,8 +120,52 @@ const RecentDexScreenerTokens: React.FC<RecentDexScreenerProps> = ({ toolInvocat
   const [selectedPair, setSelectedPair] = useState<DexScreenerPair | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   
-  // Safely get the pairs array
-  const pairs = Array.isArray(toolInvocation.result) ? toolInvocation.result : [];
+  // Safely get the pairs array, handling both direct and nested results
+  const pairs = React.useMemo(() => {
+    // Case 1: Direct result array
+    if (Array.isArray(toolInvocation.result)) {
+      return toolInvocation.result;
+    }
+
+    // Case 2: Result is an object with numeric keys
+    if (toolInvocation.result && typeof toolInvocation.result === 'object') {
+      const resultArray = Object.values(toolInvocation.result as Record<string, DexScreenerPair>);
+      if (resultArray.length > 0 && resultArray[0]?.pairAddress) {
+        return resultArray;
+      }
+    }
+
+    // Case 3: Historical chat format - result might be in the args
+    if (toolInvocation.args?.result) {
+      if (Array.isArray(toolInvocation.args.result)) {
+        return toolInvocation.args.result;
+      }
+      // Handle object with numeric keys in args.result
+      if (typeof toolInvocation.args.result === 'object') {
+        const resultArray = Object.values(toolInvocation.args.result as Record<string, DexScreenerPair>);
+        if (resultArray.length > 0 && resultArray[0]?.pairAddress) {
+          return resultArray;
+        }
+      }
+    }
+
+    // Case 4: Historical chat format - result might be in toolInvocations
+    const firstInvocation = toolInvocation.toolInvocations?.[0];
+    if (firstInvocation?.result) {
+      if (Array.isArray(firstInvocation.result)) {
+        return firstInvocation.result;
+      }
+      // Handle object with numeric keys in first invocation
+      if (typeof firstInvocation.result === 'object') {
+        const resultArray = Object.values(firstInvocation.result as Record<string, DexScreenerPair>);
+        if (resultArray.length > 0 && resultArray[0]?.pairAddress) {
+          return resultArray;
+        }
+      }
+    }
+    
+    return [];
+  }, [toolInvocation]);
 
   useEffect(() => {
     if (selectedPair && topRef.current) {

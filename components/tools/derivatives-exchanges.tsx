@@ -17,12 +17,15 @@ interface Exchange {
   url: string;
 }
 
+type ToolInvocationState = 'call' | 'partial-call' | 'result';
+
 interface DerivativesExchangesProps {
   toolCallId: string;
   toolInvocation: {
     toolName: string;
-    args: { message: string };
-    result?: Exchange[];
+    args: Record<string, any>;
+    result?: Record<string, Exchange>;
+    state: ToolInvocationState;
   };
 }
 
@@ -40,7 +43,21 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
     }
   }, []);
 
-  if (!("result" in toolInvocation) || !toolInvocation.result) return null;
+  // Add console.log to help debug
+  console.log('DerivativesExchanges props:', { toolCallId, toolInvocation });
+
+  if (toolInvocation.state !== 'result' || !toolInvocation.result) {
+    return <div className="p-6 bg-zinc-800 rounded-lg">Loading derivatives exchanges...</div>;
+  }
+
+  // Convert the object with numeric keys to an array
+  const exchanges = Object.values(toolInvocation.result);
+  
+  console.log('Processed exchanges:', exchanges);
+
+  if (!Array.isArray(exchanges) || exchanges.length === 0) {
+    return <div className="p-6 bg-zinc-800 rounded-lg">No exchanges found.</div>;
+  }
 
   const formatBTC = (amount: number | string) => {
     const value = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -50,7 +67,7 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
     })}`;
   };
 
-  const sortedExchanges = [...toolInvocation.result].sort((a, b) => {
+  const sortedExchanges = [...exchanges].sort((a, b) => {
     const aValue = sortField === 'open_interest' ? a.open_interest_btc : parseFloat(a.trade_volume_24h_btc);
     const bValue = sortField === 'open_interest' ? b.open_interest_btc : parseFloat(b.trade_volume_24h_btc);
     return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
@@ -182,14 +199,14 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
       </div>
 
       {viewType === 'table' ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left min-w-full table-fixed">
             <thead className="text-zinc-400 text-sm">
               <tr>
-                <th className="pb-4">#</th>
-                <th className="pb-4">Exchange</th>
+                <th className="pb-4 w-16">#</th>
+                <th className="pb-4 w-[30%]">Exchange</th>
                 <th 
-                  className="pb-4 text-right cursor-pointer hover:text-zinc-300"
+                  className="pb-4 text-right cursor-pointer hover:text-zinc-300 w-[25%]"
                   onClick={() => handleSort('open_interest')}
                 >
                   <div className="flex items-center justify-end gap-1">
@@ -198,48 +215,48 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
                   </div>
                 </th>
                 <th 
-                  className="pb-4 text-right cursor-pointer hover:text-zinc-300"
+                  className="pb-4 text-right cursor-pointer hover:text-zinc-300 w-[25%]"
                   onClick={() => handleSort('volume')}
                 >
                   <div className="flex items-center justify-end gap-1">
-                    24h Volume
+                    Volume (24h)
                     <SortIcon field="volume" />
                   </div>
                 </th>
-                <th className="pb-4"></th>
+                <th className="pb-4 w-16"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-700">
+            <tbody>
               {paginatedExchanges.map((exchange, index) => (
-                <tr key={exchange.id} className="group hover:bg-zinc-700/50">
-                  <td className="py-4 text-zinc-400">{startIndex + index + 1}</td>
-                  <td className="py-4">
+                <tr key={exchange.id} className="border-t border-zinc-700">
+                  <td className="py-4 text-zinc-400 w-16">#{startIndex + index + 1}</td>
+                  <td className="py-4 w-[30%]">
                     <div className="flex items-center gap-3">
                       {exchange.image && (
                         <img
                           src={exchange.image}
                           alt={exchange.name}
-                          className="w-6 h-6 rounded-full"
+                          className="w-6 h-6 rounded-full flex-shrink-0"
                           onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                           }}
                         />
                       )}
-                      <span className="font-medium">{exchange.name}</span>
+                      <span className="truncate">{exchange.name}</span>
                     </div>
                   </td>
-                  <td className="py-4 text-right font-medium">
+                  <td className="py-4 text-right font-medium w-[25%]">
                     {formatBTC(exchange.open_interest_btc)}
                   </td>
-                  <td className="py-4 text-right text-zinc-300">
+                  <td className="py-4 text-right text-zinc-300 w-[25%]">
                     {formatBTC(exchange.trade_volume_24h_btc)}
                   </td>
-                  <td className="pl-5 py-4 text-right">
+                  <td className="py-4 text-right w-16">
                     {exchange.url && (
                       <Link
                         href={exchange.url}
                         target="_blank"
-                        className="text-zinc-400 hover:text-zinc-300"
+                        className="text-zinc-400 hover:text-zinc-300 inline-flex"
                       >
                         <GlobeIcon />
                       </Link>
