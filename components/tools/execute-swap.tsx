@@ -86,6 +86,7 @@ const ExecuteSwapComponent: React.FC<{
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const chatId = searchParams.get('chatId');
+  const [isHistoricalSuccess, setIsHistoricalSuccess] = useState(false);
 
   // Check if this is a historical tool invocation with a result
   useEffect(() => {
@@ -95,6 +96,7 @@ const ExecuteSwapComponent: React.FC<{
       if (result?.status === 'success') {
         setTransactionHash(result.transactionHash || null);
         setStatus('success');
+        setIsHistoricalSuccess(true);
         return;
       } else if (result?.status === 'error') {
         setError(result.error || 'An error occurred');
@@ -317,7 +319,8 @@ const ExecuteSwapComponent: React.FC<{
   useEffect(() => {
     // Don't initialize if we don't have the required parameters
     // or if we already have a transaction hash or success status
-    if (!fromTokenName || !toTokenName || !amount || transactionHash || status === 'success') {
+    // or if this is a successful historical invocation
+    if (!fromTokenName || !toTokenName || !amount || transactionHash || status === 'success' || isHistoricalSuccess) {
       return;
     }
 
@@ -392,7 +395,7 @@ const ExecuteSwapComponent: React.FC<{
     return () => {
       mounted = false;
     };
-  }, [fromTokenName, toTokenName, amount, slippage]);
+  }, [fromTokenName, toTokenName, amount, slippage, status, transactionHash, isHistoricalSuccess]);
 
   // Separate effect to handle swap execution after tokens are ready
   useEffect(() => {
