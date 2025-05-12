@@ -191,112 +191,117 @@ const ExecuteSwap: React.FC<{
   };
 
   const getPrice = async (id: string) => {
-      const accessToken = await getAccessToken();
-      // fetch token details from coingecko using the extensions.coingeckoId 
-      const coin = await fetch('/api/coingecko/coins/' + id, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        },
-      });
-      const coinItem = await coin.json()    
-      return coinItem.market_data.current_price.usd
+    try {
+        const accessToken = await getAccessToken();
+        const coin = await fetch('/api/coingecko/coins/' + id, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            },
+        });
+        if (!coin.ok) {
+            throw new Error(`Failed to fetch price for ${id}: ${coin.statusText}`);
+        }
+        const coinItem = await coin.json();
+        if (!coinItem?.market_data?.current_price?.usd) {
+            throw new Error(`No price data available for ${id}`);
+        }
+        return coinItem.market_data.current_price.usd;
+    } catch (error) {
+        console.error('Error fetching price:', error);
+        throw error; // Propagate the error
+    }
   }
 
   const findToken = async (tokenIdentifier: string): Promise<Token | null> => {
     try {
-      // Handle SOL case
-      if (tokenIdentifier.toUpperCase() === 'SOL') {
-        const price = await getPrice('solana')
-        return {
-          token_address: 'SOL',
-          token_icon: '',
-          token_name: 'Solana',
-          token_symbol: 'SOL',
-          token_decimals: 9,
-          usd_price: price,
-          usd_value: 0,
-          formatted_amount: 0
-        };
-      }
-
-      const response = await fetch(JUPITER_TOKEN_LIST_URL);
-      if (!response.ok) throw new Error('Failed to fetch token list');
-      
-      const tokens = await response.json();
-      
-      // Determine search strategy based on input format
-      const isAddress = SOLANA_ADDRESS_REGEX.test(tokenIdentifier);
-      let token;
-
-      if (isAddress) {
-        // If input matches address format, only search by address
-        token = tokens.find((t: any) => 
-          t.address.toLowerCase() === tokenIdentifier.toLowerCase()
-        );
-      } else {
-        // If input doesn't match address format, search by name/symbol
-        const searchTerm = tokenIdentifier.toLowerCase();
-        token = tokens.find((t: any) => 
-          t.name.toLowerCase() === searchTerm ||
-          t.symbol.toLowerCase() === searchTerm
-        );
-      }
-
-      // If token is not found in the list but is a valid Solana address, create a dummy token object
-      if (!token && isAddress) {
-        return {
-          token_address: tokenIdentifier,
-          token_icon: '',
-          token_name: `Token ${tokenIdentifier.substring(0, 8)}...`,
-          token_symbol: `UNK`,
-          token_decimals: 9, // Default to 9 decimals (same as SOL)
-          usd_price: 0,
-          usd_value: 0,
-          formatted_amount: 0
-        };
-      }
-
-      if (!token) return null;
-
-      // Get price using CoinGecko ID if available
-      let price = 0;
-      try {
-        if (token.extensions?.coingeckoId) {
-          price = await getPrice(token.extensions.coingeckoId);
+        // Handle SOL case
+        if (tokenIdentifier.toUpperCase() === 'SOL') {
+            try {
+                const price = await getPrice('solana');
+                return {
+                    token_address: 'SOL',
+                    token_icon: '',
+                    token_name: 'Solana',
+                    token_symbol: 'SOL',
+                    token_decimals: 9,
+                    usd_price: price,
+                    usd_value: 0,
+                    formatted_amount: 0
+                };
+            } catch (solError) {
+                console.error('Error fetching SOL price:', solError);
+                throw new Error(`Failed to get SOL price: ${solError instanceof Error ? solError.message : 'Unknown error'}`);
+            }
         }
-      } catch (priceError) {
-        console.warn('Could not fetch price for token:', tokenIdentifier, priceError);
-      }
 
-      return {
-        token_address: token.address,
-        token_icon: token.logoURI || '',
-        token_name: token.name,
-        token_symbol: token.symbol,
-        token_decimals: token.decimals,
-        usd_price: price,
-        usd_value: 0,
-        formatted_amount: 0
-      };
-    } catch (error) {
-      console.error('Error finding token:', error);
-      
-      // If we can't find the token but the input is a valid Solana address, 
-      // try to use it directly as a last resort
-      if (SOLANA_ADDRESS_REGEX.test(tokenIdentifier)) {
+        const response = await fetch(JUPITER_TOKEN_LIST_URL);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch token list: ${response.statusText}`);
+        }
+        
+        const tokens = await response.json();
+        
+        // Determine search strategy based on input format
+        const isAddress = SOLANA_ADDRESS_REGEX.test(tokenIdentifier);
+        let token;
+
+        if (isAddress) {
+            token = tokens.find((t: any) => 
+                t.address.toLowerCase() === tokenIdentifier.toLowerCase()
+            );
+        } else {
+            const searchTerm = tokenIdentifier.toLowerCase();
+            token = tokens.find((t: any) => 
+                t.name.toLowerCase() === searchTerm ||
+                t.symbol.toLowerCase() === searchTerm
+            );
+        }
+
+        // If token is not found in the list but is a valid Solana address, create a dummy token object
+        if (!token && isAddress) {
+            console.warn(`Creating dummy token for address: ${tokenIdentifier}`);
+            return {
+                token_address: tokenIdentifier,
+                token_icon: '',
+                token_name: `Token ${tokenIdentifier.substring(0, 8)}...`,
+                token_symbol: `UNK`,
+                token_decimals: 9,
+                usd_price: 0,
+                usd_value: 0,
+                formatted_amount: 0
+            };
+        }
+
+        if (!token) {
+            throw new Error(`Token not found: ${tokenIdentifier}`);
+        }
+
+        // Get price using CoinGecko ID if available
+        let price = 0;
+        try {
+            if (token.extensions?.coingeckoId) {
+                price = await getPrice(token.extensions.coingeckoId);
+            }
+        } catch (priceError) {
+            console.warn('Could not fetch price for token:', tokenIdentifier, priceError);
+            // Continue with price = 0
+        }
+
         return {
-          token_address: tokenIdentifier,
-          token_icon: '',
-          token_name: `Token ${tokenIdentifier.substring(0, 8)}...`,
-          token_symbol: `UNK`,
-          token_decimals: 9, // Default to 9 decimals (same as SOL)
-          usd_price: 0,
-          usd_value: 0,
-          formatted_amount: 0
+            token_address: token.address,
+            token_icon: token.logoURI || '',
+            token_name: token.name,
+            token_symbol: token.symbol,
+            token_decimals: token.decimals,
+            usd_price: price,
+            usd_value: 0,
+            formatted_amount: 0
         };
-      }
-      
-      return null;
+    } catch (error) {
+        console.error('Error finding token:', error);
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to find token');
+        setStatus('error');
+        throw error; // Propagate the error up
     }
   };
 
@@ -392,168 +397,163 @@ const ExecuteSwap: React.FC<{
 
   const executeTokenSwap = async () => {
     try {
-      if (!activeWallet) {
-        throw new Error('No wallet connected');
-      }
-      
-      // Find tokens
-      setStatus('searching');
-      const fromToken = await findToken(fromTokenName);
-      const toToken = await findToken(toTokenName);
-  
-      if (!fromToken || !toToken) {
-        throw new Error(`Could not find ${!fromToken ? fromTokenName : toTokenName}`);
-      }
-  
-      // Validate amount and balance
-      const amountToSwap = parseFloat(amount);
-      if (isNaN(amountToSwap)) {
-        console.error('Amount parsing failed:', {
-          amount,
-          parsedAmount: amountToSwap,
-          type: typeof amount
-        });
-        setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
-        throw new Error('Invalid swap amount: Amount must be a valid number');
-      }
-      if (amountToSwap <= 0) {
-        setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
-        throw new Error('Invalid swap amount: Amount must be greater than 0');
-      }
-
-      // Clear validation errors if we get here
-      setValidationErrors({});
-
-      // Execute swap
-      setStatus('swapping');
-      let signature;
-      try {
-        // Add warning for direct contract address usage
-        if (fromToken.token_symbol === 'UNK') {
-          console.warn(`Using unknown token with address ${fromToken.token_address}. Make sure you have this token in your wallet.`);
+        if (!activeWallet) {
+            throw new Error('No wallet connected');
         }
+
+        console.log('Executing token swap');
         
-        signature = await executeSwap({
-          fromToken,
-          toToken,
-          amount: amountToSwap.toString(),
-          slippage,
-          wallet: activeWallet
-        });
-      } catch (swapError: any) {
-        console.error('Swap Execution Error:', swapError);
+        // Find tokens
+        setStatus('searching');
+        let fromToken, toToken;
         
-        // Handle specific Solana errors with better error messages
-        if (swapError.message?.includes('Attempt to debit an account but found no record of a prior credit')) {
-          throw new Error(`You don't have any ${fromToken.token_symbol} tokens in your wallet. The token account may not exist.`);
-        } else if (swapError.message?.includes('insufficient funds')) {
-          throw new Error(`Insufficient ${fromToken.token_symbol} tokens in your wallet.`);
-        } else {
-          throw swapError;
-        }
-      }
-  
-      // Validate signature
-      if (!signature) {
-        throw new Error('No transaction signature received');
-      }
-  
-      // Check status
-      setStatus('confirming');
-  
-      // Initial check
-      const initialStatus = await checkTransactionStatus(signature);
-      if (initialStatus !== null) return;
-  
-      // Poll for status
-      let retries = 0;
-      const maxRetries = 45; // 90 seconds total
-      const intervalId = setInterval(async () => {
-        retries++;
         try {
-          const status = await checkTransactionStatus(signature);
+            fromToken = await findToken(fromTokenName);
+            if (!fromToken) {
+                throw new Error(`Could not find token: ${fromTokenName}`);
+            }
+        } catch (error) {
+            throw new Error(`Error finding from token (${fromTokenName}): ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
 
-          if (status === true) {
-            clearInterval(intervalId);
-            return
-          } 
-          
-          if (status !== null || retries >= maxRetries) {
-            clearInterval(intervalId);
-            if (status === null && retries >= maxRetries) {
-              setStatus('error');
-              setErrorMessage('Transaction confirmation timed out');
-              console.error('Transaction confirmation timed out');
-              await updateToolInvocation({
-                chatId,
-                toolCallId,
-                status: 'error',
-                result: {
-                  transactionHash: signature,
-                  status: 'error',
-                  error: 'Transaction confirmation timed out',
-                  fromToken: fromTokenName,
-                  toToken: toTokenName,
-                  amount,
-                  slippage
+        try {
+            toToken = await findToken(toTokenName);
+            if (!toToken) {
+                throw new Error(`Could not find token: ${toTokenName}`);
+            }
+        } catch (error) {
+            throw new Error(`Error finding to token (${toTokenName}): ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+
+        // Validate amount and balance
+        const amountToSwap = parseFloat(amount);
+        if (isNaN(amountToSwap)) {
+            console.error('Amount parsing failed:', {
+                amount,
+                parsedAmount: amountToSwap,
+                type: typeof amount
+            });
+            setValidationErrors(prev => ({ ...prev, amount: 'Amount must be a valid number' }));
+            throw new Error('Invalid swap amount: Amount must be a valid number');
+        }
+        if (amountToSwap <= 0) {
+            setValidationErrors(prev => ({ ...prev, amount: 'Amount must be greater than 0' }));
+            throw new Error('Invalid swap amount: Amount must be greater than 0');
+        }
+
+        // Clear validation errors if we get here
+        setValidationErrors({});
+
+        // Execute swap
+        setStatus('swapping');
+        let signature;
+        try {
+            // Add warning for direct contract address usage
+            if (fromToken.token_symbol === 'UNK') {
+                console.warn(`Using unknown token with address ${fromToken.token_address}. Make sure you have this token in your wallet.`);
+            }
+            
+            signature = await executeSwap({
+                fromToken,
+                toToken,
+                amount: amountToSwap.toString(),
+                slippage,
+                wallet: activeWallet
+            });
+        } catch (swapError: any) {
+            console.error('Swap Execution Error:', swapError);
+            
+            // Handle specific Solana errors with better error messages
+            if (swapError.message?.includes('Attempt to debit an account but found no record of a prior credit')) {
+                throw new Error(`You don't have any ${fromToken.token_symbol} tokens in your wallet. The token account may not exist.`);
+            } else if (swapError.message?.includes('insufficient funds')) {
+                throw new Error(`Insufficient ${fromToken.token_symbol} tokens in your wallet.`);
+            } else {
+                throw swapError;
+            }
+        }
+  
+        // Validate signature
+        if (!signature) {
+            throw new Error('No transaction signature received');
+        }
+  
+        // Check status
+        setStatus('confirming');
+  
+        // Initial check
+        const initialStatus = await checkTransactionStatus(signature);
+        if (initialStatus !== null) return;
+  
+        // Poll for status
+        let retries = 0;
+        const maxRetries = 45; // 90 seconds total
+        const intervalId = setInterval(async () => {
+            retries++;
+            try {
+                const status = await checkTransactionStatus(signature);
+
+                if (status === true) {
+                    clearInterval(intervalId);
+                    return
+                } 
+                
+                if (status !== null || retries >= maxRetries) {
+                    clearInterval(intervalId);
+                    if (status === null && retries >= maxRetries) {
+                        setStatus('error');
+                        setErrorMessage('Transaction confirmation timed out');
+                        console.error('Transaction confirmation timed out');
+                        await updateToolInvocation({
+                            chatId,
+                            toolCallId,
+                            status: 'error',
+                            result: {
+                                transactionHash: signature,
+                                status: 'error',
+                                error: 'Transaction confirmation timed out',
+                                fromToken: fromTokenName,
+                                toToken: toTokenName,
+                                amount,
+                                slippage
+                            }
+                        });
+                    }
                 }
-              });
+            } catch (statusError: unknown) {
+                clearInterval(intervalId);
+                setStatus('error');
+                setErrorMessage(`Status check error: ${(statusError as Error).message}`);
+                console.error('Error checking transaction status:', statusError);
+                await updateToolInvocation({
+                    chatId,
+                    toolCallId,
+                    status: 'error',
+                    result: {
+                        transactionHash: signature,
+                        status: 'error',
+                        error: (statusError as Error).message,
+                        fromToken: fromTokenName,
+                        toToken: toTokenName,
+                        amount,
+                        slippage
+                    }
+                });
             }
-          }
-        } catch (statusError: unknown) {
-          clearInterval(intervalId);
-          setStatus('error');
-          setErrorMessage(`Status check error: ${(statusError as Error).message}`);
-          console.error('Error checking transaction status:', statusError);
-          await updateToolInvocation({
-            chatId,
-            toolCallId,
-            status: 'error',
-            result: {
-              transactionHash: signature,
-              status: 'error',
-              error: (statusError as Error).message,
-              fromToken: fromTokenName,
-              toToken: toTokenName,
-              amount,
-              slippage
-            }
-          });
-        }
-      }, 2000);
+        }, 2000);
   
-      return () => clearInterval(intervalId);
-      
-  
-    } catch (error: any) {
-      // Comprehensive error handling
-      setStatus('error');
-      setErrorMessage(error.message || 'Unknown error occurred');
-      console.error('Swap process error:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
-
-      await updateToolInvocation({
-        chatId,
-        toolCallId,
-        status: 'error',
-        result: {
-          transactionHash: '',
-          status: 'error',
-          error: error.message,
-          fromToken: fromTokenName,
-          toToken: toTokenName,
-          amount,
-          slippage
-        }
-      });          
-      
-      setHasExecuted(true);
+        return () => clearInterval(intervalId);
+        
+    } catch (error) {
+        setStatus('error');
+        setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred');
+        console.error('Swap process error:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            name: error instanceof Error ? error.name : 'Unknown',
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error;
     }
-
-    setHasExecuted(true);
   };
 
   const [isExecuting, setIsExecuting] = useState(false);

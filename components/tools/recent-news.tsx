@@ -110,40 +110,75 @@ const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
 
         <div className="mb-4">
           {selectedArticle.image_url && selectedArticle.image_url.trim() !== '' && (
-            <img 
-              src={selectedArticle.image_url}
-              alt={selectedArticle.title || 'News article'}
-              className="w-full h-48 object-cover rounded-lg mb-4"
-              onError={(e) => {
-                // Replace broken image with placeholder
-                e.currentTarget.src = '/placeholder-news.png';
-              }}
-            />
+            <div className="flex gap-4 items-start">
+              <div className="w-1/3 max-w-[300px] min-w-[200px]">
+                <img 
+                  src={selectedArticle.image_url}
+                  alt={selectedArticle.title || 'News article'}
+                  className="w-full h-auto object-cover rounded-lg bg-zinc-900"
+                  onError={(e) => {
+                    // Replace broken image with placeholder
+                    e.currentTarget.src = '/placeholder-news.png';
+                  }}
+                />
+              </div>
+              
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-white mb-2">
+                  {selectedArticle.title || 'Untitled article'}
+                </h2>
+                
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'NEUTRAL')}`}>
+                    {selectedArticle.sentiment || 'NEUTRAL'}
+                  </span>
+                  
+                  <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
+                    {selectedArticle.source || 'CoinDesk'}
+                  </span>
+                  
+                  <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
+                    {selectedArticle.published_date ? formatTimeAgo(selectedArticle.published_date) : 'Recently'}
+                  </span>
+                  
+                  {safeArrayAccess(selectedArticle.categories).map(category => (
+                    <span key={category} className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
+                      {category}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
           
-          <h2 className="text-xl font-bold text-white mb-2">
-            {selectedArticle.title || 'Untitled article'}
-          </h2>
-          
-          <div className="flex flex-wrap gap-2 mb-3">
-            <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'NEUTRAL')}`}>
-              {selectedArticle.sentiment || 'NEUTRAL'}
-            </span>
-            
-            <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-              {selectedArticle.source || 'CoinDesk'}
-            </span>
-            
-            <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-              {selectedArticle.published_date ? formatTimeAgo(selectedArticle.published_date) : 'Recently'}
-            </span>
-            
-            {safeArrayAccess(selectedArticle.categories).map(category => (
-              <span key={category} className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
-                {category}
-              </span>
-            ))}
-          </div>
+          {/* Show title without flex layout if no image */}
+          {(!selectedArticle.image_url || selectedArticle.image_url.trim() === '') && (
+            <>
+              <h2 className="text-xl font-bold text-white mb-2">
+                {selectedArticle.title || 'Untitled article'}
+              </h2>
+              
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'NEUTRAL')}`}>
+                  {selectedArticle.sentiment || 'NEUTRAL'}
+                </span>
+                
+                <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
+                  {selectedArticle.source || 'CoinDesk'}
+                </span>
+                
+                <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
+                  {selectedArticle.published_date ? formatTimeAgo(selectedArticle.published_date) : 'Recently'}
+                </span>
+                
+                {safeArrayAccess(selectedArticle.categories).map(category => (
+                  <span key={category} className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
+                    {category}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Article content */}

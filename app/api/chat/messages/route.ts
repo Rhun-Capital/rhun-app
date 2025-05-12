@@ -83,12 +83,20 @@ async function processToolInvocations(toolInvocations: any[], chatId: string) {
         status: invocation.status,
         result: {
           _storedInS3: true,
-          _s3Reference: s3Reference
+          _s3Reference: s3Reference,
+          preview: 'Loading full result...'
         }
       });
     }
     
-    return removeUndefined(invocation);
+    // For regular results, preserve all data
+    return removeUndefined({
+      toolName: invocation.toolName,
+      toolCallId: invocation.toolCallId,
+      args: invocation.args,
+      status: invocation.status,
+      result: removeUndefined(invocation.result)
+    });
   }));
 }
 

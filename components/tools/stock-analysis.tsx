@@ -96,15 +96,49 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
           try {
             // Parse the analysis data directly from the statusData results
             const ticker = data.ticker;
-            const analysisResults = JSON.parse(statusData.results);
             
-            if (!analysisResults[ticker] || !analysisResults[ticker].report) {
-              throw new Error('Invalid data structure');
+            // Add validation for statusData
+            if (!statusData || typeof statusData.results !== 'string') {
+              console.error('Invalid statusData structure:', statusData);
+              throw new Error('Invalid status data received');
             }
-            
+
+            // Safely parse JSON with error handling
+            let analysisResults;
+            try {
+              analysisResults = JSON.parse(statusData.results);
+            } catch (parseError) {
+              console.error('Failed to parse analysis results:', parseError);
+              throw new Error('Failed to parse analysis data');
+            }
+
+            // Validate the analysis results structure
+            if (!analysisResults || typeof analysisResults !== 'object') {
+              console.error('Invalid analysis results structure:', analysisResults);
+              throw new Error('Invalid analysis results structure');
+            }
+
+            // Validate ticker data exists
+            if (!ticker || !analysisResults[ticker]) {
+              console.error('Missing ticker data:', { ticker, analysisResults });
+              throw new Error(`No data found for ticker: ${ticker}`);
+            }
+
+            // Validate report structure
+            if (!analysisResults[ticker].report || typeof analysisResults[ticker].report !== 'object') {
+              console.error('Invalid report structure:', analysisResults[ticker]);
+              throw new Error('Invalid report structure');
+            }
+
             // Get the report data
             const report = analysisResults[ticker].report;
             
+            // Validate essential report fields
+            if (!report.name || !report.current_price) {
+              console.warn('Missing essential report fields:', report);
+              // Don't throw error here, just log warning
+            }
+
             // Update the display data
             setData(report);
             
@@ -120,6 +154,10 @@ export default function StockAnalysis({ toolCallId, toolInvocation, append }: St
             }
           } catch (error) {
             console.error('Error handling completed analysis:', error);
+            // Update the display data with error state
+            setData({
+              error: error instanceof Error ? error.message : 'Failed to process analysis data'
+            });
           }
         }
       } catch (error) {

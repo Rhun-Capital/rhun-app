@@ -1251,6 +1251,13 @@ function HomeContent() {
                       
                       {/* Tool Invocations */}
                       {message.toolInvocations?.map((tool) => {
+                        console.log('Processing tool invocation:', {
+                          toolName: tool.toolName,
+                          toolCallId: tool.toolCallId,
+                          args: tool.args,
+                          ...(('result' in tool) ? { result: tool.result } : {})
+                        });
+
                         const wrappedTool = (component: React.ReactNode) => (
                           <div className="tool-wrapper">
                             {component}
@@ -1295,7 +1302,7 @@ function HomeContent() {
                           case 'getAccountDetails':
                             return wrappedTool(<AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getTrendingTokens':
-                            // Check the chain parameter from the tool result
+                            // Check the chain parameter from the tool args
                             return tool.args.chain === 'solana' 
                               ? wrappedTool(<TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>)
                               : wrappedTool(<TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
