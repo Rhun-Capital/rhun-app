@@ -21,6 +21,7 @@ export function WebhookManager() {
   const [tokenName, setTokenName] = useState('');
   const [isLoadingHolders, setIsLoadingHolders] = useState(false);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
+  const [addressesText, setAddressesText] = useState('');
   const [newWebhook, setNewWebhook] = useState<{
     webhookURL: string;
     transactionTypes: string[];
@@ -354,8 +355,18 @@ export function WebhookManager() {
           <div>
             <label className="block text-sm font-medium mb-1">Account Addresses</label>
             <textarea
-              value={newWebhook.accountAddresses.join('\n')}
-              onChange={(e) => setNewWebhook({ ...newWebhook, accountAddresses: e.target.value.split('\n').filter(addr => addr.trim()) })}
+              value={addressesText}
+              onChange={(e) => {
+                setAddressesText(e.target.value);
+                const addresses = e.target.value
+                  .split('\n')
+                  .map(addr => addr.trim())
+                  .filter(addr => addr.length > 0);
+                setNewWebhook(prev => ({
+                  ...prev,
+                  accountAddresses: addresses
+                }));
+              }}
               className="w-full px-3 py-2 bg-gray-800 rounded border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-32"
               placeholder="Enter account addresses (one per line)"
             />
