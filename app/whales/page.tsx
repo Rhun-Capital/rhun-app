@@ -402,43 +402,13 @@ function WhaleMovementNotification({ event }: { event: WebhookEvent }) {
 interface TokenOption {
   symbol: string;
   name: string;
-  address: string;
+  contract_address: string;
   logoURI?: string;
 }
 
-const CURATED_TOKENS: TokenOption[] = [
-  {
-    symbol: 'BONK',
-    name: 'Bonk',
-    address: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
-    logoURI: 'https://arweave.net/hQB3lpVr3wpxHkJW9iPz1wACwUAw4JfS9tT_1HpCbqU'
-  },
-  {
-    symbol: 'WIF',
-    name: 'dogwifhat',
-    address: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8MRB9Pk1K3qYb6R4b',
-    logoURI: 'https://arweave.net/3yUyW1xg6AEw0Jc3FL3wH8PFJBvO0tRbjQdU0dE0p2A'
-  },
-  {
-    symbol: 'MYRO',
-    name: 'Myro',
-    address: 'HyWfHfFkgQqVcDZJkFc15uYXqLS9UJx9V3zJ4KXqJ1t',
-    logoURI: 'https://arweave.net/8PhnCqzqk3U5J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3'
-  },
-  {
-    symbol: 'POPCAT',
-    name: 'Popcat',
-    address: '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
-    logoURI: 'https://arweave.net/8PhnCqzqk3U5J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3'
-  },
-  {
-    symbol: 'BOME',
-    name: 'Book of Meme',
-    address: 'BomeD9Gp6Yj6X9X9X9X9X9X9X9X9X9X9X9X9X9X9X',
-    logoURI: 'https://arweave.net/8PhnCqzqk3U5J3J3J3J3J3J3J3J3J3J3J3J3J3J3J3'
-  },
-  // Add more tokens as needed
-];
+// Import the tokens from our JSON file
+import whaleTokens from './whale-tokens.json';
+const tokenList = whaleTokens as TokenOption[];
 
 function getTokenName(token: Token) {
   if (token.symbol === 'SOL') return 'Solana';
@@ -1659,15 +1629,42 @@ export default function WebhookEventsPage() {
 
   // Add filtered events
   const filteredEvents = events.filter(event => {
-    // Keep all USDC/SOL trades (both buys and sells)
-    if (event.toToken.symbol === 'USDC' || event.toToken.symbol === 'SOL' ||
-        event.fromToken.symbol === 'USDC' || event.fromToken.symbol === 'SOL') {
-      return true;
-    }
-    
-    // Apply token filter if any tokens are selected
+    // If no tokens are selected, show all events
     if (selectedTokens.length === 0) return true;
-    return selectedTokens.includes(event.tracked_token?.address || '');
+
+    // Always include USDC/SOL trades for selected tokens
+    const isUSDCorSOL = (symbol?: string) => 
+      symbol === 'USDC' || symbol === 'SOL';
+
+    // Get all possible addresses for from token
+    const fromAddresses = [
+      event.fromToken.metadata?.address,
+      event.fromToken.metadata?.contract_address,
+      event.tracked_token?.address,
+      event.holder_mapping?.token_address
+    ].filter(Boolean) as string[];
+
+    // Get all possible addresses for to token
+    const toAddresses = [
+      event.toToken.metadata?.address,
+      event.toToken.metadata?.contract_address,
+      event.tracked_token?.address,
+      event.holder_mapping?.token_address
+    ].filter(Boolean) as string[];
+
+    // Check if any of the selected tokens are involved in the trade
+    const hasSelectedToken = selectedTokens.some(selectedAddress => 
+      fromAddresses.includes(selectedAddress) || toAddresses.includes(selectedAddress)
+    );
+
+    // Include the trade if:
+    // 1. It involves one of our selected tokens AND
+    // 2. Either it's a USDC/SOL trade OR it involves another selected token
+    return hasSelectedToken && (
+      isUSDCorSOL(event.toToken.symbol) || 
+      isUSDCorSOL(event.fromToken.symbol) ||
+      selectedTokens.some(selectedAddress => toAddresses.includes(selectedAddress))
+    );
   });
 
   if (loading) {
@@ -1735,10 +1732,10 @@ export default function WebhookEventsPage() {
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-zinc-800 rounded-lg shadow-lg border border-zinc-700 z-50">
                   <div className="p-2 space-y-1">
-                    {CURATED_TOKENS.map((token: TokenOption) => (
+                    {tokenList.map((token: TokenOption) => (
                       <button
-                        key={token.address}
-                        onClick={() => toggleToken(token.address)}
+                        key={token.contract_address}
+                        onClick={() => toggleToken(token.contract_address)}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-zinc-700 transition-colors"
                       >
                         <div className="flex items-center gap-2 flex-1">
@@ -1746,11 +1743,11 @@ export default function WebhookEventsPage() {
                           <span className="text-sm text-gray-300">{token.symbol}</span>
                         </div>
                         <div className={`w-4 h-4 rounded border ${
-                          selectedTokens.includes(token.address)
+                          selectedTokens.includes(token.contract_address)
                             ? 'bg-indigo-500 border-indigo-500'
                             : 'border-gray-500'
                         }`}>
-                          {selectedTokens.includes(token.address) && (
+                          {selectedTokens.includes(token.contract_address) && (
                             <Check className="w-3 h-3 text-white" />
                           )}
                         </div>
