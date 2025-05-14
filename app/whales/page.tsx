@@ -1639,7 +1639,7 @@ export default function WebhookEventsPage() {
     // Get all possible addresses for from token
     const fromAddresses = [
       event.fromToken.metadata?.address,
-      event.fromToken.metadata?.contract_address,
+      (event.fromToken.metadata as any)?.contract_address,
       event.tracked_token?.address,
       event.holder_mapping?.token_address
     ].filter(Boolean) as string[];
@@ -1647,7 +1647,7 @@ export default function WebhookEventsPage() {
     // Get all possible addresses for to token
     const toAddresses = [
       event.toToken.metadata?.address,
-      event.toToken.metadata?.contract_address,
+      (event.toToken.metadata as any)?.contract_address,
       event.tracked_token?.address,
       event.holder_mapping?.token_address
     ].filter(Boolean) as string[];
