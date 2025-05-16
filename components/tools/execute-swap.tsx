@@ -87,6 +87,8 @@ const ExecuteSwapComponent: React.FC<{
   const searchParams = useSearchParams();
   const chatId = searchParams.get('chatId');
   const [isHistoricalSuccess, setIsHistoricalSuccess] = useState(false);
+  const [userRejected, setUserRejected] = useState(false);
+  const [attemptedExecution, setAttemptedExecution] = useState(false);
 
   // Check if this is a historical tool invocation with a result
   useEffect(() => {
@@ -320,7 +322,9 @@ const ExecuteSwapComponent: React.FC<{
     // Don't initialize if we don't have the required parameters
     // or if we already have a transaction hash or success status
     // or if this is a successful historical invocation
-    if (!fromTokenName || !toTokenName || !amount || transactionHash || status === 'success' || isHistoricalSuccess) {
+    // or if user rejected the transaction
+    // or if we've already attempted execution
+    if (!fromTokenName || !toTokenName || !amount || transactionHash || status === 'success' || isHistoricalSuccess || userRejected || attemptedExecution) {
       return;
     }
 
@@ -348,10 +352,8 @@ const ExecuteSwapComponent: React.FC<{
             throw new Error(`Could not find token: ${fromTokenName}`);
           }
           
-          // Set fromToken state immediately
           setFromToken(from);
           
-          // Find toToken
           let to: Token | null = null;
           try {
             to = await findToken(toTokenName);
@@ -361,7 +363,6 @@ const ExecuteSwapComponent: React.FC<{
               throw new Error(`Could not find token: ${toTokenName}`);
             }
             
-            // Set toToken state and ready status
             setToToken(to);
             setStatus('ready');
             
@@ -369,18 +370,21 @@ const ExecuteSwapComponent: React.FC<{
             if (mounted) {
               setError(`Failed to find ${toTokenName}: ${error.message}`);
               setStatus('error');
+              setAttemptedExecution(true);
             }
           }
         } catch (error: any) {
           if (mounted) {
             setError(`Failed to find ${fromTokenName}: ${error.message}`);
             setStatus('error');
+            setAttemptedExecution(true);
           }
         }
       } catch (error: any) {
         if (mounted) {
           setError(error.message || 'Failed to find tokens');
           setStatus('error');
+          setAttemptedExecution(true);
         }
       }
     };
@@ -389,18 +393,18 @@ const ExecuteSwapComponent: React.FC<{
       if (mounted) {
         setError(error.message || 'An unexpected error occurred');
         setStatus('error');
+        setAttemptedExecution(true);
       }
     });
 
     return () => {
       mounted = false;
     };
-  }, [fromTokenName, toTokenName, amount, slippage, status, transactionHash, isHistoricalSuccess]);
+  }, [fromTokenName, toTokenName, amount, slippage, status, transactionHash, isHistoricalSuccess, userRejected, attemptedExecution]);
 
   // Separate effect to handle swap execution after tokens are ready
   useEffect(() => {
-    // Add check for existing transaction hash to prevent re-execution
-    if (transactionHash) {
+    if (transactionHash || userRejected || attemptedExecution) {
       return;
     }
     
@@ -411,9 +415,10 @@ const ExecuteSwapComponent: React.FC<{
       activeWallet &&
       user
     ) {
+      setAttemptedExecution(true);
       executeTokenSwap();
     }
-  }, [status, fromToken, toToken, activeWallet, user, transactionHash]);
+  }, [status, fromToken, toToken, activeWallet, user, transactionHash, userRejected, attemptedExecution]);
 
   // Function to execute the swap
   const executeTokenSwap = async () => {
@@ -439,6 +444,14 @@ const ExecuteSwapComponent: React.FC<{
         slippage,
         wallet: activeWallet
       });
+
+      if (!signature) {
+        // If no signature returned, assume user rejected
+        setUserRejected(true);
+        setError('Transaction was cancelled');
+        setStatus('error');
+        return;
+      }
 
       setTransactionHash(signature);
       setStatus('success');
@@ -476,6 +489,29 @@ const ExecuteSwapComponent: React.FC<{
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to execute swap';
+      
+      // More comprehensive check for user rejection
+      const rejectionMessages = [
+        'user rejected',
+        'user denied',
+        'user cancelled',
+        'user canceled',
+        'transaction was cancelled',
+        'transaction was canceled',
+        'rejected by user',
+        'rejected the request',
+        'cancelled by user',
+        'canceled by user'
+      ];
+      
+      const wasRejected = rejectionMessages.some(msg => 
+        errorMessage.toLowerCase().includes(msg.toLowerCase())
+      );
+      
+      if (wasRejected || !error.signature) {
+        setUserRejected(true);
+      }
+      
       setError(errorMessage);
       setStatus('error');
 
