@@ -92,7 +92,11 @@ export const RecentChatsPage = () => {
           <button
             key={chat.chatId}
             onClick={() => {
-              router.push(`/agents/${chat.isTemplate ? 'template' : user?.id}/${chat.agentId}?chatId=${chat.chatId}`)
+              if (chat.isTemplate) {
+                window.location.href = `/?chatId=${chat.chatId}`;
+                return;
+              }
+              router.push(`/agents/${user?.id}/${chat.agentId}?chatId=${chat.chatId}`);
               router.refresh();
             }}
             className="w-full flex items-center gap-3 p-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 transition-colors text-left group"
