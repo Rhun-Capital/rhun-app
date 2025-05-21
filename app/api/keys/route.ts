@@ -28,7 +28,7 @@ function generateApiKey(): string {
 }
 
 // Helper function to verify the token and get user ID
-async function verifyToken(token: string): Promise<string | null> {
+async function verifyToken(token: string, requestOrigin?: string): Promise<string | null> {
   try {
     // Check cache first
     const cached = userCache.get(token);
@@ -43,7 +43,7 @@ async function verifyToken(token: string): Promise<string | null> {
       headers: {
         'Authorization': `Bearer ${token}`,
         'privy-app-id': process.env.NEXT_PUBLIC_PRIVY_APP_ID as string,
-        'origin': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        'origin': requestOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
       }
     });
 
@@ -79,7 +79,9 @@ export async function GET(request: Request) {
     console.log('GET /api/keys - Starting request handling');
     
     const authHeader = request.headers.get('authorization');
+    const origin = request.headers.get('origin');
     console.log('Auth header present:', !!authHeader);
+    console.log('Request origin:', origin);
     
     if (!authHeader?.startsWith('Bearer ')) {
       console.log('Invalid auth header format');
@@ -89,7 +91,7 @@ export async function GET(request: Request) {
     const token = authHeader.split(' ')[1];
     console.log('Token received, length:', token.length);
     
-    const userId = await verifyToken(token);
+    const userId = await verifyToken(token, origin || undefined);
     console.log('Token verification result - userId:', userId);
     
     if (!userId) {
@@ -125,12 +127,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
+    const origin = request.headers.get('origin');
+    
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const token = authHeader.split(' ')[1];
-    const userId = await verifyToken(token);
+    const userId = await verifyToken(token, origin || undefined);
     if (!userId) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
