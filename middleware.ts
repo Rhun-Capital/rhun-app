@@ -366,42 +366,50 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      const userId = await verifyToken(token);
-      if (userId) {
-        // Add the user ID to the request headers for downstream handlers
-        const headers = new Headers(request.headers);
-        headers.set('x-user-id', userId);
-        const modifiedRequest = new Request(request.url, {
-          method: request.method,
-          headers,
-          body: request.body,
-        });
-        return NextResponse.next({
-          request: modifiedRequest,
-        });
-      }
-      console.error('Bearer token verification failed');
-    } else if (authHeader.startsWith('ApiKey ')) {
-      const apiKey = authHeader.split(' ')[1];
-      const userId = await verifyApiKey(apiKey);
-      if (userId) {
-        // Add the user ID to the request headers for downstream handlers
-        const headers = new Headers(request.headers);
-        headers.set('x-user-id', userId);
-        const modifiedRequest = new Request(request.url, {
-          method: request.method,
-          headers,
-          body: request.body,
-        });
-        return NextResponse.next({
-          request: modifiedRequest,
-        });
-      }
-      console.error('API key verification failed');
+    if (!authHeader.startsWith('Bearer ')) {
+      console.error('Invalid authorization header format');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      console.error('No token found in authorization header');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // First try to verify as API key
+    const apiKeyUserId = await verifyApiKey(token);
+    if (apiKeyUserId) {
+      // Add the user ID to the request headers for downstream handlers
+      const headers = new Headers(request.headers);
+      headers.set('x-user-id', apiKeyUserId);
+      const modifiedRequest = new Request(request.url, {
+        method: request.method,
+        headers,
+        body: request.body,
+      });
+      return NextResponse.next({
+        request: modifiedRequest,
+      });
+    }
+
+    // If not an API key, try to verify as Privy token
+    const userId = await verifyToken(token);
+    if (userId) {
+      // Add the user ID to the request headers for downstream handlers
+      const headers = new Headers(request.headers);
+      headers.set('x-user-id', userId);
+      const modifiedRequest = new Request(request.url, {
+        method: request.method,
+        headers,
+        body: request.body,
+      });
+      return NextResponse.next({
+        request: modifiedRequest,
+      });
+    }
+
+    console.error('Token verification failed');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
