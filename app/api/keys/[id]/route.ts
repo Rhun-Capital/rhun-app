@@ -22,7 +22,7 @@ function createResponse(data: any, status: number = 200) {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_URL || '*',
       'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
@@ -100,13 +100,14 @@ async function verifyToken(token: string, requestOrigin?: string): Promise<strin
     }
 
     const privyUrl = 'https://auth.privy.io/api/v1/users/me';
-    const effectiveOrigin = requestOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const effectiveOrigin = requestOrigin || process.env.NEXT_PUBLIC_URL || 'http://localhost:3000';
     
     console.log('Token verification context:', {
       effectiveOrigin,
       requestOrigin,
-      configuredAppUrl: process.env.NEXT_PUBLIC_APP_URL,
-      isProduction: process.env.NODE_ENV === 'production'
+      configuredAppUrl: process.env.NEXT_PUBLIC_URL,
+      isProduction: process.env.NODE_ENV === 'production',
+      host: process.env.VERCEL_URL || 'localhost'
     });
 
     const headers = {
