@@ -37,29 +37,69 @@ async function verifyToken(token: string, requestOrigin?: string): Promise<strin
       return cached.userId;
     }
 
-    console.log('Verifying token with Privy...');
-    const response = await fetch('https://auth.privy.io/api/v1/users/me', {
-      method: 'GET',
+    const privyUrl = 'https://auth.privy.io/api/v1/users/me';
+    const effectiveOrigin = requestOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    
+    console.log('Token verification context:', {
+      effectiveOrigin,
+      requestOrigin,
+      configuredAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+      isProduction: process.env.NODE_ENV === 'production',
+      host: process.env.VERCEL_URL || 'localhost'
+    });
+
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'privy-app-id': process.env.NEXT_PUBLIC_PRIVY_APP_ID as string,
+      'origin': effectiveOrigin,
+      'host': 'auth.privy.io'
+    };
+
+    console.log('Making Privy request:', {
+      url: privyUrl,
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'privy-app-id': process.env.NEXT_PUBLIC_PRIVY_APP_ID as string,
-        'origin': requestOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        ...headers,
+        'Authorization': `Bearer ${token.substring(0, 10)}...` // Log partial token for security
       }
     });
 
-    console.log('Privy response status:', response.status);
+    const response = await fetch(privyUrl, {
+      method: 'GET',
+      headers
+    });
+
+    console.log('Privy response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Privy verification failed:', errorData);
+      console.error('Privy verification failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        error: errorData,
+        effectiveOrigin,
+        isProduction: process.env.NODE_ENV === 'production'
+      });
       return null;
     }
 
     const data = await response.json();
-    console.log('Privy response data:', data);
+    console.log('Privy response data:', {
+      hasUser: !!data.user,
+      userId: data.user?.id,
+      responseKeys: Object.keys(data)
+    });
     
     const userId = data.user?.id;
     if (!userId) {
-      console.error('No user ID found in Privy response:', data);
+      console.error('No user ID found in Privy response:', {
+        dataKeys: Object.keys(data),
+        userKeys: data.user ? Object.keys(data.user) : null
+      });
       return null;
     }
 
@@ -73,19 +113,47 @@ async function verifyToken(token: string, requestOrigin?: string): Promise<strin
   }
 }
 
+// Helper function to add CORS and standard headers
+function createResponse(data: any, status: number = 200) {
+  return new NextResponse(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
+// OPTIONS handler for CORS preflight requests
+export async function OPTIONS(request: Request) {
+  return createResponse(null, 204);
+}
+
 // GET /api/keys - List all API keys for the user
 export async function GET(request: Request) {
   try {
     console.log('GET /api/keys - Starting request handling');
+    console.log('Environment:', {
+      NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+      hasPrivyAppId: !!process.env.NEXT_PUBLIC_PRIVY_APP_ID,
+      NODE_ENV: process.env.NODE_ENV,
+      vercelEnv: process.env.VERCEL_ENV
+    });
     
     const authHeader = request.headers.get('authorization');
     const origin = request.headers.get('origin');
-    console.log('Auth header present:', !!authHeader);
-    console.log('Request origin:', origin);
+    console.log('Request details:', {
+      authHeaderPresent: !!authHeader,
+      origin,
+      host: request.headers.get('host'),
+      referer: request.headers.get('referer')
+    });
     
     if (!authHeader?.startsWith('Bearer ')) {
       console.log('Invalid auth header format');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createResponse({ error: 'Unauthorized' }, 401);
     }
 
     const token = authHeader.split(' ')[1];
@@ -96,7 +164,7 @@ export async function GET(request: Request) {
     
     if (!userId) {
       console.log('Token verification failed - no userId returned');
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createResponse({ error: 'Invalid token' }, 401);
     }
 
     console.log('Querying DynamoDB for userId:', userId);
@@ -109,7 +177,7 @@ export async function GET(request: Request) {
     }));
     console.log('DynamoDB query result - items found:', result.Items?.length || 0);
 
-    return NextResponse.json(result.Items || []);
+    return createResponse(result.Items || []);
   } catch (error) {
     console.error('Error in GET /api/keys:', error);
     if (error instanceof Error) {
@@ -119,7 +187,7 @@ export async function GET(request: Request) {
         stack: error.stack
       });
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createResponse({ error: 'Internal server error' }, 500);
   }
 }
 
@@ -130,18 +198,18 @@ export async function POST(request: Request) {
     const origin = request.headers.get('origin');
     
     if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return createResponse({ error: 'Unauthorized' }, 401);
     }
 
     const token = authHeader.split(' ')[1];
     const userId = await verifyToken(token, origin || undefined);
     if (!userId) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+      return createResponse({ error: 'Invalid token' }, 401);
     }
 
     const { name } = await request.json();
     if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+      return createResponse({ error: 'Name is required' }, 400);
     }
 
     const apiKey = generateApiKey();
@@ -160,7 +228,7 @@ export async function POST(request: Request) {
       }
     }));
 
-    return NextResponse.json({
+    return createResponse({
       id: keyId,
       name,
       key: apiKey,
@@ -168,6 +236,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Error creating API key:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return createResponse({ error: 'Internal server error' }, 500);
   }
 } 
