@@ -398,7 +398,8 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to ${initialData ? "update" : "create"} agent`);
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      throw new Error(errorData.error || `Failed to ${initialData ? "update" : "create"} agent`);
     }
 
     const responseData = await response.json();

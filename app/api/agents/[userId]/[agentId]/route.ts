@@ -26,10 +26,23 @@ export async function PUT(
   { params }: { params: { userId: string; agentId: string } }
 ) {
   try {
-    const formData = await request.formData();
-    const image = formData.get('image') as Blob | null;
-    const agentData = JSON.parse(formData.get('data') as string);
-    
+    const contentType = request.headers.get('content-type') || '';
+    let agentData;
+    let image: Blob | null = null;
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      image = formData.get('image') as Blob | null;
+      agentData = JSON.parse(formData.get('data') as string);
+    } else if (contentType.includes('application/json')) {
+      agentData = await request.json();
+    } else {
+      return NextResponse.json(
+        { error: 'Unsupported content type. Use multipart/form-data or application/json' },
+        { status: 400 }
+      );
+    }
+
     let imageUrl = agentData.imageUrl || '';
 
     if (image) {
@@ -45,45 +58,40 @@ export async function PUT(
       updatedAt: new Date().toISOString(),
     };
 
-    await dynamodb.update({
+    // Get current agent data
+    const currentAgent = await dynamodb.get({
       TableName: 'Agents',
       Key: {
         id: params.agentId,
         userId: params.userId,
-      },
-      UpdateExpression: 'set #n = :name, description = :description, imageUrl = :imageUrl, coreCapabilities = :coreCapabilities, interactionStyle = :interactionStyle, analysisApproach = :analysisApproach, riskCommunication = :riskCommunication, responseFormat = :responseFormat, limitationsDisclaimers = :limitationsDisclaimers, prohibitedBehaviors = :prohibitedBehaviors, knowledgeUpdates = :knowledgeUpdates, responsePriorityOrder = :responsePriorityOrder, styleGuide = :styleGuide, specialInstructions = :specialInstructions, updatedAt = :updatedAt',
-      ExpressionAttributeNames: {
-        '#n': 'name',
-      },
-      ExpressionAttributeValues: {
-        ':name': finalAgentData.name,
-        ':description': finalAgentData.description,
-        ':imageUrl': finalAgentData.imageUrl,
-        ':coreCapabilities': finalAgentData.coreCapabilities,
-        ':interactionStyle': finalAgentData.interactionStyle,
-        ':analysisApproach': finalAgentData.analysisApproach,
-        ':riskCommunication': finalAgentData.riskCommunication,
-        ':responseFormat': finalAgentData.responseFormat,
-        ':limitationsDisclaimers': finalAgentData.limitationsDisclaimers,
-        ':prohibitedBehaviors': finalAgentData.prohibitedBehaviors,
-        ':knowledgeUpdates': finalAgentData.knowledgeUpdates,
-        ':responsePriorityOrder': finalAgentData.responsePriorityOrder,
-        ':styleGuide': finalAgentData.styleGuide,
-        ':specialInstructions': finalAgentData.specialInstructions,
-        ':updatedAt': finalAgentData.updatedAt,
-      },
-      ReturnValues: 'ALL_NEW',
+      }
+    }).promise();
+
+    if (!currentAgent.Item) {
+      return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
+    }
+
+    // Merge current data with updates
+    const mergedData = {
+      ...currentAgent.Item,
+      ...finalAgentData,
+    };
+
+    // Update the agent
+    await dynamodb.put({
+      TableName: 'Agents',
+      Item: mergedData,
     }).promise();
 
     return NextResponse.json({
       message: 'Agent updated successfully',
-      imageUrl: finalAgentData.imageUrl
+      agent: mergedData
     });
 
   } catch (error) {
     console.error('Error updating agent:', error);
     return NextResponse.json(
-      { error: 'Failed to update agent' },
+      { error: 'Failed to update agent', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand, PutCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 const privy = new PrivyClient(
   process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
@@ -33,6 +33,13 @@ const PROTECTED_ROUTES = new Set([
   '/portfolio',
   '/watchers',
   '/agents'
+]);
+
+// Define API routes that can use either API key or token authentication
+const API_ROUTES = new Set([
+  '/api/agents',
+  '/api/chat',
+  '/api/watchers'
 ]);
 
 // Define routes that require active subscription
@@ -238,6 +245,61 @@ async function checkRateLimit(ip: string, isAuthenticated: boolean): Promise<boo
   }
 }
 
+// Helper function to verify the token and get user ID
+async function verifyToken(token: string): Promise<string | null> {
+  try {
+    const user = await privy.verifyAuthToken(token, process.env.PRIVY_VERIFICATION_KEY);
+    if (!user?.userId) {
+      console.error('Token verification failed: No user ID in response');
+      return null;
+    }
+    return user.userId;
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    return null;
+  }
+}
+
+async function verifyApiKey(apiKey: string): Promise<string | null> {
+  try {
+    // Scan for the API key since it's not a key field
+    const result = await dynamodb.send(new ScanCommand({
+      TableName: 'ApiKeys',
+      FilterExpression: '#key = :apiKey',
+      ExpressionAttributeNames: {
+        '#key': 'key'
+      },
+      ExpressionAttributeValues: {
+        ':apiKey': apiKey
+      }
+    }));
+
+    if (!result.Items || result.Items.length === 0) {
+      return null;
+    }
+
+    const item = result.Items[0];
+
+    // Update last used timestamp
+    await dynamodb.send(new UpdateCommand({
+      TableName: 'ApiKeys',
+      Key: {
+        userId: item.userId,
+        id: item.id
+      },
+      UpdateExpression: 'SET lastUsed = :now',
+      ExpressionAttributeValues: {
+        ':now': new Date().toISOString()
+      }
+    }));
+
+    return item.userId;
+  } catch (error) {
+    console.error('Error verifying API key:', error);
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
@@ -291,70 +353,75 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow public routes without authentication
+  // Check if the route is public
   if (PUBLIC_ROUTES.has(pathname)) {
     return NextResponse.next();
   }
 
-  // Check if the route requires authentication
-  const requiresAuth = Array.from(PROTECTED_ROUTES).some(route => 
-    pathname.startsWith(route)
-  );
+  // Check if the route is an API route that can use API key authentication
+  if (API_ROUTES.has(pathname)) {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      console.error('No authorization header found');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-  if (requiresAuth) {
-    // Verify Privy authentication for protected routes
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const userId = await verifyToken(token);
+      if (userId) {
+        // Add the user ID to the request headers for downstream handlers
+        const headers = new Headers(request.headers);
+        headers.set('x-user-id', userId);
+        const modifiedRequest = new Request(request.url, {
+          method: request.method,
+          headers,
+          body: request.body,
+        });
+        return NextResponse.next({
+          request: modifiedRequest,
+        });
+      }
+      console.error('Bearer token verification failed');
+    } else if (authHeader.startsWith('ApiKey ')) {
+      const apiKey = authHeader.split(' ')[1];
+      const userId = await verifyApiKey(apiKey);
+      if (userId) {
+        // Add the user ID to the request headers for downstream handlers
+        const headers = new Headers(request.headers);
+        headers.set('x-user-id', userId);
+        const modifiedRequest = new Request(request.url, {
+          method: request.method,
+          headers,
+          body: request.body,
+        });
+        return NextResponse.next({
+          request: modifiedRequest,
+        });
+      }
+      console.error('API key verification failed');
+    }
+
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // For protected web routes, use Privy token from cookies
+  if (PROTECTED_ROUTES.has(pathname)) {
     const privyToken = request.cookies.get('privy-token')?.value;
     if (!privyToken) {
-      // Instead of redirecting to login, return a 401 status
-      // The client will handle showing the Privy dialog
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      // For web routes, redirect to home page
+      return NextResponse.redirect(new URL('/', request.url));
     }
 
     try {
       const user = await privy.verifyAuthToken(privyToken, process.env.PRIVY_VERIFICATION_KEY);
       if (!user?.userId) {
-        return NextResponse.json({ error: 'Invalid authentication' }, { status: 401 });
+        return NextResponse.redirect(new URL('/', request.url));
       }
-
-      // Check if subscription is required
-      // let requiresSubscription = SUBSCRIPTION_REQUIRED_ROUTES.has(pathname);
-
-      // Special handling for agent routes
-      // if (isAgentRoute(pathname)) {
-      //   const { isTemplateAgent, agentId, isEditPage } = parseAgentPath(pathname);
-      
-      //   // Require subscription for:
-      //   // 1. Chatting with any template agent except the default one
-      //   // 2. All non-template agents
-      //   requiresSubscription = (!isEditPage && isTemplateAgent && agentId !== DEFAULT_TEMPLATE_AGENT) || 
-      //     (!isTemplateAgent);
-      // }
-
-      // Check subscription if required
-      // if (requiresSubscription) {
-      //   const isSubscribed = await hasActiveSubscription(user.userId);
-      
-      //   if (!isSubscribed) {
-      //     // For API routes
-      //     if (pathname.startsWith('/api/')) {
-      //       return NextResponse.json(
-      //         { error: 'Active subscription required' },
-      //         { status: 403 }
-      //       );
-      //     }
-      //     // For page routes, redirect to pricing
-      //     return NextResponse.redirect(new URL('/account?requiresSub=true', request.url));
-      //   }
-      // }
-
       return NextResponse.next();
     } catch (error) {
-      if (error instanceof Error) {
-        console.error('Middleware error:', error.message);
-      } else {
-        console.error('Middleware error:', error);
-      }
-      return NextResponse.json({ error: 'Server error' }, { status: 500 });
+      console.error('Error verifying Privy token:', error);
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
