@@ -43,6 +43,44 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
   return mounted ? createPortal(children, document.body) : null;
 };
 
+// Token icon component with fallback
+const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string; size?: number }) => {
+  const [error, setError] = useState(false);
+  const firstLetter = symbol.charAt(0).toUpperCase();
+  const colors = [
+    'bg-blue-500',
+    'bg-green-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-yellow-500',
+    'bg-red-500',
+    'bg-indigo-500',
+  ];
+  
+  const colorIndex = firstLetter.charCodeAt(0) % colors.length;
+
+  if (error || !icon) {
+    return (
+      <div className={`w-${size} h-${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}>
+        {firstLetter}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <Image
+        src={icon}
+        alt={symbol}
+        width={size}
+        height={size}
+        className="rounded-full"
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+};
+
 const TransferModal = ({ 
   agent, 
   tokens, 
@@ -315,7 +353,7 @@ const TransferModal = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Image src={solanaBalance.logoURI} alt="SOL" width={40} height={40} className="rounded-full"/>
+                      <TokenIcon icon={solanaBalance.logoURI} symbol="SOL" />
                       <div className="flex flex-col justify-start">
                         <div className="text-white">Solana</div>
                         <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
@@ -334,7 +372,7 @@ const TransferModal = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Image src={token.token_icon} alt={token.token_name} width={40} height={40} className="rounded-full"/>
+                      <TokenIcon icon={token.token_icon} symbol={token.token_symbol} />
                       <div className="flex flex-col justify-start">
                         <div className="text-white">{token.token_name}</div>
                         <div className="text-sm text-zinc-400">{token.formatted_amount} {token.token_symbol}</div>
@@ -349,7 +387,11 @@ const TransferModal = ({
             <div className="space-y-4">
               {selectedToken && (
                 <div className="flex items-center gap-2 bg-zinc-800 p-3 rounded-lg">
-                  <Image src={selectedToken.token_icon} alt={selectedToken.token_name} width={32} height={32} className="rounded-full"/>
+                  <TokenIcon 
+                    icon={selectedToken.token_icon} 
+                    symbol={selectedToken.token_symbol} 
+                    size={32} 
+                  />
                   <div className="text-white">{selectedToken.token_name}</div>
                   <div className="text-zinc-400 text-sm">
                     Balance: {selectedToken.formatted_amount} {selectedToken.token_symbol}
