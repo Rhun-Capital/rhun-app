@@ -88,17 +88,25 @@ const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string;
   ];
   
   const colorIndex = firstLetter.charCodeAt(0) % colors.length;
+  const containerStyle = {
+    width: `${size}px`,
+    height: `${size}px`,
+    fontSize: `${size * 0.4}px`, // Scale font size relative to container size
+  };
 
   if (error || !icon) {
     return (
-      <div className={`w-${size} h-${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}>
+      <div 
+        className={`rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}
+        style={containerStyle}
+      >
         {firstLetter}
       </div>
     );
   }
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="relative" style={containerStyle}>
       <Image
         src={icon}
         alt={symbol}
