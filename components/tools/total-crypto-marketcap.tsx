@@ -46,8 +46,8 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInv
     <div className="p-6 bg-zinc-800 rounded-lg space-y-6">
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="text-lg font-semibold mb-1">Total Market Cap</h3>
-          <div className="text-2xl font-bold">
+          <h3 className="text-lg font-semibold text-white mb-1">Total Market Cap</h3>
+          <div className="text-2xl font-bold text-white">
             {formatNumber(toolInvocation.result?.totalMarketCap || 0)}
           </div>
           <div className={`text-sm ${
@@ -58,7 +58,7 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInv
         </div>
         <div className="text-right w-1/2">
           <div className="text-sm text-zinc-400">Active Cryptocurrencies</div>
-          <div className="text-lg font-semibold">
+          <div className="text-lg font-semibold text-white">
             {toolInvocation.result?.activeCryptocurrencies.toLocaleString()}
           </div>
         </div>
@@ -67,7 +67,7 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInv
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-zinc-900 p-4 rounded-lg">
           <div className="text-sm text-zinc-400">24h Volume</div>
-          <div className="text-lg font-semibold">
+          <div className="text-lg font-semibold text-white">
             {formatNumber(toolInvocation.result?.totalVolume || 0)}
           </div>
         </div>
@@ -78,8 +78,8 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInv
         <div className="space-y-2">
           {topCoins.map(([symbol, percentage]) => (
             <div key={symbol} className="flex justify-between items-center">
-              <div className="text-sm font-medium">{symbol.toUpperCase()}</div>
-              <div className="text-sm">{percentage.toFixed(2)}%</div>
+              <div className="text-sm font-medium text-white">{symbol.toUpperCase()}</div>
+              <div className="text-sm text-white">{percentage.toFixed(2)}%</div>
             </div>
           ))}
         </div>

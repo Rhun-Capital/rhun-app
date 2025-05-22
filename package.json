@@ -1,7 +1,21 @@
 {
   "name": "rhun-app",
-  "version": "0.0.1",
-  "private": true,
+  "version": "1.0.0",
+  "description": "AI-powered DeFi automation platform for Solana blockchain",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/rhun-app.git"
+  },
+  "keywords": [
+    "defi",
+    "solana",
+    "trading",
+    "automation",
+    "ai",
+    "blockchain"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

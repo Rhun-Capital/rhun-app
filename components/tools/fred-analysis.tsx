@@ -679,15 +679,15 @@ export default function FredAnalysis({ toolInvocation }: FredAnalysisProps) {
             <table className="min-w-full text-sm">
               <thead className="sticky top-0 bg-zinc-800 z-0">
                 <tr className="text-left border-b border-zinc-700">
-                  <th className="py-2">Date</th>
-                  <th className="py-2">{getYAxisLabel()}</th>
+                  <th className="py-2 text-white">Date</th>
+                  <th className="py-2 text-white">{getYAxisLabel()}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredObservations.slice(-10).reverse().map((obs: Observation, index: number) => (
                   <tr key={index} className="border-b border-zinc-700">
-                    <td className="py-2">{new Date(obs.date).toLocaleDateString()}</td>
-                    <td className="py-2">
+                    <td className="py-2 text-white">{new Date(obs.date).toLocaleDateString()}</td>
+                    <td className="py-2 text-white">
                       {formatValueForCard(obs.value)}
                     </td>
                   </tr>

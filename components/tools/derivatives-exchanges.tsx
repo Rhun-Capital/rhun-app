@@ -107,19 +107,19 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
                   }}
                 />
               )}
-              <span className="font-medium">{exchange.name}</span>
+              <span className="font-medium text-white">{exchange.name}</span>
             </div>
             <span className="text-zinc-400">#{startIndex + index + 1}</span>
           </div>
           
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-zinc-400 text-sm">Open Interest</span>
-              <span className="font-medium">{formatBTC(exchange.open_interest_btc)}</span>
+              <span className="text-sm text-zinc-400">Open Interest</span>
+              <span className="font-medium text-white">{formatBTC(exchange.open_interest_btc)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-400 text-sm">24h Volume</span>
-              <span className="text-zinc-300">{formatBTC(exchange.trade_volume_24h_btc)}</span>
+              <span className="text-sm text-zinc-400">24h Volume</span>
+              <span className="text-white">{formatBTC(exchange.trade_volume_24h_btc)}</span>
             </div>
           </div>
 
@@ -181,7 +181,7 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
   return (
     <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h3 className="text-lg font-semibold">Derivatives Exchanges</h3>
+        <h3 className="text-lg font-semibold text-white">Derivatives Exchanges</h3>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setViewType('table')}
@@ -242,13 +242,13 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
                           }}
                         />
                       )}
-                      <span className="truncate">{exchange.name}</span>
+                      <span className="truncate text-white">{exchange.name}</span>
                     </div>
                   </td>
-                  <td className="py-4 text-right font-medium w-[25%]">
+                  <td className="py-4 text-right font-medium text-white w-[25%]">
                     {formatBTC(exchange.open_interest_btc)}
                   </td>
-                  <td className="py-4 text-right text-zinc-300 w-[25%]">
+                  <td className="py-4 text-right text-white w-[25%]">
                     {formatBTC(exchange.trade_volume_24h_btc)}
                   </td>
                   <td className="py-4 text-right w-16">

@@ -399,7 +399,7 @@ const TrendingSolana: React.FC<TrendingSolanaProps> = ({ toolCallId, toolInvocat
     <div className="w-full bg-zinc-800 rounded-lg overflow-hidden">
       <div className="p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-bold text-white">Trending Solana Tokens</h2>
-        <p className="mb-4 sm:mb-6 text-sm text-zinc-500">Top trending coins on SolScan</p>
+        <p className="mb-4 sm:mb-6 text-sm text-white">Top trending coins on SolScan</p>
         
         <div className="lg:hidden space-y-3">
           {currentTokens.map((token) => (

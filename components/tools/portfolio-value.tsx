@@ -17,7 +17,7 @@ interface PortfolioValueProps {
           {toolInvocation.args.message}
         </div>
         <h3 className="text-xs sm:text-sm text-zinc-400 mb-1 sm:mb-2">Portfolio Value</h3>
-        <p className="text-xl sm:text-2xl font-bold">
+        <p className="text-xl sm:text-2xl font-bold text-white">
           {toolInvocation.result ? 
             `$${toolInvocation.result?.totalValue.toLocaleString(undefined, {
               minimumFractionDigits: 2,

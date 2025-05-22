@@ -55,14 +55,14 @@ const MarketCategories: React.FC<MarketCategoriesProps> = ({ toolCallId, toolInv
 
   return (
     <div className="p-6 bg-zinc-800 rounded-lg">
-      <h3 className="text-lg font-semibold mb-4">Top Crypto Categories</h3>
+      <h3 className="text-lg font-semibold text-white mb-4">Top Crypto Categories</h3>
       
       <div className="space-y-4">
         {categories.map((category: Category) => (
           <div key={category.id} className="bg-zinc-900 p-4 rounded-lg">
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h4 className="font-medium">{category.name}</h4>
+                <h4 className="font-medium text-white">{category.name}</h4>
                 <div className={`text-sm ${
                   category.change24h >= 0 ? 'text-green-500' : 'text-red-500'
                 }`}>
@@ -70,7 +70,7 @@ const MarketCategories: React.FC<MarketCategoriesProps> = ({ toolCallId, toolInv
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-semibold">
+                <div className="text-lg font-semibold text-white">
                   {formatNumber(category.marketCap)}
                 </div>
                 <div className="text-sm text-zinc-400">

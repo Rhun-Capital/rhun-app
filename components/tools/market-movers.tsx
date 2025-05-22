@@ -106,12 +106,12 @@ const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation 
           className="rounded-full"
         />
         <div>
-          <p className="font-medium">{coin.name}</p>
+          <p className="font-medium text-white">{coin.name}</p>
           <p className="text-sm text-zinc-400">{coin.symbol.toUpperCase()}</p>
         </div>
       </div>
       <div className="text-right">
-        <p className="font-medium">
+        <p className="font-medium text-white">
           {formatPrice(coin.price)}
         </p>
         <p className={`text-sm ${coin.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -249,16 +249,16 @@ const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation 
         isExpanded ? 'max-h-full' : 'max-h-96'
       }`}>
         <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg mb-4">
-          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Top Gainers</h3>
-          <p className="mb-4">Click the token for more details like the contract address, price, market cap and more.</p>
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Top Gainers</h3>
+          <p className="mb-4 text-white">Click the token for more details like the contract address, price, market cap and more.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
             {toolInvocation.result?.top_gainers.map(renderCoinCard)}
           </div>
         </div>
 
         <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
-          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Top Losers</h3>
-          <p className="mb-4">Click the token for more details like the contract address, price, market cap and more.</p>
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Top Losers</h3>
+          <p className="mb-4 text-white">Click the token for more details like the contract address, price, market cap and more.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
             {toolInvocation.result?.top_losers.map(renderCoinCard)}
           </div>
