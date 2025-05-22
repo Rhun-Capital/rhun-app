@@ -50,14 +50,14 @@ export interface Token {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-sm sm:text-base truncate">{token.token_name}</p>
+            <p className="font-medium text-sm sm:text-base truncate text-white">{token.token_name}</p>
             <p className="text-xs sm:text-sm text-zinc-400 truncate">
               {formatTokenAmount(token.amount, token.token_decimals)} {token.token_symbol}
             </p>
           </div>
         </div>
         <div className="text-right flex-shrink-0">
-          <p className="font-medium text-sm sm:text-base">
+          <p className="font-medium text-sm sm:text-base text-white">
             {token.usd_value && token.usd_value > 0.009 ? '$'+token.usd_value.toLocaleString(undefined, { 
               minimumFractionDigits: 2,
               maximumFractionDigits: 2 
@@ -69,7 +69,7 @@ export interface Token {
   
     return (
       <div key={toolCallId} className="space-y-2">
-        <div className="text-sm sm:text-base mb-3">
+        <div className="text-sm sm:text-base mb-3 text-white">
           {toolInvocation.args.message}
         </div>
         <div className="space-y-2">

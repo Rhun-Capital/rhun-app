@@ -21,7 +21,7 @@ interface FearGreedProps {
           <div className="text-sm sm:text-base">
             {toolInvocation.args.message}
           </div>
-          <h3 className="text-base sm:text-lg font-semibold">Fear & Greed Index</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-white">Fear & Greed Index</h3>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <div className={`text-2xl sm:text-3xl font-bold ${
               "result" in toolInvocation 

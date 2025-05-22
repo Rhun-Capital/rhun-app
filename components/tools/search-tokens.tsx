@@ -109,12 +109,12 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
               className="rounded-full sm:w-12 sm:h-12"
             />
             <div>
-              <h2 className="text-lg sm:text-xl font-bold">{selectedCoin.name}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-white">{selectedCoin.name}</h2>
               <p className="text-sm text-zinc-400">{selectedCoin.symbol.toUpperCase()}</p>
             </div>
           </div>
           <div className="text-left sm:text-right w-full sm:w-auto">
-            <div className="text-xl sm:text-2xl font-bold">
+            <div className="text-xl sm:text-2xl font-bold text-white">
               {formatPrice(selectedCoin.market_data.current_price.usd)}
             </div>
             <div className={`text-sm ${selectedCoin.market_data.price_change_percentage_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -149,7 +149,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
           ].map(({ label, value }) => (
             <div key={label} className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
               <div className="text-xs sm:text-sm text-zinc-500">{label}</div>
-              <div className="text-sm sm:text-lg font-semibold truncate">{value}</div>
+              <div className="text-sm sm:text-lg font-semibold text-white truncate">{value}</div>
             </div>
           ))}
         </div>
@@ -157,7 +157,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
         {/* Description */}
         {selectedCoin.description?.en && (
           <div className="mt-4 sm:mt-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-2">About</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-2">About</h3>
             <div 
               className="text-xs sm:text-sm text-zinc-400 max-w-full sm:max-w-[500px] line-clamp-4 sm:line-clamp-none"
               dangerouslySetInnerHTML={{ __html: selectedCoin.description.en }}
@@ -168,14 +168,14 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
         {/* Contract Addresses */}
         {selectedCoin.platforms && Object.keys(selectedCoin.platforms).length > 0 && Object.keys(selectedCoin.platforms)[0] !== '' && (
           <div className="mt-4 sm:mt-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-2">Contract Addresses</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Contract Addresses</h3>
             <div className="space-y-2">
               {Object.entries(selectedCoin.platforms).map(([platform, address]) => 
                 address && (
                   <div key={platform} className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
                     <div className="text-xs sm:text-sm text-zinc-500 capitalize mb-1">{platform}</div>
                     <div className="flex items-center gap-2 justify-between">
-                    <div className="text-xs sm:text-sm font-mono text-zinc-300 break-all">
+                    <div className="text-xs sm:text-sm font-mono text-white break-all">
                       {address}
                     </div>
                     <CopyButton text={address}/>
@@ -211,8 +211,8 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
 
   return (
     <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
-      <h3 className="text-base sm:text-lg font-semibold mb-2">Search Results</h3>
-      <p className="mb-4">Click the token for more details like the contract address, price, market cap and more.</p>
+      <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Search Results</h3>
+      <p className="mb-4 text-white">Click the token for more details like the contract address, price, market cap and more.</p>
 
       <div className="space-y-2 sm:space-y-3">
         {error && (
@@ -239,7 +239,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
                   </div>
                 )}
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{coin.name}</div>
+                  <div className="font-medium text-white truncate">{coin.name}</div>
                   <div className="text-sm text-zinc-400 truncate">{coin.symbol.toUpperCase()}</div>
                 </div>
               </div>

@@ -141,7 +141,7 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
             </div>
           )}
           <div>
-            <div className="font-medium">{coin.name}</div>
+            <div className="font-medium text-white">{coin.name}</div>
             <div className="text-sm text-zinc-400">{coin.symbol}</div>
           </div>
         </div>
@@ -152,7 +152,7 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
       accessorKey: 'market_cap_usd',
       sortable: true,
       cell: (coin) => (
-        <div className="text-right">{formatMarketCap(coin.market_cap_usd)}</div>
+        <div className="text-right text-white">{formatMarketCap(coin.market_cap_usd)}</div>
       )
     },
     {
@@ -160,7 +160,7 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
       accessorKey: 'activated_at',
       sortable: true,
       cell: (coin) => (
-        <div className="text-right">{formatDate(coin.activated_at)}</div>
+        <div className="text-right text-white">{formatDate(coin.activated_at)}</div>
       )
     },
     {
@@ -168,7 +168,7 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
       accessorKey: 'current_price_usd',
       sortable: true,
       cell: (coin) => (
-        <div className="text-right">{formatPrice(coin.current_price_usd)}</div>
+        <div className="text-right text-white">{formatPrice(coin.current_price_usd)}</div>
       )
     },
     {
@@ -176,7 +176,7 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
       accessorKey: 'total_volume_usd',
       sortable: true,
       cell: (coin) => (
-        <div className="text-right">{formatMarketCap(coin.total_volume_usd)}</div>
+        <div className="text-right text-white">{formatMarketCap(coin.total_volume_usd)}</div>
       )
     }
   ];
@@ -356,7 +356,7 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
           </div>
         )}
         <div>
-          <div className="font-medium">{coin.name}</div>
+          <div className="font-medium text-white">{coin.name}</div>
           <div className="text-sm text-zinc-400">{coin.symbol}</div>
         </div>
       </div>
@@ -364,19 +364,19 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
       <div className="space-y-2">
         <div className="flex justify-between">
           <span className="text-sm text-zinc-400">Price</span>
-          <span className="text-sm font-medium">{formatPrice(coin.current_price_usd)}</span>
+          <span className="text-sm font-medium text-white">{formatPrice(coin.current_price_usd)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-zinc-400">Market Cap</span>
-          <span className="text-sm font-medium">{formatMarketCap(coin.market_cap_usd)}</span>
+          <span className="text-sm font-medium text-white">{formatMarketCap(coin.market_cap_usd)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-zinc-400">Volume</span>
-          <span className="text-sm font-medium">{formatMarketCap(coin.total_volume_usd)}</span>
+          <span className="text-sm font-medium text-white">{formatMarketCap(coin.total_volume_usd)}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-sm text-zinc-400">Listed</span>
-          <span className="text-sm font-medium">{formatDate(coin.activated_at)}</span>
+          <span className="text-sm font-medium text-white">{formatDate(coin.activated_at)}</span>
         </div>
       </div>
     </div>
@@ -387,7 +387,7 @@ const RecentCoinsResults: React.FC<RecentCoinsProps> = ({ toolCallId, toolInvoca
 
     {/* Mobile View (Cards) */}
     <div className="lg:hidden">
-      <h3 className="text-base sm:text-lg font-semibold mb-2">Recent Coins</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Recent Coins</h3>
       <div className="grid gap-4">
         {currentData.map((coin: CoinData) => (
           <CoinCard key={coin.id} coin={coin} />
