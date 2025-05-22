@@ -73,6 +73,44 @@ interface PaginatedTokens {
 
 type SelectionType = 'from' | 'to' | null;
 
+// Token icon component with fallback
+const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string; size?: number }) => {
+  const [error, setError] = useState(false);
+  const firstLetter = symbol.charAt(0).toUpperCase();
+  const colors = [
+    'bg-blue-500',
+    'bg-green-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-yellow-500',
+    'bg-red-500',
+    'bg-indigo-500',
+  ];
+  
+  const colorIndex = firstLetter.charCodeAt(0) % colors.length;
+
+  if (error || !icon) {
+    return (
+      <div className={`w-${size} h-${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}>
+        {firstLetter}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <Image
+        src={icon}
+        alt={symbol}
+        width={size}
+        height={size}
+        className="rounded-full"
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+};
+
 const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComplete }: SwapModalProps & { agent: { wallets: { solana: string } } }) => {
   const { wallets: solanaWallets, ready } = useSolanaWallets();
   const params = useParams();
@@ -458,7 +496,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
             >
               <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Image src={solanaBalance.logoURI} alt="SOL" width={32} height={32} className="rounded-full"/>
+                <TokenIcon icon={solanaBalance.logoURI} symbol="SOL" size={32} />
                 <div>
                 <div className="text-white">Solana</div>
                 <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
@@ -482,7 +520,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
               >
                 <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Image src={token.token_icon} alt={token.token_symbol} width={32} height={32} className="rounded-full"/>
+                  <TokenIcon icon={token.token_icon} symbol={token.token_symbol} size={32} />
                   <div>
                     <div className="text-white">{token.token_name}</div>
                     <div className="text-sm text-zinc-400">
@@ -508,7 +546,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Image src={token.logoURI} alt={token.name} width={32} height={32} className="rounded-full"/>
+                      <TokenIcon icon={token.logoURI} symbol={token.symbol} size={32} />
                       <div>
                         <div className="text-white">{token.name}</div>
                         <div className="text-sm text-zinc-400">
@@ -616,7 +654,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                       >
                       {fromToken ? (
                           <div className="flex items-center gap-2">
-                          <Image src={fromToken.token_icon} alt={fromToken.token_name} width={24} height={24} className="rounded-full"/>
+                          <TokenIcon icon={fromToken.token_icon} symbol={fromToken.token_symbol} size={24} />
                           <span className="text-white">{fromToken.token_name}</span>
                           <span className="text-zinc-400 text-sm">
                               Balance: {fromToken.formatted_amount} {fromToken.token_symbol}
@@ -690,7 +728,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                       >
                       {toToken ? (
                           <div className="flex items-center gap-2">
-                          <Image src={toToken.token_icon} alt={toToken.token_name} width={24} height={24} className="rounded-full"/>
+                          <TokenIcon icon={toToken.token_icon} symbol={toToken.token_symbol} size={24} />
                           <span className="text-white">{toToken.token_name}</span>
                           </div>
                       ) : (
