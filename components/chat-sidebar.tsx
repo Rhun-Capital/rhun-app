@@ -333,13 +333,13 @@ const tokenDiscoveryTools: Tool[] = [
     isNew: false,
     requiresAuth: false
   },
-  {
-    name: 'Get Trending Tokens',
-    description: 'Discover trending tokens on CoinGecko across all chains',
-    command: getToolCommand('trending-tokens') || 'Search for trending tokens',
-    isNew: false,
-    requiresAuth: false
-  },
+  // {
+  //   name: 'Get Trending Tokens',
+  //   description: 'Discover trending tokens on CoinGecko across all chains',
+  //   command: getToolCommand('trending-tokens') || 'Search for trending tokens',
+  //   isNew: false,
+  //   requiresAuth: false
+  // },
   // {
   //   name: 'Get Solana Trending Tokens',
   //   description: 'Discover trending tokens on Solana',
@@ -347,13 +347,13 @@ const tokenDiscoveryTools: Tool[] = [
   //   isNew: false,
   //   requiresAuth: false
   // },
-  {
-    name: 'Get Latest Tokens',
-    description: 'Discover newly listed tokens on CoinGecko',
-    command: getToolCommand('recent-tokens') || 'Search for recently listed tokens',
-    isNew: false,
-    requiresAuth: false
-  },
+  // {
+  //   name: 'Get Latest Tokens',
+  //   description: 'Discover newly listed tokens on CoinGecko',
+  //   command: getToolCommand('recent-tokens') || 'Search for recently listed tokens',
+  //   isNew: false,
+  //   requiresAuth: false
+  // },
   {
     name: 'Search Tokens',
     description: 'Search through the complete database of tokens',

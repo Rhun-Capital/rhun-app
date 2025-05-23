@@ -306,57 +306,56 @@ export async function POST(req: Request) {
     },
 
  
-    getRecentlyLaunchedCoins: {
-      description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, volume, and more.",
-      parameters: z.object({ 
-        query: z.string().describe('Search query for finding recent cryptocurrencies'),
-        filters: z.object({
-          minPrice: z.number().optional(),
-          maxPrice: z.number().optional(),
-          categories: z.array(z.string()).optional(),
-          marketCap: z.object({
-            min: z.number().optional(),
-            max: z.number().optional()
-          }).optional(),
-          volume: z.object({  // Added volume filter
-            min: z.number().optional(),
-            max: z.number().optional()
-          }).optional(),
-          timeRange: z.object({
-            hours: z.number().optional(),
-            days: z.number().optional()
-          }).optional()
-        }).optional()
-      }),
-      execute: async ({ query, filters }: { 
-        query: string; 
-        filters?: { 
-          minPrice?: number; 
-          maxPrice?: number; 
-          categories?: string[]; 
-          nameContains?: string; 
-          marketCap?: { 
-            min?: number; 
-            max?: number 
-          }; 
-          volume?: {  // Added volume filter
-            min?: number;
-            max?: number;
-          };
-          timeRange?: { 
-            hours?: number; 
-            days?: number 
-          } 
-        } 
-      }) => {
-        if (filters) {
-          const results = await retrieveCoinsWithFilters(filters);
-          return results;
-        }
-        const results = await retrieveCoins(query);
-        return results;
-      }
-    },
+    //   description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, volume, and more.",
+    //   parameters: z.object({ 
+    //     query: z.string().describe('Search query for finding recent cryptocurrencies'),
+    //     filters: z.object({
+    //       minPrice: z.number().optional(),
+    //       maxPrice: z.number().optional(),
+    //       categories: z.array(z.string()).optional(),
+    //       marketCap: z.object({
+    //         min: z.number().optional(),
+    //         max: z.number().optional()
+    //       }).optional(),
+    //       volume: z.object({  // Added volume filter
+    //         min: z.number().optional(),
+    //         max: z.number().optional()
+    //       }).optional(),
+    //       timeRange: z.object({
+    //         hours: z.number().optional(),
+    //         days: z.number().optional()
+    //       }).optional()
+    //     }).optional()
+    //   }),
+    //   execute: async ({ query, filters }: { 
+    //     query: string; 
+    //     filters?: { 
+    //       minPrice?: number; 
+    //       maxPrice?: number; 
+    //       categories?: string[]; 
+    //       nameContains?: string; 
+    //       marketCap?: { 
+    //         min?: number; 
+    //         max?: number 
+    //       }; 
+    //       volume?: {  // Added volume filter
+    //         min?: number;
+    //         max?: number;
+    //       };
+    //       timeRange?: { 
+    //         hours?: number; 
+    //         days?: number 
+    //       } 
+    //     } 
+    //   }) => {
+    //     if (filters) {
+    //       const results = await retrieveCoinsWithFilters(filters);
+    //       return results;
+    //     }
+    //     const results = await retrieveCoins(query);
+    //     return results;
+    //   }
+    // },
   
     searchTokens: {
       description: "Search for cryptocurrencies by name or symbol. Always tell the user they can click the result to get more information about the token like the contract adress.",
@@ -1044,18 +1043,15 @@ export async function POST(req: Request) {
     getTotalCryptoMarketCap: allTools.getTotalCryptoMarketCap,
     getMarketCategories: allTools.getMarketCategories,
     getFearAndGreedIndex: allTools.getFearAndGreedIndex,
-    getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
     getTopNfts: allTools.getTopNfts,
     swap: allTools.swap,
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
     getCryptoNews: allTools.getCryptoNews,
-    // stockAnalysis: allTools.stockAnalysis,
     webResearch: allTools.webResearch,
     getTradingViewChart: allTools.getTradingViewChart,
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
     getFredSeries: allTools.getFredSeries,
     fredSearch: allTools.fredSearch,
-    // parseSolanaQuery: allTools.parseSolanaQuery
   };
 
 // Format context for the prompt
