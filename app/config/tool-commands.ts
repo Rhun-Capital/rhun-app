@@ -18,7 +18,7 @@ export const toolCommands: { [key: string]: string } = {
   'token-info': 'Show me information about the token',
   'wallet-info': 'Show me information about a solana account',
   'wallet-activity': 'Show me information about a solana account and track activity',
-  'recent-tokens': 'Get recently listed tokens',
+  // 'recent-tokens': 'Get recently listed tokens on coingecko',
   'top-holders': 'Show me the top token holders',
   'market-movers': 'Show me the top market movers today',
   'total-market-cap': 'Show me the total crypto market cap',
