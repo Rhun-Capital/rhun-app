@@ -304,67 +304,7 @@ export async function POST(req: Request) {
         return topNfts;
       },
     },
-  
-    getTrendingTokens: {
-      description: "Get trending tokens and cryptocurrencies with optional filters. Supports both global trending data and Solana-specific data with filtering options.",
-      parameters: z.object({
-        chain: z.enum(['all', 'solana'])
-          .describe("Which blockchain to get trending tokens for. Use 'all' for trending across all chains, or 'solana' for Solana-specific tokens")
-          .default('all'),
-        filters: z.object({
-          minPrice: z.number().optional()
-            .describe("Minimum price in USD"),
-          maxPrice: z.number().optional()
-            .describe("Maximum price in USD"),
-          minMarketCap: z.number().optional()
-            .describe("Minimum market cap in USD"),
-          maxMarketCap: z.number().optional()
-            .describe("Maximum market cap in USD"),
-          minHolders: z.number().optional()
-            .describe("Minimum number of token holders (Solana only)"),
-          minVolume: z.number().optional()
-            .describe("Minimum 24h trading volume in USD"),
-          minPriceChange: z.number().optional()
-            .describe("Filter for tokens with minimum price increase percentage in 24h"),
-        }).optional(),
-        maxResults: z.number().optional()
-          .describe("Maximum number of tokens to return")
-          .default(100),
-        sortBy: z.enum(['trending', 'price_change', 'market_cap', 'volume', 'holders'])
-          .describe("How to sort the results")
-          .default('trending'),
-      }),
-      execute: async ({ chain, filters, maxResults, sortBy }) => {
-        console.log('Executing getTrendingTokens with:', { chain, filters, maxResults, sortBy });
-        
-        if (chain === 'solana') {
-          let trendingTokens = await retrieveTrendingSolanaTokens(undefined, filters);
-          console.log('Retrieved Solana trending tokens:', trendingTokens);
-          
-          // Apply sorting using numeric fields
-          if (sortBy === 'price_change') {
-            trendingTokens = trendingTokens
-              .filter(token => token.price_change_24h && token.price_change_24h > (filters?.minPriceChange || 0))
-              .sort((a, b) => (b.price_change_24h || 0) - (a.price_change_24h || 0));
-          } else if (sortBy === 'market_cap') {
-            trendingTokens = trendingTokens
-              .sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
-          } else if (sortBy === 'volume') {
-            trendingTokens = trendingTokens
-              .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
-          } else if (sortBy === 'holders') {
-            trendingTokens = trendingTokens
-              .sort((a, b) => (b.holder || 0) - (a.holder || 0));
-          }
 
-          return trendingTokens.slice(0, maxResults);
-        }
-        
-        const trendingCoins = await retrieveTrendingCoins(filters);
-        console.log('Retrieved trending coins:', trendingCoins);
-        return trendingCoins.slice(0, maxResults);
-      },
-    },
  
     getRecentlyLaunchedCoins: {
       description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, volume, and more.",
@@ -1098,7 +1038,6 @@ export async function POST(req: Request) {
     getDerivativesExchanges: allTools.getDerivativesExchanges,
     getTopHolders: allTools.getTopHolders,
     getAccountDetails: allTools.getAccountDetails,
-    getTrendingTokens: allTools.getTrendingTokens,
     getTokenInfo: allTools.getTokenInfo,
     getMarketMovers: allTools.getMarketMovers,
     searchTokens: allTools.searchTokens,
