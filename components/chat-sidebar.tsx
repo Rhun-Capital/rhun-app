@@ -333,41 +333,27 @@ const tokenDiscoveryTools: Tool[] = [
     isNew: false,
     requiresAuth: false
   },
-  // {
-  //   name: 'Get Trending Tokens',
-  //   description: 'Discover trending tokens on CoinGecko across all chains',
-  //   command: getToolCommand('trending-tokens') || 'Search for trending tokens',
-  //   isNew: false,
-  //   requiresAuth: false
-  // },
-  // {
-  //   name: 'Get Solana Trending Tokens',
-  //   description: 'Discover trending tokens on Solana',
-  //   command: getToolCommand('trending-solana-tokens') || 'Search for trending tokens on Solana',
-  //   isNew: false,
-  //   requiresAuth: false
-  // },
-  // {
-  //   name: 'Get Latest Tokens',
-  //   description: 'Discover newly listed tokens on CoinGecko',
-  //   command: getToolCommand('recent-tokens') || 'Search for recently listed tokens',
-  //   isNew: false,
-  //   requiresAuth: false
-  // },
+  {
+    name: 'Get Trending Tokens',
+    description: 'Discover trending tokens on CoinGecko across all chains',
+    command: getToolCommand('trending-tokens') || 'Search for trending tokens',
+    isNew: false,
+    requiresAuth: false
+  },
+  {
+    name: 'Get Latest Tokens',
+    description: 'Discover newly listed tokens on CoinGecko',
+    command: getToolCommand('recent-tokens') || 'Search for recently listed tokens',
+    isNew: false,
+    requiresAuth: false
+  },
   {
     name: 'Search Tokens',
     description: 'Search through the complete database of tokens',
     command: getToolCommand('search-tokens') || 'Search for tokens',
     isNew: false,
     requiresAuth: false
-  },
-  // {
-  //   name: 'Get Whale Activity',
-  //   description: 'View the most active whales in the last 24 hours',
-  //   command: getToolCommand('whale-activity') || 'Show me whale activity',
-  //   isNew: true,
-  //   requiresAuth: false
-  // }
+  }
 ];
 
 // Wallet Tools Section
