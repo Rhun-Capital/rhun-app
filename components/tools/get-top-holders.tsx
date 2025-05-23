@@ -11,7 +11,9 @@ import Image from 'next/image';
 interface TokenHolder {
   owner: string;
   amount: number;
+  decimals: number;
   percentage?: number;
+  value?: number;
 }
 
 interface TokenMetadata {
@@ -61,7 +63,9 @@ interface HolderData {
   owner?: string;
   balance?: string;
   amount?: number;
+  decimals?: number;
   percentage?: number;
+  value?: number;
 }
 
 interface TopHoldersDisplayProps {
@@ -183,12 +187,16 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
   }, [selectedHolder, currentPage, fetchActivities]);
 
   const HolderCard: React.FC<{ holder: TokenHolder; index: number }> = ({ holder, index }) => {
-    const formatNumber = (num: number) => {
-      if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
-      if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
-      if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-      if (num >= 1e3) return `${(num / 1e3).toFixed(2)}K`;
-      return num.toFixed(2);
+    const formatNumber = (num: number, decimals: number = 6) => {
+      // First adjust for decimals
+      const adjustedNum = num / Math.pow(10, decimals);
+      
+      // Then format with appropriate suffix
+      if (adjustedNum >= 1e12) return `${(adjustedNum / 1e12).toFixed(2)}T`;
+      if (adjustedNum >= 1e9) return `${(adjustedNum / 1e9).toFixed(2)}B`;
+      if (adjustedNum >= 1e6) return `${(adjustedNum / 1e6).toFixed(2)}M`;
+      if (adjustedNum >= 1e3) return `${(adjustedNum / 1e3).toFixed(2)}K`;
+      return adjustedNum.toFixed(2);
     };
 
     return (
@@ -411,17 +419,12 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       return [];
     }
 
-    const totalAmount = resultArray.reduce((sum, holder) => {
-      const amount = holder.amount || parseFloat(holder.balance || '0');
-      return sum + amount;
-    }, 0);
-    
     return resultArray.map(holder => ({
       owner: holder.owner || holder.address || '',
       amount: holder.amount || parseFloat(holder.balance || '0'),
-      percentage: totalAmount > 0 
-        ? ((holder.amount || parseFloat(holder.balance || '0')) / totalAmount) * 100 
-        : holder.percentage || 0
+      decimals: holder.decimals || 6, // Default to 6 decimals if not provided
+      percentage: holder.percentage || 0,
+      value: holder.value
     }));
   }, [toolInvocation?.result]);
 
