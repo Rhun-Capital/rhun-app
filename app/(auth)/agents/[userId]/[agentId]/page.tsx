@@ -35,7 +35,6 @@ import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import AccountInfo from "@/components/tools/account-info";
 import TrendingCoins from "@/components/tools/trending-searches";
-import TrendingSolanaTokens from "@/components/tools/trending-solana-tokens";
 import TopNFTsResults from "@/components/tools/top-nfts";
 import  SwapComponent  from "@/components/tools/swap-component";
 import { debounce, DebouncedFunc } from 'lodash';
@@ -1301,11 +1300,6 @@ function HomeContent() {
                             return wrappedTool(<TopHoldersDisplay key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getAccountDetails':
                             return wrappedTool(<AccountInfo key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
-                          case 'getTrendingTokens':
-                            // Check the chain parameter from the tool args
-                            return tool.args.chain === 'solana' 
-                              ? wrappedTool(<TrendingSolanaTokens key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>)
-                              : wrappedTool(<TrendingCoins key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool}/>);
                           case 'getTopNfts':
                             return wrappedTool(<TopNFTsResults key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />);
 
