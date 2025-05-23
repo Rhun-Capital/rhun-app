@@ -340,13 +340,13 @@ const tokenDiscoveryTools: Tool[] = [
     isNew: false,
     requiresAuth: false
   },
-  {
-    name: 'Get Solana Trending Tokens',
-    description: 'Discover trending tokens on Solana',
-    command: getToolCommand('trending-solana-tokens') || 'Search for trending tokens on Solana',
-    isNew: false,
-    requiresAuth: false
-  },
+  // {
+  //   name: 'Get Solana Trending Tokens',
+  //   description: 'Discover trending tokens on Solana',
+  //   command: getToolCommand('trending-solana-tokens') || 'Search for trending tokens on Solana',
+  //   isNew: false,
+  //   requiresAuth: false
+  // },
   {
     name: 'Get Latest Tokens',
     description: 'Discover newly listed tokens on CoinGecko',
