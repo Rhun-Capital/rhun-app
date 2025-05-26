@@ -1,4 +1,5 @@
-export const formatAmount = (amount: number, decimals: number = 0, isUSD: boolean = false) => {
+export const formatAmount = (amount: number | null | undefined, decimals: number = 0, isUSD: boolean = false) => {
+  if (amount === null || amount === undefined || isNaN(amount)) return '0';
   if (amount === 0) return '0';
   
   if (isUSD) {

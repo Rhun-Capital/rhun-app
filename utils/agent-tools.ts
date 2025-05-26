@@ -18,6 +18,8 @@ const COINGECKO_BASE_URL = process.env.COINGECKO_BASE_URL;
 const JUPITER_API_URL = process.env.NEXT_PUBLIC_JUPITER_API_URL;
 const JUPITER_PRICE_API_URL = 'https://api.jup.ag/price/v2'
 const SOLSCAN_API_URL = process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL;
+const HOLDERSCAN_API_URL = process.env.HOLDERSCAN_API_URL;
+const HOLDERSCAN_API_KEY = process.env.HOLDERSCAN_API_KEY;
 
 // List of known stablecoin addresses
 const STABLECOIN_ADDRESSES = new Set([
@@ -475,7 +477,7 @@ export async function getPortfolioValue(walletAddress: string) {
 
 export async function getTokenInfo(contractAddress: string) {
     try {
-      const [onchainResponse, marketDataResponse] = await Promise.all([
+      const [onchainResponse, marketDataResponse, holderStatsResponse, holderBreakdownResponse, holderDeltasResponse] = await Promise.all([
         fetch(`${COINGECKO_BASE_URL}/onchain/networks/solana/tokens/${contractAddress}/info`, {
           headers: {
             'accept': 'application/json',
@@ -487,12 +489,33 @@ export async function getTokenInfo(contractAddress: string) {
             'accept': 'application/json',
             'x-cg-pro-api-key': COINGECKO_API_KEY!
           },
+        }),
+        fetch(`${HOLDERSCAN_API_URL}/v0/sol/tokens/${contractAddress}/stats`, {
+          headers: {
+            'x-api-key': HOLDERSCAN_API_KEY!,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${HOLDERSCAN_API_URL}/v0/sol/tokens/${contractAddress}/holders/breakdowns`, {
+          headers: {
+            'x-api-key': HOLDERSCAN_API_KEY!,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${HOLDERSCAN_API_URL}/v0/sol/tokens/${contractAddress}/holders/deltas`, {
+          headers: {
+            'x-api-key': HOLDERSCAN_API_KEY!,
+            'Content-Type': 'application/json'
+          }
         })
       ]);
   
       let onchainData: OnChainData | null = null;
       let marketData: MarketData | null = null;
-  
+      let holderStats = null;
+      let holderBreakdown = null;
+      let holderDeltas = null;
+
       if (onchainResponse.ok) {
         const json = await onchainResponse.json();
         onchainData = json.data;
@@ -516,17 +539,34 @@ export async function getTokenInfo(contractAddress: string) {
           twitter: data.links?.twitter_screen_name,
         };
       }
+
+      if (holderStatsResponse.ok) {
+        holderStats = await holderStatsResponse.json();
+      }
+
+      if (holderBreakdownResponse.ok) {
+        holderBreakdown = await holderBreakdownResponse.json();
+      }
+
+      if (holderDeltasResponse.ok) {
+        holderDeltas = await holderDeltasResponse.json();
+      }
   
       if (!onchainResponse.ok && !marketDataResponse.ok) {
         return { error: 'Failed to fetch token information' };
       }
-  
+
       return {
         onchain: onchainData,
         market: marketData,
         status: {
           onchain: onchainResponse.ok,
           market: marketDataResponse.ok
+        },
+        holder_stats: {
+          statistics: holderStats,
+          breakdown: holderBreakdown,
+          deltas: holderDeltas
         }
       };
     } catch (error) {
@@ -1239,5 +1279,154 @@ export async function getWhaleActivity() {
       timeRange: '24h',
       count: 0
     };
+  }
+}
+
+interface HolderBreakdown {
+  total_holders: number;
+  holders_over_10_usd: number;
+  holders_over_100_usd: number;
+  holders_over_1000_usd: number;
+  holders_over_10000_usd: number;
+  holders_over_100k_usd: number;
+  holders_over_1m_usd: number;
+  categories: {
+    shrimp: number;
+    crab: number;
+    fish: number;
+    dolphin: number;
+    whale: number;
+  };
+}
+
+interface TokenStatistics {
+  hhi: number;
+  gini: number;
+  median_holder_position: number;
+  avg_time_held: number | null;
+  retention_rate: number | null;
+}
+
+interface TokenHolder {
+  address: string;
+  amount: number;
+  rank: number;
+}
+
+interface TokenHoldersResponse {
+  holder_count: number;
+  total: number;
+  holders: TokenHolder[];
+}
+
+interface HolderDeltasResponse {
+  '7days': number;
+  '14days': number;
+  '30days': number;
+}
+
+export async function getTokenHolderBreakdown(chainId: string, tokenAddress: string): Promise<HolderBreakdown | null> {
+  try {
+    const response = await fetch(
+      `${HOLDERSCAN_API_URL}/v0/${chainId}/tokens/${tokenAddress}/holders/breakdowns`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.HOLDERSCAN_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch holder breakdown');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching holder breakdown:', error);
+    return null;
+  }
+}
+
+export async function getTokenStatistics(chainId: string, tokenAddress: string): Promise<TokenStatistics | null> {
+  try {
+    const response = await fetch(
+      `${HOLDERSCAN_API_URL}/v0/${chainId}/tokens/${tokenAddress}/stats`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.HOLDERSCAN_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch token statistics');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching token statistics:', error);
+    return null;
+  }
+}
+
+export async function getTokenHolders(
+  chainId: string, 
+  tokenAddress: string, 
+  limit: number = 50, 
+  offset: number = 0,
+  minAmount?: number,
+  maxAmount?: number
+): Promise<TokenHoldersResponse | null> {
+  try {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString(),
+      ...(minAmount && { min_amount: minAmount.toString() }),
+      ...(maxAmount && { max_amount: maxAmount.toString() })
+    });
+
+    const response = await fetch(
+      `${HOLDERSCAN_API_URL}/v0/${chainId}/tokens/${tokenAddress}/holders?${params}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.HOLDERSCAN_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch token holders');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching token holders:', error);
+    return null;
+  }
+}
+
+export async function getHolderDeltas(chainId: string, tokenAddress: string): Promise<HolderDeltasResponse | null> {
+  try {
+    const response = await fetch(
+      `${HOLDERSCAN_API_URL}/v0/${chainId}/tokens/${tokenAddress}/holders/deltas`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.HOLDERSCAN_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch holder deltas');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching holder deltas:', error);
+    return null;
   }
 }

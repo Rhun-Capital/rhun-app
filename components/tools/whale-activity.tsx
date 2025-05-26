@@ -2,7 +2,7 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import CopyButton from '@/components/copy-button';
 import TokenIcon from '@/components/token-icon';
-import { formatAmount, formatAddress } from '@/lib/format';
+import { formatAmount, formatAddress } from '@/utils/format';
 
 interface WhaleActivityProps {
   toolInvocation: any;

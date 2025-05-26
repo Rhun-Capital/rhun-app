@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useSubscription } from '@/hooks/use-subscription';
 import CopyButton from '@/components/copy-button';
 import TrackWalletModal from '@/components/tools/track-wallet-modal';
+import { formatAmount } from '@/utils/format';
 
 interface TrackingFilters {
   minAmount?: number;
@@ -157,11 +158,6 @@ const AccountInfo: React.FC<AccountInfoProps> = ({ toolCallId, toolInvocation })
   const formatSolBalance = (lamports: number): string => {
     const solBalance = (lamports || 0) / 1e9;
     return isNaN(solBalance) ? "0" : solBalance.toFixed(4);
-  };
-
-  // Format amount for token values
-  const formatAmount = (amount: number, decimals: number) => {
-    return (amount / Math.pow(10, decimals)).toFixed(decimals > 6 ? 6 : decimals);
   };
 
   // Get account data once before effect

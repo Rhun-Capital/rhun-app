@@ -7,6 +7,7 @@ import CopyButton from '@/components/copy-button';
 import TrackWalletModal from '@/components/tools/track-wallet-modal';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { formatAmount } from '@/utils/format';
 
 interface TokenHolder {
   owner: string;
@@ -110,10 +111,6 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
     sources: [],
     token: ''
   });
-
-  const formatAmount = (amount: number, decimals: number) => {
-    return (amount / Math.pow(10, decimals)).toFixed(decimals > 6 ? 6 : decimals);
-  };
 
   const handleTrackSuccess = (walletAddress: string) => {
     setTrackedWallets(prev => new Set([...prev, walletAddress]));

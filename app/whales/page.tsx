@@ -7,6 +7,7 @@ import { Copy, Check, User, ChevronDown, ArrowUpRight, ArrowRight, ArrowUp, Arro
 import { formatDistanceToNow } from 'date-fns';
 import { createPortal } from 'react-dom';
 import { useModal } from '@/contexts/modal-context';
+import { formatAmount as utilsFormatAmount, formatExactAmount as utilsFormatExactAmount, formatAddress as utilsFormatAddress } from '@/utils/format';
 
 interface TokenMetadata {
   symbol: string;
@@ -51,58 +52,6 @@ interface WebhookEvent {
   swap_value_usd?: number;
 }
 
-// Update the formatAmount function to default to decimals=0 for human-readable values
-const formatAmount = (amount: number, decimals: number = 0, isUSD: boolean = false) => {
-  if (isUSD) {
-    // Handle amounts in millions (M)
-    if (amount >= 1000000) {
-      const roundedM = Math.round(amount / 1000000);
-      return `$${roundedM}M`;
-    }
-    // Handle amounts in thousands (K)
-    if (amount >= 1000) {
-      const roundedK = Math.round(amount / 1000);
-      return `$${roundedK}K`;
-    }
-    // For amounts under 1000, round to nearest 100
-    if (amount >= 100) {
-      return `$${Math.round(amount / 100) * 100}`;
-    }
-    // For small amounts, show two decimal places
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  }
-
-  // Non-USD formatting (original logic)
-  if (amount < 0.0001 && amount > 0) {
-    return amount.toFixed(8).replace(/\.?0+$/, '');
-  }
-  return amount.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 6
-  });
-};
-
-// First, let's add a new function for exact USD formatting
-const formatExactAmount = (amount: number, isUSD: boolean = false) => {
-  if (isUSD) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  }
-  return amount.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 6
-  });
-};
-
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -128,12 +77,6 @@ function CopyButton({ text }: { text: string }) {
       )}
     </button>
   );
-}
-
-function formatAddress(address?: string | null): string {
-  if (!address || typeof address !== 'string') return '';
-  if (address === 'So11111111111111111111111111111111111111112') return 'Native SOL';
-  return `${address.slice(0, 6)}...${address.slice(-6)}`;
 }
 
 function TokenIcon({ symbol, logoURI }: { symbol: string; logoURI?: string }) {
@@ -223,7 +166,7 @@ function WhaleEventHeader({ event }: { event: WebhookEvent }) {
                   {tokenSymbol?.toUpperCase()} Whale
                 </span>
                 <span className="text-gray-300 text-sm">
-                  {isSellEvent ? 'Sold' : 'Bought'} {formatAmount(displayAmount || 0, 0, true)}
+                  {isSellEvent ? 'Sold' : 'Bought'} {utilsFormatAmount(displayAmount || 0, 0, true)}
                   {isSellEvent ? ` of ${actionToken.metadata?.symbol?.toUpperCase() || actionToken.symbol.toUpperCase()}` : ''}
                 </span>
               </div>
@@ -247,7 +190,7 @@ function WhaleEventHeader({ event }: { event: WebhookEvent }) {
               <div className="flex flex-col">
                 <div>{actionToken.metadata?.symbol?.toUpperCase() || actionToken.symbol.toUpperCase()}</div>
                 {actionToken.metadata?.marketCap && (
-                  <div className="text-xs text-gray-500">{formatAmount(actionToken.metadata.marketCap, 0, true)} Market Cap</div>
+                  <div className="text-xs text-gray-500">{utilsFormatAmount(actionToken.metadata.marketCap, 0, true)} Market Cap</div>
                 )}
               </div>
             </div>
@@ -315,7 +258,6 @@ function WhaleMovementNotification({ event }: { event: WebhookEvent }) {
     </div>
   );
 }
-
 
 // Add global fade-in animation CSS
 // Place this at the top of the file
@@ -461,12 +403,12 @@ function EventAccordion({ event }: { event: WebhookEvent }) {
                   />
                   <div>
                     <div className="font-medium">
-                      {formatAmount(event.fromToken.amount)}
+                      {utilsFormatAmount(event.fromToken.amount)}
                     </div>
                     <div className="text-sm text-gray-400">{getTokenName(event.fromToken)}</div>
                     {event.fromToken.usd_value && (
                       <div className="text-xs text-gray-500">
-                        {formatExactAmount(event.fromToken.usd_value, true)}
+                        {utilsFormatExactAmount(event.fromToken.usd_value, true)}
                       </div>
                     )}
                   </div>
@@ -483,12 +425,12 @@ function EventAccordion({ event }: { event: WebhookEvent }) {
                   />
                   <div>
                     <div className="font-medium">
-                      {formatAmount(event.toToken.amount)}
+                      {utilsFormatAmount(event.toToken.amount)}
                     </div>
                     <div className="text-sm text-gray-400">{getTokenName(event.toToken)}</div>
                     {event.toToken.usd_value && (
                       <div className="text-xs text-gray-500">
-                        {formatExactAmount(event.toToken.usd_value, true)}
+                        {utilsFormatExactAmount(event.toToken.usd_value, true)}
                       </div>
                     )}
                   </div>
@@ -503,7 +445,7 @@ function EventAccordion({ event }: { event: WebhookEvent }) {
                 <div className="text-xs text-gray-500 flex items-center gap-1">
                   <User className="h-3 w-3" />
                   <div className="flex items-center gap-1 text-gray-400 text-xs whitespace-nowrap">
-                    <span className="truncate">{formatAddress(event.holder_address)}</span>
+                    <span className="truncate">{utilsFormatAddress(event.holder_address)}</span>
                     {event.holder_address && <CopyButton text={event.holder_address} />}
                   </div>
                 </div>
@@ -808,10 +750,10 @@ function AnalysisPanel({ events }: { events: WebhookEvent[] }) {
 4. Risk assessment of following these trades
 
 Key Stats:
-- Total Volume: ${formatAmount(stats.totalVolume, 0, true)}
+- Total Volume: ${utilsFormatAmount(stats.totalVolume, 0, true)}
 - Active Whales: ${stats.uniqueWhales.size}
-- Most Bought: ${topBoughtTokens.map(([symbol, data]) => `${symbol} (${formatAmount(data.volume, 0, true)})`).join(', ')}
-- Most Sold: ${topSoldTokens.map(([symbol, data]) => `${symbol} (${formatAmount(data.volume, 0, true)})`).join(', ')}
+- Most Bought: ${topBoughtTokens.map(([symbol, data]) => `${symbol} (${utilsFormatAmount(data.volume, 0, true)})`).join(', ')}
+- Most Sold: ${topSoldTokens.map(([symbol, data]) => `${symbol} (${utilsFormatAmount(data.volume, 0, true)})`).join(', ')}
 
 Provide actionable insights for traders looking to identify early opportunities.`;
       
@@ -1060,7 +1002,7 @@ Provide actionable insights for traders looking to identify early opportunities.
                                   {whaleTokenSymbol.toUpperCase()} Whale
                                 </span>
                                 <span className="text-gray-400 text-xs flex items-center gap-1">
-                                  {formatAddress(addressStr)}
+                                  {utilsFormatAddress(addressStr)}
                                   {addressStr && <CopyButton text={addressStr} />}
                                 </span>
                               </div>
@@ -1101,7 +1043,7 @@ Provide actionable insights for traders looking to identify early opportunities.
                     </div>
                     <div className="text-right">
                       <div className="font-medium text-white">
-                        {formatAmount(stats.volume, 0, true)}
+                        {utilsFormatAmount(stats.volume, 0, true)}
                       </div>
                       <div className="text-xs text-zinc-400">
                         {stats.tokens.size} tokens traded
@@ -1127,7 +1069,7 @@ Provide actionable insights for traders looking to identify early opportunities.
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-emerald-400">
-                          {formatAmount(data.volume, 0, true)}
+                          {utilsFormatAmount(data.volume, 0, true)}
                         </div>
                       </div>
                     </div>
@@ -1147,7 +1089,7 @@ Provide actionable insights for traders looking to identify early opportunities.
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-red-400">
-                          {formatAmount(data.volume, 0, true)}
+                          {utilsFormatAmount(data.volume, 0, true)}
                         </div>
                       </div>
                     </div>
@@ -1227,7 +1169,7 @@ function TradeDetailModal({
                       {(event.holder_mapping?.token_symbol || event.tracked_token?.symbol || '').toUpperCase()} Whale
                     </span>
                     <div className="flex items-center gap-1 text-gray-400 text-sm">
-                      <span className="truncate">{formatAddress(event.holder_address)}</span>
+                      <span className="truncate">{utilsFormatAddress(event.holder_address)}</span>
                       {event.holder_address && <CopyButton text={event.holder_address} />}
                     </div>
                   </div>
@@ -1263,7 +1205,7 @@ function TradeDetailModal({
                 {/* Value */}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">Value</span>
-                  <span className="font-medium">{formatAmount(tradeValue, 0, true)}</span>
+                  <span className="font-medium">{utilsFormatAmount(tradeValue, 0, true)}</span>
                 </div>
 
                 {/* Time */}
@@ -1287,12 +1229,12 @@ function TradeDetailModal({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400">Amount</span>
-                      <span>{formatAmount(event.fromToken.amount)} {fromTokenSymbol}</span>
+                      <span>{utilsFormatAmount(event.fromToken.amount)} {fromTokenSymbol}</span>
                     </div>
                     {event.fromToken.usd_value && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">USD Value</span>
-                        <span>{formatExactAmount(event.fromToken.usd_value, true)}</span>
+                        <span>{utilsFormatExactAmount(event.fromToken.usd_value, true)}</span>
                       </div>
                     )}
                   </div>
@@ -1310,12 +1252,12 @@ function TradeDetailModal({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400">Amount</span>
-                      <span>{formatAmount(event.toToken.amount)} {toTokenSymbol}</span>
+                      <span>{utilsFormatAmount(event.toToken.amount)} {toTokenSymbol}</span>
                     </div>
                     {event.toToken.usd_value && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">USD Value</span>
-                        <span>{formatExactAmount(event.toToken.usd_value, true)}</span>
+                        <span>{utilsFormatExactAmount(event.toToken.usd_value, true)}</span>
                       </div>
                     )}
                   </div>
@@ -1401,7 +1343,7 @@ function EventsTable({ events }: { events: WebhookEvent[] }) {
                             {(event.holder_mapping?.token_symbol || event.tracked_token?.symbol || '').toUpperCase()} Whale
                           </span>
                           <div className="flex items-center gap-1 text-gray-400 text-xs whitespace-nowrap">
-                            <span className="truncate">{formatAddress(event.holder_address)}</span>
+                            <span className="truncate">{utilsFormatAddress(event.holder_address)}</span>
                             {event.holder_address && <CopyButton text={event.holder_address} />}
                           </div>
                         </div>
@@ -1424,9 +1366,9 @@ function EventsTable({ events }: { events: WebhookEvent[] }) {
                         logoURI={event.fromToken.metadata?.logoURI}
                       />
                       <div>
-                        <div>{formatAmount(event.fromToken.amount)} {fromTokenSymbol}</div>
+                        <div>{utilsFormatAmount(event.fromToken.amount)} {fromTokenSymbol}</div>
                         <div className="text-xs text-gray-400">
-                          {event.fromToken.usd_value ? formatAmount(event.fromToken.usd_value, 0, true) : '-'}
+                          {event.fromToken.usd_value ? utilsFormatExactAmount(event.fromToken.usd_value, true) : '-'}
                         </div>
                       </div>
                     </div>
@@ -1438,15 +1380,15 @@ function EventsTable({ events }: { events: WebhookEvent[] }) {
                         logoURI={event.toToken.metadata?.logoURI}
                       />
                       <div>
-                        <div>{formatAmount(event.toToken.amount)} {toTokenSymbol}</div>
+                        <div>{utilsFormatAmount(event.toToken.amount)} {toTokenSymbol}</div>
                         <div className="text-xs text-gray-400">
-                          {event.toToken.usd_value ? formatAmount(event.toToken.usd_value, 0, true) : '-'}
+                          {event.toToken.usd_value ? utilsFormatExactAmount(event.toToken.usd_value, true) : '-'}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {formatAmount(tradeValue, 0, true)}
+                    {utilsFormatAmount(tradeValue, 0, true)}
                   </td>
                   <td className="px-4 py-3">
                     <a 
