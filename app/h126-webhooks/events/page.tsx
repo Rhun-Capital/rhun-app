@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import { Copy, Check, User, ChevronDown, ArrowUpRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { formatAmount, formatAddress } from '@/utils/format';
 
 interface TokenMetadata {
   symbol: string;
@@ -48,26 +49,6 @@ interface WebhookEvent {
   swap_value_usd?: number;
 }
 
-// Update the formatAmount function to default to decimals=0 for human-readable values
-const formatAmount = (amount: number, decimals: number = 0, isUSD: boolean = false) => {
-  if (isUSD) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  }
-  // No division by decimals, just format as a number
-  if (amount < 0.0001 && amount > 0) {
-    return amount.toFixed(8).replace(/\.?0+$/, '');
-  }
-  return amount.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 6
-  });
-};
-
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -93,12 +74,6 @@ function CopyButton({ text }: { text: string }) {
       )}
     </button>
   );
-}
-
-function formatAddress(address?: string): string {
-  if (!address) return '';
-  if (address === 'So11111111111111111111111111111111111111112') return 'Native SOL';
-  return `${address.slice(0, 6)}...${address.slice(-6)}`;
 }
 
 function TokenIcon({ symbol, logoURI }: { symbol: string; logoURI?: string }) {

@@ -6,16 +6,12 @@ import type { DragEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
-import Image from "next/image";
 import { Markdown } from "@/components/markdown";
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import type { Message } from '@ai-sdk/ui-utils';
-import { debounce, set } from 'lodash';
-import { v4 as uuidv4 } from 'uuid';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { createPortal } from 'react-dom';
-import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
+
 
 // Define custom types for tool invocations
 interface ToolResult {
@@ -124,15 +120,10 @@ import TokenHoldings from "@/components/tools/token-holdings";
 import FearAndGreedIndex from "@/components/tools/fear-and-greed-index";
 import SolanaTransactionVolume from "@/components/tools/solana-transaction-volume";
 import AccountInfo from "@/components/tools/account-info";
-import TrendingCoins from "@/components/tools/trending-searches";
-// import TrendingSolanaTokens from "@/components/tools/trending-solana-tokens";
 import TopNFTsResults from "@/components/tools/top-nfts";
-import SwapComponent from "@/components/tools/swap-component";
 import ExecuteSwap from "@/components/tools/execute-swap";
 import RecentDexScreenerTokens from "@/components/tools/recent-dexscreener-tokens";
 import RecentNews from "@/components/tools/recent-news";
-import StockAnalysis from "@/components/tools/stock-analysis";
-import OptionsAnalysis from "@/components/tools/options-analysis";
 import NewsAnalysis from "@/components/tools/news-analysis";
 import WebResearch from "@/components/tools/web-research";
 import TradingViewChart from "@/components/tools/tradingview-chart";
@@ -147,7 +138,6 @@ import { getToolDisplayName, generateToolDescription, getToolIcon } from '@/app/
 // Icons
 import { 
   XIcon, 
-  MenuIcon, 
   RefreshCcw, 
   SendIcon, 
   QrCode, 
@@ -182,8 +172,7 @@ import {
   ChevronDown,
   CheckIcon,
   Repeat2,
-  FileImage as AttachmentIcon,
-  RefreshCw
+  FileImage as AttachmentIcon
 } from "lucide-react";
 
 import { useWalletData } from '@/app/hooks/useWalletData';
@@ -1030,15 +1019,6 @@ function HomeContent() {
       case 'getCryptoNews':
         return wrappedTool(
           <RecentNews key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-        );
-      case 'stockAnalysis':
-        return wrappedTool(
-          <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-        );
-      
-      case 'optionsAnalysis':
-        return wrappedTool(
-          <OptionsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
         );
       
       case 'newsAnalysis':

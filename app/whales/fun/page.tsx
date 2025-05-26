@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { ChevronDown, ArrowUpRight, User, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import './styles.css';
+import { formatAmount, formatAddress } from '@/utils/format';
 
 // Holographic Card Component
 const HolographicCard = ({ children, className = '', style }: { children: React.ReactNode, className?: string, style?: React.CSSProperties }) => {
@@ -188,31 +189,6 @@ function WhaleMovementNotification({ event }: { event: WebhookEvent }) {
       </span>
     </div>
   );
-}
-
-// Update formatAmount function
-const formatAmount = (amount: number, decimals: number = 0, isUSD: boolean = false) => {
-  if (isUSD) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  }
-  if (amount < 0.0001 && amount > 0) {
-    return amount.toFixed(8).replace(/\.?0+$/, '');
-  }
-  return amount.toLocaleString('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 6
-  });
-};
-
-function formatAddress(address?: string): string {
-  if (!address) return '';
-  if (address === 'So11111111111111111111111111111111111111112') return 'Native SOL';
-  return `${address.slice(0, 6)}...${address.slice(-6)}`;
 }
 
 function CopyButton({ text }: { text: string }) {

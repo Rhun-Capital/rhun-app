@@ -4,6 +4,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import CopyButton from '@/components/copy-button';
+import { 
+  getTokenStatistics, 
+  getTokenHolderBreakdown, 
+  getHolderDeltas 
+} from '@/utils/agent-tools';
 
 interface Coin {
   id: string;
@@ -41,6 +46,36 @@ interface CoinDetail {
   };
   market_cap_rank: number;
   last_updated: string;
+  holder_stats?: {
+    statistics: {
+      hhi: number;
+      gini: number;
+      median_holder_position: number;
+      avg_time_held: number | null;
+      retention_rate: number | null;
+    };
+    breakdown: {
+      total_holders: number;
+      holders_over_10_usd: number;
+      holders_over_100_usd: number;
+      holders_over_1000_usd: number;
+      holders_over_10000_usd: number;
+      holders_over_100k_usd: number;
+      holders_over_1m_usd: number;
+      categories: {
+        shrimp: number;
+        crab: number;
+        fish: number;
+        dolphin: number;
+        whale: number;
+      };
+    };
+    deltas: {
+      '7days': number;
+      '14days': number;
+      '30days': number;
+    };
+  };
 }
 
 const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ toolCallId, toolInvocation }) => {
@@ -74,8 +109,10 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
         }
       });
       if (!response.ok) throw new Error('Failed to fetch coin details');
-      setSelectedCoin(await response.json());
+      const coinData = await response.json();
+      setSelectedCoin(coinData);
     } catch (err) {
+      console.error('Error fetching coin details:', err);
       setError('Failed to load coin details');
     } finally {
       setIsLoading(false);
@@ -154,6 +191,95 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
           ))}
         </div>
 
+        {/* Add Holder Statistics section after Market data */}
+        {selectedCoin.holder_stats && (
+          <>
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Statistics</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-xs sm:text-sm text-zinc-500">Average Time Held</div>
+                  <div className="text-sm sm:text-lg font-semibold text-white">
+                    {selectedCoin.holder_stats.statistics?.avg_time_held 
+                      ? `${Math.floor(selectedCoin.holder_stats.statistics.avg_time_held / 86400)} days`
+                      : 'N/A'}
+                  </div>
+                </div>
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-xs sm:text-sm text-zinc-500">Retention Rate</div>
+                  <div className="text-sm sm:text-lg font-semibold text-white">
+                    {selectedCoin.holder_stats.statistics?.retention_rate !== null && selectedCoin.holder_stats.statistics?.retention_rate !== undefined
+                      ? `${(Number(selectedCoin.holder_stats.statistics.retention_rate) * 100).toFixed(1)}%`
+                      : 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Distribution</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-xs sm:text-sm text-zinc-500">Total Holders</div>
+                  <div className="text-sm sm:text-lg font-semibold text-white">
+                    {selectedCoin.holder_stats.breakdown?.total_holders !== null && selectedCoin.holder_stats.breakdown?.total_holders !== undefined
+                      ? Number(selectedCoin.holder_stats.breakdown.total_holders).toLocaleString()
+                      : 'N/A'}
+                  </div>
+                </div>
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-xs sm:text-sm text-zinc-500">Whales ({'>'}$100k)</div>
+                  <div className="text-sm sm:text-lg font-semibold text-white">
+                    {selectedCoin.holder_stats.breakdown?.holders_over_100k_usd !== null && selectedCoin.holder_stats.breakdown?.holders_over_100k_usd !== undefined
+                      ? Number(selectedCoin.holder_stats.breakdown.holders_over_100k_usd).toLocaleString()
+                      : 'N/A'}
+                  </div>
+                </div>
+                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                  <div className="text-xs sm:text-sm text-zinc-500">Dolphins ({'>'}$10k)</div>
+                  <div className="text-sm sm:text-lg font-semibold text-white">
+                    {selectedCoin.holder_stats.breakdown?.holders_over_10000_usd !== null && selectedCoin.holder_stats.breakdown?.holders_over_10000_usd !== undefined
+                      ? Number(selectedCoin.holder_stats.breakdown.holders_over_10000_usd).toLocaleString()
+                      : 'N/A'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {selectedCoin.holder_stats.deltas && (
+              <div className="mt-4 sm:mt-6">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Changes</h3>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-zinc-500">7 Days</div>
+                    <div className={`text-sm sm:text-lg font-semibold ${(selectedCoin.holder_stats.deltas['7days'] || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {selectedCoin.holder_stats.deltas['7days'] !== undefined
+                        ? `${selectedCoin.holder_stats.deltas['7days'] >= 0 ? '+' : ''}${Number(selectedCoin.holder_stats.deltas['7days']).toLocaleString()}`
+                        : 'N/A'}
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-zinc-500">14 Days</div>
+                    <div className={`text-sm sm:text-lg font-semibold ${(selectedCoin.holder_stats.deltas['14days'] || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {selectedCoin.holder_stats.deltas['14days'] !== undefined
+                        ? `${selectedCoin.holder_stats.deltas['14days'] >= 0 ? '+' : ''}${Number(selectedCoin.holder_stats.deltas['14days']).toLocaleString()}`
+                        : 'N/A'}
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-zinc-500">30 Days</div>
+                    <div className={`text-sm sm:text-lg font-semibold ${(selectedCoin.holder_stats.deltas['30days'] || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {selectedCoin.holder_stats.deltas['30days'] !== undefined
+                        ? `${selectedCoin.holder_stats.deltas['30days'] >= 0 ? '+' : ''}${Number(selectedCoin.holder_stats.deltas['30days']).toLocaleString()}`
+                        : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Description */}
         {selectedCoin.description?.en && (
           <div className="mt-4 sm:mt-6">
@@ -189,8 +315,18 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
 
         {/* Footer */}
         <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center mt-4 pt-4 border-t border-zinc-700">
-          <div className="text-xs text-zinc-500 order-2 sm:order-1">
-            Last updated: {new Date(selectedCoin.last_updated).toLocaleString()}
+          <div className="flex flex-col gap-1 text-xs text-zinc-500 order-2 sm:order-1">
+            <div>Last updated: {new Date(selectedCoin.last_updated).toLocaleString()}</div>
+            <div className="flex gap-2">
+              <span>Powered by</span>
+              <Link href="https://www.coingecko.com" target="_blank" className="text-zinc-400 hover:text-zinc-300">CoinGecko</Link>
+              {selectedCoin.holder_stats && (
+                <>
+                  <span>and</span>
+                  <Link href="https://holderscan.com" target="_blank" className="text-zinc-400 hover:text-zinc-300">HolderScan</Link>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex gap-4 order-1 sm:order-2">
             {selectedCoin.links.homepage[0] && (

@@ -57,6 +57,36 @@ interface TokenData {
     onchain: boolean;
     market: boolean;
   };
+  holder_stats?: {
+    statistics: {
+      hhi: number;
+      gini: number;
+      median_holder_position: number;
+      avg_time_held: number | null;
+      retention_rate: number | null;
+    } | null;
+    breakdown: {
+      total_holders: number;
+      holders_over_10_usd: number;
+      holders_over_100_usd: number;
+      holders_over_1000_usd: number;
+      holders_over_10000_usd: number;
+      holders_over_100k_usd: number;
+      holders_over_1m_usd: number;
+      categories: {
+        shrimp: number;
+        crab: number;
+        fish: number;
+        dolphin: number;
+        whale: number;
+      };
+    } | null;
+    deltas: {
+      '7days': number;
+      '14days': number;
+      '30days': number;
+    } | null;
+  };
 }
 
 interface ToolInvocation {
@@ -84,7 +114,8 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
     );
   }
 
-  const { market, onchain, status } = toolInvocation.result as TokenData;
+  const result = toolInvocation.result as TokenData;
+  const { market, onchain, status } = result;
 
   if (!market && !onchain) {
     return (
@@ -98,7 +129,6 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
   }
 
   const onchainAttributes = onchain?.attributes;
-
 
   return (
     <div key={toolCallId} className="p-4 sm:p-6 bg-zinc-800 rounded-lg space-y-4">
@@ -190,17 +220,94 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
         </div>
 
         {onchainAttributes && (
-            <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg col-span-1 sm:col-span-2 flex justify-between items-center">
+          <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg col-span-1 sm:col-span-2 flex justify-between items-center">
             <div>
               <div className="text-xs sm:text-sm text-zinc-400">Contract Address</div>
               <div className="text-xs sm:text-sm font-semibold text-zinc-300 break-all truncate">
-              {onchainAttributes.address}
+                {onchainAttributes.address}
               </div>
             </div>
             <CopyButton text={onchainAttributes.address}/>
-            </div>
+          </div>
         )}
       </div>
+
+      {/* Holder Statistics */}
+      {result.holder_stats && (
+        <>
+          <div className="mt-4 sm:mt-6">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Statistics</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                <div className="text-xs sm:text-sm text-zinc-500">Average Time Held</div>
+                <div className="text-sm sm:text-lg font-semibold text-white">
+                  {result.holder_stats.statistics?.avg_time_held 
+                    ? `${Math.floor(result.holder_stats.statistics.avg_time_held / 86400)} days`
+                    : 'N/A'}
+                </div>
+              </div>
+              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                <div className="text-xs sm:text-sm text-zinc-500">Retention Rate</div>
+                <div className="text-sm sm:text-lg font-semibold text-white">
+                  {result.holder_stats.statistics?.retention_rate !== null && result.holder_stats.statistics?.retention_rate !== undefined
+                    ? `${(Number(result.holder_stats.statistics.retention_rate) * 100).toFixed(1)}%`
+                    : 'N/A'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 sm:mt-6">
+            <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Distribution</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                <div className="text-xs sm:text-sm text-zinc-500">Total Holders</div>
+                <div className="text-sm sm:text-lg font-semibold text-white">
+                  {result.holder_stats.breakdown?.total_holders !== null && result.holder_stats.breakdown?.total_holders !== undefined
+                    ? Number(result.holder_stats.breakdown.total_holders).toLocaleString()
+                    : 'N/A'}
+                </div>
+              </div>
+              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                <div className="text-xs sm:text-sm text-zinc-500">Whales ({'>'}$100k)</div>
+                <div className="text-sm sm:text-lg font-semibold text-white">
+                  {result.holder_stats.breakdown?.holders_over_100k_usd !== null && result.holder_stats.breakdown?.holders_over_100k_usd !== undefined
+                    ? Number(result.holder_stats.breakdown.holders_over_100k_usd).toLocaleString()
+                    : 'N/A'}
+                </div>
+              </div>
+              <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                <div className="text-xs sm:text-sm text-zinc-500">Dolphins ({'>'}$10k)</div>
+                <div className="text-sm sm:text-lg font-semibold text-white">
+                  {result.holder_stats.breakdown?.holders_over_10000_usd !== null && result.holder_stats.breakdown?.holders_over_10000_usd !== undefined
+                    ? Number(result.holder_stats.breakdown.holders_over_10000_usd).toLocaleString()
+                    : 'N/A'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {result.holder_stats.deltas && (
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Changes</h3>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                {[
+                  { label: '7 Days', value: result.holder_stats.deltas['7days'] },
+                  { label: '14 Days', value: result.holder_stats.deltas['14days'] },
+                  { label: '30 Days', value: result.holder_stats.deltas['30days'] }
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-zinc-500">{label}</div>
+                    <div className={`text-sm sm:text-lg font-semibold ${value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {value > 0 ? '+' : ''}{value.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Description */}
       {market?.description && (
@@ -241,6 +348,10 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
           Note: Using on-chain data. Some market data may be limited.
         </div>
       )}
+
+      <div className="text-xs text-zinc-500 mt-4">
+        Data powered by CoinGecko and HolderScan
+      </div>
     </div>
   );
 };

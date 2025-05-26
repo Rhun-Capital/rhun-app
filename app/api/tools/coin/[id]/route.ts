@@ -3,6 +3,78 @@ import { NextResponse } from 'next/server';
 
 const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
 const COINGECKO_BASE_URL = process.env.COINGECKO_BASE_URL;
+const HOLDERSCAN_API_URL = process.env.HOLDERSCAN_API_URL;
+const HOLDERSCAN_API_KEY = process.env.HOLDERSCAN_API_KEY;
+
+async function getHolderStats(tokenAddress: string) {
+  try {
+    if (!HOLDERSCAN_API_KEY) {
+      console.error('HOLDERSCAN_API_KEY is not configured');
+      return null;
+    }
+
+    const [statsResponse, breakdownResponse, deltasResponse] = await Promise.all([
+      fetch(
+        `${HOLDERSCAN_API_URL}/v0/sol/tokens/${tokenAddress}/stats`,
+        {
+          headers: {
+            'x-api-key': HOLDERSCAN_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      ),
+      fetch(
+        `${HOLDERSCAN_API_URL}/v0/sol/tokens/${tokenAddress}/holders/breakdowns`,
+        {
+          headers: {
+            'x-api-key': HOLDERSCAN_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      ),
+      fetch(
+        `${HOLDERSCAN_API_URL}/v0/sol/tokens/${tokenAddress}/holders/deltas`,
+        {
+          headers: {
+            'x-api-key': HOLDERSCAN_API_KEY,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+    ]);
+
+    let stats = null;
+    let breakdown = null;
+    let deltas = null;
+
+    if (statsResponse.ok) {
+      stats = await statsResponse.json();
+    } else {
+      console.error('Stats error:', await statsResponse.text());
+    }
+
+    if (breakdownResponse.ok) {
+      breakdown = await breakdownResponse.json();
+    } else {
+      console.error('Breakdown error:', await breakdownResponse.text());
+    }
+
+    if (deltasResponse.ok) {
+      deltas = await deltasResponse.json();
+    } else {
+      console.error('Deltas error:', await deltasResponse.text());
+    }
+
+    return {
+      statistics: stats,
+      breakdown: breakdown,
+      deltas: deltas
+    };
+  } catch (error) {
+    console.error('Error fetching holder stats:', error);
+    return null;
+  }
+}
 
 export async function GET(
   request: Request,
@@ -33,44 +105,18 @@ export async function GET(
 
     const data = await response.json();
 
-    const formattedData = {
-      id: data.id,
-      name: data.name,
-      symbol: data.symbol,
-      description: {
-        en: data.description?.en
-      },
-      platforms: data.platforms || {},
-      contracts: data.detail_platforms || {},
-      market_data: {
-        current_price: {
-          usd: data.market_data?.current_price?.usd
-        },
-        price_change_percentage_24h: data.market_data?.price_change_percentage_24h,
-        price_change_percentage_7d: data.market_data?.price_change_percentage_7d,
-        price_change_percentage_30d: data.market_data?.price_change_percentage_30d,
-        market_cap: {
-          usd: data.market_data?.market_cap?.usd
-        },
-        total_volume: {
-          usd: data.market_data?.total_volume?.usd
-        },
-        circulating_supply: data.market_data?.circulating_supply,
-        total_supply: data.market_data?.total_supply
-      },
-      image: {
-        large: data.image?.large
-      },
-      links: {
-        homepage: data.links?.homepage,
-        twitter_screen_name: data.links?.twitter_screen_name
-      },
-      last_updated: data.last_updated
-    };
+    // Check if the token has a Solana platform address
+    let holderStats = null;
+    if (data.platforms && data.platforms.solana) {
+      holderStats = await getHolderStats(data.platforms.solana);
+    }
 
-    return NextResponse.json(formattedData);
+    return NextResponse.json({
+      ...data,
+      holder_stats: holderStats
+    });
   } catch (error) {
-    console.error('Error fetching coin details:', error);
+    console.error('Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch coin details' },
       { status: 500 }

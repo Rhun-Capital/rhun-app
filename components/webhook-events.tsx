@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { formatAmount } from '@/utils/format';
 
 interface WebhookEvent {
   signature: string;
@@ -76,14 +77,6 @@ export function WebhookEvents() {
     }
   };
 
-  const formatAmount = (amount?: number) => {
-    if (amount === undefined) return '';
-    return amount.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 6
-    });
-  };
-
   return (
     <div className="p-4 bg-white rounded-lg shadow-lg">
       <h2 className="text-xl font-semibold mb-4">Webhook Events</h2>
@@ -113,7 +106,7 @@ export function WebhookEvents() {
               {event.tokenInfo.fromToken && (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-500">From:</span>
-                  <span>{formatAmount(event.tokenInfo.fromToken.amount)}</span>
+                  <span>{event.tokenInfo.fromToken.amount ? formatAmount(event.tokenInfo.fromToken.amount) : '-'}</span>
                   <span>{event.fromTokenMetadata?.symbol || event.tokenInfo.fromToken.symbol}</span>
                 </div>
               )}
@@ -121,7 +114,7 @@ export function WebhookEvents() {
               {event.tokenInfo.toToken && (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-500">To:</span>
-                  <span>{formatAmount(event.tokenInfo.toToken.amount)}</span>
+                  <span>{event.tokenInfo.toToken.amount ? formatAmount(event.tokenInfo.toToken.amount) : '-'}</span>
                   <span>{event.toTokenMetadata?.symbol || event.tokenInfo.toToken.symbol}</span>
                 </div>
               )}
