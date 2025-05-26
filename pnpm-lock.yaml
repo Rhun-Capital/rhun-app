@@ -220,6 +220,9 @@ devDependencies:
   '@types/aws-lambda':
     specifier: ^8.10.147
     version: 8.10.147
+  '@types/d3-array':
+    specifier: ^3.2.1
+    version: 3.2.1
   '@types/lodash':
     specifier: ^4.17.14
     version: 4.17.14
@@ -5885,7 +5888,6 @@ packages:
 
   /@types/d3-array@3.2.1:
     resolution: {integrity: sha512-Y2Jn2idRrLzUfAKV2LyRImR+y4oa2AntrgID95SHJxuMUrkNXmanDSed71sRNZysveJVt1hLLemQZIady0FpEg==}
-    dev: false
 
   /@types/d3-color@3.1.0:
     resolution: {integrity: sha512-HKuicPHJuvPgCD+np6Se9MQvS6OCbJmOjGvylzMJRlDwUXjKTTXs6Pwgk79O09Vj/ho3u1ofXnhFOaEWWPrlwA==}
