@@ -299,7 +299,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
                   <div key={label} className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
                     <div className="text-xs sm:text-sm text-zinc-500">{label}</div>
                     <div className={`text-sm sm:text-lg font-semibold ${value >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {value > 0 ? '+' : ''}{value.toLocaleString()}
+                      {value !== null && value !== undefined ? `${value > 0 ? '+' : ''}${value.toLocaleString()}` : 'N/A'}
                     </div>
                   </div>
                 ))}

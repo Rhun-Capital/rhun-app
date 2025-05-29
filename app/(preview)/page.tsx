@@ -1437,13 +1437,18 @@ function HomeContent() {
         
         // Run the save operation after a delay
         const timeoutId = setTimeout(() => {
-          memoizedUpdateChatInDB(messages);
+          // Wrap in a try-catch to prevent any errors during state updates
+          try {
+            memoizedUpdateChatInDB(messages);
+          } catch (error) {
+            console.error('Error updating chat:', error);
+          }
         }, 1000);
         
         return () => clearTimeout(timeoutId);
       }
     }
-  }, [messages, agent]);
+  }, [messages, agent, memoizedUpdateChatInDB]);
 
   const getAgent = async () => {
     try {

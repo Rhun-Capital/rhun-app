@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { MenuIcon, CloseIcon} from './icons';
 import {HomeIcon, EyeIcon, CircleUser, ChartArea, BotIcon, LayoutGrid, BookIcon, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
-import { getAccessToken, usePrivy } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
 import { RecentChats } from './recent-chats-component';
 import Image from 'next/image';
