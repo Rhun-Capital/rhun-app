@@ -12,6 +12,7 @@ interface ReceiveModalProps {
   isOpen: boolean;
   agent: { wallets: { solana: string } };
   onClose: () => void;
+  selectedWalletAddress?: string | null;
 }
 
 // Modal portal component to ensure modal is rendered at the document root
@@ -26,14 +27,14 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
   return mounted ? createPortal(children, document.body) : null;
 };
 
-const ReceiveModal = ({ isOpen, agent, onClose }: ReceiveModalProps) => {
+const ReceiveModal = ({ isOpen, agent, onClose, selectedWalletAddress }: ReceiveModalProps) => {
   const { wallets: solanaWallets } = useSolanaWallets();
   const params = useParams();
   const pathname = usePathname();
   
-  // For template agents, use the first wallet from useSolanaWallets
+  // For template agents, use the selectedWalletAddress if provided, otherwise fall back to first wallet
   const activeWallet = params.userId === 'template' || pathname === '/' 
-    ? solanaWallets[0]?.address 
+    ? selectedWalletAddress || solanaWallets[0]?.address 
     : agent?.wallets?.solana;
 
   const [copied, setCopied] = useState(false);
