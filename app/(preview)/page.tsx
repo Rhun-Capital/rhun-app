@@ -612,9 +612,9 @@ const WalletContent = memo(({
         {/* Actions Section - Moved above the asset list */}
         <div className="flex gap-3 justify-center">
           <button 
-            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || tokens.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || (!totalValue && tokens.length === 0)) ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => setIsTransferModalOpen(true)}
-            disabled={initialLoading || !totalValue || tokens.length === 0}
+            disabled={initialLoading || (!totalValue && tokens.length === 0)}
           >
             <SendIcon className="w-4 h-4" />
             Send
@@ -630,9 +630,9 @@ const WalletContent = memo(({
           </button>
           
           <button 
-            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || !totalValue || tokens.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-4 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 transition-colors flex items-center gap-2 ${(initialLoading || (!totalValue && tokens.length === 0)) ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={() => setIsSwapModalOpen(true)}
-            disabled={initialLoading || !totalValue || tokens.length === 0}
+            disabled={initialLoading || (!totalValue && tokens.length === 0)}
           >
             <Repeat2 className="w-4 h-4" />
             Swap
@@ -789,6 +789,7 @@ const WalletContent = memo(({
             agent={{
               wallets: { solana: activeWallet }
             }}
+            selectedWalletAddress={selectedWalletAddress}
           />
           
           <SwapModal
