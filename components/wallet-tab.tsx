@@ -528,6 +528,7 @@ useEffect(() => {
             isOpen={isTransferModalOpen}
             onClose={() => setIsTransferModalOpen(false)}
             tokens={tokens.data}
+            token="SOL"
             solanaBalance= {{
               amount: portfolio && portfolio.holdings[0].amount,
               usdValue: portfolio &&  portfolio.holdings[0].usdValue,
@@ -542,6 +543,7 @@ useEffect(() => {
             isOpen={isSwapModalOpen}
             onClose={() => setIsSwapModalOpen(false)}
             tokens={tokens.data}
+            token="SOL"
             solanaBalance= {{
               amount: portfolio && portfolio.holdings[0].amount,
               usdValue:portfolio &&  portfolio.holdings[0].usdValue,

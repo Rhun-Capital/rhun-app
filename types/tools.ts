@@ -5,6 +5,7 @@ import { Category } from './market';
 import { AccountData } from './account';
 import { TaskProps } from './task';
 import { BrowserUseResultProps } from './components';
+import { MarketData } from './market';
 
 export interface Tool {
   name: string;
@@ -146,4 +147,58 @@ export interface ExtendedBrowserUseResultProps extends BrowserUseResultProps {
     result?: TaskData;
     state: ToolInvocationState;
   };
+}
+
+export interface FilterState {
+  startTime: string;
+  endTime: string;
+  activityTypes: string[];
+  from: string;
+  platforms: string[];
+  sources: string[];
+  token: string;
+}
+
+export interface OnChainData {
+  attributes?: {
+    address: string;
+    name?: string;
+    symbol?: string;
+    image_url?: string;
+    price_usd?: string;
+    market_cap_usd?: string;
+    volume_usd?: {
+      h24: string;
+    };
+    total_supply?: string;
+    total_reserve_in_usd?: string;
+  };
+}
+
+export interface HolderStats {
+  statistics?: {
+    avg_time_held: number;
+    retention_rate: number;
+  };
+  breakdown?: {
+    total_holders: number;
+    holders_over_100k_usd: number;
+    holders_over_10000_usd: number;
+  };
+  deltas?: {
+    [key: string]: number;
+  };
+}
+
+export interface TokenInfoData {
+  market?: MarketData;
+  onchain?: OnChainData;
+  status?: string;
+  holder_stats?: HolderStats;
+}
+
+export interface ToolInvocation {
+  toolName: string;
+  args: { message: string };
+  result?: any;
 } 

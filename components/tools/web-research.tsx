@@ -3,24 +3,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { Markdown } from "@/components/markdown";
 import { toast } from "sonner"; 
-import { BrowserUseResultProps as BaseBrowserUseResultProps } from '@/types/tools';
+import { BrowserUseResultProps } from '@/types/components';
 
 interface TaskData {
   taskId: string;
   status: string;
+  result?: any;
+  error?: string;
+  created_at: string;
+  updated_at: string;
   steps?: any[];
   liveUrl?: string;
   live_url?: string;
   finished_at?: string;
-  error?: string;
+  output?: string;
   toolName?: string;
   args?: any;
-  output?: string;
 }
 
 type PartialTaskData = Partial<TaskData>;
 
-interface ExtendedBrowserUseResultProps extends BaseBrowserUseResultProps {
+interface ExtendedBrowserUseResultProps extends BrowserUseResultProps {
   toolCallId: string;
   toolInvocation: {
     result?: PartialTaskData;
@@ -290,10 +293,10 @@ export default function BrowserUseResult({ toolCallId, toolInvocation, className
       }
       
       // Update local state immediately
-      setData((prev: typeof data) => ({
+      setData((prev) => prev ? {
         ...prev,
         status: 'paused'
-      }));
+      } : { status: 'paused' });
       
       // Continue polling to get updates (but at a reduced rate)
       
@@ -331,10 +334,10 @@ export default function BrowserUseResult({ toolCallId, toolInvocation, className
       }
       
       // Update local state immediately
-      setData((prev: typeof data) => ({
+      setData((prev) => prev ? {
         ...prev,
         status: 'running'
-      }));
+      } : { status: 'running' });
       
       // Ensure polling is active
       if (!isPolling) {

@@ -1,6 +1,20 @@
 import React from 'react';
 import Image from 'next/image';
-import { TrendingCoinsProps, CoinData } from '@/types/market';
+import { TrendingCoinsProps } from '@/types/market';
+
+interface TrendingCoin {
+  id: string;
+  name: string;
+  symbol: string;
+  thumb: string;
+  price_usd: number;
+  market_cap_rank: number;
+  price_change_percentage_24h: number;
+  market_cap: number;
+  total_volume: string;
+  sparkline?: string;
+  content_description?: string;
+}
 
 const TrendingCoins: React.FC<TrendingCoinsProps> = ({ toolCallId, toolInvocation }) => {
   if (!toolInvocation.result) {
@@ -24,11 +38,11 @@ const TrendingCoins: React.FC<TrendingCoinsProps> = ({ toolCallId, toolInvocatio
     <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
       <h3 className="text-lg font-semibold text-white mb-4">Trending Coins</h3>
       <div className="space-y-4">
-        {toolInvocation.result.map((coin: CoinData) => (
+        {toolInvocation.result.coins.map((coin: TrendingCoin) => (
           <div key={coin.id} className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image
-                src={typeof coin.image === 'string' ? coin.image : coin.image.large}
+                src={coin.thumb}
                 alt={coin.name}
                 width={32}
                 height={32}
@@ -40,7 +54,7 @@ const TrendingCoins: React.FC<TrendingCoinsProps> = ({ toolCallId, toolInvocatio
               </div>
             </div>
             <div className="text-right">
-              <div className="font-medium text-white">{formatPrice(coin.current_price)}</div>
+              <div className="font-medium text-white">{formatPrice(coin.price_usd)}</div>
               <div className={`text-sm ${coin.price_change_percentage_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {formatPriceChange(coin.price_change_percentage_24h)}
               </div>

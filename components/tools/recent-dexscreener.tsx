@@ -73,16 +73,23 @@ const RecentDexScreener: React.FC<RecentDexScreenerProps> = ({ toolCallId, toolI
               </div>
               <div>
                 <div className="text-xs text-zinc-400">Liquidity</div>
-                <div className="text-sm text-white">{formatVolume(pair.liquidity.usd)}</div>
+                <div className="text-sm text-white">
+                  {pair.liquidity?.usd ? formatVolume(pair.liquidity.usd) : 'N/A'}
+                </div>
               </div>
               <div>
                 <div className="text-xs text-zinc-400">FDV</div>
-                <div className="text-sm text-white">{formatVolume(pair.fdv)}</div>
+                <div className="text-sm text-white">
+                  {pair.fdv ? formatVolume(pair.fdv) : 'N/A'}
+                </div>
               </div>
               <div>
                 <div className="text-xs text-zinc-400">Created</div>
                 <div className="text-sm text-white">
-                  {new Date(pair.pairCreatedAt * 1000).toLocaleDateString()}
+                  {pair.pairCreatedAt 
+                    ? new Date(pair.pairCreatedAt * 1000).toLocaleDateString()
+                    : 'N/A'
+                  }
                 </div>
               </div>
             </div>

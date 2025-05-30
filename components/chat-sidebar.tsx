@@ -15,7 +15,7 @@ import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { getToolCommand } from '@/app/config/tool-commands';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Token } from '@/components/tools/token-holdings';
+import { Token } from '@/types/token';
 import { ChatSidebarProps } from '@/types/components';
 import { Tool } from '../types/tools';
 import { ModalType } from '../types/components';
@@ -213,13 +213,6 @@ const portfolioTools: Tool[] = [
     name: 'Token Holdings',
     description: 'View your current token holdings and balances',
     command: getToolCommand('token-holdings') || 'Show me my token holdings',
-    isNew: false,
-    requiresAuth: true
-  },
-  {
-    name: 'Agent Token Holdings',
-    description: 'View the agent\'s token holdings and balances',
-    command: getToolCommand('agent-token-holdings') || 'Show me your token holdings',
     isNew: false,
     requiresAuth: true
   }

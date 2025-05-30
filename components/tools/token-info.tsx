@@ -250,7 +250,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
         </div>
       </div>
 
-      {!status.market && status.onchain && (
+      {!market && onchain && (
         <div className="text-xs sm:text-sm text-zinc-400 mt-4">
           Note: Using on-chain data. Some market data may be limited.
         </div>

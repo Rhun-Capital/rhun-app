@@ -1,8 +1,10 @@
 import { Token } from '@/types/token';
 import { TokenHoldingsProps } from '../../types/components';
 
-const TokenHoldings: React.FC<TokenHoldingsProps> = ({ address }) => {
-  if (!['getUserTokenHoldings', 'getAgentTokenHoldings'].includes(address)) return null;
+const TokenHoldings: React.FC<TokenHoldingsProps> = ({ toolCallId, toolInvocation }) => {
+  if (!toolInvocation || !['getUserTokenHoldings', 'getAgentTokenHoldings'].includes(toolInvocation.toolName)) {
+    return null;
+  }
 
   const formatTokenAmount = (amount: number, decimals: number) => {
     return amount / (10 ** decimals);
@@ -48,14 +50,14 @@ const TokenHoldings: React.FC<TokenHoldingsProps> = ({ address }) => {
   );
 
   return (
-    <div key={address} className="space-y-2">
+    <div key={toolCallId} className="space-y-2">
       <div className="text-sm sm:text-base mb-3 text-white">
-        {address}
+        {toolInvocation.toolName}
       </div>
       <div className="space-y-2">
-        {/* Assuming toolInvocation.result && toolInvocation.result.data.map(token => (
+        {toolInvocation.result?.data?.map((token: Token) => (
           <TokenCard key={token.token_address} token={token} />
-        )) */}
+        ))}
       </div>
     </div>
   );

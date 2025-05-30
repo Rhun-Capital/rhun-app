@@ -4,22 +4,23 @@
 // It uses the /api/financial-data/complete endpoint to get the full data
 // and appends the analysis to the chat using the append prop.
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useSearchParams } from 'next/navigation';
-import type { Message, CreateMessage } from 'ai';
-import { StockAnalysisProps } from '@/types/market';
+import React from 'react';
+import { StockAnalysisProps } from '@/types/components';
 import { LineChart, TrendingUp, TrendingDown, Activity } from 'lucide-react';
-import { TechnicalAnalysisItem, FundamentalAnalysisItem } from '../../types/analysis';
 
 const StockAnalysis: React.FC<StockAnalysisProps> = ({ 
   toolCallId, 
-  toolInvocation, 
+  toolInvocation,
   append,
   className = ''
 }) => {
-  if (!toolInvocation.result) {
-    return <div className="text-zinc-400">Loading stock analysis...</div>;
+  // Show loading state for both 'call' and 'partial-call' states
+  if (toolInvocation.state !== 'result' || !toolInvocation.result) {
+    return (
+      <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div className="text-zinc-400">Loading stock analysis...</div>
+      </div>
+    );
   }
 
   const { 
@@ -30,9 +31,7 @@ const StockAnalysis: React.FC<StockAnalysisProps> = ({
     volume,
     marketCap,
     peRatio,
-    dividendYield,
-    technicalAnalysis,
-    fundamentalAnalysis
+    analysis
   } = toolInvocation.result;
 
   const formatPrice = (price: number) => {
@@ -74,7 +73,7 @@ const StockAnalysis: React.FC<StockAnalysisProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <div className="bg-zinc-800/30 rounded-lg p-3">
           <div className="text-sm text-zinc-400">Volume</div>
           <div className="text-lg font-medium text-white">{formatVolume(volume)}</div>
@@ -87,10 +86,6 @@ const StockAnalysis: React.FC<StockAnalysisProps> = ({
           <div className="text-sm text-zinc-400">P/E Ratio</div>
           <div className="text-lg font-medium text-white">{peRatio.toFixed(2)}</div>
         </div>
-        <div className="bg-zinc-800/30 rounded-lg p-3">
-          <div className="text-sm text-zinc-400">Dividend Yield</div>
-          <div className="text-lg font-medium text-white">{formatPercent(dividendYield)}</div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -100,19 +95,19 @@ const StockAnalysis: React.FC<StockAnalysisProps> = ({
             Technical Analysis
           </h4>
           <div className="space-y-4">
-            {technicalAnalysis.map((analysis: TechnicalAnalysisItem, index: number) => (
+            {Object.entries(analysis.technicalIndicators).map(([indicator, data], index) => (
               <div key={index} className="bg-zinc-800/30 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium text-white">{analysis.indicator}</div>
+                  <div className="font-medium text-white">{indicator}</div>
                   <div className={`text-sm ${
-                    analysis.signal === 'buy' ? 'text-green-500' :
-                    analysis.signal === 'sell' ? 'text-red-500' :
+                    data.signal === 'buy' ? 'text-green-500' :
+                    data.signal === 'sell' ? 'text-red-500' :
                     'text-yellow-500'
                   }`}>
-                    {analysis.signal.toUpperCase()}
+                    {data.signal.toUpperCase()}
                   </div>
                 </div>
-                <div className="text-sm text-zinc-400">{analysis.description}</div>
+                <div className="text-sm text-zinc-400">{data.description}</div>
               </div>
             ))}
           </div>
@@ -124,23 +119,28 @@ const StockAnalysis: React.FC<StockAnalysisProps> = ({
             Fundamental Analysis
           </h4>
           <div className="space-y-4">
-            {fundamentalAnalysis.map((analysis: FundamentalAnalysisItem, index: number) => (
+            {Object.entries(analysis.fundamentalMetrics).map(([metric, data], index) => (
               <div key={index} className="bg-zinc-800/30 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium text-white">{analysis.metric}</div>
+                  <div className="font-medium text-white">{metric}</div>
                   <div className={`text-sm ${
-                    analysis.assessment === 'positive' ? 'text-green-500' :
-                    analysis.assessment === 'negative' ? 'text-red-500' :
+                    data.assessment === 'positive' ? 'text-green-500' :
+                    data.assessment === 'negative' ? 'text-red-500' :
                     'text-yellow-500'
                   }`}>
-                    {analysis.assessment.toUpperCase()}
+                    {data.assessment.toUpperCase()}
                   </div>
                 </div>
-                <div className="text-sm text-zinc-400">{analysis.description}</div>
+                <div className="text-sm text-zinc-400">{data.description}</div>
               </div>
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 p-4 bg-zinc-800/30 rounded-lg">
+        <div className="text-lg font-semibold text-white mb-2">Recommendation</div>
+        <div className="text-zinc-400">{analysis.recommendation}</div>
       </div>
     </div>
   );
