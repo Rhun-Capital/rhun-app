@@ -4,6 +4,8 @@ import { usePrivy } from '@privy-io/react-auth';
 import { X, AlertCircle } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useModal } from '@/contexts/modal-context';
+import { AutoTradingModalProps } from '@/types/wallet';
+import { Strategy, StrategyConfig } from '@/types/trading';
 
 // Modal portal component to ensure modal is rendered at the document root
 const ModalPortal = ({ children }: { children: React.ReactNode }) => {
@@ -16,25 +18,6 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
 
   return mounted ? createPortal(children, document.body) : null;
 };
-
-interface AutoTradingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  walletAddress: string;
-  onSetupComplete: () => void;
-}
-
-type Strategy = 'dca' | 'momentum' | 'limit' | 'rebalance';
-
-interface StrategyConfig {
-  name: string;
-  description: string;
-  icon: string;
-  frequency: 'hourly' | 'daily' | 'weekly';
-  frequency_options: string[];
-  amount: number;
-  target_token: string;
-}
 
 const STRATEGY_CONFIGS: Record<Strategy, StrategyConfig> = {
   dca: {
@@ -82,7 +65,7 @@ const POPULAR_TOKENS = [
   { symbol: 'PYTH', name: 'Pyth Network', image: 'https://assets.coingecko.com/coins/images/28468/small/pyth_token_logo.png' }
 ];
 
-export default function AutoTradingModal({ isOpen, onClose, walletAddress, onSetupComplete }: AutoTradingModalProps) {
+export default function AutoTradingModal({ isOpen, onClose, walletAddress, onSetupComplete, className }: AutoTradingModalProps) {
   const { getAccessToken } = usePrivy();
   const { closeModal } = useModal();
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy>('dca');
@@ -151,7 +134,7 @@ export default function AutoTradingModal({ isOpen, onClose, walletAddress, onSet
   return (
     <ModalPortal>
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-        <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-xl">
+        <div className={`bg-zinc-900 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-xl ${className || ''}`}>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-white">Set Up Automated Trading</h2>
             <button 
@@ -204,104 +187,73 @@ export default function AutoTradingModal({ isOpen, onClose, walletAddress, onSet
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-zinc-400 block mb-2">
-                  Frequency
-                </label>
-                <div className="flex gap-3">
-                  {config.frequency_options.map((freq) => (
-                    <button
-                      key={freq}
-                      onClick={() => updateConfig('frequency', freq)}
-                      className={`px-4 py-2 rounded-lg border ${
-                        config.frequency === freq
-                          ? 'border-indigo-500 bg-indigo-500/10 text-white'
-                          : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600'
-                      }`}
-                    >
-                      {freq.charAt(0).toUpperCase() + freq.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-zinc-400 block mb-2">
-                  Amount per Trade (SOL)
-                </label>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={config.amount}
-                  onChange={(e) => updateConfig('amount', parseFloat(e.target.value) || 0.1)}
-                  className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white"
-                />
-                <div className="flex gap-2 mt-2">
-                  {[0.05, 0.1, 0.25, 0.5].map((value) => (
-                    <button
-                      key={value}
-                      onClick={() => updateConfig('amount', value)}
-                      className={`flex-1 px-3 py-1 rounded text-sm ${
-                        config.amount === value
-                          ? 'bg-indigo-500 text-white'
-                          : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
-                      }`}
-                    >
-                      {value} SOL
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-zinc-400 block mb-2">
-                  Target Token
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {POPULAR_TOKENS.map((token) => (
-                    <button
-                      key={token.symbol}
-                      onClick={() => updateConfig('target_token', token.symbol)}
-                      className={`flex items-center gap-2 p-3 rounded-lg border ${
-                        config.target_token === token.symbol
-                          ? 'border-indigo-500 bg-indigo-500/10'
-                          : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'
-                      }`}
-                    >
-                      <Image 
-                        src={token.image} 
-                        alt={token.name} 
-                        width={24} 
-                        height={24} 
-                        className="rounded-full" 
-                      />
-                      <div>
-                        <div className="font-medium text-white">{token.symbol}</div>
-                        <div className="text-xs text-zinc-400">{token.name}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            <div>
+              <h3 className="text-sm font-medium text-zinc-400 mb-2">Frequency</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {config.frequency_options.map((freq) => (
+                  <button
+                    key={freq}
+                    onClick={() => updateConfig('frequency', freq)}
+                    className={`p-2 rounded-lg border text-center ${
+                      config.frequency === freq
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'
+                    }`}
+                  >
+                    <div className="font-medium text-white capitalize">{freq}</div>
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="border-t border-zinc-700 pt-4 flex justify-end space-x-3">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-zinc-700 text-white rounded-md hover:bg-zinc-600 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Setting up...' : 'Schedule Trading'}
-              </button>
+            <div>
+              <h3 className="text-sm font-medium text-zinc-400 mb-2">Amount (SOL)</h3>
+              <input
+                type="number"
+                value={config.amount}
+                onChange={(e) => updateConfig('amount', parseFloat(e.target.value))}
+                min={0.1}
+                step={0.1}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-white"
+              />
             </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-zinc-400 mb-2">Target Token</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {POPULAR_TOKENS.map((token) => (
+                  <button
+                    key={token.symbol}
+                    onClick={() => updateConfig('target_token', token.symbol)}
+                    className={`p-3 rounded-lg border flex items-center gap-3 ${
+                      config.target_token === token.symbol
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : 'border-zinc-700 bg-zinc-800 hover:border-zinc-600'
+                    }`}
+                  >
+                    <Image
+                      src={token.image}
+                      alt={token.name}
+                      width={24}
+                      height={24}
+                      className="rounded-full"
+                    />
+                    <div>
+                      <div className="font-medium text-white">{token.symbol}</div>
+                      <div className="text-xs text-zinc-400">{token.name}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Setting up...' : 'Start Auto-Trading'}
+            </button>
           </div>
         </div>
       </div>

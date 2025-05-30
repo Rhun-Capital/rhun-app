@@ -3,28 +3,7 @@
 import { ToolInvocation } from '@ai-sdk/ui-utils';
 import { LineChart, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-
-interface FredSeries {
-  id: string;
-  title: string;
-  frequency: string;
-  units: string;
-  seasonal_adjustment: string;
-  last_updated: string;
-  notes: string;
-}
-
-interface FredSearchResult {
-  results: FredSeries[];
-  count: number;
-  message: string;
-}
-
-interface FredSearchProps {
-  toolCallId: string;
-  toolInvocation: ToolInvocation & { result?: FredSearchResult };
-  onShowChart: (seriesId: string) => void;
-}
+import { FredSeries, FredSearchProps } from '@/types/fred';
 
 export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSearchProps) {
   const { result } = toolInvocation;

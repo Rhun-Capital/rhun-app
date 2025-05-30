@@ -8,45 +8,7 @@ import WalletDetailsModal from './watch-wallet-modal';
 import { toast } from 'sonner';
 import DeleteConfirmationModal from './delete-confirmation-modal';
 import AddWatcherModal from '@/components/add-watcher-modal';
-
-interface LastActivityWrapper {
-  userId: string;
-  timestamp: number;
-  sk: string;
-  pk: string;
-  walletAddress: string;
-  type: string;
-}
-
-
-interface WatcherData {
-  walletAddress: string;
-  userId: string;
-  createdAt: string;
-  isActive: boolean;
-  sk: string;
-  pk: string;
-  type: string;
-  lastChecked?: string | null | undefined;
-  name?: string; // Optional name field
-  tags?: string[]; // Optional tags array
-  lastDataPoint?: {
-    solBalance: number;
-    timestamp: number;
-  };
-  lastActivity?: LastActivityWrapper[];
-  filters?: {
-    minAmount?: number;
-    specificToken?: string;
-    activityTypes?: string[];
-  };
-  lastReadTimestamp?: number;
-  hasUnreadActivities?: boolean;  
-}
-
-interface WatchersResponse {
-  watchers: WatcherData[];
-}
+import { WatcherData, WatchersResponse, WatcherCardProps, LastActivityWrapper } from '../types/watcher';
 
 const WalletWatchers = () => {
   const { getAccessToken, user, ready } = usePrivy();
@@ -296,11 +258,7 @@ const handleWatcherUpdate = (updatedWatcher: WatcherData) => {
 
   // mobile-friendly card component for the watchers
   // Updated WatcherCard component for mobile view
-const WatcherCard = ({ watcher, onDelete, onClick }: { 
-  watcher: WatcherData; 
-  onDelete: (e: React.MouseEvent) => void;
-  onClick: () => void;
-}) => (
+const WatcherCard = ({ watcher, onDelete, onClick }: WatcherCardProps) => (
   <div 
     onClick={onClick}
     className={`bg-zinc-800 rounded-lg p-4 space-y-3 hover:bg-zinc-700 transition-colors cursor-pointer ${

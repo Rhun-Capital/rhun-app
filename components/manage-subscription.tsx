@@ -6,15 +6,12 @@ import LoadingIndicator from "@/components/loading-indicator";
 import RhunCheckout from "@/components/rhun-checkout";
 import { CreditCard, Coins, Clock, ArrowLeftRight, DollarSign } from 'lucide-react';
 import { useSubscription } from '@/hooks/use-subscription';
+import { SubscriptionManagementProps } from '@/types/components';
 
-interface SubscriptionManagementProps {
-  userId: string;
-  wallet: string;
-}
-
-export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ userId, wallet }) => {
+export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ userId, onSubscriptionChange }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = usePrivy();
   
   const { 
     isLoading, 
@@ -42,7 +39,6 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
     } finally {
       setIsProcessing(false);
     }
-
   };
 
   const CheckoutOptions = () => (
@@ -57,18 +53,18 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
             <h3 className="text-xl font-semibold text-white">Pay with Card</h3>
           </div>
           <p className="text-zinc-300 mb-6">Quick and secure payment using your credit or debit card</p>
-          <CheckoutButton className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200" />
+          <CheckoutButton userId={userId} onCheckoutComplete={onSubscriptionChange} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200" />
         </div>
 
         {/* Rhun Token Checkout Option */}
-        {wallet && (
+        {user?.wallet?.address && (
           <div className="p-6 bg-zinc-700 rounded-lg transition-colors duration-200">
             <div className="flex items-center mb-4">
               <Coins className="w-6 h-6 text-purple-400 mr-3" />
               <h3 className="text-xl font-semibold text-white">Pay with Rhun</h3>
             </div>
             <p className="text-zinc-300 mb-6">Use your Rhun tokens for instant checkout using your connected wallet</p>
-            <RhunCheckout />
+            <RhunCheckout onCheckoutComplete={onSubscriptionChange} />
           </div>
         )}
       </div>
@@ -95,6 +91,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
       </div>
     );
   }
+
   if (subscriptionType === 'none') {
     return <CheckoutOptions />;
   }
@@ -196,34 +193,11 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({ 
                 new Date(subscriptionDetails.token.expiresAt).toLocaleDateString() : 'N/A'}
             </span>
           </div>
-          {subscriptionDetails.token.subscription && (
-            <>
-              <div className="flex justify-between mb-2">
-                <span className="text-zinc-400 flex items-center">
-                  <Coins className="w-4 h-4 mr-2 text-zinc-400" />
-                  Amount Paid
-                </span>
-                <span className="font-medium">
-                  {(subscriptionDetails.token.subscription.calculatedTokenAmount / Math.pow(10, 6)).toFixed(2)} RHUN
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-400 flex items-center">
-                  <DollarSign className="w-4 h-4 mr-2 text-zinc-400" />
-                  Fee Paid
-                </span>
-                <span className="font-medium">
-                  {(subscriptionDetails.token.subscription.fee / 1000000).toFixed(2)} USDC
-                </span>
-              </div>
-            </>
-          )}
         </div>
       </div>
     );
   }
 
-  // Fallback to checkout options if no active subscription
   return <CheckoutOptions />;
 };
 

@@ -1,17 +1,12 @@
 // components/Accordion.tsx
 import { useState } from 'react';
+import { AccordionProps } from '@/types/components';
 
-interface AccordionProps {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}
-
-export default function Accordion({ title, children, defaultOpen = false }: AccordionProps) {
+export default function Accordion({ title, children, defaultOpen = false, className }: AccordionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border border-zinc-700 rounded-lg">
+    <div className={`border border-zinc-700 rounded-lg ${className || ''}`}>
       <button
         onClick={(e) => {
           e.preventDefault();

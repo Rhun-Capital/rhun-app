@@ -1,12 +1,8 @@
 // components/tools/NewsAnalysis.tsx
 import React from 'react';
+import { NewsAnalysisProps } from '@/types/news';
 
-interface NewsAnalysisProps {
-  toolCallId: string;
-  toolInvocation: any;
-}
-
-export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysisProps) {
+const NewsAnalysis: React.FC<NewsAnalysisProps> = ({ toolCallId, toolInvocation }) => {
   // Get data directly from props without state
   const data = toolInvocation?.result || null;
   
@@ -124,3 +120,5 @@ export default function NewsAnalysis({ toolCallId, toolInvocation }: NewsAnalysi
     </div>
   );
 }
+
+export default NewsAnalysis;

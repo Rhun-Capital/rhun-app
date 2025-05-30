@@ -2,23 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 // Import from Vercel AI SDK
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import LoadingIndicator from '../loading-indicator';
+import { CryptoNewsProps as BaseCryptoNewsProps } from '@/types/tools';
+import { CryptoNewsArticle } from '../../types/market';
 
-// News article interface based on our retrieval function
-interface CryptoNewsArticle {
-  id: string;
-  title: string;
-  summary: string;
-  full_text: string;
-  url: string;
-  published_date: string;
-  source: string;
-  sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
-  categories: string[];
-  image_url?: string;
-  score: number;
-}
-
-interface CryptoNewsProps {
+interface ExtendedCryptoNewsProps extends BaseCryptoNewsProps {
   toolCallId: string;
   toolInvocation: AIToolInvocation & {
     result?: CryptoNewsArticle[];
@@ -57,7 +44,7 @@ const getSentimentColor = (sentiment: string): string => {
   }
 };
 
-const CryptoNewsComponent: React.FC<CryptoNewsProps> = ({ toolInvocation }) => {
+const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation }) => {
   const [selectedArticle, setSelectedArticle] = useState<CryptoNewsArticle | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   

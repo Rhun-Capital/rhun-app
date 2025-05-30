@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MenuIcon, CloseIcon} from './icons';
-import {HomeIcon, EyeIcon, CircleUser, ChartArea, BotIcon, LayoutGrid, BookIcon, PlusCircle } from 'lucide-react';
+import { MenuIcon, CloseIcon, BookIcon } from '@/components/icons';
+import { Home, Eye, UserCircle, AreaChart, Bot, LayoutGrid, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
-import { RecentChats } from './recent-chats-component';
+import RecentChats from './recent-chats-component';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useModal } from '../contexts/modal-context';
@@ -57,11 +57,11 @@ export const Sidebar = () => {
 
   const navigation = [
     { name: 'Tools', href: '/tools', icon: LayoutGrid },
-    { name: 'Agents', href: '/agents', icon: BotIcon, requiresAuth: true },
-    { name: 'Watchers', href: '/watchers', icon: EyeIcon, requiresAuth: true, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
-    // { name: 'Portfolio', href: '/portfolio', icon: ChartArea, requiresAuth: true },
+    { name: 'Agents', href: '/agents', icon: Bot, requiresAuth: true },
+    { name: 'Watchers', href: '/watchers', icon: Eye, requiresAuth: true, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
+    // { name: 'Portfolio', href: '/portfolio', icon: AreaChart, requiresAuth: true },
     // { name: 'Apps', href: '/marketplace', icon: LayoutGrid, requiresAuth: true },
-    { name: 'Account', href: '/account', icon: CircleUser, requiresAuth: true },
+    { name: 'Account', href: '/account', icon: UserCircle, requiresAuth: true },
   ];
 
   const toggleSidebar = () => setIsOpen(!isOpen);

@@ -8,62 +8,14 @@ import { useParams, useSearchParams, usePathname } from 'next/navigation';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { SwapToken, UpdateToolInvocationParams, SwapToolResult, SwapToolInvocation } from '../../types/tool-components';
 
 // Add constant for localStorage key
 const SELECTED_WALLET_KEY = 'rhun_selected_wallet_address';
+const SWAP_HISTORY_KEY = 'swapHistory';
 
 const JUPITER_TOKEN_LIST_URL = 'https://tokens.jup.ag/tokens?tags=community';
 const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-
-interface Token {
-  token_address: string;
-  token_icon: string;
-  token_name: string;
-  token_symbol: string;
-  token_decimals: number;
-  usd_price: number;
-  usd_value: number;
-  formatted_amount: number;
-}
-
-interface UpdateToolInvocationParams {
-  chatId: string;
-  toolCallId: string;
-  status: 'success' | 'error' | 'in_progress';
-  result: {
-    transactionHash?: string;
-    status: 'success' | 'error' | 'in_progress';
-    error?: any;
-    fromToken?: string;
-    toToken?: string;
-    amount?: string;
-    slippage?: number;
-    message?: string;
-  };
-}
-
-interface SwapToolResult {
-  transactionHash?: string;
-  status?: 'success' | 'error';
-  error?: string;
-  fromToken?: string;
-  toToken?: string;
-  amount?: string;
-  slippage?: number;
-}
-
-interface SwapToolInvocation {
-  toolName: string;
-  toolCallId: string;
-  status?: 'success' | 'error';
-  args: {
-    fromToken: string;
-    toToken: string;
-    amount: string;
-    slippage?: number;
-  };
-  result?: SwapToolResult;
-}
 
 const ExecuteSwapComponent: React.FC<{ 
   toolCallId: string; 
@@ -81,8 +33,8 @@ const ExecuteSwapComponent: React.FC<{
   const { wallets: solanaWallets, ready } = useSolanaWallets();
   const [status, setStatus] = useState<'searching' | 'ready' | 'executing' | 'success' | 'error'>('searching');
   const [error, setError] = useState<string | null>(null);
-  const [fromToken, setFromToken] = useState<Token | null>(null);
-  const [toToken, setToToken] = useState<Token | null>(null);
+  const [fromToken, setFromToken] = useState<SwapToken | null>(null);
+  const [toToken, setToToken] = useState<SwapToken | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const chatId = searchParams.get('chatId');
@@ -184,7 +136,7 @@ const ExecuteSwapComponent: React.FC<{
   }, [user, solanaWallets, ready]);
 
   // Function to find a token
-  const findToken = async (tokenIdentifier: string): Promise<Token | null> => {
+  const findToken = async (tokenIdentifier: string): Promise<SwapToken | null> => {
     console.log('Finding token:', tokenIdentifier);
     try {
       // Handle SOL case
@@ -343,7 +295,7 @@ const ExecuteSwapComponent: React.FC<{
 
       try {
         // Find fromToken
-        let from: Token | null = null;
+        let from: SwapToken | null = null;
         try {
           from = await findToken(fromTokenName);
           if (!mounted) return;
@@ -354,7 +306,7 @@ const ExecuteSwapComponent: React.FC<{
           
           setFromToken(from);
           
-          let to: Token | null = null;
+          let to: SwapToken | null = null;
           try {
             to = await findToken(toTokenName);
             if (!mounted) return;

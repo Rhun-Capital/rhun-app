@@ -1,34 +1,19 @@
 import React, { useEffect, useRef, memo, useState } from 'react';
-import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import { ExternalLink } from "lucide-react";
 import { createPortal } from 'react-dom';
+import { TradingViewResult } from '@/types/chart';
+import { TradingViewChartProps } from '@/types/market';
+import { TradingViewWindow } from '../../types/window';
 
-interface TradingViewChartProps {
-  toolCallId: string;
-  toolInvocation: AIToolInvocation;
-}
-
-interface TradingViewResult {
-  symbol?: string;
-  interval?: string;
-  theme?: 'light' | 'dark';
-  style?: string;
-  locale?: string;
-  timezone?: string;
-  toolbar_bg?: string;
-  enable_publishing?: boolean;
-  allow_symbol_change?: boolean;
-  container_id?: string;
-  height?: number;
-  width?: string;
-  studies?: string[];
+declare global {
+  interface Window extends TradingViewWindow {}
 }
 
 // Global map to track active chart instances
 const activeCharts = new Map<string, boolean>();
 
-const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, toolInvocation }) => {
-  const container = useRef<HTMLDivElement>(null);
+const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, toolInvocation, interval = '1D', theme = 'dark', className = '' }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const expandedContainer = useRef<HTMLDivElement>(null);
   const scriptRef = useRef<HTMLScriptElement | null>(null);
   const containerId = `tradingview_chart_${toolCallId}`;
@@ -183,8 +168,8 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
     if (!mounted) return;
     
     const timer = setTimeout(() => {
-      if (container.current && document.getElementById(containerId)) {
-        initializeChart(container.current, containerId);
+      if (containerRef.current && document.getElementById(containerId)) {
+        initializeChart(containerRef.current, containerId);
       }
     }, 500); // Significant delay to ensure DOM is ready
     
@@ -217,8 +202,8 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
           onClick={() => {
             setError(null);
             setInitialized(false);
-            if (container.current) {
-              initializeChart(container.current, containerId);
+            if (containerRef.current) {
+              initializeChart(containerRef.current, containerId);
             }
           }}
           className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-md text-white"
@@ -232,7 +217,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
   return (
     <>
       <div
-        className="p-4 w-full relative"
+        className={`p-4 w-full relative ${className}`}
         style={{ 
           height: "400px", 
           width: "100%",
@@ -248,7 +233,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = memo(({ toolCallId, to
 
         <div 
           className="tradingview-widget-container w-full" 
-          ref={container} 
+          ref={containerRef} 
           id={containerId}
           style={{ 
             height: "400px", 

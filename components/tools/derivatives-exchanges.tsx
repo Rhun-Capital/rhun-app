@@ -1,37 +1,14 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { GlobeIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
-
-interface Exchange {
-  name: string;
-  id: string;
-  open_interest_btc: number;
-  trade_volume_24h_btc: string;
-  number_of_perpetual_pairs: number;
-  number_of_futures_pairs: number;
-  image: string;
-  year_established: number | null;
-  country: string | null;
-  description: string;
-  url: string;
-}
+import { DerivativesExchangesProps } from '@/types/tools';
 
 type ToolInvocationState = 'call' | 'partial-call' | 'result';
 
-interface DerivativesExchangesProps {
-  toolCallId: string;
-  toolInvocation: {
-    toolName: string;
-    args: Record<string, any>;
-    result?: Record<string, Exchange>;
-    state: ToolInvocationState;
-  };
-}
-
 const ITEMS_PER_PAGE = 10;
 
-const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId, toolInvocation }) => {
+export default function DerivativesExchanges({ toolCallId, toolInvocation }: DerivativesExchangesProps) {
   const [sortField, setSortField] = useState<'open_interest' | 'volume'>('open_interest');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,20 +20,18 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
     }
   }, []);
 
-  // Add console.log to help debug
-  console.log('DerivativesExchanges props:', { toolCallId, toolInvocation });
+  const exchanges = useMemo(() => {
+    if (!toolInvocation) return [];
+    try {
+      const data = JSON.parse(toolInvocation);
+      return data.exchanges || [];
+    } catch (e) {
+      return [];
+    }
+  }, [toolInvocation]);
 
-  if (toolInvocation.state !== 'result' || !toolInvocation.result) {
-    return <div className="p-6 bg-zinc-800 rounded-lg">Loading derivatives exchanges...</div>;
-  }
-
-  // Convert the object with numeric keys to an array
-  const exchanges = Object.values(toolInvocation.result);
-  
-  console.log('Processed exchanges:', exchanges);
-
-  if (!Array.isArray(exchanges) || exchanges.length === 0) {
-    return <div className="p-6 bg-zinc-800 rounded-lg">No exchanges found.</div>;
+  if (!exchanges.length) {
+    return null;
   }
 
   const formatBTC = (amount: number | string) => {
@@ -274,6 +249,4 @@ const DerivativesExchanges: React.FC<DerivativesExchangesProps> = ({ toolCallId,
       <Pagination />
     </div>
   );
-};
-
-export default DerivativesExchanges;
+}

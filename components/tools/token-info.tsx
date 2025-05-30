@@ -3,102 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AlertCircleIcon, GlobeIcon } from '@/components/icons';
 import CopyButton from '@/components/copy-button';
-
-interface OnChainData {
-    id: string;
-    type: string;
-    attributes: {
-        address: string;
-        name: string;
-        symbol: string;
-        image_url: string;
-        coingecko_coin_id: string;
-        decimals: number;
-        total_supply: string;
-        price_usd: string;
-        fdv_usd: string;
-        total_reserve_in_usd: string;
-        volume_usd: {
-        h24: string;
-        };
-        market_cap_usd: string;
-    };
-    relationships: {
-        top_pools: {
-        data: Array<{
-            id: string;
-            type: string;
-        }>;
-        };
-    };
-  included: Array<any>; // We can type this if needed
-}
-
-interface MarketData {
-  name: string;
-  symbol: string;
-  image: string;
-  marketCap: number;
-  currentPrice: number;
-  priceChange24h: number;
-  totalVolume: number;
-  circulatingSupply: number;
-  totalSupply: number;
-  description: string;
-  lastUpdated: string;
-  homePage: string;
-  twitter: string;
-}
-
-interface TokenData {
-  onchain: OnChainData | null;
-  market: MarketData | null;
-  status: {
-    onchain: boolean;
-    market: boolean;
-  };
-  holder_stats?: {
-    statistics: {
-      hhi: number;
-      gini: number;
-      median_holder_position: number;
-      avg_time_held: number | null;
-      retention_rate: number | null;
-    } | null;
-    breakdown: {
-      total_holders: number;
-      holders_over_10_usd: number;
-      holders_over_100_usd: number;
-      holders_over_1000_usd: number;
-      holders_over_10000_usd: number;
-      holders_over_100k_usd: number;
-      holders_over_1m_usd: number;
-      categories: {
-        shrimp: number;
-        crab: number;
-        fish: number;
-        dolphin: number;
-        whale: number;
-      };
-    } | null;
-    deltas: {
-      '7days': number;
-      '14days': number;
-      '30days': number;
-    } | null;
-  };
-}
-
-interface ToolInvocation {
-  toolName: string;
-  args: { message: string };
-  result?: TokenData | { error: string };
-}
-
-interface TokenInfoProps {
-  toolCallId: string;
-  toolInvocation: ToolInvocation;
-}
+import { MarketData } from '@/types/market';
+import { TokenInfoData, ToolInvocation, OnChainData } from '@/types/tools';
+import { TokenInfoProps } from '@/types/token';
 
 const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => {
   if (!("result" in toolInvocation)) return null;
@@ -114,7 +21,7 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
     );
   }
 
-  const result = toolInvocation.result as TokenData;
+  const result = toolInvocation.result as TokenInfoData;
   const { market, onchain, status } = result;
 
   if (!market && !onchain) {

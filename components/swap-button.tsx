@@ -6,9 +6,11 @@ import { ProxyConnection, executeSwap, getQuote } from '../utils/solana';
 import { RefreshCw } from 'lucide-react';
 import { useParams, usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
-
 import Image from 'next/image';
 import LoadingIndicator from './loading-indicator';
+import { SwapModalProps, Token } from '../types/wallet';
+import { PaginatedTokens, JupiterToken, SelectionType } from '../types/jupiter';
+import { TokenIconProps } from '../types/ui';
 
 // Modal portal component to ensure modal is rendered at the document root
 const ModalPortal = ({ children }: { children: React.ReactNode }) => {
@@ -22,59 +24,11 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
   return mounted ? createPortal(children, document.body) : null;
 };
 
-const TOKENS_PER_PAGE =   10;
+const TOKENS_PER_PAGE = 10;
 const JUPITER_TOKEN_LIST_URL = `https://tokens.jup.ag/tokens?tags=community`;  // Using strict list for better performance
 
-
-interface PaginatedTokens {
-  tokens: JupiterToken[];
-  currentPage: number;
-  totalTokens: number;
-}
-
-interface Token {
-  token_address: string;
-  token_icon: string;
-  token_name: string;
-  usd_value: number;
-  usd_price: number;
-  formatted_amount: number;
-  token_symbol: string;
-  token_decimals: number;
-}
-
-interface JupiterToken {
-  address: string;
-  chainId: number;
-  decimals: number;
-  logoURI: string;
-  name: string;
-  symbol: string;
-  tags: string[];
-}
-
-interface SwapModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  tokens: Token[];
-  solanaBalance?: {
-    amount: number;
-    usdValue: number;
-    logoURI: string;
-  };
-  onSwapComplete: () => void;
-}
-
-interface PaginatedTokens {
-  tokens: JupiterToken[];
-  currentPage: number;
-  totalTokens: number;
-}
-
-type SelectionType = 'from' | 'to' | null;
-
 // Token icon component with fallback
-const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string; size?: number }) => {
+const TokenIcon = ({ icon, symbol, size = 40, className }: TokenIconProps) => {
   const [error, setError] = useState(false);
   const firstLetter = symbol.charAt(0).toUpperCase();
   const colors = [
@@ -97,7 +51,7 @@ const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string;
   if (error || !icon) {
     return (
       <div 
-        className={`rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}
+        className={`rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium ${className || ''}`}
         style={containerStyle}
       >
         {firstLetter}
@@ -106,7 +60,7 @@ const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string;
   }
 
   return (
-    <div className="relative" style={containerStyle}>
+    <div className={`relative ${className || ''}`} style={containerStyle}>
       <Image
         src={icon}
         alt={symbol}

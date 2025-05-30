@@ -8,75 +8,14 @@ import { useSubscription } from '@/hooks/use-subscription';
 import CopyButton from '@/components/copy-button';
 import TrackWalletModal from '@/components/tools/track-wallet-modal';
 import { formatAmount } from '@/utils/format';
-
-interface TrackingFilters {
-  minAmount?: number;
-  specificToken?: string;
-  platform?: string[];
-  activityTypes?: string[];
-  sort_by?: string;
-  sort_order?: string;
-}
-
-// Add these interfaces to your existing ones
-interface TrackingOptions {
-  filters: TrackingFilters;
-  showFilters: boolean;
-  name: string;
-  tags: string[];
-  tagInput: string;
-}
-
-
-
-interface AccountData {
-  account: string;
-  lamports: number;
-  type: string;
-  executable: boolean;
-  owner_program: string;
-  rent_epoch: number;
-  is_oncurve: boolean;
-}
-
-interface Activity {
-  block_time: number;
-  activity_type: string;
-  value: number;
-  routers: {
-    token1: string;
-    token1_decimals: number;
-    amount1: number;
-    token2: string;
-    token2_decimals: number;
-    amount2: number;
-  };
-  time: string;
-  from_address: string;
-}
-
-interface ActivityResponse {
-  data: Activity[];
-  metadata: {
-    tokens: {
-      [key: string]: {
-        token_address: string;
-        token_name: string;
-        token_symbol: string;
-        token_icon: string;
-      }
-    }
-  };
-}
-
-interface AccountInfoProps {
-  toolCallId: string;
-  toolInvocation: {
-    toolName: string;
-    args: { message: string };
-    result?: { success: boolean; data: AccountData } | { error: string };
-  };
-}
+import type { 
+  TrackingFilters,
+  TrackingOptions,
+  AccountData,
+  Activity,
+  ActivityResponse,
+  AccountInfoProps 
+} from '../../types/account';
 
 const PAGE_SIZE = 10;
 

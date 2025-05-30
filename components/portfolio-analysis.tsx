@@ -3,12 +3,7 @@
 import { useState, useEffect } from "react";
 import { TokenHolding } from "@/types";
 import LoadingIndicator from "@/components/loading-indicator";
-
-interface PortfolioMetrics {
-  totalValue: number;
-  totalChange24h: number;
-  changePercentage24h: number;
-}
+import { PortfolioMetrics } from '../types/analysis';
 
 export function PortfolioAnalysis({
   walletAddress,

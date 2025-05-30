@@ -8,66 +8,10 @@ import TrackWalletModal from '@/components/tools/track-wallet-modal';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { formatAmount } from '@/utils/format';
-
-interface TokenHolder {
-  owner: string;
-  amount: number;
-  decimals: number;
-  percentage?: number;
-  value?: number;
-}
-
-interface TokenMetadata {
-  token_address: string;
-  token_name: string;
-  token_symbol: string;
-  token_icon: string;
-}
-
-interface Activity {
-  block_time: number;
-  activity_type: string;
-  value: number;
-  routers: {
-    token1: string;
-    token1_decimals: number;
-    amount1: number;
-    token2: string;
-    token2_decimals: number;
-    amount2: number;
-  };
-  time: string;
-  from_address: string;
-  platform: string[];
-  sources: string[];
-}
-
-interface ActivityResponse {
-  data: Activity[];
-  metadata: {
-    tokens: { [key: string]: TokenMetadata };
-  };
-}
-
-interface FilterState {
-  startTime: string;
-  endTime: string;
-  activityTypes: string[];
-  from: string;
-  platforms: string[];
-  sources: string[];
-  token: string;
-}
-
-interface HolderData {
-  address?: string;
-  owner?: string;
-  balance?: string;
-  amount?: number;
-  decimals?: number;
-  percentage?: number;
-  value?: number;
-}
+import { TokenDisplayMetadata, TokenHolder, TokenMetadata } from '@/types/token';
+import { Activity, ActivityResponse } from '@/types/market';
+import { FilterState } from '@/types/tools';
+import { HolderData } from '@/types/token';
 
 interface TopHoldersDisplayProps {
   toolCallId: string;
@@ -141,6 +85,8 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       filters.sources.slice(0, 5).forEach(s => params.append('source[]', s));
       if (filters.token) params.append('token', filters.token);
   
+      console.log('Fetching activities with params:', Object.fromEntries(params));
+
       const response = await fetch(`/api/tools/account-activities?${params.toString()}`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -162,6 +108,14 @@ const TopHoldersDisplay: React.FC<TopHoldersDisplayProps> = ({ toolCallId, toolI
       }
 
       const data = await response.json();
+      console.log('API Response Data:', {
+        hasData: !!data.data,
+        dataLength: data.data?.length,
+        hasMetadata: !!data.metadata,
+        tokenCount: Object.keys(data.metadata?.tokens || {}).length,
+        sampleActivity: data.data?.[0],
+        sampleToken: data.metadata?.tokens ? Object.entries(data.metadata.tokens)[0] : null
+      });
       
       if (!data || !data.data) {
         throw new Error('Invalid response format from API');
