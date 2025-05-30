@@ -94,7 +94,7 @@ export const SettingsIcon = () => {
   );
 };
 
-export const BookIcon = () => {
+export const BookIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       height="16"
@@ -102,6 +102,7 @@ export const BookIcon = () => {
       viewBox="0 0 16 16"
       width="16"
       style={{ color: "currentcolor" }}
+      className={className}
     >
       <path
         fillRule="evenodd"

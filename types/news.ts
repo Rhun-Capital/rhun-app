@@ -80,7 +80,7 @@ export interface BaseCryptoNewsProps {
 export interface NewsAnalysisProps extends BaseToolProps {
   toolInvocation: {
     toolName: string;
-    args: { message: string };
+    args: { message: string; ticker?: string };
     result?: {
       sentiment: string;
       summary: string;
@@ -90,9 +90,6 @@ export interface NewsAnalysisProps extends BaseToolProps {
         market: string;
         industry: string;
       };
-      error?: string;
-      status?: string;
-      message?: string;
       ticker?: string;
       processed_news?: Array<{
         title: string;
@@ -112,6 +109,9 @@ export interface NewsAnalysisProps extends BaseToolProps {
       error: string;
       message: string;
       status?: string;
+    } | {
+      status: 'processing';
+      message: string;
     };
     state: ToolInvocationState;
   };

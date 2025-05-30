@@ -22,7 +22,7 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Token icon component with fallback
-const TokenIcon = ({ icon, symbol, size = 40 }: TokenIconProps & { icon?: string }) => {
+const TokenIcon = ({ logoURI, symbol, size = 40 }: TokenIconProps & { logoURI?: string }) => {
   const [error, setError] = useState(false);
   const firstLetter = symbol.charAt(0).toUpperCase();
   const colors = [
@@ -42,7 +42,7 @@ const TokenIcon = ({ icon, symbol, size = 40 }: TokenIconProps & { icon?: string
     fontSize: `${size * 0.4}px`, // Scale font size relative to container size
   };
 
-  if (error || !icon) {
+  if (error || !logoURI) {
     return (
       <div 
         className={`rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}
@@ -56,7 +56,7 @@ const TokenIcon = ({ icon, symbol, size = 40 }: TokenIconProps & { icon?: string
   return (
     <div className="relative" style={containerStyle}>
       <Image
-        src={icon}
+        src={logoURI}
         alt={symbol}
         width={size}
         height={size}
@@ -208,13 +208,16 @@ const TransferModal = ({
     if (token === 'SOL') {
       setSelectedToken({
         token_address: 'SOL',
+        token_account: solanaWallet?.address || '',
         token_icon: solanaBalance?.logoURI || '',
         token_name: 'Solana',
         usd_price: solanaBalance?.usdValue || 0,
         usd_value: solanaBalance?.usdValue || 0,
         formatted_amount: solanaBalance?.amount || 0,
+        amount: (solanaBalance?.amount || 0) * 1e9,
         token_symbol: 'SOL',
-        token_decimals: 9
+        token_decimals: 9,
+        owner: solanaWallet?.address || ''
       });
     } else {
       setSelectedToken(token as SendToken);
@@ -340,7 +343,7 @@ const TransferModal = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <TokenIcon icon={solanaBalance.logoURI} symbol="SOL" />
+                      <TokenIcon logoURI={solanaBalance.logoURI} symbol="SOL" />
                       <div className="flex flex-col justify-start">
                         <div className="text-white">Solana</div>
                         <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
@@ -359,7 +362,7 @@ const TransferModal = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <TokenIcon icon={token.token_icon} symbol={token.token_symbol} />
+                      <TokenIcon logoURI={token.token_icon} symbol={token.token_symbol} />
                       <div className="flex flex-col justify-start">
                         <div className="text-white">{token.token_name}</div>
                         <div className="text-sm text-zinc-400">{token.formatted_amount} {token.token_symbol}</div>
@@ -374,11 +377,7 @@ const TransferModal = ({
             <div className="space-y-4">
               {selectedToken && (
                 <div className="flex items-center gap-2 bg-zinc-800 p-3 rounded-lg">
-                  <TokenIcon 
-                    icon={selectedToken.token_icon} 
-                    symbol={selectedToken.token_symbol} 
-                    size={32} 
-                  />
+                  <TokenIcon logoURI={selectedToken.token_icon} symbol={selectedToken.token_symbol} />
                   <div className="text-white">{selectedToken.token_name}</div>
                   <div className="text-zinc-400 text-sm">
                     Balance: {selectedToken.formatted_amount} {selectedToken.token_symbol}

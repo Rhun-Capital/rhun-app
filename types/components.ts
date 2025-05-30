@@ -98,10 +98,21 @@ export interface PortfolioValueProps {
   className?: string;
 }
 
-export interface SolanaTransactionVolumeProps {
-  address: string;
-  onVolumeUpdate?: (volume: any) => void;
-  className?: string;
+export interface SolanaTransactionVolumeProps extends BaseToolProps {
+  toolInvocation: {
+    toolName: string;
+    args: Record<string, any>;
+    result?: {
+      volume?: number;
+      transactions?: Array<{
+        signature: string;
+        timestamp: number;
+        amount: number;
+        type: string;
+      }>;
+    };
+    state: ToolInvocationState;
+  };
 }
 
 export interface WhaleActivityProps extends BaseToolProps {
@@ -130,8 +141,22 @@ export interface WebResearchProps {
   className?: string;
 }
 
-export interface FredAnalysisProps {
-  series: string;
+export interface FredAnalysisProps extends BaseToolProps {
+  toolInvocation: {
+    toolName: string;
+    args: Record<string, any>;
+    result?: {
+      series: string;
+      data: Array<{
+        date: string;
+        value: number;
+      }>;
+      title?: string;
+      units?: string;
+      frequency?: string;
+    };
+    state: ToolInvocationState;
+  };
   onAnalysisUpdate?: (analysis: any) => void;
   className?: string;
 }
@@ -232,9 +257,16 @@ export interface FearGreedProps {
   };
 }
 
-export interface BalanceProps {
-  className?: string;
-  address?: string;
+export interface BalanceProps extends BaseToolProps {
+  toolInvocation: {
+    toolName: string;
+    args: Record<string, any>;
+    result?: {
+      balance?: number;
+      address?: string;
+    };
+    state: ToolInvocationState;
+  };
 }
 
 export interface TrendingCoinsProps {
@@ -258,12 +290,19 @@ export interface TrendingCoinsProps {
   };
 }
 
-export interface GlobalMarketProps {
-  toolCallId: string;
+export interface GlobalMarketProps extends BaseToolProps {
   toolInvocation: {
     toolName: string;
-    args: { message: string };
-    result?: GlobalMarketData;
+    args: Record<string, any>;
+    result?: {
+      totalMarketCap: number;
+      totalVolume24h: number;
+      btcDominance: number;
+      marketCapChange24h: number;
+      volumeChange24h: number;
+      lastUpdated: string;
+    };
+    state: ToolInvocationState;
   };
 }
 
@@ -288,8 +327,27 @@ export interface TechnicalAnalysisProps {
   symbol?: string;
 }
 
-export interface StockAnalysisProps {
-  className?: string;
+export interface StockAnalysisProps extends BaseToolProps {
+  toolInvocation: {
+    toolName: string;
+    args: Record<string, any>;
+    result?: {
+      symbol: string;
+      price: number;
+      change: number;
+      changePercent: number;
+      volume: number;
+      marketCap: number;
+      peRatio: number;
+      analysis: {
+        technicalIndicators: Record<string, any>;
+        fundamentalMetrics: Record<string, any>;
+        recommendation: string;
+      };
+    };
+    state: ToolInvocationState;
+  };
+  append?: (message: string) => void;
 }
 
 export interface RecentCoinsMessage {

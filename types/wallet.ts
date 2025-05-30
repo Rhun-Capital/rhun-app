@@ -15,12 +15,12 @@ export interface Token {
   token_name: string;
   token_symbol: string;
   token_decimals: number;
-  token_icon?: string;
+  token_icon: string;
   amount: number;
   owner: string;
-  usd_value?: number;
-  usd_price?: number;
-  formatted_amount?: number;
+  usd_value: number;
+  usd_price: number;
+  formatted_amount: number;
 }
 
 export interface SendToken {

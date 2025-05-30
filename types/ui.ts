@@ -12,7 +12,7 @@ export interface ModalContextType {
 
 // Basic UI component types
 export interface TokenIconProps {
-  icon?: string;
+  logoURI?: string;
   symbol: string;
   size?: number;
   className?: string;

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { GlobeIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
-import { DerivativesExchangesProps } from '@/types/tools';
+import { DerivativesExchangesProps } from '@/types/components';
 
 type ToolInvocationState = 'call' | 'partial-call' | 'result';
 
@@ -21,13 +21,8 @@ export default function DerivativesExchanges({ toolCallId, toolInvocation }: Der
   }, []);
 
   const exchanges = useMemo(() => {
-    if (!toolInvocation) return [];
-    try {
-      const data = JSON.parse(toolInvocation);
-      return data.exchanges || [];
-    } catch (e) {
-      return [];
-    }
+    if (!toolInvocation?.result) return [];
+    return Object.values(toolInvocation.result) || [];
   }, [toolInvocation]);
 
   if (!exchanges.length) {
@@ -36,6 +31,7 @@ export default function DerivativesExchanges({ toolCallId, toolInvocation }: Der
 
   const formatBTC = (amount: number | string) => {
     const value = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(value)) return '₿0.00';
     return `₿${value.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -43,8 +39,12 @@ export default function DerivativesExchanges({ toolCallId, toolInvocation }: Der
   };
 
   const sortedExchanges = [...exchanges].sort((a, b) => {
-    const aValue = sortField === 'open_interest' ? a.open_interest_btc : parseFloat(a.trade_volume_24h_btc);
-    const bValue = sortField === 'open_interest' ? b.open_interest_btc : parseFloat(b.trade_volume_24h_btc);
+    const aValue = sortField === 'open_interest' ? 
+      parseFloat(String(a.open_interest_btc)) : 
+      parseFloat(String(a.trade_volume_24h_btc));
+    const bValue = sortField === 'open_interest' ? 
+      parseFloat(String(b.open_interest_btc)) : 
+      parseFloat(String(b.trade_volume_24h_btc));
     return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
   });
 

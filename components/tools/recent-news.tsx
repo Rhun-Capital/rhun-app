@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 // Import from Vercel AI SDK
 import type { ToolInvocation as AIToolInvocation } from '@ai-sdk/ui-utils';
 import LoadingIndicator from '../loading-indicator';
-import { CryptoNewsProps as BaseCryptoNewsProps } from '@/types/tools';
-import { CryptoNewsArticle } from '../../types/market';
+import { CryptoNewsProps as BaseCryptoNewsProps } from '@/types/components';
+import { CryptoNewsArticle } from '@/types/news';
 
 interface ExtendedCryptoNewsProps extends BaseCryptoNewsProps {
   toolCallId: string;
@@ -78,7 +78,7 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
   // Article detail view
   if (selectedArticle) {
     // Ensure we have a valid article (defensive coding)
-    if (!selectedArticle.id) {
+    if (!selectedArticle.url) {
       return (
         <div className="p-4 text-center text-zinc-400">
           Invalid article data
@@ -96,11 +96,11 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
         </button>
 
         <div className="mb-4">
-          {selectedArticle.image_url && selectedArticle.image_url.trim() !== '' && (
+          {selectedArticle.imageUrl && selectedArticle.imageUrl.trim() !== '' && (
             <div className="flex gap-4 items-start">
               <div className="w-1/3 max-w-[300px] min-w-[200px]">
                 <img 
-                  src={selectedArticle.image_url}
+                  src={selectedArticle.imageUrl}
                   alt={selectedArticle.title || 'News article'}
                   className="w-full h-auto object-cover rounded-lg bg-zinc-900"
                   onError={(e) => {
@@ -116,53 +116,53 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
                 </h2>
                 
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'NEUTRAL')}`}>
-                    {selectedArticle.sentiment || 'NEUTRAL'}
+                  <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'neutral')}`}>
+                    {selectedArticle.sentiment || 'neutral'}
                   </span>
                   
                   <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-                    {selectedArticle.source || 'CoinDesk'}
+                    {selectedArticle.source || 'Unknown source'}
                   </span>
                   
                   <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-                    {selectedArticle.published_date ? formatTimeAgo(selectedArticle.published_date) : 'Recently'}
+                    {selectedArticle.publishedAt ? formatTimeAgo(selectedArticle.publishedAt) : 'Recently'}
                   </span>
                   
-                  {safeArrayAccess(selectedArticle.categories).map(category => (
-                    <span key={category} className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
-                      {category}
+                  {selectedArticle.category && (
+                    <span className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
+                      {selectedArticle.category}
                     </span>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
           )}
           
           {/* Show title without flex layout if no image */}
-          {(!selectedArticle.image_url || selectedArticle.image_url.trim() === '') && (
+          {(!selectedArticle.imageUrl || selectedArticle.imageUrl.trim() === '') && (
             <>
               <h2 className="text-xl font-bold text-white mb-2">
                 {selectedArticle.title || 'Untitled article'}
               </h2>
               
               <div className="flex flex-wrap gap-2 mb-3">
-                <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'NEUTRAL')}`}>
-                  {selectedArticle.sentiment || 'NEUTRAL'}
+                <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'neutral')}`}>
+                  {selectedArticle.sentiment || 'neutral'}
                 </span>
                 
                 <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-                  {selectedArticle.source || 'CoinDesk'}
+                  {selectedArticle.source || 'Unknown source'}
                 </span>
                 
                 <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-                  {selectedArticle.published_date ? formatTimeAgo(selectedArticle.published_date) : 'Recently'}
+                  {selectedArticle.publishedAt ? formatTimeAgo(selectedArticle.publishedAt) : 'Recently'}
                 </span>
                 
-                {safeArrayAccess(selectedArticle.categories).map(category => (
-                  <span key={category} className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
-                    {category}
+                {selectedArticle.category && (
+                  <span className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
+                    {selectedArticle.category}
                   </span>
-                ))}
+                )}
               </div>
             </>
           )}
@@ -171,7 +171,7 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
         {/* Article content */}
         <div className="bg-zinc-900 p-4 rounded-lg mb-4">
           <p className="text-zinc-300 whitespace-pre-line">
-            {selectedArticle.full_text || selectedArticle.summary || 'No content available.'}
+            {selectedArticle.content || selectedArticle.description || 'No content available.'}
           </p>
         </div>
 
@@ -182,34 +182,22 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
             <div className="text-sm text-zinc-500 mb-2">Publication Details</div>
             <div className="text-sm text-zinc-300">
               <div><span className="text-zinc-400">Source:</span> {selectedArticle.source}</div>
-              <div><span className="text-zinc-400">Published:</span> {new Date(selectedArticle.published_date).toLocaleString()}</div>
+              <div><span className="text-zinc-400">Published:</span> {new Date(selectedArticle.publishedAt).toLocaleString()}</div>
               <div><span className="text-zinc-400">Sentiment:</span> {selectedArticle.sentiment}</div>
             </div>
           </div>
 
           {/* Categories */}
-          {(() => {
-            // Filter to only include categories with actual text content
-            const validCategories = safeArrayAccess(selectedArticle.categories)
-              .filter(category => category && typeof category === 'string' && category.trim() !== '');
-            
-            // Only display the Categories section if we have valid categories
-            if (validCategories.length > 0) {
-              return (
-                <div className="bg-zinc-900 p-3 rounded-lg">
-                  <div className="text-sm text-zinc-500 mb-2">Categories</div>
-                  <div className="flex flex-wrap gap-2">
-                    {validCategories.map(category => (
-                      <span key={category} className="bg-zinc-700 text-zinc-300 px-2 py-1 text-xs rounded">
-                        {category}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
+          {selectedArticle.category && (
+            <div className="bg-zinc-900 p-3 rounded-lg">
+              <div className="text-sm text-zinc-500 mb-2">Category</div>
+              <div className="flex flex-wrap gap-2">
+                <span className="bg-zinc-700 text-zinc-300 px-2 py-1 text-xs rounded">
+                  {selectedArticle.category}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Original link */}
           {selectedArticle.url && (
@@ -224,7 +212,6 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
               </a>
             </div>
           )}
-
         </div>
       </div>
     );
@@ -239,17 +226,17 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
         <div className="space-y-3">
           {articles.map((article: CryptoNewsArticle) => {
             // Skip articles without required fields
-            if (!article || !article.id) return null;
+            if (!article || !article.url) return null;
             
             return (
               <div 
-                key={article.id}
+                key={article.url}
                 onClick={() => setSelectedArticle(article)}
                 className="bg-zinc-900 p-3 rounded-lg flex items-start hover:bg-zinc-700 cursor-pointer transition-colors"
               >
-                {article.image_url && article.image_url.trim() !== '' ? (
+                {article.imageUrl && article.imageUrl.trim() !== '' ? (
                   <img 
-                    src={article.image_url}
+                    src={article.imageUrl}
                     alt={article.title || 'News article'}
                     className="w-16 h-16 object-cover rounded mr-3 flex-shrink-0"
                     onError={(e) => {
@@ -268,36 +255,23 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
                     {article.title}
                   </div>
                   <div className="text-sm text-zinc-400 mt-1 line-clamp-2">
-                    {article.summary}
+                    {article.description}
                   </div>
                   <div className="flex flex-wrap gap-x-2 mt-2 text-xs">
-                    <span className="text-zinc-500">{article.source || 'CoinDesk'}</span>
-                    <span className="text-zinc-500">{article.published_date ? formatTimeAgo(article.published_date) : 'Recently'}</span>
+                    <span className="text-zinc-500">{article.source || 'Unknown source'}</span>
+                    <span className="text-zinc-500">{article.publishedAt ? formatTimeAgo(article.publishedAt) : 'Recently'}</span>
                     
-                    <span className={`px-1.5 py-0.5 rounded-sm ${getSentimentColor(article.sentiment || 'NEUTRAL')}`}>
-                      {article.sentiment || 'NEUTRAL'}
+                    <span className={`px-1.5 py-0.5 rounded-sm ${getSentimentColor(article.sentiment || 'neutral')}`}>
+                      {article.sentiment || 'neutral'}
                     </span>
                     
-                    {(() => {
-                      
-                      const validCategories = safeArrayAccess(article.categories)
-                        .filter(cat => cat && typeof cat === 'string' && cat.trim() !== '');
-                      
-                      // Only return the span if we have valid categories with actual text content
-                      if (validCategories.length > 0 && validCategories[0].trim() !== '') {
-                        return (
-                          <span className="bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded-sm">
-                            {validCategories[0]}
-                          </span>
-                        );
-                      }
-                      
-                      // Return null to render nothing when no valid categories
-                      return null;
-                    })()}
+                    {article.category && (
+                      <span className="bg-purple-900 text-purple-200 px-1.5 py-0.5 rounded-sm">
+                        {article.category}
+                      </span>
+                    )}
                   </div>
                 </div>
-                
               </div>
             );
           })}

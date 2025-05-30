@@ -74,9 +74,21 @@ export default function AgentsPage() {
         const formattedTemplateData = templateData.map((item: AWS.DynamoDB.DocumentClient.AttributeMap) => ({
           id: item.id,
           name: item.name,
+          description: item.description || '',
           imageUrl: item.imageUrl,
           isTemplate: true,
           updatedAt: item.updatedAt || '',
+          coreCapabilities: item.configuration?.coreCapabilities || '',
+          interactionStyle: item.configuration?.interactionStyle || '',
+          analysisApproach: item.configuration?.analysisApproach || '',
+          riskCommunication: item.configuration?.riskCommunication || '',
+          responseFormat: item.configuration?.responseFormat || '',
+          limitationsDisclaimers: item.configuration?.limitationsDisclaimers || '',
+          prohibitedBehaviors: item.configuration?.prohibitedBehaviors || '',
+          knowledgeUpdates: item.configuration?.knowledgeUpdates || '',
+          styleGuide: item.configuration?.styleGuide || '',
+          specialInstructions: item.configuration?.specialInstructions || '',
+          responsePriorityOrder: item.configuration?.responsePriorityOrder || ''
         }));
 
         // Fetch user's agents if logged in
@@ -86,9 +98,21 @@ export default function AgentsPage() {
           userAgents = userData.map((item: AWS.DynamoDB.DocumentClient.AttributeMap) => ({
             id: item.id,
             name: item.name,
+            description: item.description || '',
             imageUrl: item.imageUrl,
             isTemplate: false,
             updatedAt: item.updatedAt || '',
+            coreCapabilities: item.configuration?.coreCapabilities || '',
+            interactionStyle: item.configuration?.interactionStyle || '',
+            analysisApproach: item.configuration?.analysisApproach || '',
+            riskCommunication: item.configuration?.riskCommunication || '',
+            responseFormat: item.configuration?.responseFormat || '',
+            limitationsDisclaimers: item.configuration?.limitationsDisclaimers || '',
+            prohibitedBehaviors: item.configuration?.prohibitedBehaviors || '',
+            knowledgeUpdates: item.configuration?.knowledgeUpdates || '',
+            styleGuide: item.configuration?.styleGuide || '',
+            specialInstructions: item.configuration?.specialInstructions || '',
+            responsePriorityOrder: item.configuration?.responsePriorityOrder || ''
           }));
         }
 
