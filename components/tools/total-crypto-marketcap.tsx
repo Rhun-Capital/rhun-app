@@ -1,25 +1,7 @@
 // components/global-market-cap.tsx
 import React from 'react';
-
-interface GlobalMarketData {
-  totalMarketCap: number;
-  totalVolume: number;
-  marketCapPercentage: {
-    [key: string]: number;
-  };
-  marketCapChange24h: number;
-  activeCryptocurrencies: number;
-  lastUpdated: number;
-}
-
-interface GlobalMarketProps {
-  toolCallId: string;
-  toolInvocation: {
-    toolName: string;
-    args: { message: string };
-    result?: GlobalMarketData;
-  };
-}
+import { GlobalMarketData } from '@/types/market';
+import { GlobalMarketProps } from '../../types/ui';
 
 const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInvocation }) => {
   if (!("result" in toolInvocation)) return null;

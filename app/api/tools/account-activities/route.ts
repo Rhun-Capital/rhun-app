@@ -20,10 +20,7 @@ export async function GET(request: NextRequest) {
       token: params.get('token')
     };
 
-    console.log('Received request with params:', paramConfig);
-
     if (!paramConfig.address) {
-      console.error('Missing required address parameter');
       return NextResponse.json(
         { error: 'Account address is required' },
         { status: 400 }
@@ -53,7 +50,6 @@ export async function GET(request: NextRequest) {
     if (paramConfig.token) apiParams.append('token', paramConfig.token);
 
     const solscanUrl = `${process.env.NEXT_PUBLIC_SOLSCAN_BASE_URL}/account/defi/activities?${apiParams.toString()}`;
-    console.log('Calling Solscan API:', solscanUrl);
 
     const response = await fetch(solscanUrl, {
       headers: {
@@ -63,40 +59,18 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Solscan API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-        url: solscanUrl
-      });
-      
       if (response.status === 404) {
         return NextResponse.json({ data: [], metadata: { tokens: {} } });
       }
-      
-      return NextResponse.json(
-        { error: `Failed to fetch activities: ${response.status} ${response.statusText}` },
-        { status: response.status }
-      );
+      throw new Error(`Failed to fetch activities: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log('Solscan API response success:', {
-      dataLength: data?.data?.length,
-      hasMetadata: !!data?.metadata,
-      tokenCount: Object.keys(data?.metadata?.tokens || {}).length
-    });
-
+    
     if (!data || !data.data) {
-      console.error('Invalid response format:', data);
-      return NextResponse.json(
-        { error: 'Invalid response format from Solscan API' },
-        { status: 500 }
-      );
+      throw new Error('Invalid response format from API');
     }
 
-    // Ensure we have the expected data structure
     const formattedResponse = {
       data: data.data || [],
       metadata: {
@@ -105,12 +79,8 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(formattedResponse);
-
-  } catch (error: any) {
-    console.error('Error in account activities endpoint:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to fetch account activities' },
-      { status: 500 }
-    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to load holder activities';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

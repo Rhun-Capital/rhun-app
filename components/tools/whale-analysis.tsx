@@ -1,24 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, ExternalLink } from 'lucide-react';
 import LoadingIndicator from '@/components/loading-indicator';
+import { WhaleAnalysisProps, WhaleData } from '@/types/market';
+import Link from 'next/link';
 
-interface WhaleAnalysisProps {
-  tokenAddress: string;
-  currentPrice?: number;
-}
-
-interface WhaleData {
-  address: string;
-  entryPrice: number;
-  currentPrice: number;
-  profitLossPercent: number;
-  totalValue: number;
-  tokenAmount: number;
-  lastTradeTimestamp: number;
-}
-
-const WhaleAnalysis: React.FC<WhaleAnalysisProps> = ({ tokenAddress, currentPrice }) => {
+const WhaleAnalysis: React.FC<WhaleAnalysisProps> = ({ toolCallId, toolInvocation }) => {
   const [whales, setWhales] = useState<WhaleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +18,7 @@ const WhaleAnalysis: React.FC<WhaleAnalysisProps> = ({ tokenAddress, currentPric
         setError(null);
         
         const accessToken = await getAccessToken();
-        const response = await fetch(`/api/whales/analysis?tokenAddress=${tokenAddress}&currentPrice=${currentPrice}`, {
+        const response = await fetch(`/api/whales/analysis?tokenAddress=${toolCallId}&currentPrice=${toolInvocation}`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
@@ -51,10 +38,10 @@ const WhaleAnalysis: React.FC<WhaleAnalysisProps> = ({ tokenAddress, currentPric
       }
     };
 
-    if (tokenAddress && currentPrice) {
+    if (toolCallId && toolInvocation) {
       fetchWhaleData();
     }
-  }, [tokenAddress, currentPrice, getAccessToken]);
+  }, [toolCallId, toolInvocation, getAccessToken]);
 
   if (loading) {
     return (

@@ -8,16 +8,7 @@ import Link from 'next/link';
 import { PlusIcon } from '@/components/icons';
 import { EditIcon, FilterIcon, AlertCircle } from 'lucide-react';
 import LoadingIndicator from '@/components/loading-indicator';
-
-type AttributeMap = {
-  id: string;
-  name: string;
-  imageUrl?: string;
-  isTemplate?: boolean;
-  updatedAt: string;
-};
-
-type FilterType = 'all' | 'templates' | 'custom';
+import { AgentAttributes, FilterType } from '../types/agent';
 
 function CreateAgentButton() {
   return (
@@ -70,7 +61,7 @@ function CreateAgentCard() {
 
 export default function AgentsPage() {
   const { user, getAccessToken } = usePrivy();
-  const [agents, setAgents] = useState<AttributeMap[]>([]);
+  const [agents, setAgents] = useState<AgentAttributes[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
@@ -89,7 +80,7 @@ export default function AgentsPage() {
         }));
 
         // Fetch user's agents if logged in
-        let userAgents: AttributeMap[] = [];
+        let userAgents: AgentAttributes[] = [];
         if (user) {
           const userData = await getAgents(user.id);
           userAgents = userData.map((item: AWS.DynamoDB.DocumentClient.AttributeMap) => ({

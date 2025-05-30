@@ -1,17 +1,11 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { usePrivy } from '@privy-io/react-auth';
 import CopyButton from './copy-button';
 import { AlertCircleIcon } from './icons';
+import { ApiKey } from '../types/api';
 
-interface ApiKey {
-  id: string;
-  name: string;
-  key: string;
-  createdAt: string;
-  lastUsed?: string;
-}
-
-export default function ApiKeyManagement() {
+export function ApiKeyManagement() {
   const { user, getAccessToken } = usePrivy();
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,57 +18,31 @@ export default function ApiKeyManagement() {
 
   const fetchApiKeys = async () => {
     try {
-      console.log('Starting fetchApiKeys...');
+      setLoading(true);
       const accessToken = await getAccessToken();
       if (!accessToken) {
         throw new Error('No access token available');
       }
-      console.log('Got access token from Privy, length:', accessToken.length);
-      
-      console.log('Making request to /api/keys...');
+
       const response = await fetch('/api/keys', {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
       });
-      
-      console.log('API response status:', response.status);
-      console.log('API response headers:', Object.fromEntries(response.headers.entries()));
-      
+
+      if (response.status === 429) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchApiKeys();
+      }
+
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('API error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorData
-        });
-        
-        // If we hit a rate limit, wait and retry once
-        if (response.status === 429) {
-          console.log('Rate limited, waiting 1 second before retry...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return fetchApiKeys();
-        }
-        
-        throw new Error(`Failed to fetch API keys: ${response.status} ${response.statusText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('Successfully fetched API keys:', {
-        count: data.length,
-        keys: data.map((k: ApiKey) => ({ id: k.id, name: k.name }))
-      });
-      setApiKeys(data);
-    } catch (err) {
-      console.error('Error in fetchApiKeys:', err);
-      if (err instanceof Error) {
-        console.error('Error details:', {
-          name: err.name,
-          message: err.message,
-          stack: err.stack
-        });
-      }
-      setError('Failed to load API keys');
+      setApiKeys(data.keys || []);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to fetch API keys');
     } finally {
       setLoading(false);
     }

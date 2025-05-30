@@ -1,18 +1,17 @@
 // components/ImageUpload.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useParams } from "next/navigation";
-
-
-interface ImageUploadProps {
-  onImageChange: (file: File | null) => void;
-  initialImage?: string;
-}
+import { ImageUploadProps } from '../types/ui';
 
 export default function ImageUpload({ onImageChange, initialImage }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(initialImage || null);
   const params = useParams();
 
+  // Update preview when initialImage changes
+  useEffect(() => {
+    setPreview(initialImage || null);
+  }, [initialImage]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,6 +37,7 @@ export default function ImageUpload({ onImageChange, initialImage }: ImageUpload
             alt="Agent profile"
             fill
             className="object-cover"
+            unoptimized={preview.startsWith('data:')} // Don't optimize data URLs
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-zinc-400">

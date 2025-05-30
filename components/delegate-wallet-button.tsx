@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useHeadlessDelegatedActions, usePrivy } from '@privy-io/react-auth';
 import { AlertCircle, CheckCircle } from 'lucide-react';
-
-interface DelegateWalletButtonProps {
-  walletAddress: string;
-  chainType: 'ethereum' | 'solana';
-  onSuccess?: () => void;
-}
+import { DelegateWalletButtonProps } from '@/types/wallet';
 
 export default function DelegateWalletButton({ 
   walletAddress, 
   chainType = 'solana',
-  onSuccess
+  onSuccess,
+  onDelegationChange,
+  className
 }: DelegateWalletButtonProps) {
   const { delegateWallet, revokeWallets } = useHeadlessDelegatedActions();
   const { user } = usePrivy();
@@ -32,7 +29,8 @@ export default function DelegateWalletButton({
     );
     
     setDelegateSuccess(isDelegated);
-  }, [user, walletAddress]);
+    if (onDelegationChange) onDelegationChange(isDelegated);
+  }, [user, walletAddress, onDelegationChange]);
 
   const handleDelegateWallet = async () => {
     if (!walletAddress) return;
@@ -48,6 +46,7 @@ export default function DelegateWalletButton({
       
       setDelegateSuccess(true);
       if (onSuccess) onSuccess();
+      if (onDelegationChange) onDelegationChange(true);
     } catch (err) {
       console.error('Error delegating wallet:', err);
       setError(err instanceof Error ? err.message : 'Failed to delegate wallet');
@@ -63,6 +62,7 @@ export default function DelegateWalletButton({
     try {
       await revokeWallets();
       setDelegateSuccess(false);
+      if (onDelegationChange) onDelegationChange(false);
     } catch (err) {
       console.error('Error revoking wallet delegation:', err);
       setError(err instanceof Error ? err.message : 'Failed to revoke wallet delegation');
@@ -72,7 +72,7 @@ export default function DelegateWalletButton({
   };
 
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${className || ''}`}>
       {delegateSuccess ? (
         <div className="flex items-center gap-2 text-green-400 text-sm mb-2">
           <CheckCircle className="h-4 w-4" />

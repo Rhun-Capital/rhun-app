@@ -3,58 +3,8 @@ import Image from 'next/image';
 import { ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, GlobeIcon } from '@/components/icons';
 import Link from 'next/link';
 import CopyButton from '@/components/copy-button';
-
-interface CoinData {
-  symbol: string;
-  image: string;
-  name: string;
-  price: number;
-  priceChange24h: number;
-  id?: string;
-}
-
-interface CoinDetails {
-  id: string;
-  symbol: string;
-  name: string;
-  description: { en: string };
-  platforms: Record<string, string>;
-  contracts: Record<string, { decimal_place: number | null; contract_address: string }>;
-  market_data: {
-    current_price: { usd: number };
-    price_change_percentage_24h: number;
-    price_change_percentage_7d: number;
-    price_change_percentage_30d: number;
-    market_cap: { usd: number };
-    total_volume: { usd: number };
-    circulating_supply: number;
-    total_supply: number;
-    high_24h: { usd: number };
-    low_24h: { usd: number };
-  };
-  image: {
-    large: string;
-  };
-  links: {
-    homepage: string[];
-    twitter_screen_name: string;
-  };
-  last_updated: string;
-}
-
-interface ToolInvocation {
-  toolName: string;
-  args: { message: string };
-  result?: {
-    top_gainers: CoinData[];
-    top_losers: CoinData[];
-  };
-}
-
-interface MarketMoversProps {
-  toolCallId: string;
-  toolInvocation: ToolInvocation;
-}
+import { CoinData, CoinDetails, MarketMoversProps } from '@/types/market';
+import { AIToolInvocation } from '@/types/tools';
 
 const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -73,9 +23,10 @@ const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation 
     }).format(price)
   );
 
-  const formatPriceChange = (priceChange: number) => (
-    `${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}%`
-  );
+  const formatPriceChange = (priceChange: number | undefined | null) => {
+    if (priceChange === undefined || priceChange === null) return 'N/A';
+    return `${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}%`;
+  };
 
   const handleCoinClick = async (coinId: string) => {
     setIsLoading(true);
@@ -99,7 +50,7 @@ const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation 
     >
       <div className="flex items-center gap-3">
         <Image 
-          src={coin.image} 
+          src={typeof coin.image === 'string' ? coin.image : coin.image.large} 
           alt={coin.name} 
           width={32} 
           height={32} 
@@ -112,10 +63,10 @@ const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation 
       </div>
       <div className="text-right">
         <p className="font-medium text-white">
-          {formatPrice(coin.price)}
+          {formatPrice(coin.current_price)}
         </p>
-        <p className={`text-sm ${coin.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-          {formatPriceChange(coin.priceChange24h)}
+        <p className={`text-sm ${coin.price_change_percentage_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          {formatPriceChange(coin.price_change_percentage_24h)}
         </p>
       </div>
     </div>

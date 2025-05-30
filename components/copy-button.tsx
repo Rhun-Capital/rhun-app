@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
+import { CopyButtonProps } from '@/types/components';
 
-interface CopyButtonProps {
-  text: string;
-}
-
-const CopyButton: React.FC<CopyButtonProps> = ({ text }) => {
+const CopyButton: React.FC<CopyButtonProps> = ({ text, className }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -21,7 +18,7 @@ const CopyButton: React.FC<CopyButtonProps> = ({ text }) => {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center justify-center p-1 text-gray-400 hover:text-gray-300 transition-colors"
+      className={`inline-flex items-center justify-center p-1 text-gray-400 hover:text-gray-300 transition-colors ${className || ''}`}
       title="Copy to clipboard"
     >
       {copied ? (

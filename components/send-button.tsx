@@ -6,30 +6,8 @@ import { RefreshCw } from 'lucide-react';
 import { useModal } from '../contexts/modal-context'; // Ensure this path is correct
 import { useParams, usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
-
-interface Token {
-  token_address: string;
-  token_icon: string;
-  token_name: string;
-  usd_price: number;
-  usd_value: number;
-  formatted_amount: number;
-  token_symbol: string;
-  token_decimals: number;
-}
-
-interface TransferModalProps {
-  agent: any;
-  tokens: Token[];
-  isOpen: boolean;
-  onClose: () => void;
-  solanaBalance?: {
-    amount: number;
-    usdValue: number;
-    logoURI: string;
-  };
-  onSwapComplete?: () => void;
-}
+import { SendToken } from '../types/wallet';
+import { ModalContextType, TransferModalProps, TokenIconProps } from '../types/ui';
 
 // Modal portal component to ensure modal is rendered at the document root
 const ModalPortal = ({ children }: { children: React.ReactNode }) => {
@@ -44,7 +22,7 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Token icon component with fallback
-const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string; size?: number }) => {
+const TokenIcon = ({ icon, symbol, size = 40 }: TokenIconProps & { icon?: string }) => {
   const [error, setError] = useState(false);
   const firstLetter = symbol.charAt(0).toUpperCase();
   const colors = [
@@ -90,12 +68,13 @@ const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string;
 };
 
 const TransferModal = ({ 
-  agent, 
-  tokens, 
+  agent,
+  tokens,
   isOpen, 
-  onClose, 
-  solanaBalance, 
-  onSwapComplete 
+  onClose,
+  token,
+  solanaBalance,
+  onSwapComplete
 }: TransferModalProps) => {
   const { authenticated } = usePrivy();
   const { wallets } = useSolanaWallets();
@@ -111,7 +90,7 @@ const TransferModal = ({
   const connection = new ProxyConnection({ commitment: 'confirmed' });
   
   const [step, setStep] = useState<'select-token' | 'transfer'>('select-token');
-  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+  const [selectedToken, setSelectedToken] = useState<SendToken | null>(null);
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [isUSD, setIsUSD] = useState(false);
@@ -225,7 +204,7 @@ const TransferModal = ({
     }
   };
 
-  const handleTokenSelect = (token: Token | 'SOL') => {
+  const handleTokenSelect = (token: SendToken | 'SOL') => {
     if (token === 'SOL') {
       setSelectedToken({
         token_address: 'SOL',
@@ -238,7 +217,7 @@ const TransferModal = ({
         token_decimals: 9
       });
     } else {
-      setSelectedToken(token as Token);
+      setSelectedToken(token as SendToken);
     }
     setStep('transfer');
   };

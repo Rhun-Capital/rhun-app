@@ -6,9 +6,11 @@ import { Loader2, Edit2, X, Save, Tag as TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { createPortal } from 'react-dom';
 import { useModal } from '@/contexts/modal-context';
+import { ModalPortalProps, WalletDetailsModalProps } from '../types/modal';
+import { WatcherData, LastActivityWrapper } from '../types/watcher';
 
 // Modal portal component to ensure modal is rendered at the document root
-const ModalPortal = ({ children }: { children: React.ReactNode }) => {
+const ModalPortal = ({ children }: ModalPortalProps) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -20,45 +22,6 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
 };
 
 const PAGE_SIZE = 10;
-
-interface LastActivityWrapper {
-  userId: string;
-  timestamp: number;
-  sk: string;
-  pk: string;
-  walletAddress: string;
-  type: string;
-}
-
-interface Watcher {
-  walletAddress: string;
-  name?: string;
-  tags?: string[];
-  lastDataPoint?: {
-    solBalance: number;
-    timestamp: number;
-  };
-  isActive: boolean;
-  lastChecked?: string | null;
-  filters?: {
-    minAmount?: number;
-    specificToken?: string;
-    activityTypes?: string[];
-    platform?: string[];
-  };
-  userId: string;
-  createdAt: string;
-  sk: string;
-  pk: string;
-  type: string;
-  lastActivity?: LastActivityWrapper[];
-}
-
-interface WalletDetailsModalProps {
-  watcher: Watcher;
-  onClose: () => void;
-  onUpdate: (updatedWatcher: Watcher) => void;
-}
 
 const formatActivityType = (type: string) => {
   if (!type) return 'Unknown';
@@ -249,12 +212,12 @@ const loadMore = () => {
     const router = activity.routers;
     return {
       token1: {
-        amount: router.amount1,
+        amount: router.amount1_adjusted || router.amount1,
         decimals: router.token1_decimals,
         metadata: activity.tokens?.[router.token1]
       },
       token2: {
-        amount: router.amount2,
+        amount: router.amount2_adjusted || router.amount2,
         decimals: router.token2_decimals,
         metadata: activity.tokens?.[router.token2]
       }
@@ -264,7 +227,7 @@ const loadMore = () => {
   const formatTokenAmount = (amount: number | string, decimals = 9) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (!numAmount || isNaN(numAmount)) return '0';
-    return (numAmount / Math.pow(10, decimals)).toFixed(decimals > 6 ? 6 : decimals);
+    return numAmount.toFixed(decimals > 6 ? 6 : decimals);
   };
 
   const handleClose = () => {

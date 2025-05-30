@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import { useSolana } from '@/contexts/solana-context';
+import { SolanaQueryProps } from '@/types/wallet';
 
-interface SolanaQueryProps {
-  addresses: string[];
-}
-
-export default function SolanaQuery({ addresses }: SolanaQueryProps) {
+export default function SolanaQuery({ addresses, className }: SolanaQueryProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any>(null);
   const { executeQuery, isLoading, error } = useSolana();
@@ -21,7 +18,7 @@ export default function SolanaQuery({ addresses }: SolanaQueryProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${className || ''}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="query" className="block text-sm font-medium text-gray-300">

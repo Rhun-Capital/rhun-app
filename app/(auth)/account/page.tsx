@@ -7,11 +7,11 @@ import {useSolanaWallets} from '@privy-io/react-auth/solana';
 import { AlertCircleIcon, ChevronUpIcon, ChevronDownIcon } from "@/components/icons";
 import { useMfaEnrollment } from '@privy-io/react-auth';
 import CopyButton from "@/components/copy-button";
-import SubscriptionManagement from "@/components/manage-subscription";
+import { SubscriptionManagement } from "@/components/manage-subscription";
 import { useSearchParams } from 'next/navigation';
 import {useRouter} from 'next/navigation';
 import { useSubscription } from "@/hooks/use-subscription";
-import ApiKeyManagement from "@/components/api-key-management";
+import { ApiKeyManagement } from "@/components/api-key-management";
 
 export default function SettingsPage() {
   const { user, logout, authenticated, getAccessToken } = usePrivy();

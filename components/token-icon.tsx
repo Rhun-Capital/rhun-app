@@ -1,13 +1,8 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
+import { TokenIconProps } from '@/types/components';
 
-interface TokenIconProps {
-  symbol: string;
-  logoURI?: string;
-  size?: number;
-}
-
-const TokenIcon: React.FC<TokenIconProps> = ({ symbol, logoURI, size = 32 }) => {
+const TokenIcon: React.FC<TokenIconProps> = ({ symbol, logoURI, size = 32, className }) => {
   const [imageError, setImageError] = useState(false);
   const firstLetter = symbol.charAt(0).toUpperCase();
   const colors = [
@@ -26,7 +21,7 @@ const TokenIcon: React.FC<TokenIconProps> = ({ symbol, logoURI, size = 32 }) => 
   // Special case for SOL
   if (symbol === 'SOL') {
     return (
-      <div className={`relative w-${size} h-${size}`}>
+      <div className={`relative w-${size} h-${size} ${className || ''}`}>
         <Image
           src="https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png"
           alt="SOL"
@@ -42,7 +37,7 @@ const TokenIcon: React.FC<TokenIconProps> = ({ symbol, logoURI, size = 32 }) => 
   // If image failed to load or no logoURI, show the letter circle
   if (imageError || !logoURI) {
     return (
-      <div className={`w-${size} h-${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}>
+      <div className={`w-${size} h-${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium ${className || ''}`}>
         {firstLetter}
       </div>
     );
@@ -50,7 +45,7 @@ const TokenIcon: React.FC<TokenIconProps> = ({ symbol, logoURI, size = 32 }) => 
 
   // Try to load the image
   return (
-    <div className={`relative w-${size} h-${size}`}>
+    <div className={`relative w-${size} h-${size} ${className || ''}`}>
       <Image
         src={logoURI}
         alt={symbol}

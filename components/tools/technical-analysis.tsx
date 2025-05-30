@@ -1,101 +1,6 @@
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Activity, Clock, Info } from 'lucide-react';
-
-interface TechnicalAnalysisProps {
-  data: {
-    symbol: string;
-    name?: string;
-    currentPrice: number;
-    image?: string;
-    priceChange: {
-      '24h': number;
-      '7d': number;
-      '30d': number;
-    };
-    technicalIndicators: {
-      sma: {
-        '20': number;
-        '50': number;
-        '200': number;
-      };
-      ema: {
-        '9': number;
-        '21': number;
-        '50': number;
-      };
-      rsi: number;
-      macd: {
-        macd: number;
-        signal: number;
-        histogram: number;
-      };
-      stochRSI: number;
-      cci: number;
-      mfi: number;
-      adx: number;
-      dmi: {
-        plus: number;
-        minus: number;
-      };
-      ichimoku: {
-        tenkan: number;
-        kijun: number;
-        senkouA: number;
-        senkouB: number;
-      };
-      aroon: {
-        up: number;
-        down: number;
-      };
-      bollingerBands: {
-        upper: number;
-        middle: number;
-        lower: number;
-      };
-      atr: number;
-      volume: {
-        volume: number;
-        volumeSMA: number;
-        volumeEMA: number;
-      };
-      obv: number;
-      pivotPoints: {
-        pivot: number;
-        r1: number;
-        r2: number;
-        s1: number;
-        s2: number;
-      };
-      fibonacciRetracement: {
-        level0: number;
-        level236: number;
-        level382: number;
-        level500: number;
-        level618: number;
-        level100: number;
-      };
-    };
-    supportResistance: {
-      support: number[];
-      resistance: number[];
-    };
-    marketSentiment: {
-      trend: string;
-      strength: number;
-      confidence: number;
-    };
-    lastUpdated: string;
-    analysisPeriod: {
-      days: number;
-    };
-  };
-}
-
-interface IndicatorAnalysis {
-  status: 'bullish' | 'bearish' | 'neutral';
-  summary: string;
-  details: string[];
-}
+import { TechnicalAnalysisProps, IndicatorAnalysis } from '@/types/analysis';
 
 const analyzeIndicator = (indicator: string, value: any, data: TechnicalAnalysisProps['data']): IndicatorAnalysis => {
   const currentPrice = data?.currentPrice || 0;
@@ -518,9 +423,8 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
 
   const formatPercentage = (num: number | null | undefined) => {
     if (num === null || num === undefined) return '0%';
-    // Convert decimal to percentage and ensure it's between 0 and 100
-    const percentage = Math.min(Math.max(num * 100, 0), 100);
-    return `${percentage.toFixed(1)}%`;
+    // The API already returns percentage values, so no need to multiply by 100
+    return `${num.toFixed(1)}%`;
   };
 
   const getTrendColor = (trend: string) => {
