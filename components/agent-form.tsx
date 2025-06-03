@@ -17,34 +17,16 @@ import Accordion from "./accordion";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 import DeleteConfirmationModal from './delete-confirmation-modal';
+import { InitialData, AgentFormProps, ImageState, TextAreaField } from '../types/agent';
+import { AgentFormData, AgentFormDataKeys } from '../types/form';
 
-
-interface InitialData {
-  id: string;
-  userId: string;
-  name: string;
-  description: string;
-  coreCapabilities: string;
-  interactionStyle: string;
-  analysisApproach: string;
-  riskCommunication: string;
-  responseFormat: string;
-  limitationsDisclaimers: string;
-  prohibitedBehaviors: string;
-  knowledgeUpdates: string;
-  responsePriorityOrder: string;
-  styleGuide: string;
-  specialInstructions: string;
-  imageUrl?: string;
-}
-
-interface AgentFormProps {
-  initialData?: InitialData | null;
-}
-
-interface ImageState {
-  file: File | null;
-  preview: string | null;
+interface DeleteConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  loading: boolean;
+  title: string;
+  message: string;
 }
 
 export default function AgentForm({ initialData = null }: AgentFormProps) {
@@ -91,10 +73,8 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     }    
   ];
 
-  type FormDataKeys = keyof typeof defaultFormData;
-
   const textAreaFields: {
-    name: FormDataKeys;
+    name: AgentFormDataKeys;
     label: string;
     rows?: number;
     required?: boolean;
@@ -251,7 +231,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     },
   ];
 
-  const defaultFormData = {
+  const defaultFormData: AgentFormData = {
     name: "",
     userId: user?.id,
     description: "",
@@ -268,7 +248,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     responsePriorityOrder: "",
   };
 
-  const [formData, setFormData] = useState(defaultFormData);
+  const [formData, setFormData] = useState<AgentFormData>(defaultFormData);
 
   // Add cleanup effect for the preview URL
   useEffect(() => {
@@ -296,9 +276,34 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
   // Initialize form with existing data if in edit mode
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      // Map AgentAttributes to AgentFormData
+      setFormData({
+        name: initialData.name,
+        userId: initialData.userId || user?.id,
+        description: initialData.description,
+        coreCapabilities: initialData.coreCapabilities,
+        interactionStyle: initialData.interactionStyle,
+        analysisApproach: initialData.analysisApproach,
+        riskCommunication: initialData.riskCommunication,
+        responseFormat: initialData.responseFormat,
+        limitationsDisclaimers: initialData.limitationsDisclaimers,
+        prohibitedBehaviors: initialData.prohibitedBehaviors,
+        knowledgeUpdates: initialData.knowledgeUpdates,
+        styleGuide: initialData.styleGuide,
+        specialInstructions: initialData.specialInstructions,
+        responsePriorityOrder: initialData.responsePriorityOrder,
+        image: initialData.imageUrl || null
+      });
+      
+      // Set the image preview if there's an imageUrl
+      if (initialData.imageUrl) {
+        setImageState({
+          file: null,
+          preview: initialData.imageUrl
+        });
+      }
     }
-  }, [initialData]);
+  }, [initialData, user?.id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
@@ -306,7 +311,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
   };
 
@@ -316,10 +321,20 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
       URL.revokeObjectURL(imageState.preview);
     }
 
-    setImageState({
-      file,
-      preview: file ? URL.createObjectURL(file) : null
-    });
+    if (file) {
+      // Create a new preview URL for the uploaded file
+      const previewUrl = URL.createObjectURL(file);
+      setImageState({
+        file,
+        preview: previewUrl
+      });
+    } else {
+      // Clear the image state when no file is provided
+      setImageState({
+        file: null,
+        preview: null
+      });
+    }
   };
 
 
@@ -362,20 +377,6 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   setError("");
   setSuccess(false);
 
-  const now = new Date().toISOString();
-  const agentData = {
-    ...formData,
-    ...(initialData
-      ? {
-          updatedAt: now,
-        }
-      : {
-          createdAt: now,
-          updatedAt: now,
-        }),
-    userId: user?.id,
-  };
-
   try {
     const url = initialData
       ? `/api/agents/${decodeURIComponent(params.userId as string)}/${initialData.id}`
@@ -383,10 +384,28 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
     const accessToken = await getAccessToken();
     
-    const formData = new FormData();
-    formData.append('data', JSON.stringify(agentData));
+    // Prepare the agent data
+    const agentData = {
+      ...formData, // Use the current form state
+      updatedAt: new Date().toISOString(),
+      userId: user?.id,
+      // Only include imageUrl if we're not uploading a new image
+      imageUrl: imageState.file ? undefined : imageState.preview
+    };
+
+    // If this is a new agent, add creation timestamp
+    if (!initialData) {
+      agentData.createdAt = agentData.updatedAt;
+    }
+    
+    // Create FormData for the request
+    const requestFormData = new FormData();
+    requestFormData.append('data', JSON.stringify(agentData));
+    
+    // Only append image if there's a new file
     if (imageState.file) {
-      formData.append('image', imageState.file);
+      console.log('Appending new image to form data');
+      requestFormData.append('image', imageState.file);
     }
 
     const response = await fetch(url, {
@@ -394,7 +413,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
       },
-      body: formData,
+      body: requestFormData,
     });
 
     if (!response.ok) {
@@ -403,15 +422,35 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     }
 
     const responseData = await response.json();
+    console.log('Server response:', responseData);
 
-    if (!initialData) {
-      localStorage.setItem('agent_created', 'true')
-      toast.success("Agent created successfully!");
-      router.push(`/agents/${user?.id}/${responseData.agentId}/edit`);
-      router.refresh();
+    // Safely extract the agent ID from the response
+    const agentId = responseData.data?.id || responseData.agentId || responseData.id;
+
+    // Update image state with the response data if available
+    if (responseData.data?.imageUrl || responseData.imageUrl) {
+      setImageState({
+        file: null, // Clear the file since it's been uploaded
+        preview: responseData.data?.imageUrl || responseData.imageUrl
+      });
     }
 
-    
+    if (!initialData) {
+      localStorage.setItem('agent_created', 'true');
+      toast.success("Agent created successfully!");
+      if (agentId) {
+        router.push(`/agents/${user?.id}/${agentId}/edit`);
+        router.refresh();
+      } else {
+        console.error('No agent ID found in response:', responseData);
+        setError('Agent created but ID not found in response');
+      }
+    } else {
+      setSuccess(true);
+      setCreated(false);
+      toast.success("Agent updated successfully!");
+      scrollToTop();
+    }
   } catch (err) {
     if (err instanceof Error) {
       toast.error(err.message);
@@ -421,12 +460,6 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     }
   } finally {
     setLoading(false);
-    if (initialData) {
-      setSuccess(true);
-      setCreated(false)
-      toast.success("Agent updated successfully!");
-      scrollToTop();
-    }
   }
 };
 
@@ -582,7 +615,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   <div className="mb-6">
   <ImageUpload
       onImageChange={handleImageChange}
-      initialImage={imageState.preview || undefined}
+      initialImage={initialData?.imageUrl || imageState.preview || undefined}
     />
   </div>
 
@@ -635,7 +668,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               name={field.name}
               disabled={params.userId === 'template'}
               placeholder={field.placeholder}
-              value={formData[field.name]}
+              value={String(formData[field.name] || '')}
               onChange={handleChange}
               rows={field.rows || 8}
               className="w-full px-3 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm whitespace-pre-wrap font-mono"
@@ -698,11 +731,13 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         )}
       </div>
 
-      <DeleteConfirmationModal 
+      <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
         loading={isDeleting}
+        title="Delete Agent"
+        message="Are you sure you want to delete this agent? This action cannot be undone."
       />      
 
     </div>

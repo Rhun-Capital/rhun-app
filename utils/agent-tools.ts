@@ -337,7 +337,14 @@ interface TokenHolder {
     try {
       // Using Alternative.me API for Fear & Greed Index
       const response = await fetch('https://api.alternative.me/fng/');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Fear & Greed Index: ${response.status}`);
+      }
+      
       const data = await response.json();
+      if (!data?.data?.[0]?.value || !data?.data?.[0]?.value_classification) {
+        throw new Error('Invalid data format received from Fear & Greed API');
+      }
       
       return {
         value: parseInt(data.data[0].value),
@@ -345,6 +352,7 @@ interface TokenHolder {
         timestamp: data.data[0].timestamp
       };
     } catch (error) {
+      console.error('Error fetching Fear & Greed Index:', error);
       throw new Error('Failed to fetch Fear & Greed Index');
     }
   }

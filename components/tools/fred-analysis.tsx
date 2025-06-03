@@ -11,28 +11,35 @@ import { bisector } from 'd3-array';
 import axios from 'axios';
 import { Maximize, Minimize } from 'lucide-react';
 import LoadingIndicator from '../loading-indicator';
+import { BaseToolProps } from '@/types/tools';
+import type { FredMetadata, Observation } from '@/types/fred';
 
-interface FredMetadata {
-  frequency?: string;
-  frequency_short?: string;
-  units?: string;
-  units_short?: string;
-  seasonal_adjustment?: string;
-  seasonal_adjustment_short?: string;
-}
-
-interface FredAnalysisProps {
-  toolCallId: string;
-  toolInvocation: any; // Accept any tool invocation type to avoid type errors
-}
-
-interface Observation {
-  date: string;
-  value: number;
+interface FredAnalysisProps extends BaseToolProps {
+  toolInvocation: {
+    toolName: string;
+    args: Record<string, any>;
+    result?: {
+      seriesId: string;
+      observations: Array<{
+        date: string;
+        value: number;
+      }>;
+      metadata?: {
+        units?: string;
+        title?: string;
+      };
+      _storedInS3?: boolean;
+      _s3Reference?: {
+        bucket: string;
+        key: string;
+      };
+    };
+    state: 'result' | 'partial-call' | 'call';
+  };
 }
 
 // Helper to get closest data point for tooltip
-const bisectDate = bisector((d: Observation) => new Date(d.date)).left;
+const bisectDate = bisector((d: any) => new Date(d.date)).left;
 
 // Common FRED series names
 const seriesNames: Record<string, string> = {

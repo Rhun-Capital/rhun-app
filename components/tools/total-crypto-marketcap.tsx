@@ -1,28 +1,29 @@
 // components/global-market-cap.tsx
 import React from 'react';
+import { GlobalMarketProps } from '@/types/components';
 
-interface GlobalMarketData {
-  totalMarketCap: number;
-  totalVolume: number;
-  marketCapPercentage: {
-    [key: string]: number;
-  };
-  marketCapChange24h: number;
-  activeCryptocurrencies: number;
-  lastUpdated: number;
-}
+const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ 
+  toolCallId, 
+  toolInvocation,
+  className = '' 
+}) => {
+  // Show loading state for both 'call' and 'partial-call' states
+  if (toolInvocation.state !== 'result' || !toolInvocation.result) {
+    return (
+      <div className="p-6 bg-zinc-800 rounded-lg">
+        <div className="text-zinc-400">Loading market data...</div>
+      </div>
+    );
+  }
 
-interface GlobalMarketProps {
-  toolCallId: string;
-  toolInvocation: {
-    toolName: string;
-    args: { message: string };
-    result?: GlobalMarketData;
-  };
-}
-
-const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInvocation }) => {
-  if (!("result" in toolInvocation)) return null;
+  const {
+    totalMarketCap = 0,
+    totalVolume24h = 0,
+    btcDominance = 0,
+    marketCapChange24h = 0,
+    volumeChange24h = 0,
+    lastUpdated
+  } = toolInvocation.result;
 
   const formatNumber = (num: number) => {
     if (num > 1_000_000_000_000) {
@@ -38,28 +39,22 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInv
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
-  const topCoins = Object.entries(toolInvocation.result?.marketCapPercentage || {})
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 5);
-
   return (
-    <div className="p-6 bg-zinc-800 rounded-lg space-y-6">
+    <div className={`p-6 bg-zinc-800 rounded-lg space-y-6 ${className}`}>
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-lg font-semibold text-white mb-1">Total Market Cap</h3>
           <div className="text-2xl font-bold text-white">
-            {formatNumber(toolInvocation.result?.totalMarketCap || 0)}
+            {formatNumber(totalMarketCap)}
           </div>
-          <div className={`text-sm ${
-            (toolInvocation.result?.marketCapChange24h ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'
-          }`}>
-            {formatPercentage(toolInvocation.result?.marketCapChange24h || 0)}
+          <div className={`text-sm ${marketCapChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {formatPercentage(marketCapChange24h)}
           </div>
         </div>
-        <div className="text-right w-1/2">
-          <div className="text-sm text-zinc-400">Active Cryptocurrencies</div>
+        <div className="text-right">
+          <div className="text-sm text-zinc-400">BTC Dominance</div>
           <div className="text-lg font-semibold text-white">
-            {toolInvocation.result?.activeCryptocurrencies.toLocaleString()}
+            {formatPercentage(btcDominance)}
           </div>
         </div>
       </div>
@@ -68,26 +63,19 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({ toolCallId, toolInv
         <div className="bg-zinc-900 p-4 rounded-lg">
           <div className="text-sm text-zinc-400">24h Volume</div>
           <div className="text-lg font-semibold text-white">
-            {formatNumber(toolInvocation.result?.totalVolume || 0)}
+            {formatNumber(totalVolume24h)}
+          </div>
+          <div className={`text-sm ${volumeChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {formatPercentage(volumeChange24h)}
           </div>
         </div>
       </div>
 
-      <div>
-        <h4 className="text-sm text-zinc-400 mb-2">Market Dominance</h4>
-        <div className="space-y-2">
-          {topCoins.map(([symbol, percentage]) => (
-            <div key={symbol} className="flex justify-between items-center">
-              <div className="text-sm font-medium text-white">{symbol.toUpperCase()}</div>
-              <div className="text-sm text-white">{percentage.toFixed(2)}%</div>
-            </div>
-          ))}
+      {lastUpdated && (
+        <div className="text-xs text-zinc-500">
+          Last updated: {new Date(lastUpdated).toLocaleString()}
         </div>
-      </div>
-
-      <div className="text-xs text-zinc-500">
-        Last updated: {new Date((toolInvocation.result?.lastUpdated || 0) * 1000).toLocaleString()}
-      </div>
+      )}
     </div>
   );
 };

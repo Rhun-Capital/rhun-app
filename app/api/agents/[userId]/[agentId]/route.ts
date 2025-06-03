@@ -33,7 +33,9 @@ export async function PUT(
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       image = formData.get('image') as Blob | null;
-      agentData = JSON.parse(formData.get('data') as string);
+      const dataString = formData.get('data') as string;
+      agentData = JSON.parse(dataString);
+      console.log('Received form data:', { hasImage: !!image, agentData });
     } else if (contentType.includes('application/json')) {
       agentData = await request.json();
     } else {
@@ -43,22 +45,7 @@ export async function PUT(
       );
     }
 
-    let imageUrl = agentData.imageUrl || '';
-
-    if (image) {
-      // Upload new image with timestamp to prevent caching
-      const buffer = Buffer.from(await image.arrayBuffer());
-      const key = `agents/${params.agentId}/profile.jpg`;
-      imageUrl = await uploadToS3(buffer, key);
-    }
-
-    const finalAgentData = {
-      ...agentData,
-      imageUrl,
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Get current agent data
+    // Get current agent data first
     const currentAgent = await dynamodb.get({
       TableName: 'Agents',
       Key: {
@@ -71,21 +58,60 @@ export async function PUT(
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
     }
 
-    // Merge current data with updates
-    const mergedData = {
-      ...currentAgent.Item,
-      ...finalAgentData,
+    // Handle image URL
+    let imageUrl = currentAgent.Item.imageUrl; // Keep existing image URL by default
+
+    if (image) {
+      // If there's a new image upload, handle it
+      try {
+        // Delete old image if it exists
+        if (currentAgent.Item.imageUrl) {
+          const oldKey = getKeyFromUrl(currentAgent.Item.imageUrl);
+          if (oldKey) {
+            await deleteFromS3(oldKey);
+          }
+        }
+
+        // Upload new image
+        const buffer = Buffer.from(await image.arrayBuffer());
+        const timestamp = Date.now(); // Add timestamp to prevent caching
+        const key = `agents/${params.agentId}/profile-${timestamp}.jpg`;
+        imageUrl = await uploadToS3(buffer, key);
+        console.log('New image uploaded:', imageUrl);
+      } catch (error) {
+        console.error('Error handling image:', error);
+        return NextResponse.json(
+          { error: 'Failed to process image upload' },
+          { status: 500 }
+        );
+      }
+    } else if (agentData.imageUrl === null) {
+      // If imageUrl is explicitly set to null, delete the existing image
+      if (currentAgent.Item.imageUrl) {
+        const oldKey = getKeyFromUrl(currentAgent.Item.imageUrl);
+        if (oldKey) {
+          await deleteFromS3(oldKey);
+        }
+      }
+      imageUrl = null;
+    }
+
+    const finalAgentData = {
+      ...currentAgent.Item, // Start with current data
+      ...agentData, // Apply updates
+      imageUrl, // Use the determined image URL
+      updatedAt: new Date().toISOString(),
     };
 
     // Update the agent
     await dynamodb.put({
       TableName: 'Agents',
-      Item: mergedData,
+      Item: finalAgentData,
     }).promise();
 
     return NextResponse.json({
       message: 'Agent updated successfully',
-      agent: mergedData
+      data: finalAgentData
     });
 
   } catch (error) {

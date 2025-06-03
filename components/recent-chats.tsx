@@ -3,15 +3,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import LoadingIndicator from './loading-indicator';
 import { Markdown } from "@/components/markdown";
-
-interface Chat {
-  chatId: string;
-  agentId: string;
-  agentName: string;
-  lastMessage: string;
-  lastUpdated: number;
-  isTemplate: boolean;
-}
+import { Chat } from '../types/chat';
 
 const formatTimeAgo = (timestamp: number) => {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);

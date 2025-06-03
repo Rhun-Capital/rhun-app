@@ -583,7 +583,7 @@ export const executeSwap = async ({
   amount,
   slippage,
   wallet
-}: SwapParams) => {
+}: SwapParams): Promise<string> => {
   try {
     if (!wallet || !wallet.address) {
       throw new Error('Wallet not connected');
@@ -609,7 +609,6 @@ export const executeSwap = async ({
     const slippageBps = Math.floor(slippage * 100);
 
     // Get swap quote
-    console.log('Getting swap quote...');
     const quoteResponse = await fetch(
       `${JUPITER_V6_QUOTE_API}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${swapAmount}&slippageBps=${slippageBps}`,
       {
@@ -626,12 +625,9 @@ export const executeSwap = async ({
     const quoteData = await quoteResponse.json();
 
     // Request swap transaction
-    console.log('Preparing swap transaction...');
-
     const feeEstimator = new SolanaPriorityFeeEstimator();
     const feeEstimate = await feeEstimator.estimatePriorityFee();
     const computeUnits = feeEstimator.getComputeUnitsForFee(feeEstimate);
-    console.log('Priority Fee Estimate:', feeEstimate);
 
     // Add priority fee instructions
     const priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({ 
@@ -672,7 +668,6 @@ export const executeSwap = async ({
     const { blockhash: swapBlockhash } = await connection.getLatestBlockhash('confirmed');
 
     // Prepare and send swap transaction
-    console.log('Preparing swap transaction...');
     const swapTransactionBuf = Buffer.from(responseData.swapTransaction, 'base64');
     const swapTransaction = VersionedTransaction.deserialize(swapTransactionBuf);
     
@@ -681,7 +676,6 @@ export const executeSwap = async ({
     
     const signedSwapTx = await wallet.signTransaction(swapTransaction);
     
-    console.log('Sending swap transaction...');
     const swapSignature = await connection.sendRawTransaction(
       signedSwapTx.serialize(),
       {
@@ -690,7 +684,6 @@ export const executeSwap = async ({
         maxRetries: 3
       }
     );
-    console.log('Swap transaction sent:', swapSignature);
 
     // Return swap signature - component will handle confirmation
     return swapSignature;
@@ -726,13 +719,6 @@ export const getQuote = async (
 
     const slippageBps = Math.floor(parseFloat(slippage) * 100);
 
-    console.log('Getting quote for:', {
-      inputMint,
-      outputMint,
-      amount: amountInDecimals,
-      slippageBps
-    });
-
     const queryParams = new URLSearchParams({
       inputMint,
       outputMint,
@@ -750,7 +736,6 @@ export const getQuote = async (
     }
 
     const quoteData = await response.json();
-    console.log('Received quote:', quoteData);
 
     if (!quoteData) {
       throw new Error('No quote data received');

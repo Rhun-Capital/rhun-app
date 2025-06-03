@@ -305,38 +305,6 @@ export async function POST(req: Request) {
       },
     },
   
-    getTrendingTokens: {
-      description: "Get trending tokens and cryptocurrencies with optional filters.",
-      parameters: z.object({
-        filters: z.object({
-          minPrice: z.number().optional()
-            .describe("Minimum price in USD"),
-          maxPrice: z.number().optional()
-            .describe("Maximum price in USD"),
-          minMarketCap: z.number().optional()
-            .describe("Minimum market cap in USD"),
-          maxMarketCap: z.number().optional()
-            .describe("Maximum market cap in USD"),
-          minVolume: z.number().optional()
-            .describe("Minimum 24h trading volume in USD"),
-          minPriceChange: z.number().optional()
-            .describe("Filter for tokens with minimum price increase percentage in 24h"),
-        }).optional(),
-        maxResults: z.number().optional()
-          .describe("Maximum number of tokens to return")
-          .default(100),
-        sortBy: z.enum(['trending', 'price_change', 'market_cap', 'volume'])
-          .describe("How to sort the results")
-          .default('trending')
-      }),
-      execute: async ({ filters, maxResults, sortBy }) => {
-        console.log('Executing getTrendingTokens with:', { filters, maxResults, sortBy });
-        
-        const trendingCoins = await retrieveTrendingCoins(filters);
-        console.log('Retrieved trending coins:', trendingCoins);
-        return trendingCoins.slice(0, maxResults);
-      },
-    },
  
     getRecentlyLaunchedCoins: {
       description: "Search and retrieve information about recent cryptocurrencies. Filter by time ranges, market cap, volume, and more.",
@@ -941,6 +909,14 @@ export async function POST(req: Request) {
             throw new Error(`CoinGecko API error: ${marketData.error || 'Failed to fetch market data'}`);
           }
 
+          // Add detailed logging
+          console.log('Raw Market Data:', {
+            id: coinId,
+            price_change_24h: marketData.market_data?.price_change_percentage_24h,
+            price_change_7d: marketData.market_data?.price_change_percentage_7d,
+            price_change_30d: marketData.market_data?.price_change_percentage_30d
+          });
+
           // Extract price data
           const prices = data.prices.map(([timestamp, price]: [number, number]) => ({
             timestamp: new Date(timestamp),
@@ -949,9 +925,16 @@ export async function POST(req: Request) {
 
           // Calculate basic price metrics
           const currentPrice = prices[prices.length - 1].price;
-          const priceChange24h = marketData.market_data.price_change_percentage_24h;
-          const priceChange7d = marketData.market_data.price_change_percentage_7d;
-          const priceChange30d = marketData.market_data.price_change_percentage_30d;
+          const priceChange24h = marketData.market_data?.price_change_percentage_24h;
+          const priceChange7d = marketData.market_data?.price_change_percentage_7d;
+          const priceChange30d = marketData.market_data?.price_change_percentage_30d;
+
+          // Log the values we're using for the response
+          console.log('Price Change Values for Response:', {
+            priceChange24h,
+            priceChange7d,
+            priceChange30d
+          });
 
           // Calculate various technical indicators
           const technicalIndicators: any = {
@@ -988,7 +971,8 @@ export async function POST(req: Request) {
           // Calculate market sentiment
           const sentiment = calculateMarketSentiment(prices, technicalIndicators.rsi, technicalIndicators.bollingerBands);
 
-          return {
+          // Log the final response object
+          const analysisResponse = {
             symbol: searchData.coins[0].symbol.toUpperCase(),
             name: searchData.coins[0].name,
             image: searchData.coins[0].large,
@@ -1006,6 +990,14 @@ export async function POST(req: Request) {
               days
             }
           };
+
+          console.log('Final Technical Analysis Response:', {
+            symbol: analysisResponse.symbol,
+            currentPrice: analysisResponse.currentPrice,
+            priceChange: analysisResponse.priceChange
+          });
+
+          return analysisResponse;
         } catch (error: any) {
           console.error('Error in technical analysis:', error);
           return {
@@ -1070,7 +1062,6 @@ export async function POST(req: Request) {
     getDerivativesExchanges: allTools.getDerivativesExchanges,
     getTopHolders: allTools.getTopHolders,
     getAccountDetails: allTools.getAccountDetails,
-    getTrendingTokens: allTools.getTrendingTokens,
     getTokenInfo: allTools.getTokenInfo,
     getMarketMovers: allTools.getMarketMovers,
     searchTokens: allTools.searchTokens,
@@ -1082,13 +1073,11 @@ export async function POST(req: Request) {
     swap: allTools.swap,
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
     getCryptoNews: allTools.getCryptoNews,
-    // stockAnalysis: allTools.stockAnalysis,
     webResearch: allTools.webResearch,
     getTradingViewChart: allTools.getTradingViewChart,
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
     getFredSeries: allTools.getFredSeries,
-    fredSearch: allTools.fredSearch,
-    // parseSolanaQuery: allTools.parseSolanaQuery
+    fredSearch: allTools.fredSearch
   };
 
 // Format context for the prompt

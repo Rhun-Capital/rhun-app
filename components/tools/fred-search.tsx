@@ -3,28 +3,7 @@
 import { ToolInvocation } from '@ai-sdk/ui-utils';
 import { LineChart, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
-
-interface FredSeries {
-  id: string;
-  title: string;
-  frequency: string;
-  units: string;
-  seasonal_adjustment: string;
-  last_updated: string;
-  notes: string;
-}
-
-interface FredSearchResult {
-  results: FredSeries[];
-  count: number;
-  message: string;
-}
-
-interface FredSearchProps {
-  toolCallId: string;
-  toolInvocation: ToolInvocation & { result?: FredSearchResult };
-  onShowChart: (seriesId: string) => void;
-}
+import { FredSeries, FredSearchProps } from '@/types/fred';
 
 export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSearchProps) {
   const { result } = toolInvocation;
@@ -34,7 +13,7 @@ export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSear
     return <div className="text-muted-foreground">Loading search results...</div>;
   }
   
-  const { results, count, message } = result;
+  const { series, count } = result;
 
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => ({
@@ -48,11 +27,11 @@ export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSear
       <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h3 className="text-lg font-semibold text-white">FRED Search Results</h3>
-          <span className="text-sm text-zinc-400">{results.length} results found</span>
+          <span className="text-sm text-zinc-400">{series.length} results found</span>
         </div>
         
         <div className="space-y-3">
-          {results.map((result: FredSeries) => (
+          {series.map((result) => (
             <div 
               key={result.id}
               className="bg-zinc-800/30 border border-zinc-700 rounded-lg p-3 sm:p-4 hover:bg-zinc-800/50 transition-colors"
@@ -63,9 +42,6 @@ export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSear
                   <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-zinc-400">
                     <span className="px-2 py-1 bg-zinc-700/50 rounded-full">{result.frequency}</span>
                     <span className="px-2 py-1 bg-zinc-700/50 rounded-full">{result.units}</span>
-                    {result.seasonal_adjustment && (
-                      <span className="px-2 py-1 bg-zinc-700/50 rounded-full">{result.seasonal_adjustment}</span>
-                    )}
                   </div>
                   {result.notes && (
                     <div className="mt-2">
@@ -100,7 +76,7 @@ export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSear
                 </button>
               </div>
               <div className="mt-2 text-xs text-zinc-500">
-                Last updated: {new Date(result.last_updated).toLocaleDateString()}
+                Time range: {result.observation_start} to {result.observation_end}
               </div>
             </div>
           ))}

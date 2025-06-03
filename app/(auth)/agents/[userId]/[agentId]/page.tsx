@@ -41,7 +41,6 @@ import { debounce, DebouncedFunc } from 'lodash';
 import ExecuteSwap from "@/components/tools/execute-swap";
 import RecentDexScreenerTokens from "@/components/tools/recent-dexscreener-tokens";
 import RecentNews from "@/components/tools/recent-news";
-import StockAnalysis from "@/components/tools/stock-analysis";
 import OptionsAnalysis from "@/components/tools/options-analysis";
 import NewsAnalysis from "@/components/tools/news-analysis";
 import WebResearch from "@/components/tools/web-research";
@@ -1315,20 +1314,7 @@ function HomeContent() {
                                 toolInvocation={tool} 
                               />
                             );      
-                          case 'stockAnalysis':
-                            return wrappedTool(
-                              <StockAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} append={append} />
-                            );
-                          
-                          case 'optionsAnalysis':
-                            return wrappedTool(
-                              <OptionsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            );
-                          
-                          case 'newsAnalysis':
-                            return wrappedTool(
-                              <NewsAnalysis key={tool.toolCallId} toolCallId={tool.toolCallId} toolInvocation={tool} />
-                            );     
+        
                               
                           case 'webResearch':
                             return wrappedTool(

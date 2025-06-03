@@ -1,104 +1,73 @@
 // components/market-categories.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-
-interface Category {
-  id: string;
-  name: string;
-  marketCap: number;
-  volume24h: number;
-  topCoins: string[];
-  change24h: number;
-}
-
-type ToolInvocationState = 'call' | 'partial-call' | 'result';
-
-interface MarketCategoriesProps {
-  toolCallId: string;
-  toolInvocation: {
-    toolName: string;
-    args: Record<string, any>;
-    result?: Record<string, Category>;
-    state: ToolInvocationState;
-  };
-}
+import { Category, MarketCategoriesProps } from '@/types/market';
 
 const MarketCategories: React.FC<MarketCategoriesProps> = ({ toolCallId, toolInvocation }) => {
-  // Add console.log to help debug
-  console.log('MarketCategories props:', { toolCallId, toolInvocation });
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
-  // Only process categories if we have a result
-  const categories = toolInvocation?.state === 'result' && toolInvocation?.result ? Object.values(toolInvocation.result) : [];
-  
-  console.log('Processed categories:', categories);
-
-  if (!Array.isArray(categories) || categories.length === 0) {
-    return <div className="p-6 bg-zinc-800 rounded-lg">Loading market categories...</div>;
+  if (!toolInvocation.result) {
+    return <div className="text-zinc-400">Loading market categories...</div>;
   }
 
+  const categories = Object.values(toolInvocation.result);
+
   const formatNumber = (num: number) => {
-    if (num > 1_000_000_000_000) {
-      return `$${(num / 1_000_000_000_000).toFixed(2)}T`;
-    }
-    if (num > 1_000_000_000) {
-      return `$${(num / 1_000_000_000).toFixed(2)}B`;
-    }
-    if (num > 1_000_000) {
-      return `$${(num / 1_000_000).toFixed(2)}M`;
-    }
-    return `$${num.toLocaleString()}`;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 2
+    }).format(num);
   };
 
-  const formatPercentage = (percentage: number) => {
-    return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
+  const formatPercentage = (num: number) => {
+    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`;
   };
+
+  const renderTopCoins = (coinUrls: string[], categoryId: number) => (
+    <div key={categoryId} className="flex items-center gap-1.5 mt-2">
+      {coinUrls.map((url, i) => (
+        <Image
+          key={i}
+          src={url}
+          alt={`Top coin ${i + 1}`}
+          width={20}
+          height={20}
+          className="rounded-full"
+        />
+      ))}
+    </div>
+  );
 
   return (
-    <div className="p-6 bg-zinc-800 rounded-lg">
-      <h3 className="text-lg font-semibold text-white mb-4">Top Crypto Categories</h3>
-      
-      <div className="space-y-4">
-        {categories.map((category: Category) => (
-          <div key={category.id} className="bg-zinc-900 p-4 rounded-lg">
-            <div className="flex justify-between items-start mb-3">
+    <div className="w-full max-w-2xl">
+      <h2 className="text-lg font-semibold text-white mb-4">Top Crypto Categories</h2>
+      <div className="space-y-2">
+        {categories.map((category: Category, index: number) => (
+          <div
+            key={category.id}
+            className="bg-zinc-900 hover:bg-zinc-800/90 transition-colors rounded-lg p-4"
+            onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
+          >
+            <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium text-white">{category.name}</h4>
-                <div className={`text-sm ${
-                  category.change24h >= 0 ? 'text-green-500' : 'text-red-500'
-                }`}>
+                <h3 className="font-medium text-white mb-1">{category.name}</h3>
+                <span className={category.change24h >= 0 ? 'text-green-500' : 'text-red-500'}>
                   {formatPercentage(category.change24h)}
-                </div>
+                </span>
+                {category.topCoins && category.topCoins.length > 0 && (
+                  renderTopCoins(category.topCoins, index)
+                )}
               </div>
               <div className="text-right">
-                <div className="text-lg font-semibold text-white">
+                <div className="text-white font-medium mb-1">
                   {formatNumber(category.marketCap)}
                 </div>
-                <div className="text-sm text-zinc-400">
+                <div className="text-zinc-500 text-sm">
                   Vol: {formatNumber(category.volume24h)}
                 </div>
               </div>
-            </div>
-
-            <div className="flex gap-2">
-              {category.topCoins.map((coinUrl, index) => {
-                // Extract coin name from URL for alt text
-                const coinName = coinUrl.split('/').pop() || `coin-${index}`;
-                return (
-                  <div key={coinUrl} className="relative">
-                    <Image
-                      src={coinUrl}
-                      alt={coinName}
-                      width={20}
-                      height={20}
-                      className="rounded-full"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                );
-              })}
             </div>
           </div>
         ))}

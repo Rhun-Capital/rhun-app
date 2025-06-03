@@ -2,8 +2,11 @@ export const formatAmount = (amount: number | null | undefined, decimals: number
   if (amount === null || amount === undefined || isNaN(amount)) return '0';
   if (amount === 0) return '0';
   
+  // First adjust for decimals
+  const adjustedAmount = amount / Math.pow(10, decimals);
+  
   if (isUSD) {
-    if (amount < 0.01) {
+    if (adjustedAmount < 0.01) {
       return '< $0.01';
     }
     return new Intl.NumberFormat('en-US', {
@@ -11,23 +14,25 @@ export const formatAmount = (amount: number | null | undefined, decimals: number
       currency: 'USD',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(amount);
+    }).format(adjustedAmount);
   }
 
-  const absAmount = Math.abs(amount);
-  if (absAmount >= 1_000_000_000) {
-    return `${(amount / 1_000_000_000).toFixed(2)}B`;
+  // For non-USD values, format with appropriate precision
+  if (adjustedAmount < 0.000001) {
+    return adjustedAmount.toExponential(4);
+  } else if (adjustedAmount < 0.001) {
+    return adjustedAmount.toFixed(6);
+  } else if (adjustedAmount < 1) {
+    return adjustedAmount.toFixed(4);
+  } else if (adjustedAmount < 1000) {
+    return adjustedAmount.toFixed(2);
+  } else if (adjustedAmount < 1000000) {
+    return `${(adjustedAmount / 1000).toFixed(2)}K`;
+  } else if (adjustedAmount < 1000000000) {
+    return `${(adjustedAmount / 1000000).toFixed(2)}M`;
+  } else {
+    return `${(adjustedAmount / 1000000000).toFixed(2)}B`;
   }
-  if (absAmount >= 1_000_000) {
-    return `${(amount / 1_000_000).toFixed(2)}M`;
-  }
-  if (absAmount >= 1_000) {
-    return `${(amount / 1_000).toFixed(2)}K`;
-  }
-  if (absAmount < 0.00001) {
-    return amount.toExponential(2);
-  }
-  return amount.toFixed(decimals);
 };
 
 export const formatExactAmount = (amount: number, isUSD: boolean = false) => {

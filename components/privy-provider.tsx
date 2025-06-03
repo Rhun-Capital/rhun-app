@@ -1,12 +1,11 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
-
 import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
-
+import { useEffect, useState } from 'react';
 
 const solanaConnectors = toSolanaWalletConnectors({
-    shouldAutoConnect: true,
+  shouldAutoConnect: true,
 });
 
 export default function PrivyWrapper({
@@ -14,6 +13,16 @@ export default function PrivyWrapper({
 }: {
   children: React.ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
@@ -27,7 +36,7 @@ export default function PrivyWrapper({
         },
         externalWallets: {
           solana: {
-              connectors: solanaConnectors,
+            connectors: solanaConnectors,
           },
         }
       }}

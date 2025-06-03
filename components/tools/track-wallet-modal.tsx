@@ -3,30 +3,15 @@ import React, { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { Loader2, X, Tag as TagIcon } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface TrackingFilters {
-  minAmount?: number;
-  specificToken?: string;
-  platform?: string[];
-  activityTypes?: string[];
-  sort_by?: string;
-  sort_order?: string;
-}
-
-interface TrackWalletModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSuccess: () => void; 
-    walletAddress: string;
-    userId: string;
-  }
+import { TrackWalletModalProps, TrackingFilters } from '../../types/tool-components';
 
 const TrackWalletModal: React.FC<TrackWalletModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
   walletAddress,
-  userId
+  userId,
+  className = '',
 }) => {
   const { getAccessToken } = usePrivy();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,8 +76,8 @@ const TrackWalletModal: React.FC<TrackWalletModalProps> = ({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          walletAddress,
-          userId,
+          walletAddress: walletAddress,
+          userId: userId,
           filters,
           name: name.trim() || null,
           tags: tags.length > 0 ? tags : null

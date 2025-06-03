@@ -11,10 +11,11 @@ import {
   SignatureStatus,
 } from '@solana/web3.js';
 import { createTransferInstruction, getAssociatedTokenAddress } from '@solana/spl-token';
-// Import Privy’s hooks (adjust if needed)
+// Import Privy's hooks (adjust if needed)
 import { usePrivy, useSolanaWallets } from '@privy-io/react-auth';
 import Image from 'next/image';
 import LoadingIndicator from './loading-indicator';
+import { RhunCheckoutProps } from '@/types/components';
 
 // Custom ProxyConnection class for routing RPC calls via your API
 class ProxyConnection extends Connection {
@@ -122,7 +123,8 @@ class ProxyConnection extends Connection {
     }
   }
 }
-const Home = () => {
+
+const RhunCheckout: React.FC<RhunCheckoutProps> = ({ onCheckoutComplete, className }) => {
   // Replace these with your actual values:
   const RECIPIENT_ADDRESS = 'Gv85m1prXqiJCq7tWKA5YGtXLVKpNk55tBRBCuThYWdt'; // Payment recipient
   const TOKEN_MINT_ADDRESS = 'Gh8yeA9vH5Fun7J6esFH3mV65cQTBpxk9Z5XpzU7pump'; // Custom SPL token mint
@@ -302,6 +304,7 @@ const Home = () => {
             console.error('Error storing confirmed transaction:', await storeRes.text());
           }
           setTransactionStatus('Transaction confirmed!');
+          onCheckoutComplete?.();
       } else {
         setTransactionStatus('Transaction not confirmed within timeout. Please check later.');
       }
@@ -315,60 +318,21 @@ const Home = () => {
   
 
   return (
-    <div className="flex flex-col justify-center items-center">
-      {(transactionStatus !== 'Transaction confirmed!') ? <button
-        disabled={loading}
-        onClick={handlePayment}
-        className="bg-black hover:opacity-75 transition text-white py-2 px-4 rounded-lg border border-2 border-zinc-400 w-full min-h-[50px]"
-      >
-        {loading ? (
-          <div className="flex items-center gap-4 justify-center">
-            <span className="mr-2 text-gray-400">Confirming</span>
-            <LoadingIndicator />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center gap-2">
-            <Image
-              src="/images/profile.png"
-              alt="Profile Image"
-              height={25}
-              width={25}
-              className="rounded-full shadow"
-            />
-            <span>
-              {calculatedTokenAmount
-                ? (calculatedTokenAmount / Math.pow(10, TOKEN_DECIMALS)).toFixed(2)
-                : 'Pay With '}{' '}
-              RHUN
-            </span>
-          </div>
-        )}
-      </button> : 
-      
-      <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
-      <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-      </svg>
-    </div>
-      
-      }
-      {transactionStatus && (
-        <>
-          <p className="mt-4 text-white max-w-[270px] truncate">{transactionStatus}</p>
-          {signature && (
-            <a
-              className="text-indigo-400"
-              href={`https://explorer.solana.com/tx/${signature}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View on Solana Explorer
-            </a>
-          )}
-        </>
+    <button
+      onClick={handlePayment}
+      disabled={loading || !calculatedTokenAmount}
+      className={`w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 ${className || ''}`}
+    >
+      {loading ? (
+        <div className="flex items-center justify-center">
+          <LoadingIndicator />
+          <span className="ml-2">Processing...</span>
+        </div>
+      ) : (
+        'Pay with Rhun'
       )}
-    </div>
+    </button>
   );
 };
 
-export default Home;
+export default RhunCheckout;

@@ -9,7 +9,6 @@ export const toolDisplayNames: { [key: string]: string } = {
   'getUserPortfolioValue': 'Portfolio Value',
   'getAgentPortfolioValue': 'Agent Portfolio Value',
   'getUserTokenHoldings': 'Token Holdings',
-  'getAgentTokenHoldings': 'Agent Token Holdings',
   
   // Market Data Tools
   'getMarketMovers': 'Market Movers',

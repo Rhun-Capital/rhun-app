@@ -3,38 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { formatAmount } from '@/utils/format';
-
-interface WebhookEvent {
-  signature: string;
-  timestamp: number;
-  type: string;
-  description: string;
-  accounts: string[];
-  receivedAt: string;
-  tokenInfo: {
-    action?: string;
-    fromToken?: {
-      address?: string;
-      amount?: number;
-      symbol?: string;
-    };
-    toToken?: {
-      address?: string;
-      amount?: number;
-      symbol?: string;
-    };
-  };
-  fromTokenMetadata?: {
-    symbol?: string;
-    name?: string;
-    logoURI?: string;
-  };
-  toTokenMetadata?: {
-    symbol?: string;
-    name?: string;
-    logoURI?: string;
-  };
-}
+import { WebhookEvent } from '../types/webhook';
 
 export function WebhookEvents() {
   const [events, setEvents] = useState<WebhookEvent[]>([]);

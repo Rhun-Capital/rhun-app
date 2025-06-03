@@ -6,9 +6,11 @@ import { ProxyConnection, executeSwap, getQuote } from '../utils/solana';
 import { RefreshCw } from 'lucide-react';
 import { useParams, usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
-
 import Image from 'next/image';
 import LoadingIndicator from './loading-indicator';
+import { SwapModalProps, Token } from '../types/wallet';
+import { PaginatedTokens, JupiterToken, SelectionType } from '../types/jupiter';
+import { TokenIconProps } from '../types/ui';
 
 // Modal portal component to ensure modal is rendered at the document root
 const ModalPortal = ({ children }: { children: React.ReactNode }) => {
@@ -22,59 +24,11 @@ const ModalPortal = ({ children }: { children: React.ReactNode }) => {
   return mounted ? createPortal(children, document.body) : null;
 };
 
-const TOKENS_PER_PAGE =   10;
+const TOKENS_PER_PAGE = 10;
 const JUPITER_TOKEN_LIST_URL = `https://tokens.jup.ag/tokens?tags=community`;  // Using strict list for better performance
 
-
-interface PaginatedTokens {
-  tokens: JupiterToken[];
-  currentPage: number;
-  totalTokens: number;
-}
-
-interface Token {
-  token_address: string;
-  token_icon: string;
-  token_name: string;
-  usd_value: number;
-  usd_price: number;
-  formatted_amount: number;
-  token_symbol: string;
-  token_decimals: number;
-}
-
-interface JupiterToken {
-  address: string;
-  chainId: number;
-  decimals: number;
-  logoURI: string;
-  name: string;
-  symbol: string;
-  tags: string[];
-}
-
-interface SwapModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  tokens: Token[];
-  solanaBalance?: {
-    amount: number;
-    usdValue: number;
-    logoURI: string;
-  };
-  onSwapComplete: () => void;
-}
-
-interface PaginatedTokens {
-  tokens: JupiterToken[];
-  currentPage: number;
-  totalTokens: number;
-}
-
-type SelectionType = 'from' | 'to' | null;
-
 // Token icon component with fallback
-const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string; size?: number }) => {
+const TokenIcon = ({ logoURI, symbol, size = 40, className }: TokenIconProps) => {
   const [error, setError] = useState(false);
   const firstLetter = symbol.charAt(0).toUpperCase();
   const colors = [
@@ -94,10 +48,10 @@ const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string;
     fontSize: `${size * 0.4}px`, // Scale font size relative to container size
   };
 
-  if (error || !icon) {
+  if (error || !logoURI) {
     return (
       <div 
-        className={`rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium`}
+        className={`rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-medium ${className || ''}`}
         style={containerStyle}
       >
         {firstLetter}
@@ -106,9 +60,9 @@ const TokenIcon = ({ icon, symbol, size = 40 }: { icon?: string; symbol: string;
   }
 
   return (
-    <div className="relative" style={containerStyle}>
+    <div className={`relative ${className || ''}`} style={containerStyle}>
       <Image
-        src={icon}
+        src={logoURI}
         alt={symbol}
         width={size}
         height={size}
@@ -231,7 +185,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
         if (status.value && Array.isArray(status.value) && status.value[0]?.confirmationStatus === 'finalized') {
           setTransactionStatus('confirmed');
           setSuccess(signature);
-          onSwapComplete();
+          onSwapComplete?.();
           return true;          
         }        
 
@@ -353,26 +307,32 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
       setPriceLoading(false);
       selectedToken = {
         token_address: 'SOL',
+        token_account: activeWallet?.address || '',
         token_icon: solanaBalance?.logoURI || '',
         token_name: 'Solana',
         usd_value: solanaBalance?.usdValue || 0,
         usd_price: price,
         formatted_amount: solanaBalance?.amount || 0,
         token_symbol: 'SOL',
-        token_decimals: 9
+        token_decimals: 9,
+        amount: solanaBalance?.amount || 0,
+        owner: activeWallet?.address || ''
       };
     } else if ('token_address' in token) {
       selectedToken = token;
     } else {
       selectedToken = {
         token_address: token.address,
-        token_icon: token.logoURI,
+        token_account: activeWallet?.address || '',
+        token_icon: token.logoURI || '',
         token_name: token.name,
         usd_value: 0,
         usd_price: 0,
         formatted_amount: 0,
         token_symbol: token.symbol,
-        token_decimals: token.decimals
+        token_decimals: token.decimals,
+        amount: 0,
+        owner: activeWallet?.address || ''
       };
     }
 
@@ -504,7 +464,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
             >
               <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TokenIcon icon={solanaBalance.logoURI} symbol="SOL" size={32} />
+                <TokenIcon logoURI={solanaBalance.logoURI} symbol="SOL" size={32} />
                 <div>
                 <div className="text-white">Solana</div>
                 <div className="text-sm text-zinc-400">{solanaBalance.amount} SOL</div>
@@ -528,7 +488,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
               >
                 <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <TokenIcon icon={token.token_icon} symbol={token.token_symbol} size={32} />
+                  <TokenIcon logoURI={token.token_icon} symbol={token.token_symbol} size={32} />
                   <div>
                     <div className="text-white">{token.token_name}</div>
                     <div className="text-sm text-zinc-400">
@@ -554,7 +514,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <TokenIcon icon={token.logoURI} symbol={token.symbol} size={32} />
+                      <TokenIcon logoURI={token.logoURI} symbol={token.symbol} size={32} />
                       <div>
                         <div className="text-white">{token.name}</div>
                         <div className="text-sm text-zinc-400">
@@ -638,7 +598,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                 onClick={() => {
                   onClose();
                   resetForm();
-                  onSwapComplete();
+                  onSwapComplete?.();
                 }}
                 className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-200 transition-colors"
               >
@@ -662,7 +622,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                       >
                       {fromToken ? (
                           <div className="flex items-center gap-2">
-                          <TokenIcon icon={fromToken.token_icon} symbol={fromToken.token_symbol} size={24} />
+                          <TokenIcon logoURI={fromToken.token_icon} symbol={fromToken.token_symbol} size={24} />
                           <span className="text-white">{fromToken.token_name}</span>
                           <span className="text-zinc-400 text-sm">
                               Balance: {fromToken.formatted_amount} {fromToken.token_symbol}
@@ -736,7 +696,7 @@ const SwapModal = ({ isOpen, onClose, tokens, solanaBalance, agent, onSwapComple
                       >
                       {toToken ? (
                           <div className="flex items-center gap-2">
-                          <TokenIcon icon={toToken.token_icon} symbol={toToken.token_symbol} size={24} />
+                          <TokenIcon logoURI={toToken.token_icon} symbol={toToken.token_symbol} size={24} />
                           <span className="text-white">{toToken.token_name}</span>
                           </div>
                       ) : (
