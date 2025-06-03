@@ -11,9 +11,18 @@ import { SubscriptionManagement } from "@/components/manage-subscription";
 import { useSearchParams } from 'next/navigation';
 import {useRouter} from 'next/navigation';
 import { useSubscription } from "@/hooks/use-subscription";
-// import { ApiKeyManagement } from "@/components/api-key-management";
+import { ApiKeyManagement } from "@/components/api-key-management";
+import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function SettingsPage() {
+  return (
+    <ErrorBoundary>
+      <AccountPageContent />
+    </ErrorBoundary>
+  );
+}
+
+function AccountPageContent() {
   const { user, logout, authenticated, getAccessToken } = usePrivy();
   const { exportWallet, createWallet } = useSolanaWallets();
   const [loading, setLoading] = useState(false);
@@ -115,6 +124,14 @@ export default function SettingsPage() {
   return (
     <div className="h-screen bg-zinc-900 text-gray-100 overflow-y-auto">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 w-full pb-20 sm:pb-6">
+        {/* {showSubscriptionBanner && (
+          <div className="p-4 bg-red-900/50 border border-red-500 rounded-lg mb-6">
+            <div className="flex items-center gap-2">
+              <AlertCircleIcon />
+              <p>A subscription is required to access this feature. Start your subscription below.</p>
+            </div>
+          </div>
+        )} */}
 
         <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center sm:text-left">Account</h1>
 
@@ -150,12 +167,12 @@ export default function SettingsPage() {
           </section> }
 
           {/* API Keys */}
-          {/* <section>
+          <section>
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">API Keys</h2>
             <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">
               <ApiKeyManagement />
             </div>
-          </section> */}
+          </section>
 
           {/* Connected Wallets */}
           <section>
