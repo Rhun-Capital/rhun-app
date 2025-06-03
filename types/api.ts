@@ -39,7 +39,7 @@ export interface ApiKey {
   key: string;
   createdAt: string;
   lastUsed?: string;
-  permissions: string[];
+  permissions?: string[];
 }
 
 export interface Webhook {
