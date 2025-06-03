@@ -1,25 +1,14 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Option, ImageSelectProps } from '@/types/ui';
 
-interface Option {
-  value: string;
-  label: string;
-  imageUrl?: string;
-}
-
-interface ImageSelectProps {
-  options: Option[];
-  value: string;
-  onChange: (value: string) => void;
-}
-
-const ImageSelect: React.FC<ImageSelectProps> = ({ options, value, onChange }) => {
+const ImageSelect: React.FC<ImageSelectProps> = ({ options, value, onChange, className }) => {
     const [isOpen, setIsOpen] = useState(false);
     
     const selectedOption = options.find(opt => opt.value === value) || options[0];
   
     return (
-      <div className="relative w-full">
+      <div className={`relative w-full ${className || ''}`}>
         {/* Select Button */}
         <button
           type="button"
@@ -27,9 +16,9 @@ const ImageSelect: React.FC<ImageSelectProps> = ({ options, value, onChange }) =
           onClick={() => setIsOpen(!isOpen)}
         >
           <div className="flex items-center">
-            {selectedOption.imageUrl && (
+            {selectedOption.image && (
               <img
-                src={selectedOption.imageUrl}
+                src={selectedOption.image}
                 alt={selectedOption.label}
                 className="w-6 h-6 object-cover rounded-full mr-3"
               />
@@ -62,9 +51,9 @@ const ImageSelect: React.FC<ImageSelectProps> = ({ options, value, onChange }) =
                       setIsOpen(false);
                     }}
                   >
-                    {option.imageUrl && (
+                    {option.image && (
                       <img
-                        src={option.imageUrl}
+                        src={option.image}
                         alt={option.label}
                         className="w-6 h-6 object-cover rounded-full mr-3"
                       />

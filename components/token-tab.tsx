@@ -3,17 +3,14 @@ import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import ImageUpload from './image-upload';
-
-interface TokenTabProps {
-  agentId: string;
-}
+import { TokenTabProps, TokenData } from '../types/token';
 
 export default function TokenTab({ agentId }: TokenTabProps) {
   const { getAccessToken } = usePrivy();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [tokenData, setTokenData] = useState({
+  const [tokenData, setTokenData] = useState<TokenData>({
     tokenName: '',
     tokenTicker: '',
     tokenDescription: '',

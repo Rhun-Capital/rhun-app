@@ -7,13 +7,7 @@ import Image from 'next/image';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { useParams, usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
-
-interface ReceiveModalProps {
-  isOpen: boolean;
-  agent: { wallets: { solana: string } };
-  onClose: () => void;
-  selectedWalletAddress?: string | null;
-}
+import { ReceiveModalProps } from '@/types/wallet';
 
 // Modal portal component to ensure modal is rendered at the document root
 const ModalPortal = ({ children }: { children: React.ReactNode }) => {

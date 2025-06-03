@@ -9,74 +9,7 @@ import {
   getTokenHolderBreakdown, 
   getHolderDeltas 
 } from '@/utils/agent-tools';
-
-interface Coin {
-  id: string;
-  name: string;
-  symbol: string;
-  marketCapRank: number;
-  thumb: string;
-  large: string;
-  contractAddress?: string;
-  platforms?: Record<string, string>;
-}
-
-interface CoinDetail {
-  id: string;
-  name: string;
-  symbol: string;
-  description: { en: string };
-  platforms: Record<string, string>;
-  market_data: {
-    current_price: { usd: number };
-    price_change_percentage_24h: number;
-    price_change_percentage_7d: number;
-    price_change_percentage_30d: number;
-    market_cap: { usd: number };
-    total_volume: { usd: number };
-    circulating_supply: number;
-    total_supply: number;
-  };
-  image: {
-    large: string;
-  };
-  links: {
-    homepage: string[];
-    twitter_screen_name: string;
-  };
-  market_cap_rank: number;
-  last_updated: string;
-  holder_stats?: {
-    statistics: {
-      hhi: number;
-      gini: number;
-      median_holder_position: number;
-      avg_time_held: number | null;
-      retention_rate: number | null;
-    };
-    breakdown: {
-      total_holders: number;
-      holders_over_10_usd: number;
-      holders_over_100_usd: number;
-      holders_over_1000_usd: number;
-      holders_over_10000_usd: number;
-      holders_over_100k_usd: number;
-      holders_over_1m_usd: number;
-      categories: {
-        shrimp: number;
-        crab: number;
-        fish: number;
-        dolphin: number;
-        whale: number;
-      };
-    };
-    deltas: {
-      '7days': number;
-      '14days': number;
-      '30days': number;
-    };
-  };
-}
+import { Coin, CoinDetail } from '../../types/search';
 
 const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ toolCallId, toolInvocation }) => {
   const [selectedCoin, setSelectedCoin] = useState<CoinDetail | null>(null);

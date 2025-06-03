@@ -3,51 +3,95 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { Markdown } from "@/components/markdown";
 import { toast } from "sonner"; 
+import { BrowserUseResultProps } from '@/types/components';
 
-interface BrowserUseResultProps {
-  toolCallId: string;
-  toolInvocation: any;
+interface TaskData {
+  taskId: string;
+  status: string;
+  result?: any;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+  steps?: any[];
+  liveUrl?: string;
+  live_url?: string;
+  finished_at?: string;
+  output?: string;
+  toolName?: string;
+  args?: any;
 }
 
-export default function BrowserUseResult({ toolCallId, toolInvocation }: BrowserUseResultProps) {
+type PartialTaskData = Partial<TaskData>;
+
+interface ExtendedBrowserUseResultProps extends BrowserUseResultProps {
+  toolCallId: string;
+  toolInvocation: {
+    result?: PartialTaskData;
+    toolName?: string;
+    args?: any;
+  };
+}
+
+export default function BrowserUseResult({ toolCallId, toolInvocation, className }: ExtendedBrowserUseResultProps) {
   // States for media recordings
   const [mediaRecordings, setMediaRecordings] = useState<string[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [isControlActionLoading, setIsControlActionLoading] = useState(false);
   
   // Original states
-  const [data, setData] = useState(toolInvocation.result);
+  const [data, setData] = useState<PartialTaskData | undefined>(toolInvocation.result);
   const [isPolling, setIsPolling] = useState(false);
   const [activeTab, setActiveTab] = useState<'results' | 'live' | 'steps' | 'media'>('steps');
   const [steps, setSteps] = useState<any[]>([]);
   const { getAccessToken } = usePrivy();
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    // Update state after initial render if needed
-    setData(toolInvocation.result);
-    
-    // Initialize steps if they exist in the result
-    if (toolInvocation.result?.steps && Array.isArray(toolInvocation.result.steps)) {
-      setSteps(toolInvocation.result.steps);
-    }
-    
-  }, [toolInvocation]);
+  // Function to safely update task data
+  const updateTaskData = (newData: PartialTaskData) => {
+    setData((prevState: PartialTaskData | undefined): PartialTaskData => {
+      if (!prevState) return newData;
+      return { ...prevState, ...newData };
+    });
+  };
 
-  // Cleanup interval on unmount
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
-      }
+  // Function to handle task status updates
+  const handleTaskStatusUpdate = (newStatus: string) => {
+    setData((prevState: PartialTaskData | undefined): PartialTaskData => {
+      if (!prevState) return { status: newStatus };
+      return { ...prevState, status: newStatus };
+    });
+  };
+
+  // Function to safely check task status
+  const checkTaskStatus = (status: string | undefined, validStatuses: string[]): boolean => {
+    return Boolean(status && validStatuses.includes(status));
+  };
+
+  // Function to safely access taskId
+  const getTaskId = () => data?.taskId ?? '';
+
+  // Function to safely get tool name
+  const getToolTitle = () => {
+    const toolMap: Record<string, string> = {
+      webResearch: "Web Research",
+      tokenAnalysis: "Token Analysis",
+      newTokenMonitor: "New Token Monitor",
+      cryptoNews: "Crypto News Monitor",
+      socialListening: "Social Media Analysis"
     };
-  }, []);
+    
+    return toolInvocation.toolName && toolMap[toolInvocation.toolName] 
+      ? toolMap[toolInvocation.toolName] 
+      : "Browser Research";
+  };
 
-  // New effect to fetch media when task is completed
+  // Effect to fetch media recordings
   useEffect(() => {
-    // Function to fetch media recordings
     const fetchMediaRecordings = async () => {
-      if (!data?.taskId || !(['finished', 'failed', 'stopped'].includes(data.status))) {
+      const taskId = data?.taskId;
+      const status = data?.status;
+      
+      if (!taskId || !status || !checkTaskStatus(status, ['finished', 'failed', 'stopped'])) {
         return;
       }
       
@@ -56,7 +100,7 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       try {
         const accessToken = await getAccessToken();
         
-        const response = await fetch(`/api/browser-use/media?taskId=${data.taskId}`, {
+        const response = await fetch(`/api/browser-use/media?taskId=${taskId}`, {
           headers: {
             Authorization: `Bearer ${accessToken}`
           }
@@ -78,11 +122,65 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       }
     };
     
-    // Call the function when task status changes to finished/failed/stopped
-    if (['finished', 'failed', 'stopped'].includes(data?.status)) {
+    if (data?.status && checkTaskStatus(data.status, ['finished', 'failed', 'stopped'])) {
       fetchMediaRecordings();
     }
   }, [data?.taskId, data?.status, getAccessToken, activeTab]);
+
+  // Function to stop a task
+  const handleStopTask = async () => {
+    if (!data?.taskId) return;
+    
+    try {
+      setIsControlActionLoading(true);
+      const accessToken = await getAccessToken();
+      
+      const response = await fetch(`/api/browser-use/stop-task?taskId=${data.taskId}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to stop task');
+      }
+      
+      handleTaskStatusUpdate('stopped');
+      setIsPolling(false);
+      
+      if (typeof toast !== 'undefined') {
+        toast.success('Task stopped successfully');
+      }
+    } catch (error) {
+      console.error('Error stopping task:', error);
+      if (typeof toast !== 'undefined') {
+        toast.error('Failed to stop task');
+      }
+    } finally {
+      setIsControlActionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Update state after initial render if needed
+    setData(toolInvocation.result);
+    
+    // Initialize steps if they exist in the result
+    if (toolInvocation.result?.steps && Array.isArray(toolInvocation.result.steps)) {
+      setSteps(toolInvocation.result.steps);
+    }
+    
+  }, [toolInvocation]);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Separate effect for starting/stopping polling
   useEffect(() => {
@@ -175,48 +273,6 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
     }
   }, [data, isPolling, data?.status]);
 
-  // Function to stop a task
-  const handleStopTask = async () => {
-    if (!data?.taskId) return;
-    
-    try {
-      setIsControlActionLoading(true);
-      const accessToken = await getAccessToken();
-      
-      const response = await fetch(`/api/browser-use/stop-task?taskId=${data.taskId}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to stop task');
-      }
-      
-      // Update local state immediately
-      setData((prev: typeof data) => ({
-        ...prev,
-        status: 'stopped'
-      }));
-      
-      // Stop polling
-      setIsPolling(false);
-      
-      // Show notification if toast is available
-      if (typeof toast !== 'undefined') {
-        toast.success('Task stopped successfully');
-      }
-    } catch (error) {
-      console.error('Error stopping task:', error);
-      if (typeof toast !== 'undefined') {
-        toast.error('Failed to stop task');
-      }
-    } finally {
-      setIsControlActionLoading(false);
-    }
-  };
-
   // Function to pause a task
   const handlePauseTask = async () => {
     if (!data?.taskId) return;
@@ -237,10 +293,10 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       }
       
       // Update local state immediately
-      setData((prev: typeof data) => ({
+      setData((prev) => prev ? {
         ...prev,
         status: 'paused'
-      }));
+      } : { status: 'paused' });
       
       // Continue polling to get updates (but at a reduced rate)
       
@@ -278,10 +334,10 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       }
       
       // Update local state immediately
-      setData((prev: typeof data) => ({
+      setData((prev) => prev ? {
         ...prev,
         status: 'running'
-      }));
+      } : { status: 'running' });
       
       // Ensure polling is active
       if (!isPolling) {
@@ -299,50 +355,6 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       }
     } finally {
       setIsControlActionLoading(false);
-    }
-  };
-
-  // Determine which tool was called
-  const getToolTitle = () => {
-    const toolMap: Record<string, string> = {
-      webResearch: "Web Research",
-      tokenAnalysis: "Token Analysis",
-      newTokenMonitor: "New Token Monitor",
-      cryptoNews: "Crypto News Monitor",
-      socialListening: "Social Media Analysis"
-    };
-    
-    return toolMap[toolInvocation.toolName] || "Browser Research";
-  };
-  
-  // Function to check if live URL is still valid (less than 5 minutes old)
-  const isLiveUrlValid = (finishedAt: string | null | undefined) => {
-    if (finishedAt == null) return true;
-    
-    try {
-      const now = new Date();
-      // We need to handle the timestamp as local time since that's how it's being provided
-      // The issue is that the server doesn't include 'Z' at the end of the timestamp
-      // which means it's being treated as local time by the Date constructor
-      let finishedDateStr = finishedAt;
-      
-      // Add the 'Z' suffix if it doesn't already have a timezone indicator
-      if (!finishedDateStr.endsWith('Z') && !finishedDateStr.includes('+')) {
-        finishedDateStr = finishedDateStr + 'Z';
-      }
-      
-      const finishedDate = new Date(finishedDateStr);
-      
-      // Calculate elapsed time in minutes
-      const elapsedMs = now.getTime() - finishedDate.getTime();
-      const elapsedMinutes = elapsedMs / (1000 * 60);
-      
-      // Allow time differences in both directions with a 5-minute window
-      // This handles any minor clock synchronization issues
-      return elapsedMinutes < 5 && elapsedMinutes > -5;
-    } catch (error) {
-      console.error('Error in date calculation:', error);
-      return false;
     }
   };
 
@@ -379,6 +391,37 @@ export default function BrowserUseResult({ toolCallId, toolInvocation }: Browser
       return new Date(timestamp).toLocaleString();
     } catch (error) {
       return timestamp;
+    }
+  };
+
+  // Function to check if live URL is still valid (less than 5 minutes old)
+  const isLiveUrlValid = (finishedAt: string | null | undefined) => {
+    if (finishedAt == null) return true;
+    
+    try {
+      const now = new Date();
+      // We need to handle the timestamp as local time since that's how it's being provided
+      // The issue is that the server doesn't include 'Z' at the end of the timestamp
+      // which means it's being treated as local time by the Date constructor
+      let finishedDateStr = finishedAt;
+      
+      // Add the 'Z' suffix if it doesn't already have a timezone indicator
+      if (!finishedDateStr.endsWith('Z') && !finishedDateStr.includes('+')) {
+        finishedDateStr = finishedDateStr + 'Z';
+      }
+      
+      const finishedDate = new Date(finishedDateStr);
+      
+      // Calculate elapsed time in minutes
+      const elapsedMs = now.getTime() - finishedDate.getTime();
+      const elapsedMinutes = elapsedMs / (1000 * 60);
+      
+      // Allow time differences in both directions with a 5-minute window
+      // This handles any minor clock synchronization issues
+      return elapsedMinutes < 5 && elapsedMinutes > -5;
+    } catch (error) {
+      console.error('Error in date calculation:', error);
+      return false;
     }
   };
 

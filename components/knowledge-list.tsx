@@ -5,19 +5,7 @@ import { AlertCircle, FileIcon, FileTextIcon, GlobeIcon, RefreshCw, TextIcon, Tr
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
 import { useParams } from 'next/navigation';
-
-type KnowledgeEntry = {
-  id: string;
-  fileName?: string;
-  fileType?: string;
-  url?: string;
-  title?: string;
-  textPreview?: string;
-  type?: string; // 'file', 'url', or 'text'
-  uploadedAt: string;
-  metadata: Record<string, any>;
-  vectorCount: number;
-}
+import { KnowledgeEntry } from '@/types/components';
 
 export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, refreshTrigger?: number }) {
   const { getAccessToken } = usePrivy();

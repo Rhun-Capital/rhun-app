@@ -3,18 +3,11 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { usePrivy } from '@privy-io/react-auth';
-
-interface Webhook {
-  webhookID: string;
-  webhookURL: string;
-  transactionTypes: string[];
-  accountAddresses: string[];
-  webhookType: string;
-}
+import { WebhookManagerWebhook } from '../types/api';
 
 export function WebhookManager() {
   const { getAccessToken } = usePrivy();
-  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+  const [webhooks, setWebhooks] = useState<WebhookManagerWebhook[]>([]);
   const [loading, setLoading] = useState(true);
   const [tokenAddress, setTokenAddress] = useState('');
   const [tokenSymbol, setTokenSymbol] = useState('');

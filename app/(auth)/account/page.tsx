@@ -7,13 +7,22 @@ import {useSolanaWallets} from '@privy-io/react-auth/solana';
 import { AlertCircleIcon, ChevronUpIcon, ChevronDownIcon } from "@/components/icons";
 import { useMfaEnrollment } from '@privy-io/react-auth';
 import CopyButton from "@/components/copy-button";
-import SubscriptionManagement from "@/components/manage-subscription";
+import { SubscriptionManagement } from "@/components/manage-subscription";
 import { useSearchParams } from 'next/navigation';
 import {useRouter} from 'next/navigation';
 import { useSubscription } from "@/hooks/use-subscription";
-import ApiKeyManagement from "@/components/api-key-management";
+import { ApiKeyManagement } from "@/components/api-key-management";
+import { ErrorBoundary } from '@/components/error-boundary';
 
 export default function SettingsPage() {
+  return (
+    <ErrorBoundary>
+      <AccountPageContent />
+    </ErrorBoundary>
+  );
+}
+
+function AccountPageContent() {
   const { user, logout, authenticated, getAccessToken } = usePrivy();
   const { exportWallet, createWallet } = useSolanaWallets();
   const [loading, setLoading] = useState(false);
@@ -188,7 +197,7 @@ export default function SettingsPage() {
                     disabled={walletLoading}
                     className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition disabled:opacity-50"
                   >
-                    {walletLoading ? 'Creating Wallet...' : 'Create Wallet'}
+                    {walletLoading ? "Creating Wallet..." : "Create Wallet"}
                   </button>
                 </div>                  
                 </div>
@@ -211,7 +220,7 @@ export default function SettingsPage() {
                           disabled={exportLoading}
                           className="px-10 py-1 text-white outline outline-orange-600 hover:opacity-70  rounded-md transition disabled:opacity-50"
                         >
-                          {exportLoading ? 'Exporting...' : 'Export Wallet'}
+                          {exportLoading ? "Exporting..." : "Export Wallet"}
                         </button>
                         <p className="text-xs text-zinc-400 mt-2">
                           Export your wallet private key. Use with caution.

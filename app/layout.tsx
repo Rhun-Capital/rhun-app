@@ -9,6 +9,7 @@ import { ChatProvider } from "@/contexts/chat-context";
 import { ModalProvider } from "@/contexts/modal-context";
 import { Sidebar } from "@/components/sidebar";
 import Head from 'next/head';
+import { useEffect, useState } from 'react';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,12 +18,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <html lang="en" className="h-full">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body className={`${inter.className} h-full`}>
+      <body className={`${mounted ? inter.className : ''} h-full`}>
         <ModalProvider>
           <PrivyWrapper>
             <ChatProvider>

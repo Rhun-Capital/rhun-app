@@ -33,8 +33,20 @@ function getMimeType(dataUrl: string) {
 }
 
 // Helper function to remove undefined values from an object
-function removeUndefined(obj: any) {
-  return JSON.parse(JSON.stringify(obj));
+function removeUndefined(obj: any): any {
+  if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
+  
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefined).filter(item => item !== undefined);
+  }
+  
+  return Object.entries(obj).reduce((acc: any, [key, value]) => {
+    const processedValue = removeUndefined(value);
+    if (processedValue !== undefined) {
+      acc[key] = processedValue;
+    }
+    return acc;
+  }, {});
 }
 
 // Helper function to get presigned URL for S3 upload

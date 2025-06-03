@@ -1,72 +1,78 @@
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import CopyButton from '@/components/copy-button';
-import TokenIcon from '@/components/token-icon';
-import { formatAmount, formatAddress } from '@/utils/format';
+import { WhaleActivityProps, WhaleTransaction } from '@/types/market';
+import { ArrowUpRight, ArrowDownRight, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
-interface WhaleActivityProps {
-  toolInvocation: any;
-}
-
-const WhaleActivity: React.FC<WhaleActivityProps> = ({ toolInvocation }) => {
-  if (!toolInvocation || !toolInvocation.result) {
-    return (
-      <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
-        <div className="text-sm text-zinc-400">No whale activity data available</div>
-      </div>
-    );
+const WhaleActivity: React.FC<WhaleActivityProps> = ({ toolCallId, toolInvocation }) => {
+  if (!toolInvocation.result) {
+    return <div className="text-zinc-400">Loading whale activity...</div>;
   }
 
-  const { whales, timeRange, count } = toolInvocation.result;
+  const { transactions } = toolInvocation.result;
 
-  if (!whales || whales.length === 0) {
-    return (
-      <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg">
-        <div className="text-sm text-zinc-400">No whale activity found in the last 24 hours</div>
-      </div>
-    );
-  }
+  const formatAmount = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1
+    }).format(amount);
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString();
+  };
 
   return (
-    <div className="p-4 sm:p-6 bg-zinc-800 rounded-lg space-y-4">
-      <div className="text-sm text-zinc-400">
-        Found {count} whale movements in the last 24 hours
-      </div>
-      
+    <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+      <h3 className="text-lg font-semibold text-white mb-4">Whale Activity</h3>
       <div className="space-y-4">
-        {whales.map((whale: any, index: number) => (
-          <div key={index} className="bg-zinc-900 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium">
-                  {formatAddress(whale.holder_address)}
-                  <CopyButton text={whale.holder_address} />
-                </div>
-              </div>
-              <div className="text-sm text-zinc-400">
-                {formatDistanceToNow(new Date(whale.last_trade_timestamp * 1000))} ago
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <TokenIcon 
-                symbol={whale.holder_mapping?.token_symbol || 'Unknown'} 
-                logoURI={whale.holder_mapping?.token_logo_uri} 
-                size={32}
-              />
+        {transactions.map((tx: WhaleTransaction) => (
+          <div key={tx.hash} className="bg-zinc-800/30 rounded-lg p-4">
+            <div className="flex items-start justify-between mb-3">
               <div>
-                <div className="text-sm font-medium">
-                  {whale.holder_mapping?.token_name || 'Unknown Token'}
+                <div className="flex items-center gap-2">
+                  {tx.type === 'buy' ? (
+                    <ArrowUpRight className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <ArrowDownRight className="h-5 w-5 text-red-500" />
+                  )}
+                  <span className="font-medium text-white">
+                    {tx.type === 'buy' ? 'Buy' : 'Sell'}
+                  </span>
                 </div>
-                <div className="text-xs text-zinc-400">
-                  {whale.holder_mapping?.token_symbol || 'Unknown'}
+                <div className="text-sm text-zinc-400 mt-1">
+                  {formatTimestamp(tx.timestamp)}
                 </div>
               </div>
+              <div className="text-right">
+                <div className="font-medium text-white">{formatAmount(tx.amount)}</div>
+                <div className="text-sm text-zinc-400">{tx.token}</div>
+              </div>
             </div>
-            
-            <div className="mt-3 text-sm">
-              <span className="text-zinc-400">Total trades:</span>{' '}
-              <span className="font-medium">{whale.totalTrades}</span>
+            <div className="text-sm text-zinc-400">
+              <div className="flex items-center justify-between mb-1">
+                <span>From:</span>
+                <span>{formatAddress(tx.from)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>To:</span>
+                <span>{formatAddress(tx.to)}</span>
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Link 
+                href={tx.explorerUrl} 
+                target="_blank" 
+                className="text-zinc-400 hover:text-zinc-300"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         ))}

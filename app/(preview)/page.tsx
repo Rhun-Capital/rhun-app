@@ -300,9 +300,11 @@ const CollapsibleDescription = ({ text }: { text: string }) => {
 };
 
 interface EmptyStateProps {
-  agent: any;
-  userId: string;
-  agentId: string;
+  agent: {
+    name: string;
+    description: string;
+    imageUrl: string;
+  };
   onDescribeTools: () => void;
 }
 
@@ -772,6 +774,7 @@ const WalletContent = memo(({
             isOpen={isTransferModalOpen}
             onClose={() => setIsTransferModalOpen(false)}
             tokens={tokens}
+            token="SOL"
             solanaBalance={portfolio?.holdings[0] ? {
               amount: portfolio.holdings[0].amount,
               usdValue: portfolio.holdings[0].usdValue,
@@ -796,6 +799,7 @@ const WalletContent = memo(({
             isOpen={isSwapModalOpen}
             onClose={() => setIsSwapModalOpen(false)}
             tokens={tokens}
+            token="SOL"
             solanaBalance={portfolio?.holdings[0] ? {
               amount: portfolio.holdings[0].amount,
               usdValue: portfolio.holdings[0].usdValue,
@@ -2222,8 +2226,6 @@ function HomeContent() {
                       <div className="w-full max-w-md">
                         <EmptyState 
                           agent={agent}
-                          userId="template"
-                          agentId={agentId}
                           onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
                         />
                       </div>

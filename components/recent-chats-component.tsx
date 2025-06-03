@@ -5,20 +5,8 @@ import { useRouter } from 'next/navigation';
 import { MessageSquareIcon } from '@/components/icons';
 import Link from 'next/link';
 import { useRecentChats } from '@/contexts/chat-context';
-
-interface Chat {
-  chatId: string;
-  agentId: string;
-  agentName: string;
-  lastMessage: string;
-  lastUpdated: number;
-  isTemplate?: boolean;
-}
-
-interface RecentChatsProps {
-  maxVisible?: number;
-  setIsOpen?: Dispatch<SetStateAction<boolean>>;
-}
+import { RecentChatsProps } from '../types/ui';
+import { Chat } from '../types/chat';
 
 function formatTimeAgo(timestamp: number) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -29,7 +17,7 @@ function formatTimeAgo(timestamp: number) {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
-export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => {
+const RecentChats: React.FC<RecentChatsProps> = ({ maxVisible = 3, setIsOpen }) => {
   const { user } = usePrivy();
   const router = useRouter();
   const { recentChats } = useRecentChats();
@@ -141,3 +129,5 @@ export const RecentChats = ({ maxVisible = 3, setIsOpen }: RecentChatsProps) => 
     </div>
   );
 };
+
+export default RecentChats;

@@ -2,21 +2,8 @@ import React, { useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { X, Tag, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface TrackingFilters {
-  minAmount?: number;
-  specificToken?: string;
-  platform?: string[];
-  activityTypes?: string[];
-  sort_by?: string;
-  sort_order?: string;
-}
-
-interface AddWatcherModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess?: () => Promise<void>;
-}
+import { AddWatcherModalProps } from '../types/modal';
+import { TrackingFilters } from '../types/watcher';
 
 const AddWatcherModal: React.FC<AddWatcherModalProps> = ({
   isOpen,

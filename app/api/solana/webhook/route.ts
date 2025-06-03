@@ -93,12 +93,15 @@ function getSolanaExplorerLink(signature: string, type: 'tx' | 'token' = 'tx'): 
   return `https://solscan.io/${type}/${signature}`;
 }
 
+// Helper function to adjust amount for decimals
+function adjustAmountForDecimals(amount: number, decimals: number): number {
+  return amount / Math.pow(10, decimals);
+}
+
 // Helper function to calculate token value for swaps
 function calculateSwapValue(amount: number, price: number, decimals: number = 9): number {
-  // For tokens with decimals, we need to divide by 10^decimals
-  // But for tokens like USDT that are already in human-readable format, we don't
-  const isHumanReadable = decimals === 0 || amount < 1000000; // Simple heuristic
-  const adjustedAmount = isHumanReadable ? amount : amount / Math.pow(10, decimals);
+  // Use raw amount for value calculation since price is per token unit
+  const adjustedAmount = adjustAmountForDecimals(amount, decimals);
   return adjustedAmount * price;
 }
 
@@ -566,7 +569,8 @@ export async function POST(request: Request) {
               
               fromToken = {
                 address: from.token_address,
-                amount: Math.abs(Number(from.change_amount)) / Math.pow(10, from.decimals),
+                amount: Math.abs(Number(from.change_amount)), // Store raw amount
+                amount_adjusted: adjustAmountForDecimals(Math.abs(Number(from.change_amount)), from.decimals), // Store pre-adjusted amount
                 decimals: from.decimals,
                 metadata: {
                   symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || fromAdditionalMeta.token_symbol || 'Unknown'),
@@ -574,13 +578,13 @@ export async function POST(request: Request) {
                   decimals: from.decimals,
                   logoURI: fromMeta.token_icon || fromAdditionalMeta.token_icon || null,
                 },
-                // Use metadata symbol for the main symbol property
                 symbol: isSOL(from.token_address) ? 'SOL' : (fromMeta.token_symbol || fromAdditionalMeta.token_symbol || 'Unknown'),
               };
 
               toToken = {
                 address: to.token_address,
-                amount: Math.abs(Number(to.change_amount)) / Math.pow(10, to.decimals),
+                amount: Math.abs(Number(to.change_amount)), // Store raw amount
+                amount_adjusted: adjustAmountForDecimals(Math.abs(Number(to.change_amount)), to.decimals), // Store pre-adjusted amount
                 decimals: to.decimals,
                 metadata: {
                   symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || toAdditionalMeta.token_symbol || 'Unknown'),
@@ -588,7 +592,6 @@ export async function POST(request: Request) {
                   decimals: to.decimals,
                   logoURI: toMeta.token_icon || toAdditionalMeta.token_icon || null,
                 },
-                // Use metadata symbol for the main symbol property
                 symbol: isSOL(to.token_address) ? 'SOL' : (toMeta.token_symbol || toAdditionalMeta.token_symbol || 'Unknown'),
               };
             }
@@ -738,7 +741,7 @@ export async function POST(request: Request) {
           signature: event.signature,
           timestamp: event.timestamp,
           type: 'SWAP',
-          description: event.description || `Swapped ${fromToken?.amount} ${fromToken?.symbol} for ${toToken?.amount} ${toToken?.symbol}`,
+          description: event.description || `Swapped ${fromToken?.amount_adjusted} ${fromToken?.symbol} for ${toToken?.amount_adjusted} ${toToken?.symbol}`,
           holder_address: trackedHolder?.holder_address || event.accountData?.[0]?.account || '',
           holder_mapping: trackedHolder ? {
             token_address: trackedHolder.token_address,
@@ -753,6 +756,7 @@ export async function POST(request: Request) {
             address: fromToken?.address || null,
             symbol: fromToken?.metadata?.symbol || 'Unknown',
             amount: fromToken?.amount || 0,
+            amount_adjusted: fromToken?.amount_adjusted || 0,
             metadata: fromTokenMetadata || fromToken?.metadata || {
               symbol: fromToken?.metadata?.symbol || 'Unknown',
               name: fromToken?.metadata?.name || 'Unknown Token',
@@ -764,6 +768,7 @@ export async function POST(request: Request) {
             address: toToken?.address || null,
             symbol: toToken?.metadata?.symbol || 'Unknown',
             amount: toToken?.amount || 0,
+            amount_adjusted: toToken?.amount_adjusted || 0,
             metadata: toTokenMetadata || toToken?.metadata || {
               symbol: toToken?.metadata?.symbol || 'Unknown',
               name: toToken?.metadata?.name || 'Unknown Token',

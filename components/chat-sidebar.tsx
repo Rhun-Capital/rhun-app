@@ -15,7 +15,10 @@ import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { getToolCommand } from '@/app/config/tool-commands';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
-import { Token } from '@/components/tools/token-holdings';
+import { Token } from '@/types/token';
+import { ChatSidebarProps } from '@/types/components';
+import { Tool } from '../types/tools';
+import { ModalType } from '../types/components';
 
 // Import the modal components but use a global approach
 const TransferModal = dynamic(() => import('./send-button'), {
@@ -29,26 +32,6 @@ const ReceiveModal = dynamic(() => import('./receive-button'), {
 const SwapModal = dynamic(() => import('./swap-button'), {
   ssr: false,
 });
-
-interface Tool {
-  name: string;
-  description: string;
-  command: string;
-  isPro?: boolean;
-  isNew?: boolean;
-  requiresAuth: boolean;
-}
-
-interface SidebarProps {
-  agent: any;
-  isOpen: boolean;
-  onToggle: () => void;
-  onToolSelect: (command: string) => void;
-  refreshAgent: () => void;
-}
-
-// Create a new type for modal types
-type ModalType = 'transfer' | 'receive' | 'swap' | null;
 
 // Rest of the component remains unchanged
 const ToolCard: React.FC<{
@@ -232,13 +215,6 @@ const portfolioTools: Tool[] = [
     command: getToolCommand('token-holdings') || 'Show me my token holdings',
     isNew: false,
     requiresAuth: true
-  },
-  {
-    name: 'Agent Token Holdings',
-    description: 'View the agent\'s token holdings and balances',
-    command: getToolCommand('agent-token-holdings') || 'Show me your token holdings',
-    isNew: false,
-    requiresAuth: true
   }
 ];
 
@@ -333,20 +309,7 @@ const tokenDiscoveryTools: Tool[] = [
     isNew: false,
     requiresAuth: false
   },
-  {
-    name: 'Get Trending Tokens',
-    description: 'Discover trending tokens on CoinGecko across all chains',
-    command: getToolCommand('trending-tokens') || 'Search for trending tokens',
-    isNew: false,
-    requiresAuth: false
-  },
-  {
-    name: 'Get Latest Tokens',
-    description: 'Discover newly listed tokens on CoinGecko',
-    command: getToolCommand('recent-tokens') || 'Search for recently listed tokens',
-    isNew: false,
-    requiresAuth: false
-  },
+  
   {
     name: 'Search Tokens',
     description: 'Search through the complete database of tokens',
@@ -403,7 +366,7 @@ const networkTools: Tool[] = [
   }
 ];
 
-const ChatSidebar: React.FC<SidebarProps> = ({ onToolSelect }) => {
+const ChatSidebar: React.FC<ChatSidebarProps> = ({ agent, isOpen, onToggle, onToolSelect, refreshAgent, className }) => {
   const [isToolClickDisabled, setIsToolClickDisabled] = useState(false);
   const [portfolio, setPortfolio] = useState<any>(null);
   const isSubscribed = true; // Set all users as subscribed to avoid 404 errors

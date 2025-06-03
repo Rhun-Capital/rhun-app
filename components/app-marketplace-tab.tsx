@@ -3,18 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { PlusIcon, CheckIcon } from '@/components/icons';
 import { IconWrapper } from './app-icons';
 import { usePrivy } from '@privy-io/react-auth';
-
-interface App {
-  id: string;
-  name: string;
-  description: string;
-  category: 'Wallet' | 'Portfolio' | 'Analytics' | 'Search' | 'Market';
-  isInstalled?: boolean;
-}
-
-interface AppMarketplaceTabProps {
-  agentId: string;
-}
+import { App, AppMarketplaceTabProps } from '../types/app';
 
 export default function AppMarketplaceTab({ agentId }: AppMarketplaceTabProps) {
   const { getAccessToken } = usePrivy();

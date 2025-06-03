@@ -1,3 +1,5 @@
+import { Category } from '../types/ui';
+
 // Icons for different app categories
 export const CategoryIcons = {
     Wallet: () => (
@@ -42,8 +44,6 @@ export const CategoryIcons = {
   };
   
   // Common icon wrapper component
-  type Category = 'Wallet' | 'Portfolio' | 'Analytics' | 'Search' | 'Market';
-
   export const IconWrapper = ({ category, className = "" }: { category: Category; className?: string }) => {
     const Icon = CategoryIcons[category] || CategoryIcons.Analytics;
     return (

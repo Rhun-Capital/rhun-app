@@ -1,14 +1,6 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
-
-interface DeleteConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title?: string;
-  message?: string;
-  loading?: boolean;
-}
+import { DeleteConfirmationModalProps } from '../types/modal';
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({ 
   isOpen, 

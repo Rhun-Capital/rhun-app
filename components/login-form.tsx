@@ -1,32 +1,42 @@
 // components/LoginForm.tsx
-interface LoginFormProps {
-  token: string;
-  setToken: (token: string) => void;
-  error: string | null;
-  isLoading: boolean;
-  handleSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-}
+import React from 'react';
+import { LoginFormProps } from '../types/ui';
 
-const LoginForm: React.FC<LoginFormProps> = ({ token, setToken, error, isLoading, handleSubmit }) => (
-    <form className="mt-6 sm:mt-8 space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
+const LoginForm: React.FC<LoginFormProps> = ({
+  token,
+  setToken,
+  error,
+  isLoading,
+  handleSubmit
+}) => {
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="token" className="sr-only">Access Key</label>
+        <label htmlFor="token" className="block text-sm font-medium text-gray-300">
+          API Token
+        </label>
         <input
+          type="password"
           id="token"
-          name="token"
-          type="text"
-          required
-          className="appearance-none rounded-md relative block w-full px-3 py-2 sm:py-3 border border-gray-600 bg-zinc-700 placeholder-gray-400 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 text-sm sm:text-base"
-          placeholder="Enter your access key"
           value={token}
           onChange={(e) => setToken(e.target.value)}
+          className="mt-1 block w-full rounded-md bg-zinc-800 border-zinc-700 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder="Enter your API token"
+          required
         />
       </div>
-      {error && <div className="text-red-400 text-xs sm:text-sm text-center">{error}</div>}
-      <button type="submit" className="group relative w-full flex justify-center py-2 sm:py-3 px-4 border border-transparent text-sm sm:text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors">
-        {!isLoading ? 'Verify Key' : 'Verifying...'}
+      {error && (
+        <div className="text-red-500 text-sm">{error}</div>
+      )}
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+      >
+        {isLoading ? 'Loading...' : 'Login'}
       </button>
     </form>
-   );
+  );
+};
 
 export default LoginForm;
