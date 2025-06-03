@@ -424,19 +424,27 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     const responseData = await response.json();
     console.log('Server response:', responseData);
 
-    // Update image state with the response data
-    if (responseData.data?.imageUrl) {
+    // Safely extract the agent ID from the response
+    const agentId = responseData.data?.id || responseData.agentId || responseData.id;
+
+    // Update image state with the response data if available
+    if (responseData.data?.imageUrl || responseData.imageUrl) {
       setImageState({
         file: null, // Clear the file since it's been uploaded
-        preview: responseData.data.imageUrl
+        preview: responseData.data?.imageUrl || responseData.imageUrl
       });
     }
 
     if (!initialData) {
       localStorage.setItem('agent_created', 'true');
       toast.success("Agent created successfully!");
-      router.push(`/agents/${user?.id}/${responseData.data.id}/edit`);
-      router.refresh();
+      if (agentId) {
+        router.push(`/agents/${user?.id}/${agentId}/edit`);
+        router.refresh();
+      } else {
+        console.error('No agent ID found in response:', responseData);
+        setError('Agent created but ID not found in response');
+      }
     } else {
       setSuccess(true);
       setCreated(false);
