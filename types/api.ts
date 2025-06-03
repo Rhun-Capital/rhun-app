@@ -35,10 +35,11 @@ export interface QueryParams {
 
 export interface ApiKey {
   id: string;
+  userId: string;
   name: string;
   key: string;
   createdAt: string;
-  lastUsed?: string;
+  lastUsed: string | null;
   permissions?: string[];
 }
 
