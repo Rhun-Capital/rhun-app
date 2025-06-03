@@ -518,9 +518,8 @@ const TechnicalAnalysis: React.FC<TechnicalAnalysisProps> = ({ data }) => {
 
   const formatPercentage = (num: number | null | undefined) => {
     if (num === null || num === undefined) return '0%';
-    // Convert decimal to percentage and ensure it's between 0 and 100
-    const percentage = Math.min(Math.max(num * 100, 0), 100);
-    return `${percentage.toFixed(1)}%`;
+    // If the input is already in percentage form (e.g. 0.69 for 0.69%), don't multiply by 100
+    return `${num.toFixed(2)}%`;
   };
 
   const getTrendColor = (trend: string) => {
