@@ -11,7 +11,7 @@ import { SubscriptionManagement } from "@/components/manage-subscription";
 import { useSearchParams } from 'next/navigation';
 import {useRouter} from 'next/navigation';
 import { useSubscription } from "@/hooks/use-subscription";
-import { ApiKeyManagement } from "@/components/api-key-management";
+// import { ApiKeyManagement } from "@/components/api-key-management";
 
 export default function SettingsPage() {
   const { user, logout, authenticated, getAccessToken } = usePrivy();
@@ -142,20 +142,20 @@ export default function SettingsPage() {
           </section>
 
           {/* Subscriptions */}
-          {/* {isSubscribed && <section>
+          {isSubscribed && <section>
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Subscription</h2>
             <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">            
               <SubscriptionManagement wallet={user?.wallet?.address || ''} userId={user?.id || ''}/>
             </div>
-          </section> } */}
+          </section> }
 
           {/* API Keys */}
-          <section>
+          {/* <section>
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">API Keys</h2>
             <div className="bg-zinc-800 rounded-lg p-4 sm:p-6">
               <ApiKeyManagement />
             </div>
-          </section>
+          </section> */}
 
           {/* Connected Wallets */}
           <section>
