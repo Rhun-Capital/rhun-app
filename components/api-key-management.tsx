@@ -40,7 +40,7 @@ export function ApiKeyManagement() {
       }
 
       const data = await response.json();
-      setApiKeys(data.keys || []);
+      setApiKeys(data || []);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to fetch API keys');
     } finally {
