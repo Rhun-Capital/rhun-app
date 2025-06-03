@@ -63,10 +63,17 @@ export function useSubscription(): SubscriptionStatus {
       stripe: {
         active: false,
         currentPeriodEnd: null,
+        plan: undefined,
+        status: undefined,
+        subscriptionId: undefined,
+        stripeCustomerId: undefined,
+        amount: undefined,
+        cancelAtPeriodEnd: false
       },
       token: {
         active: false,
         expiresAt: null,
+        subscription: undefined
       }
     }
   });
