@@ -197,7 +197,7 @@ function AccountPageContent() {
                     disabled={walletLoading}
                     className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition disabled:opacity-50"
                   >
-                    {walletLoading ? 'Creating Wallet...' : 'Create Wallet'}
+                    {walletLoading ? "Creating Wallet..." : "Create Wallet"}
                   </button>
                 </div>                  
                 </div>
@@ -220,7 +220,7 @@ function AccountPageContent() {
                           disabled={exportLoading}
                           className="px-10 py-1 text-white outline outline-orange-600 hover:opacity-70  rounded-md transition disabled:opacity-50"
                         >
-                          {exportLoading ? 'Exporting...' : 'Export Wallet'}
+                          {exportLoading ? "Exporting..." : "Export Wallet"}
                         </button>
                         <p className="text-xs text-zinc-400 mt-2">
                           Export your wallet private key. Use with caution.
