@@ -3,8 +3,17 @@ import Image from 'next/image';
 import { ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, GlobeIcon } from '@/components/icons';
 import Link from 'next/link';
 import CopyButton from '@/components/copy-button';
-import { CoinData, CoinDetails, MarketMoversProps } from '@/types/market';
+import { CoinDetails, MarketMoversProps } from '@/types/market';
 import { AIToolInvocation } from '@/types/tools';
+
+interface CoinData {
+  id: string;
+  name: string;
+  symbol: string;
+  image: string | { large: string };
+  price: number;
+  priceChange24h: number;
+}
 
 const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -63,10 +72,10 @@ const MarketMovers: React.FC<MarketMoversProps> = ({ toolCallId, toolInvocation 
       </div>
       <div className="text-right">
         <p className="font-medium text-white">
-          {formatPrice(coin.current_price)}
+          {formatPrice(coin.price)}
         </p>
-        <p className={`text-sm ${coin.price_change_percentage_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-          {formatPriceChange(coin.price_change_percentage_24h)}
+        <p className={`text-sm ${coin.priceChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          {formatPriceChange(coin.priceChange24h)}
         </p>
       </div>
     </div>
