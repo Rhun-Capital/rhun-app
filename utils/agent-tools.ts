@@ -1151,39 +1151,46 @@ export async function getFredSeries(seriesId: string) {
 
 export async function searchFredSeries(query: string) {
   try {
-    const response = await fetch(
-      `https://api.stlouisfed.org/fred/series/search?search_text=${encodeURIComponent(query)}&api_key=${process.env.FRED_API_KEY}&file_type=json&limit=5`
-    );
+    const url = `https://api.stlouisfed.org/fred/series/search?search_text=${encodeURIComponent(query)}&api_key=${process.env.FRED_API_KEY}&file_type=json&limit=5`;
+    console.log('FRED search URL:', url);
+    
+    const response = await fetch(url);
+    console.log('FRED search response status:', response.status);
 
     if (!response.ok) {
-      throw new Error('Failed to fetch FRED search results');
+      const errorText = await response.text();
+      console.error('FRED search error:', errorText);
+      throw new Error(`Failed to fetch FRED search results: ${errorText}`);
     }
 
     const data = await response.json();
+    console.log('FRED search response data:', data);
     
-    // Transform the results into a more concise format for chat
-    const results = data.seriess.map((series: any) => ({
+    // Transform the results into a more concise format for chat and rename seriess to series
+    const series = data.seriess?.map((series: any) => ({
       id: series.id,
       title: series.title,
       frequency: series.frequency,
       units: series.units,
       seasonal_adjustment: series.seasonal_adjustment,
       last_updated: series.last_updated,
-      notes: series.notes
-    }));
+      notes: series.notes,
+      observation_start: series.observation_start,
+      observation_end: series.observation_end
+    })) || [];
 
     return {
       success: true,
-      results,
-      count: data.seriess.length,
-      message: `Found ${data.seriess.length} matching series. You can use any of these series IDs with the getFredSeries function to fetch the data.`
+      series, // Changed from results to series to match component expectations
+      count: series.length,
+      message: `Found ${series.length} matching series. You can use any of these series IDs with the getFredSeries function to fetch the data.`
     };
   } catch (error) {
     console.error('Error searching FRED series:', error);
     return { 
       success: false,
-      error: 'Failed to search FRED series. Please try again later.',
-      results: [],
+      error: error instanceof Error ? error.message : 'Failed to search FRED series. Please try again later.',
+      series: [], // Changed from results to series
       count: 0
     };
   }
