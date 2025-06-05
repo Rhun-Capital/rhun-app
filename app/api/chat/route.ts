@@ -23,6 +23,7 @@ import { getAccountDetails } from '@/utils/solscan';
 import { createTask, getTaskStatus, getTaskDetails, waitForTaskCompletion } from '@/utils/browser-use';
 import { calculateSMA, calculateEMA, calculateRSI, calculateMACD, calculateStochRSI, calculateCCI, calculateMFI, calculateADX, calculateDMI, calculateIchimoku, calculateAroon, calculateATR, calculateVolumeMetrics, calculateOBV, calculatePivotPoints, calculateFibonacciRetracement, calculateBollingerBands, calculateSupportResistance, calculateMarketSentiment } from '@/utils/technical-analysis';
 import { getPairsByTokenAddresses, getLatestBoostedTokens, getLatestTokenProfiles } from '@/utils/dexscreener';
+import { calculateInvestorMetrics } from '@/utils/investorMetrics';
 
 export const runtime = 'nodejs';
 
@@ -45,6 +46,68 @@ export interface BrowserUseTaskResult {
     cookies?: any[];
   };
 }
+
+interface TwitterUser {
+  id: string;
+  username: string;
+  public_metrics?: {
+    followers_count: number;
+    following_count: number;
+    tweet_count: number;
+  };
+}
+
+interface TwitterTweet {
+  id: string;
+  text: string;
+  created_at: string;
+  author_id: string;
+  public_metrics?: {
+    retweet_count: number;
+    reply_count: number;
+    like_count: number;
+    quote_count: number;
+  };
+}
+
+interface EnhancedTweet extends TwitterTweet {
+  engagement_rate: number;
+  viral_score: number;
+  discussion_ratio: number;
+  influence_weight: number;
+  author?: TwitterUser;
+}
+
+const calculateSentimentMetrics = (tweets: TwitterTweet[], users: TwitterUser[]): EnhancedTweet[] => {
+  // Create a map of user data for quick lookup
+  const userMap = new Map(users.map(user => [user.id, user]));
+  
+  return tweets.map(tweet => {
+    const author = userMap.get(tweet.author_id);
+    const metrics = tweet.public_metrics || { like_count: 0, retweet_count: 0, reply_count: 0 };
+    const authorMetrics = author?.public_metrics || { followers_count: 1 };
+    
+    // Calculate metrics with safe fallbacks
+    const engagement_rate = (metrics.like_count + metrics.retweet_count + metrics.reply_count) / 
+                          Math.max(authorMetrics.followers_count, 1);
+    
+    const viral_score = metrics.retweet_count / Math.max(metrics.like_count, 1);
+    
+    const discussion_ratio = metrics.reply_count / 
+                           (metrics.like_count + metrics.retweet_count + 1);
+    
+    const influence_weight = Math.log(Math.max(authorMetrics.followers_count, 1) + 1);
+    
+    return {
+      ...tweet,
+      author,
+      engagement_rate: Number(engagement_rate.toFixed(6)),
+      viral_score: Number(viral_score.toFixed(3)),
+      discussion_ratio: Number(discussion_ratio.toFixed(3)),
+      influence_weight: Number(influence_weight.toFixed(2))
+    };
+  });
+};
 
 export async function POST(req: Request) {
   const { messages, user, agent, templateWallet } = await req.json();
@@ -82,7 +145,6 @@ export async function POST(req: Request) {
       return {
         totalValue,
       }
-  
       } 
     }, 
   
@@ -155,7 +217,6 @@ export async function POST(req: Request) {
       execute: async () => {
         const response = await getMarketMovers();
         return response;
-  
       },
     },   
 
@@ -884,8 +945,211 @@ export async function POST(req: Request) {
       }
     },
 
-    // TODO: add twitter analysis tool
+    // searchTweets: {
+    //   description: "Search for tweets about a specific cryptocurrency ticker (e.g., BONK) with advanced investor metrics and sentiment analysis",
+    //   parameters: z.object({
+    //     ticker: z.string().describe('The cryptocurrency ticker to search for (e.g., BONK, SOL)'),
+    //   }),
+    //   execute: async ({ ticker }) => {
+    //     try {
+    //       // Clean and format query without cashtag operator
+    //       const cleanTicker = ticker.replace('$', '').trim().toUpperCase();
+    //       const query = encodeURIComponent(`${cleanTicker} crypto lang:en -is:retweet`);
+          
+    //       const url = `https://api.twitter.com/2/tweets/search/recent?query=${query}&max_results=10&tweet.fields=created_at,author_id,public_metrics,text&expansions=author_id&user.fields=username,created_at,public_metrics,verified`;
+          
+    //       console.log('Fetching from URL:', url);
+    //       const response = await fetch(url, {
+    //         headers: {
+    //           'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
+    //           'Content-Type': 'application/json'
+    //         }
+    //       });
 
+    //       if (!response.ok) {
+    //         const errorText = await response.text();
+    //         console.error('Twitter API Error:', {
+    //           status: response.status,
+    //           statusText: response.statusText,
+    //           error: errorText,
+    //           url: url
+    //         });
+    //         return {
+    //           result: {
+    //             success: false,
+    //             message: `Failed to fetch tweets: ${response.status} ${response.statusText}`,
+    //             error: errorText,
+    //             tweets: []
+    //           }
+    //         };
+    //       }
+
+    //       const data = await response.json();
+    //       console.log('Twitter API Response:', data);
+
+    //       if (!data.data || !Array.isArray(data.data)) {
+    //         return {
+    //           result: {
+    //             success: true,
+    //             message: `No tweets found for ${cleanTicker}`,
+    //             tweets: []
+    //           }
+    //         };
+    //       }
+
+    //       // Calculate sentiment metrics using the includes.users data
+    //       const enhancedTweets = calculateSentimentMetrics(
+    //         data.data,
+    //         data.includes?.users || []
+    //       );
+
+    //       // Calculate aggregate metrics
+    //       const totalEngagement = enhancedTweets.reduce((sum, tweet) => 
+    //         sum + (tweet.public_metrics?.like_count || 0) + 
+    //               (tweet.public_metrics?.retweet_count || 0) + 
+    //               (tweet.public_metrics?.reply_count || 0), 0);
+
+    //       const avgEngagementRate = enhancedTweets.reduce((sum, tweet) => 
+    //         sum + tweet.engagement_rate, 0) / enhancedTweets.length;
+
+    //       const avgViralScore = enhancedTweets.reduce((sum, tweet) => 
+    //         sum + tweet.viral_score, 0) / enhancedTweets.length;
+
+    //       const response2 = {
+    //         result: {
+    //           success: true,
+    //           message: `Found ${enhancedTweets.length} tweets for ${cleanTicker}`,
+    //           tweets: enhancedTweets.map(tweet => ({
+    //             id: tweet.id,
+    //             text: tweet.text,
+    //             created_at: tweet.created_at,
+    //             metrics: {
+    //               ...tweet.public_metrics,
+    //               engagement_rate: tweet.engagement_rate,
+    //               viral_score: tweet.viral_score,
+    //               discussion_ratio: tweet.discussion_ratio,
+    //               influence_weight: tweet.influence_weight
+    //             },
+    //             author: tweet.author ? {
+    //               id: tweet.author.id,
+    //               username: tweet.author.username,
+    //               metrics: tweet.author.public_metrics
+    //             } : undefined
+    //           })),
+    //           aggregate_metrics: {
+    //             total_engagement: totalEngagement,
+    //             avg_engagement_rate: Number(avgEngagementRate.toFixed(6)),
+    //             avg_viral_score: Number(avgViralScore.toFixed(3))
+    //           }
+    //         }
+    //       };
+    //       console.log('Twitter API Response:', response2);
+    //       return response2;
+    //     } catch (error: any) {
+    //       console.error('Error in searchTweets:', error);
+    //       return {
+    //         result: {
+    //           success: false,
+    //           message: `Error fetching tweets: ${error.message}`,
+    //           error: error.stack,
+    //           tweets: []
+    //         }
+    //       };
+    //     }
+    //   }
+    // },
+
+    // getUserTweets: {
+    //   description: "Get recent tweets from a specific Twitter account with investor metrics and sentiment analysis",
+    //   parameters: z.object({
+    //     username: z.string().describe('The Twitter username to fetch tweets from (e.g., bonkcoin)'),
+    //     maxResults: z.number().optional().default(25).describe('Maximum number of tweets to fetch')
+    //   }),
+    //   execute: async ({ username, maxResults = 25 }) => {
+    //     try {
+    //       // Remove @ if provided
+    //       const cleanUsername = username.replace('@', '');
+          
+    //       const tweetFields = [
+    //         'created_at',
+    //         'public_metrics',
+    //         'text'
+    //       ].join(',');
+          
+    //       const userFields = [
+    //         'public_metrics',
+    //         'verified',
+    //         'username'
+    //       ].join(',');
+          
+    //       const url = `https://api.twitter.com/2/users/by/username/${cleanUsername}/tweets?max_results=${maxResults}&tweet.fields=${tweetFields}&user.fields=${userFields}&expansions=author_id`;
+          
+    //       console.log('Fetching user tweets from Twitter API:', url);
+    //       const response = await fetch(url, {
+    //         headers: {
+    //           'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`
+    //         }
+    //       });
+          
+    //       if (!response.ok) {
+    //         const errorText = await response.text();
+    //         console.error('Twitter API Error:', {
+    //           status: response.status,
+    //           statusText: response.statusText,
+    //           error: errorText
+    //         });
+    //         return {
+    //           result: {
+    //             success: false,
+    //             message: `Failed to fetch tweets: ${response.status} ${response.statusText}`,
+    //             error: errorText,
+    //             tweets: []
+    //           }
+    //         };
+    //       }
+          
+    //       const data = await response.json();
+    //       console.log('Twitter API Response:', data);
+          
+    //       if (!data.data || !Array.isArray(data.data)) {
+    //         return {
+    //           result: {
+    //             success: true,
+    //             message: `No tweets found for @${username}`,
+    //             tweets: []
+    //           }
+    //         };
+    //       }
+
+    //       // Map tweets to a simpler format
+    //       const tweets = data.data.map((tweet: TwitterTweet) => ({
+    //         id: tweet.id,
+    //         text: tweet.text,
+    //         created_at: tweet.created_at,
+    //         metrics: tweet.public_metrics || {},
+    //         author_id: tweet.author_id
+    //       }));
+          
+    //       return {
+    //         result: {
+    //           success: true,
+    //           message: `Found ${tweets.length} tweets from @${username}`,
+    //           tweets
+    //         }
+    //       };
+    //     } catch (error: any) {
+    //       console.error('Error in getUserTweets:', error);
+    //       return {
+    //         result: {
+    //           success: false,
+    //           message: `Error fetching tweets: ${error.message}`,
+    //           error: error.stack,
+    //           tweets: []
+    //         }
+    //       };
+    //     }
+    //   }
+    // }
   }
 
   // Define tool sets for different user tiers
@@ -913,7 +1177,9 @@ export async function POST(req: Request) {
     getTradingViewChart: allTools.getTradingViewChart,
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
     getFredSeries: allTools.getFredSeries,
-    fredSearch: allTools.fredSearch
+    fredSearch: allTools.fredSearch,
+    // searchTweets: allTools.searchTweets,
+    // getUserTweets: allTools.getUserTweets
   };
 
 // Format context for the prompt

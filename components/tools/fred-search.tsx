@@ -13,7 +13,7 @@ export function FredSearch({ toolCallId, toolInvocation, onShowChart }: FredSear
     return <div className="text-muted-foreground">Loading search results...</div>;
   }
   
-  const { series, count } = result;
+  const { series = [], count = 0 } = result;
 
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => ({
