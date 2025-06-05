@@ -164,14 +164,23 @@ export function calculateInvestorMetrics(twitterData: TwitterResponse): TwitterR
   
   const enhancedTweets = twitterData.data.map(tweet => {
     const author = userLookup[tweet.author_id];
-    const metrics = tweet.public_metrics || {};
-    const authorMetrics = author?.public_metrics || {};
+    const metrics = tweet.public_metrics || {
+      like_count: 0,
+      retweet_count: 0,
+      reply_count: 0,
+      quote_count: 0
+    };
+    const authorMetrics = author?.public_metrics || {
+      followers_count: 0,
+      following_count: 0,
+      tweet_count: 0
+    };
     
     // Calculate investor-relevant metrics
-    const totalEngagement = (metrics.like_count || 0) + 
-                           (metrics.retweet_count || 0) + 
-                           (metrics.reply_count || 0) + 
-                           (metrics.quote_count || 0);
+    const totalEngagement = metrics.like_count + 
+                           metrics.retweet_count + 
+                           metrics.reply_count + 
+                           metrics.quote_count;
     
     const engagementRate = authorMetrics.followers_count > 0 ? 
       totalEngagement / authorMetrics.followers_count : 0;
