@@ -374,7 +374,6 @@ export async function POST(req: Request) {
       parameters: z.object({}),
       execute: async () => {
         const response = await getTotalCryptoMarketCap();
-        console.log(response)
         return response;
       },
     },
