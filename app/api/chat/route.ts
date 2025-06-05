@@ -384,6 +384,7 @@ export async function POST(req: Request) {
       }),
       execute: async ({ query }: { query: string }) => {
         const results = await searchFredSeries(query);
+        console.log(results);
         return results;
       }
     },
@@ -480,7 +481,6 @@ export async function POST(req: Request) {
           
           // Check if we have results in the expected format
           if (!newsData || !newsData.Data || !Array.isArray(newsData.Data)) {
-            console.log('No valid data array in CoinDesk response');
             return [];
           }
           
@@ -549,6 +549,14 @@ export async function POST(req: Request) {
               sentiment: article.SENTIMENT || "NEUTRAL",
               categories: categories,
               image_url: article.IMAGE_URL || '',
+              imageUrl: article.IMAGE_URL || '',
+              description: article.BODY ? 
+                (article.BODY.length > 150 ? `${article.BODY.substring(0, 150)}...` : article.BODY) 
+                : article.SUBTITLE || '',
+              content: article.BODY || '',
+              publishedAt: article.PUBLISHED_ON ? 
+                new Date(article.PUBLISHED_ON * 1000).toISOString() : 
+                new Date().toISOString(),
               score: typeof article.SCORE === 'number' ? article.SCORE : 1.0
             };
           });
