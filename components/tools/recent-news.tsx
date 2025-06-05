@@ -96,47 +96,45 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
         </button>
 
         <div className="mb-4">
-          {selectedArticle.imageUrl && selectedArticle.imageUrl.trim() !== '' && (
-            <div className="flex gap-4 items-start">
-              <div className="w-1/3 max-w-[300px] min-w-[200px]">
-                <img 
-                  src={selectedArticle.imageUrl}
-                  alt={selectedArticle.title || 'News article'}
-                  className="w-full h-auto object-cover rounded-lg bg-zinc-900"
-                  onError={(e) => {
-                    // Replace broken image with placeholder
-                    e.currentTarget.src = '/placeholder-news.png';
-                  }}
-                />
-              </div>
+          <div className="flex gap-4 items-start flex-col md:flex-row">
+            <div className="w-full md:w-1/3 md:max-w-[300px] md:min-w-[200px]">
+              <img 
+                src={selectedArticle.imageUrl}
+                alt={selectedArticle.title || 'News article'}
+                className="w-full h-auto object-cover rounded-lg bg-zinc-900"
+                onError={(e) => {
+                  // Replace broken image with placeholder
+                  e.currentTarget.src = '/placeholder-news.png';
+                }}
+              />
+            </div>
+            
+            <div className="flex-1 mt-4 md:mt-0">
+              <h2 className="text-xl font-bold text-white mb-2">
+                {selectedArticle.title || 'Untitled article'}
+              </h2>
               
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-white mb-2">
-                  {selectedArticle.title || 'Untitled article'}
-                </h2>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'neutral')}`}>
+                  {selectedArticle.sentiment || 'neutral'}
+                </span>
                 
-                <div className="flex flex-wrap gap-2 mb-3">
-                  <span className={`px-2 py-0.5 text-xs rounded ${getSentimentColor(selectedArticle.sentiment || 'neutral')}`}>
-                    {selectedArticle.sentiment || 'neutral'}
+                <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
+                  {selectedArticle.source || 'Unknown source'}
+                </span>
+                
+                <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
+                  {selectedArticle.publishedAt ? formatTimeAgo(selectedArticle.publishedAt) : 'Recently'}
+                </span>
+                
+                {selectedArticle.category && (
+                  <span className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
+                    {selectedArticle.category}
                   </span>
-                  
-                  <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-                    {selectedArticle.source || 'Unknown source'}
-                  </span>
-                  
-                  <span className="bg-zinc-700 text-zinc-300 px-2 py-0.5 text-xs rounded">
-                    {selectedArticle.publishedAt ? formatTimeAgo(selectedArticle.publishedAt) : 'Recently'}
-                  </span>
-                  
-                  {selectedArticle.category && (
-                    <span className="bg-purple-900 text-purple-200 px-2 py-0.5 text-xs rounded">
-                      {selectedArticle.category}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
           
           {/* Show title without flex layout if no image */}
           {(!selectedArticle.imageUrl || selectedArticle.imageUrl.trim() === '') && (
@@ -232,20 +230,20 @@ const CryptoNewsComponent: React.FC<ExtendedCryptoNewsProps> = ({ toolInvocation
               <div 
                 key={article.url}
                 onClick={() => setSelectedArticle(article)}
-                className="bg-zinc-900 p-3 rounded-lg flex items-start hover:bg-zinc-700 cursor-pointer transition-colors"
+                className="bg-zinc-900 p-3 rounded-lg flex flex-col sm:flex-row items-start hover:bg-zinc-700 cursor-pointer transition-colors"
               >
                 {article.imageUrl && article.imageUrl.trim() !== '' ? (
                   <img 
                     src={article.imageUrl}
                     alt={article.title || 'News article'}
-                    className="w-16 h-16 object-cover rounded mr-3 flex-shrink-0"
+                    className="w-full sm:w-16 h-32 sm:h-16 object-cover rounded mb-3 sm:mb-0 sm:mr-3 flex-shrink-0"
                     onError={(e) => {
                       // Replace broken image with placeholder
                       e.currentTarget.src = '/placeholder-news.png';
                     }}
                   />
                 ) : (
-                  <div className="w-16 h-16 bg-zinc-700 rounded mr-3 flex items-center justify-center flex-shrink-0">
+                  <div className="w-full sm:w-16 h-32 sm:h-16 bg-zinc-700 rounded mb-3 sm:mb-0 sm:mr-3 flex items-center justify-center flex-shrink-0">
                     <span className="text-zinc-500 text-xs">No image</span>
                   </div>
                 )}
