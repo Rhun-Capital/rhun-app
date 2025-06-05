@@ -2366,7 +2366,7 @@ function HomeContent() {
           <div 
             className={`bg-zinc-900 overflow-hidden transition-transform duration-300 ease-linear
               ${sidebarOpen 
-                ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-auto z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none transform translate-x-0 translate-y-0' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
+                ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-[calc(5%+10px)] z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none transform translate-x-0 translate-y-0' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
                 : 'w-0 md:border-l-0 transform md:translate-x-full translate-y-full'}`}
             style={{ 
               bottom: 0,
@@ -2382,7 +2382,7 @@ function HomeContent() {
           >
             <div className="h-[calc(100vh-140px)] flex flex-col flex-1 overflow-hidden bg-zinc-900">
               {/* Close button - only on mobile */}
-              <div className="flex justify-between items-center p-4 border-b border-zinc-700 md:hidden bg-zinc-900">
+              <div className="flex justify-between items-center p-2 border-b border-zinc-700 md:hidden bg-zinc-900">
                 <h3 className="text-lg font-medium text-white">
                   {activeTab === 'wallet' 
                     ? 'Wallet' 
@@ -2402,13 +2402,13 @@ function HomeContent() {
               </div>
               
               {/* Tabs navigation - only on mobile */}
-              <div className="flex border-b border-zinc-700 md:hidden px-2 bg-zinc-900">
+              <div className="flex border-b border-zinc-700 md:hidden px-1 bg-zinc-900">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveTab('wallet');
                   }}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`flex-1 px-2 py-2 text-sm font-medium transition-colors ${
                     activeTab === 'wallet' 
                       ? 'text-white border-b-2 border-indigo-500' 
                       : 'text-zinc-400 hover:text-white'
@@ -2424,7 +2424,7 @@ function HomeContent() {
                     e.stopPropagation();
                     setActiveTab('tools');
                   }}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`flex-1 px-2 py-2 text-sm font-medium transition-colors ${
                     activeTab === 'tools' 
                       ? 'text-white border-b-2 border-indigo-500' 
                       : 'text-zinc-400 hover:text-white'
@@ -2440,7 +2440,7 @@ function HomeContent() {
                     e.stopPropagation();
                     setActiveTab('artifacts');
                   }}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+                  className={`flex-1 px-2 py-2 text-sm font-medium transition-colors ${
                     activeTab === 'artifacts' 
                       ? 'text-white border-b-2 border-indigo-500' 
                       : 'text-zinc-400 hover:text-white'
