@@ -39,6 +39,10 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
+  const formatMarketShare = (percentage: number) => {
+    return `${percentage.toFixed(2)}%`;
+  };
+
   const sortedMarketShare = Object.entries(marketCapPercentage)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 5);
@@ -76,7 +80,7 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({
             {sortedMarketShare.map(([symbol, percentage]) => (
               <div key={symbol} className="flex justify-between text-white">
                 <span className="uppercase">{symbol}</span>
-                <span>{formatPercentage(percentage)}</span>
+                <span>{formatMarketShare(percentage)}</span>
               </div>
             ))}
           </div>
