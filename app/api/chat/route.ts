@@ -46,115 +46,6 @@ export interface BrowserUseTaskResult {
   };
 }
 
-function formatNumber(num: number): string {
-  if (Math.abs(num) >= 1000000000) {
-    return `${(num / 1000000000).toFixed(2)}B`;
-  }
-  if (Math.abs(num) >= 1000000) {
-    return `${(num / 1000000).toFixed(2)}M`;
-  }
-  if (Math.abs(num) >= 1000) {
-    return `${(num / 1000).toFixed(2)}K`;
-  }
-  // For very small numbers (like ratios)
-  if (Math.abs(num) < 0.01) {
-    return num.toFixed(4);
-  }
-  return num.toFixed(2);
-}
-
-function metricsToText(metricsArray: any[]): string {
-  // Get the latest data entry
-  const latestMetrics = metricsArray.find(item => 
-    typeof item.metadata.Price === 'number'
-  )?.metadata;
-
-  if (!latestMetrics) return "No metrics data available.";
-
-  const sections: { [key: string]: string[] } = {
-    price: [],
-    market: [],
-    users: [],
-    transactions: [],
-    financial: [],
-    token: [],
-    ratios: [],
-    network: []
-  };
-
-  // Price and Market Cap
-  sections.price.push(`Solana's current price is $${latestMetrics.Price.toFixed(2)}`);
-  sections.market = [
-    `The circulating market cap is $${formatNumber(latestMetrics['Market cap (circulating)'])}`,
-    `with a fully diluted market cap of $${formatNumber(latestMetrics['Market cap (fully diluted)'])}`,
-    `and a circulating supply of ${formatNumber(latestMetrics['Circulating supply'])} tokens`
-  ];
-
-  // Users and Addresses
-  sections.users = [
-    'User Activity:',
-    `• Daily: ${formatNumber(latestMetrics['Active users (daily)'])} users / ${formatNumber(latestMetrics['Active addresses (daily)'])} addresses`,
-    `• Weekly: ${formatNumber(latestMetrics['Active users (weekly)'])} users / ${formatNumber(latestMetrics['Active addresses (weekly)'])} addresses`,
-    `• Monthly: ${formatNumber(latestMetrics['Active users (monthly)'])} users / ${formatNumber(latestMetrics['Active addresses (monthly)'])} addresses`
-  ];
-
-  // Transactions
-  sections.transactions = [
-    'Transaction Metrics:',
-    `• Count: ${formatNumber(latestMetrics['Transaction count'])} total transactions`,
-    `• Speed: ${formatNumber(latestMetrics['Transactions per second'])} TPS`,
-    `• Average Fee: $${latestMetrics['Average transaction fee'].toFixed(4)}`
-  ];
-
-  // Financial Metrics
-  sections.financial = [
-    'Financial Overview:',
-    `• Revenue: $${formatNumber(latestMetrics.Revenue)}`,
-    `• Fees: $${formatNumber(latestMetrics.Fees)}`,
-    `• Expenses: $${formatNumber(latestMetrics.Expenses)}`,
-    `• Earnings: $${formatNumber(latestMetrics.Earnings)}`,
-    `• Supply-side Fees: $${formatNumber(latestMetrics['Supplyside fees'])}`,
-    `• Token Incentives: $${formatNumber(latestMetrics['Token incentives'])}`
-  ];
-
-  // Per User Metrics
-  sections.financial.push(
-    'Per User Metrics:',
-    `• ARPU: $${latestMetrics['Average revenue per user (ARPU)'].toFixed(4)}`,
-    `• AFPU: $${latestMetrics['Average fee per user (AFPU)'].toFixed(4)}`
-  );
-
-  // Token Metrics
-  sections.token = [
-    'Token Metrics:',
-    `• Trading Volume: $${formatNumber(latestMetrics['Token trading volume'])}`,
-    `• Turnover (Circulating): ${latestMetrics['Token turnover (circulating)'].toFixed(4)}`,
-    `• Turnover (Fully Diluted): ${latestMetrics['Token turnover (fully diluted)'].toFixed(4)}`
-  ];
-
-  // Ratios
-  sections.ratios = [
-    'Market Ratios:',
-    `• P/F Ratio (Circulating): ${latestMetrics['PF ratio (circulating)'].toFixed(2)}`,
-    `• P/F Ratio (Fully Diluted): ${latestMetrics['PF ratio (fully diluted)'].toFixed(2)}`,
-    `• P/S Ratio (Circulating): ${latestMetrics['PS ratio (circulating)'].toFixed(2)}`,
-    `• P/S Ratio (Fully Diluted): ${latestMetrics['PS ratio (fully diluted)'].toFixed(2)}`
-  ];
-
-  // Network Development
-  sections.network = [
-    'Network Development:',
-    `• Core Developers: ${latestMetrics['Core developers']}`,
-    `• Recent Code Commits: ${latestMetrics['Code commits']}`
-  ];
-
-  // Combine all sections with proper spacing
-  return Object.values(sections)
-    .filter(section => section.length > 0)
-    .map(section => section.join('\n'))
-    .join('\n\n');
-}
-
 export async function POST(req: Request) {
   const { messages, user, agent, templateWallet } = await req.json();
 
@@ -606,28 +497,7 @@ export async function POST(req: Request) {
           return [];
         }
       }
-    },
-
-    // Add these to your allTools object
-    // stockAnalysis: {
-    //   description: "Analyze financial stock data using yfinance, showing comprehensive analysis of financials, news sentiment, and technical indicators",
-    //   parameters: z.object({ 
-    //     ticker: z.string().describe('The stock ticker symbol (e.g., AAPL, MSFT, GOOGL)')
-    //   }),
-    //   execute: async ({ ticker }: { ticker: string }) => {
-    //     try {
-    //       // Use your existing getFinancialData function
-    //       const result = await getFinancialData([ticker], 'comprehensive');
-    //       return result;
-    //     } catch (error) {
-    //       console.error('Error in stock analysis:', error);
-    //       return { 
-    //         error: 'Failed to analyze stock data',
-    //         ticker 
-    //       };
-    //     }
-    //   }
-    // },   
+    }, 
 
     webResearch: {
       description: "Perform comprehensive web research using browser automation",
@@ -1014,41 +884,7 @@ export async function POST(req: Request) {
       }
     },
 
-    // parseSolanaQuery: {
-    //   description: "PRIMARY TOOL FOR SOLANA QUERIES: Parse natural language queries about Solana blockchain data and fetch from Solscan. Use this for ALL Solana-related queries including transactions, token holdings, DeFi activities, and account details. Handles time-based queries, filters, and sorting.",
-    //   parameters: z.object({
-    //     query: z.string().describe('The natural language query about Solana to parse'),
-    //     addresses: z.array(z.string()).optional().describe('Optional array of Solana addresses to query')
-    //   }),
-    //   execute: async ({ query, addresses }: { query: string; addresses?: string[] }) => {
-    //     try {
-    //       // Parse the query using the schema
-    //       const structuredQuery = await parseQueryToSchema(query);
-    //       console.log('Parsed structured query:', structuredQuery);
-          
-    //       // If addresses are provided, query each one
-    //       if (addresses && addresses.length > 0) {
-    //         const results = await Promise.all(
-    //           addresses.map(async (address) => {
-    //             const endpoint = getEndpointFromIntent(structuredQuery.intent);
-    //             const params = mapQueryToParams(structuredQuery);
-    //             console.log('Making Solscan request with:');
-    //             console.log('Endpoint:', endpoint);
-    //             console.log('Params:', { ...params, address });
-    //             const response = await makeSolscanRequest(endpoint, { ...params, address });
-    //             return { address, data: response };
-    //           })
-    //         );
-    //         return results;
-    //       }
-          
-    //       return { query: structuredQuery };
-    //     } catch (error) {
-    //       console.error('Error parsing Solana query:', error);
-    //       throw error;
-    //     }
-    //   }
-    // },
+    // TODO: add twitter analysis tool
 
   }
 
