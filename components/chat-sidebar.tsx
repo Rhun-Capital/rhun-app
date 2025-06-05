@@ -202,13 +202,13 @@ const portfolioTools: Tool[] = [
     isNew: false,
     requiresAuth: true
   },
-  {
-    name: 'Agent Portfolio Value',
-    description: 'View the agent\'s portfolio value and holdings',
-    command: getToolCommand('agent-portfolio-value') || 'Show me your portfolio value',
-    isNew: false,
-    requiresAuth: true
-  },
+  // {
+  //   name: 'Agent Portfolio Value',
+  //   description: 'View the agent\'s portfolio value and holdings',
+  //   command: getToolCommand('agent-portfolio-value') || 'Show me your portfolio value',
+  //   isNew: false,
+  //   requiresAuth: true
+  // },
   {
     name: 'Token Holdings',
     description: 'View your current token holdings and balances',
