@@ -290,20 +290,13 @@ export interface TrendingCoinsProps {
   };
 }
 
-export interface GlobalMarketProps extends BaseToolProps {
+export interface GlobalMarketProps {
+  toolCallId: string;
   toolInvocation: {
-    toolName: string;
-    args: Record<string, any>;
-    result?: {
-      totalMarketCap: number;
-      totalVolume24h: number;
-      btcDominance: number;
-      marketCapChange24h: number;
-      volumeChange24h: number;
-      lastUpdated: string;
-    };
-    state: ToolInvocationState;
+    state: string;
+    result?: GlobalMarketData;
   };
+  className?: string;
 }
 
 export interface DerivativesExchangesProps extends BaseToolProps {

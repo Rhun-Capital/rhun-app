@@ -18,10 +18,10 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({
 
   const {
     totalMarketCap = 0,
-    totalVolume24h = 0,
-    btcDominance = 0,
+    totalVolume = 0,
+    marketCapPercentage = {},
     marketCapChange24h = 0,
-    volumeChange24h = 0,
+    activeCryptocurrencies = 0,
     lastUpdated
   } = toolInvocation.result;
 
@@ -39,6 +39,10 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({
     return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%`;
   };
 
+  const sortedMarketShare = Object.entries(marketCapPercentage)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+
   return (
     <div className={`p-6 bg-zinc-800 rounded-lg space-y-6 ${className}`}>
       <div className="flex justify-between items-start">
@@ -52,9 +56,9 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({
           </div>
         </div>
         <div className="text-right">
-          <div className="text-sm text-zinc-400">BTC Dominance</div>
+          <div className="text-sm text-zinc-400">Active Cryptocurrencies</div>
           <div className="text-lg font-semibold text-white">
-            {formatPercentage(btcDominance)}
+            {activeCryptocurrencies.toLocaleString()}
           </div>
         </div>
       </div>
@@ -63,17 +67,25 @@ const TotalCryptoMarketCap: React.FC<GlobalMarketProps> = ({
         <div className="bg-zinc-900 p-4 rounded-lg">
           <div className="text-sm text-zinc-400">24h Volume</div>
           <div className="text-lg font-semibold text-white">
-            {formatNumber(totalVolume24h)}
+            {formatNumber(totalVolume)}
           </div>
-          <div className={`text-sm ${volumeChange24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {formatPercentage(volumeChange24h)}
+        </div>
+        <div className="bg-zinc-900 p-4 rounded-lg">
+          <div className="text-sm text-zinc-400">Market Share</div>
+          <div className="text-sm space-y-1">
+            {sortedMarketShare.map(([symbol, percentage]) => (
+              <div key={symbol} className="flex justify-between text-white">
+                <span className="uppercase">{symbol}</span>
+                <span>{formatPercentage(percentage)}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {lastUpdated && (
         <div className="text-xs text-zinc-500">
-          Last updated: {new Date(lastUpdated).toLocaleString()}
+          Last updated: {new Date(lastUpdated * 1000).toLocaleString()}
         </div>
       )}
     </div>
