@@ -2366,11 +2366,10 @@ function HomeContent() {
           <div 
             className={`bg-zinc-900 overflow-hidden transition-transform duration-300 ease-linear
               ${sidebarOpen 
-                ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-[calc(5%+10px)] z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none transform translate-x-0 translate-y-0' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
+                ? 'fixed md:relative md:border-l md:border-zinc-700 md:inset-y-0 md:right-0 inset-0 top-[calc(5%+25px)] z-50 md:z-40 md:w-[400px] shadow-lg md:shadow-none transform translate-x-0 translate-y-0' + (activeTab === 'artifacts' ? ' md:w-[50%]' : '') 
                 : 'w-0 md:border-l-0 transform md:translate-x-full translate-y-full'}`}
             style={{ 
               bottom: 0,
-              paddingBottom: "calc(env(safe-area-inset-bottom, 0px))",
               borderTopLeftRadius: '16px',
               borderTopRightRadius: '16px',
               transform: sidebarOpen 
@@ -2380,7 +2379,7 @@ function HomeContent() {
                   : 'translateY(100%)'
             }}
           >
-            <div className="h-[calc(100vh-140px)] flex flex-col flex-1 overflow-hidden bg-zinc-900">
+            <div className="h-full flex flex-col flex-1 overflow-hidden bg-zinc-900">
               {/* Close button - only on mobile */}
               <div className="flex justify-between items-center p-2 border-b border-zinc-700 md:hidden bg-zinc-900">
                 <h3 className="text-lg font-medium text-white">
