@@ -264,9 +264,6 @@ const TokenInfo: React.FC<TokenInfoProps> = ({ toolCallId, toolInvocation }) => 
         </div>
       )}
 
-      <div className="text-xs text-zinc-500 mt-4">
-        Data powered by CoinGecko and HolderScan
-      </div>
     </div>
   );
 };

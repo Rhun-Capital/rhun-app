@@ -226,7 +226,7 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
           <div className="mt-4 sm:mt-6">
             <h3 className="text-base sm:text-lg font-semibold text-white mb-2">About</h3>
             <div 
-              className="text-xs sm:text-sm text-zinc-400 max-w-full sm:max-w-[500px] line-clamp-4 sm:line-clamp-none"
+              className="text-xs sm:text-sm text-zinc-400 max-w-full line-clamp-4 sm:line-clamp-none"
               dangerouslySetInnerHTML={{ __html: selectedCoin.description.en }}
             />
           </div>
@@ -258,16 +258,6 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
         <div className="flex flex-col sm:flex-row gap-2 justify-between items-start sm:items-center mt-4 pt-4 border-t border-zinc-700">
           <div className="flex flex-col gap-1 text-xs text-zinc-500 order-2 sm:order-1">
             <div>Last updated: {new Date(selectedCoin.last_updated).toLocaleString()}</div>
-            <div className="flex gap-2">
-              <span>Powered by</span>
-              <Link href="https://www.coingecko.com" target="_blank" className="text-zinc-400 hover:text-zinc-300">CoinGecko</Link>
-              {selectedCoin.holder_stats && (
-                <>
-                  <span>and</span>
-                  <Link href="https://holderscan.com" target="_blank" className="text-zinc-400 hover:text-zinc-300">HolderScan</Link>
-                </>
-              )}
-            </div>
           </div>
           <div className="flex gap-4 order-1 sm:order-2">
             {selectedCoin.links.homepage[0] && (
