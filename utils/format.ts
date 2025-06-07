@@ -53,4 +53,19 @@ export const formatExactAmount = (amount: number, isUSD: boolean = false) => {
 export const formatAddress = (address?: string | null): string => {
   if (!address) return '';
   return `${address.slice(0, 4)}...${address.slice(-4)}`;
+};
+
+export const formatNumber = (num: number): string => {
+  if (num === null || num === undefined || isNaN(num)) return '0';
+  if (num === 0) return '0';
+
+  if (num < 1000) {
+    return num.toString();
+  } else if (num < 1000000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  } else if (num < 1000000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  } else {
+    return `${(num / 1000000000).toFixed(1)}B`;
+  }
 }; 
