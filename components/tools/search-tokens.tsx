@@ -124,31 +124,38 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
           ))}
         </div>
 
-        {/* Add Holder Statistics section after Market data */}
-        {selectedCoin.holder_stats && (
-          <>
-            <div className="mt-4 sm:mt-6">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Statistics</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
-                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
-                  <div className="text-xs sm:text-sm text-zinc-500">Average Time Held</div>
-                  <div className="text-sm sm:text-lg font-semibold text-white">
-                    {selectedCoin.holder_stats.statistics?.avg_time_held 
-                      ? `${Math.floor(selectedCoin.holder_stats.statistics.avg_time_held / 86400)} days`
-                      : 'N/A'}
+        {/* Holder Information */}
+        {selectedCoin.holder_stats ? (
+          <div>
+            {/* Holder Statistics - only shown if data is meaningful */}
+            {selectedCoin.holder_stats.statistics?.avg_time_held && 
+             selectedCoin.holder_stats.statistics?.retention_rate !== null && 
+             selectedCoin.holder_stats.statistics?.retention_rate !== undefined && 
+             Number(selectedCoin.holder_stats.statistics.retention_rate) > 0 ? (
+              <div className="mt-4 sm:mt-6">
+                <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Statistics</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+                  <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-zinc-500">Average Time Held</div>
+                    <div className="text-sm sm:text-lg font-semibold text-white">
+                      {selectedCoin.holder_stats.statistics?.avg_time_held 
+                        ? `${Math.floor(selectedCoin.holder_stats.statistics.avg_time_held / 86400)} days`
+                        : 'N/A'}
+                    </div>
                   </div>
-                </div>
-                <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
-                  <div className="text-xs sm:text-sm text-zinc-500">Retention Rate</div>
-                  <div className="text-sm sm:text-lg font-semibold text-white">
-                    {selectedCoin.holder_stats.statistics?.retention_rate !== null && selectedCoin.holder_stats.statistics?.retention_rate !== undefined
-                      ? `${(Number(selectedCoin.holder_stats.statistics.retention_rate) * 100).toFixed(1)}%`
-                      : 'N/A'}
+                  <div className="bg-zinc-900 p-3 sm:p-4 rounded-lg">
+                    <div className="text-xs sm:text-sm text-zinc-500">Retention Rate</div>
+                    <div className="text-sm sm:text-lg font-semibold text-white">
+                      {selectedCoin.holder_stats.statistics?.retention_rate !== null && selectedCoin.holder_stats.statistics?.retention_rate !== undefined
+                        ? `${(Number(selectedCoin.holder_stats.statistics.retention_rate) * 100).toFixed(1)}%`
+                        : 'N/A'}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : null}
 
+            {/* Holder Distribution - always shown if holder_stats exists */}
             <div className="mt-4 sm:mt-6">
               <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Distribution</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
@@ -179,7 +186,8 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
               </div>
             </div>
 
-            {selectedCoin.holder_stats.deltas && (
+            {/* Holder Changes - only shown if deltas exist */}
+            {selectedCoin.holder_stats.deltas ? (
               <div className="mt-4 sm:mt-6">
                 <h3 className="text-base sm:text-lg font-semibold text-white mb-2">Holder Changes</h3>
                 <div className="grid grid-cols-3 gap-2 sm:gap-4">
@@ -209,9 +217,9 @@ const SearchResults: React.FC<{ toolCallId: string; toolInvocation: any }> = ({ 
                   </div>
                 </div>
               </div>
-            )}
-          </>
-        )}
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Description */}
         {selectedCoin.description?.en && (
