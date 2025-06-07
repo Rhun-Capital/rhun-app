@@ -202,13 +202,6 @@ const portfolioTools: Tool[] = [
     isNew: false,
     requiresAuth: true
   },
-  // {
-  //   name: 'Agent Portfolio Value',
-  //   description: 'View the agent\'s portfolio value and holdings',
-  //   command: getToolCommand('agent-portfolio-value') || 'Show me your portfolio value',
-  //   isNew: false,
-  //   requiresAuth: true
-  // },
   {
     name: 'Token Holdings',
     description: 'View your current token holdings and balances',
@@ -284,17 +277,21 @@ const researchTools: Tool[] = [
     isNew: false,
     requiresAuth: false
   },
-  // {
-  //   name: 'Stock Analysis',
-  //   description: 'Get comprehensive financial data, news sentiment, and options analysis for any stock',
-  //   command: getToolCommand('stock-analysis') || 'Analyze stock data',
-  //   isNew: false,
-  //   requiresAuth: false
-  // },
   {
     name: 'Get Latest News',
     description: 'Stay up-to-date with the latest news in the cryptocurrency space',
     command: getToolCommand('news-analysis') || 'Show me the latest news',
+    isNew: true,
+    requiresAuth: false
+  }
+];
+
+// Social Sentiment Tools Section
+const socialSentimentTools: Tool[] = [
+  {
+    name: 'Search Tweets',
+    description: 'Search and analyze tweets about any cryptocurrency or topic',
+    command: getToolCommand('search-tweets') || 'Search tweets about Solana',
     isNew: true,
     requiresAuth: false
   }
@@ -498,6 +495,25 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ agent, isOpen, onToggle, onTo
               </div>
               <div className="space-y-2">
                 {researchTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Social Sentiment Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <Globe className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Social Sentiment</h3>
+              </div>
+              <div className="space-y-2">
+                {socialSentimentTools.map((tool) => (
                   <ToolCard
                     key={tool.command}
                     tool={tool}

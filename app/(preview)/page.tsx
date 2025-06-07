@@ -130,6 +130,7 @@ import TradingViewChart from "@/components/tools/tradingview-chart";
 import TechnicalAnalysis from '@/components/tools/technical-analysis';
 import FredAnalysis from '@/components/tools/fred-analysis';
 import { FredSearch } from '@/components/tools/fred-search';
+import RecentTweets from '@/components/tools/recent-tweets';
 
 // Utility functions
 import { getToolCommand } from '@/app/config/tool-commands';
@@ -1065,6 +1066,22 @@ function HomeContent() {
               }
               handleToolSelect(command);
             }}
+          />
+        );
+      case 'searchTweets':
+        return wrappedTool(
+          <RecentTweets 
+            key={tool.toolCallId} 
+            toolCallId={tool.toolCallId} 
+            toolInvocation={tool}
+          />
+        );
+      case 'getOfficialTweets':
+        return wrappedTool(
+          <RecentTweets 
+            key={tool.toolCallId} 
+            toolCallId={tool.toolCallId} 
+            toolInvocation={tool}
           />
         );
       default:
