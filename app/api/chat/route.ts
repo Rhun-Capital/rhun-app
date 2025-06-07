@@ -953,211 +953,309 @@ export async function POST(req: Request) {
       }
     },
 
-    // searchTweets: {
-    //   description: "Search for tweets about a specific cryptocurrency ticker (e.g., BONK) with advanced investor metrics and sentiment analysis",
-    //   parameters: z.object({
-    //     ticker: z.string().describe('The cryptocurrency ticker to search for (e.g., BONK, SOL)'),
-    //   }),
-    //   execute: async ({ ticker }) => {
-    //     try {
-    //       // Clean and format query without cashtag operator
-    //       const cleanTicker = ticker.replace('$', '').trim().toUpperCase();
-    //       const query = encodeURIComponent(`${cleanTicker} crypto lang:en -is:retweet`);
+    searchTweets: {
+      description: "Search for tweets about a specific cryptocurrency ticker with advanced investor metrics and sentiment analysis",
+      parameters: z.object({
+        ticker: z.string().describe('The cryptocurrency ticker to search for (e.g., BONK, SOL)'),
+        includeReplies: z.boolean().optional().default(false).describe('Whether to include replies in the search results'),
+        minEngagement: z.string().optional().default('25').describe('Minimum engagement count for tweets')
+      }),
+      execute: async ({ ticker, includeReplies = false, minEngagement = '5' }) => {
+        try {
+          // Construct a more specific crypto-focused query
+          const cryptoKeywords = [
+            'crypto',
+            'token',
+            'blockchain',
+            'trading',
+            'price',
+            'chart',
+            'holders',
+            'dex',
+            'exchange',
+            'market'
+          ];
           
-    //       const url = `https://api.twitter.com/2/tweets/search/recent?query=${query}&max_results=10&tweet.fields=created_at,author_id,public_metrics,text&expansions=author_id&user.fields=username,created_at,public_metrics,verified`;
+          // Create a query that combines the ticker with crypto-specific context
+          let query = `(${ticker} OR "${ticker.toUpperCase()}")`;
+          query += ` (${cryptoKeywords.join(' OR ')})`;
+          query += ' -is:retweet lang:en';
           
-    //       console.log('Fetching from URL:', url);
-    //       const response = await fetch(url, {
-    //         headers: {
-    //           'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
-    //           'Content-Type': 'application/json'
-    //         }
-    //       });
-
-    //       if (!response.ok) {
-    //         const errorText = await response.text();
-    //         console.error('Twitter API Error:', {
-    //           status: response.status,
-    //           statusText: response.statusText,
-    //           error: errorText,
-    //           url: url
-    //         });
-    //         return {
-    //           result: {
-    //             success: false,
-    //             message: `Failed to fetch tweets: ${response.status} ${response.statusText}`,
-    //             error: errorText,
-    //             tweets: []
-    //           }
-    //         };
-    //       }
-
-    //       const data = await response.json();
-    //       console.log('Twitter API Response:', data);
-
-    //       if (!data.data || !Array.isArray(data.data)) {
-    //         return {
-    //           result: {
-    //             success: true,
-    //             message: `No tweets found for ${cleanTicker}`,
-    //             tweets: []
-    //           }
-    //         };
-    //       }
-
-    //       // Calculate sentiment metrics using the includes.users data
-    //       const enhancedTweets = calculateSentimentMetrics(
-    //         data.data,
-    //         data.includes?.users || []
-    //       );
-
-    //       // Calculate aggregate metrics
-    //       const totalEngagement = enhancedTweets.reduce((sum, tweet) => 
-    //         sum + (tweet.public_metrics?.like_count || 0) + 
-    //               (tweet.public_metrics?.retweet_count || 0) + 
-    //               (tweet.public_metrics?.reply_count || 0), 0);
-
-    //       const avgEngagementRate = enhancedTweets.reduce((sum, tweet) => 
-    //         sum + tweet.engagement_rate, 0) / enhancedTweets.length;
-
-    //       const avgViralScore = enhancedTweets.reduce((sum, tweet) => 
-    //         sum + tweet.viral_score, 0) / enhancedTweets.length;
-
-    //       const response2 = {
-    //         result: {
-    //           success: true,
-    //           message: `Found ${enhancedTweets.length} tweets for ${cleanTicker}`,
-    //           tweets: enhancedTweets.map(tweet => ({
-    //             id: tweet.id,
-    //             text: tweet.text,
-    //             created_at: tweet.created_at,
-    //             metrics: {
-    //               ...tweet.public_metrics,
-    //               engagement_rate: tweet.engagement_rate,
-    //               viral_score: tweet.viral_score,
-    //               discussion_ratio: tweet.discussion_ratio,
-    //               influence_weight: tweet.influence_weight
-    //             },
-    //             author: tweet.author ? {
-    //               id: tweet.author.id,
-    //               username: tweet.author.username,
-    //               metrics: tweet.author.public_metrics
-    //             } : undefined
-    //           })),
-    //           aggregate_metrics: {
-    //             total_engagement: totalEngagement,
-    //             avg_engagement_rate: Number(avgEngagementRate.toFixed(6)),
-    //             avg_viral_score: Number(avgViralScore.toFixed(3))
-    //           }
-    //         }
-    //       };
-    //       console.log('Twitter API Response:', response2);
-    //       return response2;
-    //     } catch (error: any) {
-    //       console.error('Error in searchTweets:', error);
-    //       return {
-    //         result: {
-    //           success: false,
-    //           message: `Error fetching tweets: ${error.message}`,
-    //           error: error.stack,
-    //           tweets: []
-    //         }
-    //       };
-    //     }
-    //   }
-    // },
-
-    // getUserTweets: {
-    //   description: "Get recent tweets from a specific Twitter account with investor metrics and sentiment analysis",
-    //   parameters: z.object({
-    //     username: z.string().describe('The Twitter username to fetch tweets from (e.g., bonkcoin)'),
-    //     maxResults: z.number().optional().default(25).describe('Maximum number of tweets to fetch')
-    //   }),
-    //   execute: async ({ username, maxResults = 25 }) => {
-    //     try {
-    //       // Remove @ if provided
-    //       const cleanUsername = username.replace('@', '');
+          if (!includeReplies) {
+            query += ' -is:reply';
+          }
           
-    //       const tweetFields = [
-    //         'created_at',
-    //         'public_metrics',
-    //         'text'
-    //       ].join(',');
+          const encodedQuery = encodeURIComponent(query);
           
-    //       const userFields = [
-    //         'public_metrics',
-    //         'verified',
-    //         'username'
-    //       ].join(',');
+          const tweetFields = [
+            'created_at',
+            'author_id', 
+            'public_metrics',
+            'context_annotations',
+            'lang',
+            'referenced_tweets',
+            'conversation_id',
+            'possibly_sensitive'
+          ].join(',');
           
-    //       const url = `https://api.twitter.com/2/users/by/username/${cleanUsername}/tweets?max_results=${maxResults}&tweet.fields=${tweetFields}&user.fields=${userFields}&expansions=author_id`;
+          const userFields = [
+            'public_metrics',
+            'verified',
+            'created_at',
+            'description',
+            'name',
+            'username',
+            'profile_image_url'
+          ].join(',');
           
-    //       console.log('Fetching user tweets from Twitter API:', url);
-    //       const response = await fetch(url, {
-    //         headers: {
-    //           'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`
-    //         }
-    //       });
+          const url = `https://api.twitter.com/2/tweets/search/recent?query=${encodedQuery}&max_results=100&tweet.fields=${tweetFields}&user.fields=${userFields}&expansions=author_id`;
           
-    //       if (!response.ok) {
-    //         const errorText = await response.text();
-    //         console.error('Twitter API Error:', {
-    //           status: response.status,
-    //           statusText: response.statusText,
-    //           error: errorText
-    //         });
-    //         return {
-    //           result: {
-    //             success: false,
-    //             message: `Failed to fetch tweets: ${response.status} ${response.statusText}`,
-    //             error: errorText,
-    //             tweets: []
-    //           }
-    //         };
-    //       }
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`
+            }
+          });
           
-    //       const data = await response.json();
-    //       console.log('Twitter API Response:', data);
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Twitter API error:', { status: response.status, message: errorData.detail || errorData.title });
+            throw new Error(`Twitter API error: ${errorData.detail || errorData.title}`);
+          }
           
-    //       if (!data.data || !Array.isArray(data.data)) {
-    //         return {
-    //           result: {
-    //             success: true,
-    //             message: `No tweets found for @${username}`,
-    //             tweets: []
-    //           }
-    //         };
-    //       }
+          const data = await response.json();
+          
+          // Additional crypto-specific filtering
+          if (data.data && Array.isArray(data.data)) {
+            // Filter tweets by engagement
+            const minEngagementCount = parseInt(minEngagement, 10);
+            
+            data.data = data.data.filter((tweet: any) => {
+              // Check engagement metrics
+              const metrics = tweet.public_metrics || {};
+              const totalEngagement = (metrics.like_count || 0) + 
+                                    (metrics.retweet_count || 0) + 
+                                    (metrics.reply_count || 0) + 
+                                    (metrics.quote_count || 0);
+              
+              if (totalEngagement < minEngagementCount) {
+                return false;
+              }
+              
+              // Check if tweet text contains crypto-specific context
+              const tweetText = tweet.text.toLowerCase();
+              const tickerPattern = new RegExp(`\\b${ticker.toLowerCase()}\\b`);
+              
+              // Must contain the ticker
+              if (!tickerPattern.test(tweetText)) {
+                return false;
+              }
+              
+              // Must contain at least one crypto-related keyword
+              const hasCryptoContext = cryptoKeywords.some(keyword => 
+                tweetText.includes(keyword.toLowerCase())
+              );
+              
+              // Check for common trading/crypto patterns
+              const hasTradingPatterns = /\b(buy|sell|trade|hold|pump|dump|moon|dyor|nfa|ta|analysis)\b/i.test(tweetText);
+              
+              // Check for price mentions
+              const hasPricePattern = /\b(price|chart|\$[0-9.]+[kmbt]?|[0-9.]+%)\b/i.test(tweetText);
+              
+              return hasCryptoContext || hasTradingPatterns || hasPricePattern;
+            });
+          }
+          
+          // Process and enhance the data with investor metrics
+          const enhancedData = calculateInvestorMetrics(data);
+          
+          return {
+            result: {
+              success: true,
+              ...enhancedData
+            }
+          };
+        } catch (error: any) {
+          console.error('Error in searchTweets:', error.message);
+          return {
+            result: {
+              success: false,
+              message: `Error fetching tweets: ${error.message}`,
+              data: [],
+              aggregate_metrics: null
+            }
+          };
+        }
+      }
+    },
 
-    //       // Map tweets to a simpler format
-    //       const tweets = data.data.map((tweet: TwitterTweet) => ({
-    //         id: tweet.id,
-    //         text: tweet.text,
-    //         created_at: tweet.created_at,
-    //         metrics: tweet.public_metrics || {},
-    //         author_id: tweet.author_id
-    //       }));
+    getOfficialTweets: {
+      description: "Get tweets from a cryptocurrency's official Twitter account by searching for the coin on CoinGecko first",
+      parameters: z.object({
+        coinName: z.string().describe('The name of the cryptocurrency (e.g., bitcoin, solana)'),
+        maxResults: z.string().optional().default('25').describe('Maximum number of tweets to return')
+      }),
+      execute: async ({ coinName, maxResults = '25' }) => {
+        try {
+          // First search for the coin on CoinGecko to get Twitter username
+          const searchResponse = await fetch(`https://api.coingecko.com/api/v3/search?query=${coinName}`);
+          const searchData = await searchResponse.json();
+          if (!searchResponse.ok) {
+            throw new Error(`CoinGecko API error: ${searchData.error || 'Failed to search for coin'}`);
+          }
+
+          if (!searchData.coins || searchData.coins.length === 0) {
+            return {
+              result: {
+                success: false,
+                error: 'Coin not found',
+                message: `Could not find any coin matching "${coinName}". Please check the name and try again.`
+              }
+            };
+          }
+
+          // Get the first matching coin
+          const coin = searchData.coins[0];
           
-    //       return {
-    //         result: {
-    //           success: true,
-    //           message: `Found ${tweets.length} tweets from @${username}`,
-    //           tweets
-    //         }
-    //       };
-    //     } catch (error: any) {
-    //       console.error('Error in getUserTweets:', error);
-    //       return {
-    //         result: {
-    //           success: false,
-    //           message: `Error fetching tweets: ${error.message}`,
-    //           error: error.stack,
-    //           tweets: []
-    //         }
-    //       };
-    //     }
-    //   }
-    // }
+          // Get detailed coin data including Twitter username
+          const coinResponse = await fetch(`https://api.coingecko.com/api/v3/coins/${coin.id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`);
+          const coinData = await coinResponse.json();
+
+
+          
+          if (!coinResponse.ok) {
+            throw new Error(`CoinGecko API error: ${coinData.error || 'Failed to fetch coin details'}`);
+          }
+
+          if (!coinData.links?.twitter_screen_name) {
+            return {
+              result: {
+                success: false,
+                error: 'No Twitter account found',
+                message: `No official Twitter account found for ${coin.name}.`,
+                coinInfo: {
+                  name: coin.name,
+                  symbol: coin.symbol,
+                  market_cap_rank: coin.market_cap_rank
+                }
+              }
+            };
+          }
+
+          const twitter_username = coinData.links.twitter_screen_name;
+
+          // Remove @ if provided in the Twitter username
+          const cleanUsername = twitter_username.replace('@', '');
+          
+          // Define API fields
+          const tweetFields = [
+            'created_at',
+            'public_metrics',
+            'context_annotations',
+            'lang',
+            'referenced_tweets',
+            'conversation_id',
+            'possibly_sensitive'
+          ].join(',');
+          
+          const userFields = [
+            'public_metrics',
+            'verified',
+            'created_at',
+            'description',
+            'name',
+            'profile_image_url'
+          ].join(',');
+
+          // First get the user ID
+          const userLookupUrl = `https://api.twitter.com/2/users/by/username/${cleanUsername}?user.fields=${userFields}`;
+          
+          const userResponse = await fetch(userLookupUrl, {
+            headers: {
+              'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`
+            }
+          });
+          
+          const userData = await userResponse.json();
+          
+          if (!userResponse.ok || !userData.data?.id) {
+            console.error('Twitter user lookup failed:', userData);
+            return {
+              result: {
+                success: false,
+                error: 'Twitter API error',
+                message: `Failed to find Twitter user: ${cleanUsername}`
+              }
+            };
+          }
+          
+          // Now get the tweets using the user ID
+          const tweetsUrl = `https://api.twitter.com/2/users/${userData.data.id}/tweets?max_results=${maxResults}&tweet.fields=${tweetFields}&user.fields=${userFields}&expansions=author_id`;
+          
+          const tweetsResponse = await fetch(tweetsUrl, {
+            headers: {
+              'Authorization': `Bearer ${process.env.TWITTER_BEARER_TOKEN}`
+            }
+          });
+          
+          const twitterData = await tweetsResponse.json();
+          
+          if (!tweetsResponse.ok) {
+            console.error('Twitter tweets lookup failed:', twitterData);
+            return {
+              result: {
+                success: false,
+                error: 'Twitter API error',
+                message: `Failed to fetch tweets for user: ${cleanUsername}`
+              }
+            };
+          }
+          
+          // Add user data to each tweet
+          const tweets = twitterData.data.map((tweet: any) => ({
+            ...tweet,
+            author: {
+              ...userData.data,
+              username: userData.data.username,
+              name: userData.data.name,
+              verified: userData.data.verified,
+              profile_image_url: userData.data.profile_image_url,
+              public_metrics: userData.data.public_metrics
+            }
+          }));
+          
+          // Process and enhance the data with investor metrics
+          const enhancedData = calculateInvestorMetrics({ data: tweets, includes: { users: [userData.data] } });
+          
+          return {
+            result: {
+              success: true,
+              data: enhancedData.data,
+              aggregate_metrics: enhancedData.aggregate_metrics,
+              user_info: {
+                name: coinData.name,
+                symbol: coinData.symbol,
+                twitter_username: twitter_username,
+                market_cap_rank: coinData.market_cap_rank,
+                twitter_metrics: userData.data.public_metrics,
+                description: userData.data.description,
+                profile_image_url: userData.data.profile_image_url,
+                verified: userData.data.verified
+              }
+            }
+          };
+        } catch (error: any) {
+          console.error('Error in getOfficialTweets:', error);
+          return {
+            result: {
+              success: false,
+              error: 'Failed to fetch official tweets',
+              message: error.message
+            }
+          };
+        }
+      }
+    },
+
   }
 
   // Define tool sets for different user tiers
@@ -1179,15 +1277,15 @@ export async function POST(req: Request) {
     getRecentlyLaunchedCoins: allTools.getRecentlyLaunchedCoins,
     getTopNfts: allTools.getTopNfts,
     swap: allTools.swap,
+    searchTweets: allTools.searchTweets,
+    getOfficialTweets: allTools.getOfficialTweets,
     getRecentDexScreenerTokens: allTools.getRecentDexScreenerTokens,
     getCryptoNews: allTools.getCryptoNews,
     webResearch: allTools.webResearch,
     getTradingViewChart: allTools.getTradingViewChart,
     getTechnicalAnalysis: allTools.getTechnicalAnalysis,
     getFredSeries: allTools.getFredSeries,
-    fredSearch: allTools.fredSearch,
-    // searchTweets: allTools.searchTweets,
-    // getUserTweets: allTools.getUserTweets
+    fredSearch: allTools.fredSearch
   };
 
 // Format context for the prompt
@@ -1294,6 +1392,7 @@ When suggesting follow-ups, consider relevant relationships between tools. Use t
 Always suggest one FRED tool, one stock analysis tool, and one web research tool.
 
 # Chatbot Tool Special Instructions:
+- When a user asks for news, you should use the getCryptoNews tool and the getOfficialTweets tool.
 - When ever the user asks for information about their wallet you should ask what type of info they want. Token info, portfolio value, or detailed information including defi activities.
 - If the user uses the swap tool and they have not connected their wallet, ask them to connect their wallet first.
 - When using the getTradingViewChart tool do not show images in the response.

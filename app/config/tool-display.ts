@@ -17,6 +17,9 @@ export const toolDisplayNames: { [key: string]: string } = {
   'getDerivativesExchanges': 'Derivatives Exchanges',
   'getFearAndGreedIndex': 'Fear & Greed Index',
   'getSolanaTransactionVolume': 'Solana Transaction Volume',
+  'getRecentTweets': 'Recent Tweets',
+  'searchTweets': 'Recent Tweets',
+  'getOfficialTweets': 'Official Tweets',
   
   // Token Tools
   'getTokenInfo': 'Token Information',
@@ -65,6 +68,7 @@ const toolCategories: { [key: string]: string } = {
   'getDerivativesExchanges': 'building',
   'getFearAndGreedIndex': 'gauge',
   'getSolanaTransactionVolume': 'activity',
+  'getRecentTweets': 'messageCircle',
   
   // Token Tools
   'getTokenInfo': 'info',
@@ -211,6 +215,10 @@ export function generateToolDescription(toolName: string, args: any): string {
     case 'fredSearch':
       if (args.query) return `Economic data search: ${args.query}`;
       return 'Searching economic data';
+      
+    case 'getRecentTweets':
+      if (args.ticker) return `Recent tweets about ${args.ticker}`;
+      return 'Analyzing social media sentiment';
       
     default:
       // For unknown tools, return a simplified version of the arguments

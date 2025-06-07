@@ -30,7 +30,8 @@ export async function GET(request: Request) {
     'verified',
     'created_at',
     'description',
-    'name'
+    'name',
+    'profile_image_url'
   ].join(',');
   
   const url = `https://api.twitter.com/2/users/by/username/${cleanUsername}/tweets?max_results=${maxResults}&tweet.fields=${tweetFields}&user.fields=${userFields}&expansions=author_id`;
@@ -44,9 +45,10 @@ export async function GET(request: Request) {
     
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Twitter API error:', { status: response.status, message: errorData.detail || errorData.title });
       return NextResponse.json({ 
         error: 'Twitter API error',
-        details: errorData 
+        details: { message: errorData.detail || errorData.title }
       }, { status: response.status });
     }
     
@@ -57,7 +59,7 @@ export async function GET(request: Request) {
     
     return NextResponse.json(enhancedData);
   } catch (error: any) {
-    console.error('Twitter API Error:', error);
+    console.error('Twitter API Error:', error.message);
     return NextResponse.json({ 
       error: 'Failed to fetch user tweets',
       message: error.message 
