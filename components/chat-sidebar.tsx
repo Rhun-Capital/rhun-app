@@ -288,10 +288,17 @@ const researchTools: Tool[] = [
 
 // Social Sentiment Tools Section
 const socialSentimentTools: Tool[] = [
+  // {
+  //   name: 'Search Tweets',
+  //   description: 'Search and analyze tweets about any cryptocurrency or topic',
+  //   command: getToolCommand('search-tweets') || 'Search tweets about Solana',
+  //   isNew: true,
+  //   requiresAuth: false
+  // },
   {
-    name: 'Search Tweets',
-    description: 'Search and analyze tweets about any cryptocurrency or topic',
-    command: getToolCommand('search-tweets') || 'Search tweets about Solana',
+    name: 'Official Tweets',
+    description: 'Get the official tweets of any cryptocurrency',
+    command: getToolCommand('get-official-tweets') || 'Show me the official tweets of Solana',
     isNew: true,
     requiresAuth: false
   }
