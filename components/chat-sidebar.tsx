@@ -456,6 +456,25 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ agent, isOpen, onToggle, onTo
               </div>
             </div>
 
+            {/* Network Tools Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 my-4">
+                <LineChart className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-lg font-semibold text-white">Network Activity</h3>
+              </div>
+              <div className="space-y-2">
+                {networkTools.map((tool) => (
+                  <ToolCard
+                    key={tool.command}
+                    tool={tool}
+                    isSubscribed={isSubscribed}
+                    isDisabled={false}
+                    onClick={() => handleToolClick(tool)}
+                  />
+                ))}
+              </div>
+            </div>            
+
             {/* Token Discovery Tools Section */}
             <div className="mb-6">
               <div className="flex items-center gap-2 my-4">

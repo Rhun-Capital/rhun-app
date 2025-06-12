@@ -930,11 +930,13 @@ export async function POST(req: Request) {
             }
           };
 
-          console.log('Final Technical Analysis Response:', {
-            symbol: analysisResponse.symbol,
-            currentPrice: analysisResponse.currentPrice,
-            priceChange: analysisResponse.priceChange
-          });
+          // console.log('Final Technical Analysis Response:', {
+          //   symbol: analysisResponse.symbol,
+          //   currentPrice: analysisResponse.currentPrice,
+          //   priceChange: analysisResponse.priceChange
+          // });
+
+          console.log("analysisResponse:::", analysisResponse)
 
           return analysisResponse;
         } catch (error: any) {
@@ -1394,7 +1396,8 @@ This agent can analyze stock market data using comprehensive financial tools:
 ## Response Format Guidelines
 1. After using any tool, ALWAYS analyz the reponse and provide a summary and a recommmend suggested anlysis step. Also Suggest 2-3 relevant follow-up tools from our tool list. 
 2. Never use links in your response.
-3. Format follow-up suggestions like this:
+3. Never recommend to view the top holders.
+4. Format follow-up suggestions like this:
    \n\n---\n### What would you like to do next?\n
    1. Suggestion 1
    2. Suggestion 2
