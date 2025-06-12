@@ -103,13 +103,16 @@ export interface SolanaTransactionVolumeProps extends BaseToolProps {
     toolName: string;
     args: Record<string, any>;
     result?: {
-      volume?: number;
-      transactions?: Array<{
-        signature: string;
-        timestamp: number;
-        amount: number;
-        type: string;
-      }>;
+      volume: {
+        volumeUSD: number;
+        volumeSOL: number;
+        timeframe: string;
+        priceChange24h: number;
+      };
+      count: {
+        transactionCount: number;
+        timeframe: string;
+      };
     };
     state: ToolInvocationState;
   };

@@ -282,52 +282,52 @@ export function calculateMarketSentiment(
   const sma50 = calculateSMA(prices.slice(-50), 50);
   
   let trend = 'neutral';
-  let strength = 0.5; // Start at 50%
-  let confidence = 0.5; // Start at 50%
+  let strength = 50; // Start at 50%
+  let confidence = 50; // Start at 50%
   
   // Determine trend and calculate strength
   if (currentPrice > sma20 && sma20 > sma50) {
     trend = 'bullish';
     // Calculate strength based on how far price is above SMAs
-    const priceToSMA20Ratio = (currentPrice - sma20) / sma20;
-    const sma20ToSMA50Ratio = (sma20 - sma50) / sma50;
-    strength = 0.5 + (priceToSMA20Ratio * 2) + (sma20ToSMA50Ratio);
+    const priceToSMA20Ratio = ((currentPrice - sma20) / sma20) * 100;
+    const sma20ToSMA50Ratio = ((sma20 - sma50) / sma50) * 100;
+    strength = 50 + (priceToSMA20Ratio * 0.3) + (sma20ToSMA50Ratio * 0.2);
   } else if (currentPrice < sma20 && sma20 < sma50) {
     trend = 'bearish';
     // Calculate strength for bearish trend
-    const priceToSMA20Ratio = (sma20 - currentPrice) / sma20;
-    const sma20ToSMA50Ratio = (sma50 - sma20) / sma50;
-    strength = 0.5 + (priceToSMA20Ratio * 2) + (sma20ToSMA50Ratio);
+    const priceToSMA20Ratio = ((sma20 - currentPrice) / sma20) * 100;
+    const sma20ToSMA50Ratio = ((sma50 - sma20) / sma50) * 100;
+    strength = 50 + (priceToSMA20Ratio * 0.3) + (sma20ToSMA50Ratio * 0.2);
   } else {
     // Mixed signals - reduce strength
-    strength = 0.3;
+    strength = 30;
   }
   
   // Calculate confidence based on multiple indicators
-  let confidenceScore = 0.5; // Start at 50%
+  let confidenceScore = 50; // Start at 50%
   
   // RSI confirmation
   if ((trend === 'bullish' && rsi > 60) || (trend === 'bearish' && rsi < 40)) {
-    confidenceScore += 0.15;
+    confidenceScore += 15;
   }
   
   // Bollinger Bands confirmation
   if ((trend === 'bullish' && currentPrice > bollingerBands.upper) ||
       (trend === 'bearish' && currentPrice < bollingerBands.lower)) {
-    confidenceScore += 0.15;
+    confidenceScore += 15;
   }
   
   // Strong trend confirmation from SMAs
   if (Math.abs(sma20 - sma50) / sma50 > 0.02) {
-    confidenceScore += 0.1;
+    confidenceScore += 10;
   }
   
   // Volume confirmation (if available)
   // Add additional confidence factors here
   
-  // Ensure values are between 0 and 1 (0% to 100%)
-  strength = Math.min(Math.max(strength, 0), 1);
-  confidence = Math.min(Math.max(confidenceScore, 0), 1);
+  // Ensure values are between 0 and 100
+  strength = Math.min(Math.max(strength, 0), 100);
+  confidence = Math.min(Math.max(confidenceScore, 0), 100);
   
   return { trend, strength, confidence };
 } 
