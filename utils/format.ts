@@ -1,10 +1,15 @@
-export const formatAmount = (amount: number | null | undefined, decimals: number = 0, isUSD: boolean = false) => {
+export const formatAmount = (amount: number | null | undefined, decimals: number = 0, isUSD: boolean = false, symbol?: string) => {
   if (amount === null || amount === undefined || isNaN(amount)) return '0';
   if (amount === 0) return '0';
   
   // First adjust for decimals
   const adjustedAmount = amount / Math.pow(10, decimals);
-  
+
+  // Special handling for SOL
+  if (symbol === 'SOL') {
+    return adjustedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+
   if (isUSD) {
     if (adjustedAmount < 0.01) {
       return '< $0.01';
@@ -35,7 +40,10 @@ export const formatAmount = (amount: number | null | undefined, decimals: number
   }
 };
 
-export const formatExactAmount = (amount: number, isUSD: boolean = false) => {
+export const formatExactAmount = (amount: number, isUSD: boolean = false, symbol?: string) => {
+  if (symbol === 'SOL') {
+    return amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
   if (isUSD) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
