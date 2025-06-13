@@ -1565,6 +1565,9 @@ function HomeContent() {
       content: command,
     });
 
+    // Clear localStorage after the command is processed
+    localStorage.removeItem('pendingTool');
+
     if (topRef.current) {
       setTimeout(() => {
         topRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1599,11 +1602,10 @@ function HomeContent() {
           setIsProcessingTool(true);
           await handleToolSelect(pendingToolCommand);
           
-          // Clear both URL param and localStorage after successful processing
+          // Only remove URL param after successful processing
           const newSearchParams = new URLSearchParams(searchParams);
           newSearchParams.delete('tool');
           router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-          localStorage.removeItem('pendingTool');
           
           // Clear the pending command
           setPendingToolCommand(null);
@@ -2065,6 +2067,18 @@ function HomeContent() {
       </div>
     );
   };
+
+  // Add effect to handle initial tool command from localStorage
+  useEffect(() => {
+    const storedTool = localStorage.getItem('pendingTool');
+    if (storedTool && !hasTriggeredTool.current && messages.length === 0) {
+      const toolCommand = getToolCommand(storedTool);
+      if (toolCommand) {
+        setPendingToolCommand(toolCommand);
+        hasTriggeredTool.current = true;
+      }
+    }
+  }, [messages.length]);
 
   return (
     <div className="h-full w-full bg-zinc-900 flex flex-col overflow-hidden ios-fix">
