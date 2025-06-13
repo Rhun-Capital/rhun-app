@@ -1578,50 +1578,46 @@ function HomeContent() {
       
   }, [append, chatId, newChatId, user?.id, agentId, agent?.name, getAccessToken, setSidebarOpen, ready]);
 
+  // ... rest of the code ...
+
+  // Single effect to handle tool commands
   useEffect(() => {
-    const tool = searchParams.get('tool');
-    // Check both URL param and localStorage
-    const storedTool = localStorage.getItem('pendingTool');
-    
-    // Ensure all dependencies are ready and the tool hasn't been triggered yet
-    if (!hasTriggeredTool.current && (tool || storedTool) && messages.length === 0) {
-      // Store the tool command in state instead of processing immediately
-      const toolCommand = getToolCommand(tool || storedTool || '');
-      if (toolCommand) {
-        setPendingToolCommand(toolCommand);
+    const processToolCommand = async () => {
+      // Don't process if we've already triggered or if we're processing
+      if (hasTriggeredTool.current || isProcessingTool) return;
+
+      // Check both URL and localStorage for tool command
+      const toolFromUrl = searchParams.get('tool');
+      const toolFromStorage = localStorage.getItem('pendingTool');
+      const tool = toolFromUrl || toolFromStorage;
+
+      if (tool && messages.length === 0) {
+        setShowEmptyState(false);
+        setIsProcessingTool(true);
         hasTriggeredTool.current = true;
-        // Store in localStorage
-        localStorage.setItem('pendingTool', tool || storedTool || '');
-      }
-    }
-  }, [searchParams, messages]);
 
-  // Separate effect to handle the pending tool command
-  useEffect(() => {
-    if (pendingToolCommand && !isProcessingTool) {
-      const processTool = async () => {
-        try {
-          setIsProcessingTool(true);
-          await handleToolSelect(pendingToolCommand);
-          
-          // Only remove URL param after successful processing
-          const newSearchParams = new URLSearchParams(searchParams);
-          newSearchParams.delete('tool');
-          router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-          
-          // Clear the pending command
-          setPendingToolCommand(null);
-        } catch (error) {
-          console.error('Error processing tool command:', error);
-          hasTriggeredTool.current = false;
-        } finally {
-          setIsProcessingTool(false);
+        const toolCommand = getToolCommand(tool);
+        if (toolCommand) {
+          try {
+            await handleToolSelect(toolCommand);
+          } catch (error) {
+            console.error('Error processing tool command:', error);
+          }
         }
-      };
 
-      processTool();
-    }
-  }, [pendingToolCommand, isProcessingTool, handleToolSelect, searchParams, router]);
+        // Clear URL parameter if it exists
+        if (toolFromUrl) {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete('tool');
+          window.history.replaceState({}, '', newUrl.toString());
+        }
+      }
+    };
+
+    processToolCommand();
+  }, [searchParams, messages.length, isProcessingTool, handleToolSelect]);
+
+  // ... rest of the code ...
 
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
@@ -2282,7 +2278,7 @@ function HomeContent() {
                         </div>
                       </motion.div>
                     ))
-                  ) : showEmptyState && messages.length === 0 && (
+                  ) : showEmptyState && !isProcessingTool && messages.length === 0 && (
                     <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                       <div className="w-full max-w-md">
                         <EmptyState 
