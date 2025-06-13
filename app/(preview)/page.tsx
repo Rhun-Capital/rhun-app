@@ -1105,6 +1105,7 @@ function HomeContent() {
   const [activeTab, setActiveTab] = useState<'tools' | 'artifacts' | 'wallet'>('tools');
   const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
   const [isProcessingTool, setIsProcessingTool] = useState(false);
+  const [pendingToolCommand, setPendingToolCommand] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const { isAnyModalOpen } = useModal();
   // Handle tool query parameter (Now placed after dependencies)
@@ -1576,37 +1577,41 @@ function HomeContent() {
     const tool = searchParams.get('tool');
     // Ensure all dependencies are ready and the tool hasn't been triggered yet
     if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect) {
-      // Add a small delay to ensure everything is initialized
-      const timeoutId = setTimeout(async () => {
+      // Store the tool command in state instead of processing immediately
+      const toolCommand = getToolCommand(tool);
+      if (toolCommand) {
+        setPendingToolCommand(toolCommand);
+        hasTriggeredTool.current = true;
+      }
+    }
+  }, [searchParams, messages, handleToolSelect]);
+
+  // Separate effect to handle the pending tool command
+  useEffect(() => {
+    if (pendingToolCommand && !isProcessingTool) {
+      const processTool = async () => {
         try {
-          const toolCommand = getToolCommand(tool);
-          if (toolCommand) {
-            // Set the flag before calling handleToolSelect to prevent double execution
-            hasTriggeredTool.current = true;
-            setIsProcessingTool(true);
-            
-            // Call handleToolSelect and wait for it to complete
-            await handleToolSelect(toolCommand);
-            
-            // Only remove the tool parameter if the command was successful
-            const newSearchParams = new URLSearchParams(searchParams);
-            newSearchParams.delete('tool');
-            router.replace(`?${newSearchParams.toString()}`, { scroll: false });
-          } else {
-            console.warn(`No command found for tool: ${tool}`);
-            hasTriggeredTool.current = false; // Reset flag if command not found
-            setIsProcessingTool(false);
-          }
+          setIsProcessingTool(true);
+          await handleToolSelect(pendingToolCommand);
+          
+          // Only remove the tool parameter after successful processing
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('tool');
+          router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+          
+          // Clear the pending command
+          setPendingToolCommand(null);
         } catch (error) {
-          console.error('Error handling tool selection:', error);
-          hasTriggeredTool.current = false; // Reset flag on error
+          console.error('Error processing tool command:', error);
+          hasTriggeredTool.current = false;
+        } finally {
           setIsProcessingTool(false);
         }
-      }, 1000); // Increased delay to ensure everything is properly initialized
+      };
 
-      return () => clearTimeout(timeoutId);
+      processTool();
     }
-  }, [searchParams, messages, handleToolSelect, router]); // Add router to dependencies
+  }, [pendingToolCommand, isProcessingTool, handleToolSelect, searchParams, router]);
 
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
@@ -2254,7 +2259,7 @@ function HomeContent() {
                         </div>
                       </motion.div>
                     ))
-                  ) : !searchParams.get('tool') && !isProcessingTool && messages.length === 0 && (
+                  ) : (!searchParams.get('tool') && !isProcessingTool && !pendingToolCommand && messages.length === 0) && (
                     <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                       <div className="w-full max-w-md">
                         <EmptyState 
