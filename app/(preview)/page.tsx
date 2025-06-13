@@ -1106,6 +1106,7 @@ function HomeContent() {
   const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
   const [isProcessingTool, setIsProcessingTool] = useState(false);
   const [pendingToolCommand, setPendingToolCommand] = useState<string | null>(null);
+  const [showEmptyState, setShowEmptyState] = useState(true);
   const topRef = useRef<HTMLDivElement>(null);
   const { isAnyModalOpen } = useModal();
   // Handle tool query parameter (Now placed after dependencies)
@@ -1529,6 +1530,7 @@ function HomeContent() {
   }, [getAccessToken, user, ready]);
 
   const handleToolSelect = useCallback(async (command: string) => {
+    setShowEmptyState(false);
     setIsProcessingTool(true);
     
     if (window.innerWidth < 1024) {
@@ -2072,6 +2074,7 @@ function HomeContent() {
   useEffect(() => {
     const storedTool = localStorage.getItem('pendingTool');
     if (storedTool && !hasTriggeredTool.current && messages.length === 0) {
+      setShowEmptyState(false);
       const toolCommand = getToolCommand(storedTool);
       if (toolCommand) {
         setPendingToolCommand(toolCommand);
@@ -2279,7 +2282,7 @@ function HomeContent() {
                         </div>
                       </motion.div>
                     ))
-                  ) : (!searchParams.get('tool') && !isProcessingTool && !pendingToolCommand && !localStorage.getItem('pendingTool') && messages.length === 0) && (
+                  ) : showEmptyState && messages.length === 0 && (
                     <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                       <div className="w-full max-w-md">
                         <EmptyState 
