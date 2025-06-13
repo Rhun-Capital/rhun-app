@@ -1575,22 +1575,33 @@ function HomeContent() {
     // Ensure all dependencies are ready and the tool hasn't been triggered yet
     if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect) {
       // Add a small delay to ensure everything is initialized
-      const timeoutId = setTimeout(() => {
-        const toolCommand = getToolCommand(tool);
-        if (toolCommand) {
-          handleToolSelect(toolCommand);
-          hasTriggeredTool.current = true;
-          
-          // Remove the tool parameter from the URL
-          const newSearchParams = new URLSearchParams(searchParams);
-          newSearchParams.delete('tool');
-          router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+      const timeoutId = setTimeout(async () => {
+        try {
+          const toolCommand = getToolCommand(tool);
+          if (toolCommand) {
+            // Set the flag before calling handleToolSelect to prevent double execution
+            hasTriggeredTool.current = true;
+            
+            // Call handleToolSelect and wait for it to complete
+            await handleToolSelect(toolCommand);
+            
+            // Only remove the tool parameter if the command was successful
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.delete('tool');
+            router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+          } else {
+            console.warn(`No command found for tool: ${tool}`);
+            hasTriggeredTool.current = false; // Reset flag if command not found
+          }
+        } catch (error) {
+          console.error('Error handling tool selection:', error);
+          hasTriggeredTool.current = false; // Reset flag on error
         }
-      }, 500);
+      }, 1000); // Increased delay to ensure everything is properly initialized
 
       return () => clearTimeout(timeoutId);
     }
-  }, [searchParams, messages, handleToolSelect, router]); // Add router to dependencies    
+  }, [searchParams, messages, handleToolSelect, router]); // Add router to dependencies
 
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
