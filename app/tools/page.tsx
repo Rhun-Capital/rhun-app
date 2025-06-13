@@ -375,6 +375,8 @@ export default function HomePage() {
   ];
 
   const handleToolClick = (e: React.MouseEvent, tool: any) => {
+    // Store the tool command in localStorage before navigation
+    localStorage.setItem('pendingTool', tool.command);
     router.push(tool.link);
     router.refresh();
   };

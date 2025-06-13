@@ -1575,16 +1575,21 @@ function HomeContent() {
 
   useEffect(() => {
     const tool = searchParams.get('tool');
+    // Check both URL param and localStorage
+    const storedTool = localStorage.getItem('pendingTool');
+    
     // Ensure all dependencies are ready and the tool hasn't been triggered yet
-    if (!hasTriggeredTool.current && tool && messages.length === 0) {
+    if (!hasTriggeredTool.current && (tool || storedTool) && messages.length === 0) {
       // Store the tool command in state instead of processing immediately
-      const toolCommand = getToolCommand(tool);
+      const toolCommand = getToolCommand(tool || storedTool || '');
       if (toolCommand) {
         setPendingToolCommand(toolCommand);
         hasTriggeredTool.current = true;
+        // Store in localStorage
+        localStorage.setItem('pendingTool', tool || storedTool || '');
       }
     }
-  }, [searchParams, messages, handleToolSelect]);
+  }, [searchParams, messages]);
 
   // Separate effect to handle the pending tool command
   useEffect(() => {
@@ -1594,10 +1599,11 @@ function HomeContent() {
           setIsProcessingTool(true);
           await handleToolSelect(pendingToolCommand);
           
-          // Only remove the tool parameter after successful processing
+          // Clear both URL param and localStorage after successful processing
           const newSearchParams = new URLSearchParams(searchParams);
           newSearchParams.delete('tool');
           router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+          localStorage.removeItem('pendingTool');
           
           // Clear the pending command
           setPendingToolCommand(null);
@@ -2259,7 +2265,7 @@ function HomeContent() {
                         </div>
                       </motion.div>
                     ))
-                  ) : (!searchParams.get('tool') && !isProcessingTool && !pendingToolCommand && messages.length === 0) && (
+                  ) : (!searchParams.get('tool') && !isProcessingTool && !pendingToolCommand && !localStorage.getItem('pendingTool') && messages.length === 0) && (
                     <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                       <div className="w-full max-w-md">
                         <EmptyState 
