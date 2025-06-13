@@ -166,7 +166,7 @@ function WhaleEventHeader({ event }: { event: WebhookEvent }) {
                   {tokenSymbol?.toUpperCase()} Whale
                 </span>
                 <span className="text-gray-300 text-sm">
-                  {isSellEvent ? 'Sold' : 'Bought'} {utilsFormatAmount(displayAmount || 0, 0, true)}
+                  {isSellEvent ? 'Sold' : 'Bought'} {utilsFormatAmount(displayAmount || 0, event.fromToken.metadata?.decimals ?? (tokenSymbol === 'SOL' ? 9 : 0), true, tokenSymbol)}
                   {isSellEvent ? ` of ${actionToken.metadata?.symbol?.toUpperCase() || actionToken.symbol.toUpperCase()}` : ''}
                 </span>
               </div>
@@ -190,7 +190,7 @@ function WhaleEventHeader({ event }: { event: WebhookEvent }) {
               <div className="flex flex-col">
                 <div>{actionToken.metadata?.symbol?.toUpperCase() || actionToken.symbol.toUpperCase()}</div>
                 {actionToken.metadata?.marketCap && (
-                  <div className="text-xs text-gray-500">{utilsFormatAmount(actionToken.metadata.marketCap, 0, true)} Market Cap</div>
+                  <div className="text-xs text-gray-500">{utilsFormatAmount(actionToken.metadata.marketCap, actionToken.metadata?.decimals ?? (actionToken.symbol === 'SOL' ? 9 : 0), true, actionToken.symbol)} Market Cap</div>
                 )}
               </div>
             </div>
@@ -403,12 +403,12 @@ function EventAccordion({ event }: { event: WebhookEvent }) {
                   />
                   <div>
                     <div className="font-medium">
-                      {utilsFormatAmount(event.fromToken.amount)}
+                      {utilsFormatAmount(event.fromToken.amount, event.fromToken.metadata?.decimals ?? (fromTokenSymbol === 'SOL' ? 9 : 0), false, fromTokenSymbol)}
                     </div>
                     <div className="text-sm text-gray-400">{getTokenName(event.fromToken)}</div>
                     {event.fromToken.usd_value && (
                       <div className="text-xs text-gray-500">
-                        {utilsFormatExactAmount(event.fromToken.usd_value, true)}
+                        {utilsFormatExactAmount(event.fromToken.usd_value, true, fromTokenSymbol)}
                       </div>
                     )}
                   </div>
@@ -425,12 +425,12 @@ function EventAccordion({ event }: { event: WebhookEvent }) {
                   />
                   <div>
                     <div className="font-medium">
-                      {utilsFormatAmount(event.toToken.amount)}
+                      {utilsFormatAmount(event.toToken.amount, event.toToken.metadata?.decimals ?? (toTokenSymbol === 'SOL' ? 9 : 0), false, toTokenSymbol)}
                     </div>
                     <div className="text-sm text-gray-400">{getTokenName(event.toToken)}</div>
                     {event.toToken.usd_value && (
                       <div className="text-xs text-gray-500">
-                        {utilsFormatExactAmount(event.toToken.usd_value, true)}
+                        {utilsFormatExactAmount(event.toToken.usd_value, true, toTokenSymbol)}
                       </div>
                     )}
                   </div>
@@ -750,10 +750,10 @@ function AnalysisPanel({ events }: { events: WebhookEvent[] }) {
 4. Risk assessment of following these trades
 
 Key Stats:
-- Total Volume: ${utilsFormatAmount(stats.totalVolume, 0, true)}
+- Total Volume: ${utilsFormatAmount(stats.totalVolume, 0, true, 'SOL')}
 - Active Whales: ${stats.uniqueWhales.size}
-- Most Bought: ${topBoughtTokens.map(([symbol, data]) => `${symbol} (${utilsFormatAmount(data.volume, 0, true)})`).join(', ')}
-- Most Sold: ${topSoldTokens.map(([symbol, data]) => `${symbol} (${utilsFormatAmount(data.volume, 0, true)})`).join(', ')}
+- Most Bought: ${topBoughtTokens.map(([symbol, data]) => `${symbol} (${utilsFormatAmount(data.volume, symbol === 'SOL' ? 9 : symbol === 'USDC' ? 6 : 0, true, symbol)})`).join(', ')}
+- Most Sold: ${topSoldTokens.map(([symbol, data]) => `${symbol} (${utilsFormatAmount(data.volume, symbol === 'SOL' ? 9 : symbol === 'USDC' ? 6 : 0, true, symbol)})`).join(', ')}
 
 Provide actionable insights for traders looking to identify early opportunities.`;
       
@@ -1043,7 +1043,7 @@ Provide actionable insights for traders looking to identify early opportunities.
                     </div>
                     <div className="text-right">
                       <div className="font-medium text-white">
-                        {utilsFormatAmount(stats.volume, 0, true)}
+                        {utilsFormatAmount(stats.volume, 0, true, token)}
                       </div>
                       <div className="text-xs text-zinc-400">
                         {stats.tokens.size} tokens traded
@@ -1069,7 +1069,7 @@ Provide actionable insights for traders looking to identify early opportunities.
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-emerald-400">
-                          {utilsFormatAmount(data.volume, 0, true)}
+                          {utilsFormatAmount(data.volume, symbol === 'SOL' ? 9 : symbol === 'USDC' ? 6 : 0, true, symbol)}
                         </div>
                       </div>
                     </div>
@@ -1089,7 +1089,7 @@ Provide actionable insights for traders looking to identify early opportunities.
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-red-400">
-                          {utilsFormatAmount(data.volume, 0, true)}
+                          {utilsFormatAmount(data.volume, symbol === 'SOL' ? 9 : symbol === 'USDC' ? 6 : 0, true, symbol)}
                         </div>
                       </div>
                     </div>
@@ -1205,7 +1205,7 @@ function TradeDetailModal({
                 {/* Value */}
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">Value</span>
-                  <span className="font-medium">{utilsFormatAmount(tradeValue, 0, true)}</span>
+                  <span className="font-medium">{utilsFormatAmount(tradeValue, 0, true, toTokenSymbol)}</span>
                 </div>
 
                 {/* Time */}
@@ -1229,12 +1229,12 @@ function TradeDetailModal({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400">Amount</span>
-                      <span>{utilsFormatAmount(event.fromToken.amount)} {fromTokenSymbol}</span>
+                      <span>{utilsFormatAmount(event.fromToken.amount, event.fromToken.metadata?.decimals ?? (fromTokenSymbol === 'SOL' ? 9 : 0), false, fromTokenSymbol)}</span>
                     </div>
                     {event.fromToken.usd_value && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">USD Value</span>
-                        <span>{utilsFormatExactAmount(event.fromToken.usd_value, true)}</span>
+                        <span>{utilsFormatExactAmount(event.fromToken.usd_value, true, fromTokenSymbol)}</span>
                       </div>
                     )}
                   </div>
@@ -1252,12 +1252,12 @@ function TradeDetailModal({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400">Amount</span>
-                      <span>{utilsFormatAmount(event.toToken.amount)} {toTokenSymbol}</span>
+                      <span>{utilsFormatAmount(event.toToken.amount, event.toToken.metadata?.decimals ?? (toTokenSymbol === 'SOL' ? 9 : 0), false, toTokenSymbol)}</span>
                     </div>
                     {event.toToken.usd_value && (
                       <div className="flex items-center justify-between">
                         <span className="text-gray-400">USD Value</span>
-                        <span>{utilsFormatExactAmount(event.toToken.usd_value, true)}</span>
+                        <span>{utilsFormatExactAmount(event.toToken.usd_value, true, toTokenSymbol)}</span>
                       </div>
                     )}
                   </div>
@@ -1366,9 +1366,9 @@ function EventsTable({ events }: { events: WebhookEvent[] }) {
                         logoURI={event.fromToken.metadata?.logoURI}
                       />
                       <div>
-                        <div>{utilsFormatAmount(event.fromToken.amount)} {fromTokenSymbol}</div>
+                        <div>{utilsFormatAmount(event.fromToken.amount, event.fromToken.metadata?.decimals ?? (fromTokenSymbol === 'SOL' ? 9 : 0), false, fromTokenSymbol)}</div>
                         <div className="text-xs text-gray-400">
-                          {event.fromToken.usd_value ? utilsFormatExactAmount(event.fromToken.usd_value, true) : '-'}
+                          {event.fromToken.usd_value ? utilsFormatExactAmount(event.fromToken.usd_value, true, fromTokenSymbol) : '-'}
                         </div>
                       </div>
                     </div>
@@ -1380,15 +1380,15 @@ function EventsTable({ events }: { events: WebhookEvent[] }) {
                         logoURI={event.toToken.metadata?.logoURI}
                       />
                       <div>
-                        <div>{utilsFormatAmount(event.toToken.amount)} {toTokenSymbol}</div>
+                        <div>{utilsFormatAmount(event.toToken.amount, event.toToken.metadata?.decimals ?? (toTokenSymbol === 'SOL' ? 9 : 0), false, toTokenSymbol)}</div>
                         <div className="text-xs text-gray-400">
-                          {event.toToken.usd_value ? utilsFormatExactAmount(event.toToken.usd_value, true) : '-'}
+                          {event.toToken.usd_value ? utilsFormatExactAmount(event.toToken.usd_value, true, toTokenSymbol) : '-'}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {utilsFormatAmount(tradeValue, 0, true)}
+                    {utilsFormatAmount(tradeValue, 0, true, toTokenSymbol)}
                   </td>
                   <td className="px-4 py-3">
                     <a 
