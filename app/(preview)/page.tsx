@@ -1576,7 +1576,7 @@ function HomeContent() {
   useEffect(() => {
     const tool = searchParams.get('tool');
     // Ensure all dependencies are ready and the tool hasn't been triggered yet
-    if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect) {
+    if (!hasTriggeredTool.current && tool && messages.length === 0) {
       // Store the tool command in state instead of processing immediately
       const toolCommand = getToolCommand(tool);
       if (toolCommand) {
