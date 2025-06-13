@@ -1104,6 +1104,7 @@ function HomeContent() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'tools' | 'artifacts' | 'wallet'>('tools');
   const [selectedArtifact, setSelectedArtifact] = useState<any>(null);
+  const [isProcessingTool, setIsProcessingTool] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const { isAnyModalOpen } = useModal();
   // Handle tool query parameter (Now placed after dependencies)
@@ -1527,6 +1528,7 @@ function HomeContent() {
   }, [getAccessToken, user, ready]);
 
   const handleToolSelect = useCallback(async (command: string) => {
+    setIsProcessingTool(true);
     
     if (window.innerWidth < 1024) {
       setSidebarOpen(false);
@@ -1581,6 +1583,7 @@ function HomeContent() {
           if (toolCommand) {
             // Set the flag before calling handleToolSelect to prevent double execution
             hasTriggeredTool.current = true;
+            setIsProcessingTool(true);
             
             // Call handleToolSelect and wait for it to complete
             await handleToolSelect(toolCommand);
@@ -1592,10 +1595,12 @@ function HomeContent() {
           } else {
             console.warn(`No command found for tool: ${tool}`);
             hasTriggeredTool.current = false; // Reset flag if command not found
+            setIsProcessingTool(false);
           }
         } catch (error) {
           console.error('Error handling tool selection:', error);
           hasTriggeredTool.current = false; // Reset flag on error
+          setIsProcessingTool(false);
         }
       }, 1000); // Increased delay to ensure everything is properly initialized
 
@@ -2249,7 +2254,7 @@ function HomeContent() {
                         </div>
                       </motion.div>
                     ))
-                  ) : !searchParams.get('tool') && (
+                  ) : !searchParams.get('tool') && !isProcessingTool && messages.length === 0 && (
                     <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                       <div className="w-full max-w-md">
                         <EmptyState 
