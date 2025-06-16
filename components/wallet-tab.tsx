@@ -13,6 +13,7 @@ import {useFundWallet} from '@privy-io/react-auth/solana';
 import { useModal } from '@/contexts/modal-context'; // Adjust path as needed
 import DelegateWalletButton from '@/components/delegate-wallet-button';
 import AutoTradingModal from '@/components/auto-trading-modal';
+import DepositSuccessModal from '@/components/deposit-success-modal';
 
 
 const TransferModal = dynamic(() => import('@/components/send-button'), {
@@ -46,6 +47,9 @@ export default function WalletTab({ agentId }: { agentId: string }) {
   const { openModal, closeModal } = useModal();
   const [isAutoTradingModalOpen, setIsAutoTradingModalOpen] = useState(false);
   const [activeStrategies, setActiveStrategies] = useState<any[]>([]);
+  const [showDepositSuccess, setShowDepositSuccess] = useState(false);
+  const [depositTransactionSignature, setDepositTransactionSignature] = useState<string>('');
+  const [depositAmount, setDepositAmount] = useState<string>('');
 
   const params = useParams();
   const { fundWallet } = useFundWallet();
@@ -60,7 +64,7 @@ useEffect(() => {
       
       // Fetch agent data first
       const agentResponse = await fetch(
-        `/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}`,
+        `/api/agents/${decodeURIComponent(params?.userId as string || '')}/${agentId}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -107,7 +111,7 @@ useEffect(() => {
   };
 
   fetchAllData();
-}, [agentId, params.userId]);  
+}, [agentId, params?.userId]);  
 
   // get portfolio value and tokens every 10 seconds
   useEffect(() => {
@@ -158,7 +162,7 @@ useEffect(() => {
       setWalletAddress(wallet.address);
       const accessToken = await getAccessToken();
       
-      await fetch(`/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}/wallet`, {
+      await fetch(`/api/agents/${decodeURIComponent(params?.userId as string || '')}/${agentId}/wallet`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -218,15 +222,28 @@ useEffect(() => {
   async function handleFundingConfirm(amount: number) {
     if (walletAddress) {
       try {
-        await fundWallet(walletAddress, {
+        const result = await fundWallet(walletAddress, {
           amount: amount.toString(),
         });
+        
+        // Close the funding modal
+        setShowFundingModal(false);
+        
+        // Set transaction details for success modal
+        setDepositAmount(amount.toString());
+        // Generate a mock transaction signature for demo purposes
+        const mockTxSignature = `3RtmB59KASa3zu5${Math.random().toString(36).substring(2, 15)}`;
+        setDepositTransactionSignature(mockTxSignature);
+        
+        // Show success modal
+        setShowDepositSuccess(true);
+        
+        // Refresh wallet data
         refreshWalletData();
       } catch (error) {
         console.error('Error funding wallet:', error);
       }
     }
-
   }
 
   // New function to fetch active strategies
@@ -265,7 +282,7 @@ useEffect(() => {
     );
   }
 
-  if (params.userId === 'template') {
+  if (params?.userId === 'template') {
     return (
       <div className="p-6 bg-zinc-800 rounded-lg text-zinc-400">
         Use this agent template before creating a wallet.
@@ -580,6 +597,14 @@ useEffect(() => {
           onConfirm={handleFundingConfirm}
           defaultAmount={0.1}
         />
+
+      <DepositSuccessModal
+        isOpen={showDepositSuccess}
+        onClose={() => setShowDepositSuccess(false)}
+        transactionSignature={depositTransactionSignature}
+        amount={depositAmount}
+        tokenSymbol="SOL"
+      />
 
     </div>
   );

@@ -54,22 +54,22 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     {
       value: 'option1',
       label: 'claude-3-5-sonnet-20240620',
-      imageUrl: '/images/providers/claude.svg'
+      image: '/images/providers/claude.svg'
     },
     {
       value: 'option2',
       label: 'deepseek-chat',
-      imageUrl: '/images/providers/deepseek.svg'
+      image: '/images/providers/deepseek.svg'
     },
     {
       value: 'option3',
       label: 'gpt-4-turbo',
-      imageUrl: '/images/providers/openai-white-logomark.svg'
+      image: '/images/providers/openai-white-logomark.svg'
     },
     {
       value: 'option4',
       label: 'mistral-large-latest',
-      imageUrl: '/images/providers/mistral.svg'
+      image: '/images/providers/mistral.svg'
     }    
   ];
 
@@ -347,7 +347,7 @@ export default function AgentForm({ initialData = null }: AgentFormProps) {
     try {
       const accessToken = await getAccessToken();
       const response = await fetch(
-        `/api/agents/${decodeURIComponent(params.userId as string)}/${params.agentId}`, 
+        `/api/agents/${decodeURIComponent(params?.userId as string || '')}/${params?.agentId}`, 
         {
           method: 'DELETE',
           headers: {
@@ -379,7 +379,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 
   try {
     const url = initialData
-      ? `/api/agents/${decodeURIComponent(params.userId as string)}/${initialData.id}`
+      ? `/api/agents/${decodeURIComponent(params?.userId as string || '')}/${initialData.id}`
       : "/api/agents";
 
     const accessToken = await getAccessToken();
@@ -472,7 +472,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   ];
 
   const goToChat = () => {
-    router.push(`/agents/${decodeURIComponent(params.userId as string)}/${params.agentId}`);
+    router.push(`/agents/${decodeURIComponent(params?.userId as string || '')}/${params?.agentId}`);
     router.refresh();
   };
 
@@ -539,27 +539,23 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           </h1>
           
           <div className="flex items-center w-full sm:w-auto flex-col sm:flex-row">
-            {params.userId === "template" && (
+            {params?.userId === "template" && (
               <button
                 onClick={handleUseTemplate}
                 disabled={loading}
-                className="w-full sm:w-auto px-4 py-2 bg-transparent rounded-lg transition"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed mr-2"
               >
-                <div className="flex justify-center items-center gap-2 outline outline-green-400 rounded-lg px-5 py-1 hover:outline-green-500">
-                  <span>{loading ? "Creating..." : "Use Template"}</span>
-                </div>
+                {loading ? "Creating..." : "Use Template"}
               </button>
             )}
-
-            {params.agentId && (
+            
+            {params?.agentId && (
               <button
                 onClick={goToChat}
-                className="w-full sm:w-auto px-4 py-2 bg-transparent rounded-lg transition"
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 mr-2 flex items-center gap-2"
               >
-                <div className="flex justify-center items-center gap-2 outline outline-indigo-400 rounded-lg px-5 py-1 hover:outline-indigo-500">
-                  <span>Start Chat</span>
-                  <ChatIcon/>
-                </div>
+                <span className="w-4 h-4"><ChatIcon /></span>
+                <span className="hidden sm:inline">Chat</span>
               </button>
             )}
           </div>
@@ -627,12 +623,23 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       id="name"
       name="name"
       type="text"
-      placeholder="Crypto Analyst"
+      placeholder="Enter agent name"
       required
-      disabled={params.userId === 'template'}
+      disabled={params?.userId === 'template'}
       value={formData.name}
       onChange={handleChange}
-      className="w-full px-3 py-2 rounded-lg bg-zinc-700 bg-opacity-40 border border-zinc-700 text-zinc-300 placeholder-zinc-400 text-sm overflow-hidden text-ellipsis"
+      className="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+    />
+  </div>
+
+  <div className="mb-6">
+    <label className="block text-sm font-medium text-gray-300 mb-2">
+      Model
+    </label>
+    <ImageSelect 
+      options={options}
+      value={selectedModelValue}
+      onChange={setSelectedModelValue}
     />
   </div>
 
@@ -645,7 +652,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       name="description"
       placeholder="A crypto analyst providing insights on market trends"
       required
-      disabled={params.userId === 'template'}
+      disabled={params?.userId === 'template'}
       value={formData.description}
       onChange={handleChange}
       rows={4}
@@ -666,7 +673,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               required={field.required || false}
               id={field.name}
               name={field.name}
-              disabled={params.userId === 'template'}
+              disabled={params?.userId === 'template'}
               placeholder={field.placeholder}
               value={String(formData[field.name] || '')}
               onChange={handleChange}
@@ -679,7 +686,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           </div>
         </Accordion>
 
-        {params.userId !== 'template' && <div className="flex flex-col sm:flex-row sm:justify-end pt-4 gap-3 mb-12">
+        {params?.userId !== 'template' && <div className="flex flex-col sm:flex-row sm:justify-end pt-4 gap-3 mb-12">
           {initialData && <button
             onClick={(e) => {
               e.preventDefault();
@@ -692,15 +699,9 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full sm:w-auto h-10 px-4 py-2 outline outline-indigo-500 bg-indigo-500 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
           >
-            {loading
-              ? initialData
-                ? "Updating..."
-                : "Creating..."
-              : initialData
-              ? "Update Agent"
-              : "Create Agent"}
+            {loading ? "Saving..." : initialData ? "Update Agent" : "Create Agent"}
           </button>
         </div>}
 

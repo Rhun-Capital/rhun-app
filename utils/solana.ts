@@ -193,16 +193,18 @@ export class SolanaPriorityFeeEstimator {
 }
 
 
-export function getSolanaConnection(
-): Connection {
-  const rpcUrl = process.env.HELIUS_RPC_URL;
+export function getSolanaConnection(): Connection {
+  const rpcUrl = process.env.HELIUS_RPC_URL || 'https://mainnet.helius-rpc.com';
   const heliusApiKey = process.env.HELIUS_API_KEY;
   
-  if (!rpcUrl) {
-    throw new Error('HELIUS_RPC_URL is not defined in environment variables');
-  }
+  // If using Helius, append the API key
+  const finalRpcUrl = heliusApiKey && rpcUrl.includes('helius') 
+    ? `${rpcUrl}/?api-key=${heliusApiKey}`
+    : rpcUrl;
 
-  return new Connection(`${rpcUrl}/?api-key=${heliusApiKey}`, 'confirmed');
+  console.log('Initializing Solana connection with RPC URL:', finalRpcUrl);
+  
+  return new Connection(finalRpcUrl, 'confirmed');
 }
 
 export async function getSolanaBalance(
@@ -230,7 +232,7 @@ export async function getSolanaBalance(
 export class ProxyConnection extends Connection {
   constructor(config?: { commitment?: Commitment }) {
     // Use a dummy URL since we'll override all RPC calls
-    super('http://localhost', config);
+    super('http://localhost:3000', config);
   }
 
   private async customRpcRequest(method: string, params: any[]) {
@@ -249,12 +251,19 @@ export class ProxyConnection extends Connection {
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        console.error('RPC request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
         throw new Error(`RPC request failed: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       if (data.error) {
-        throw new Error(data.error.message);
+        console.error('RPC error response:', data.error);
+        throw new Error(data.error.message || 'RPC request failed');
       }
 
       return data.result;
@@ -291,20 +300,20 @@ export class ProxyConnection extends Connection {
     ];
   
     try {
-      const result = await this.customRpcRequest('getAccountInfo', params);
+      const result = await this._rpcRequest('getAccountInfo', params);
       
       // If no account found, return null
-      if (!result || !result.value) {
+      if (!result || !result.result) {
         return null;
       }
   
       // Convert the account info to match Solana Web3.js AccountInfo structure
       return {
-        executable: result.value.executable,
-        owner: new PublicKey(result.value.owner),
-        lamports: result.value.lamports,
-        data: Buffer.from(result.value.data[0], result.value.data[1]),
-        rentEpoch: result.value.rentEpoch || 0
+        executable: result.result.value.executable,
+        owner: new PublicKey(result.result.value.owner),
+        lamports: result.result.value.lamports,
+        data: Buffer.from(result.result.value.data[0], result.result.value.data[1]),
+        rentEpoch: result.result.value.rentEpoch || 0
       };
     } catch (error) {
       console.error('Get account info error:', error);
@@ -323,11 +332,11 @@ export class ProxyConnection extends Connection {
       : commitmentOrConfig;
 
     const params = config ? [config] : [];
-    const result = await this.customRpcRequest('getLatestBlockhash', params);
+    const result = await this._rpcRequest('getLatestBlockhash', params);
     
     return {
-      blockhash: result.value.blockhash,
-      lastValidBlockHeight: result.value.lastValidBlockHeight,
+      blockhash: result.result.value.blockhash,
+      lastValidBlockHeight: result.result.value.lastValidBlockHeight,
     };
   }
 
@@ -346,8 +355,8 @@ export class ProxyConnection extends Connection {
     ];
 
     try {
-      const signature = await this.customRpcRequest('sendTransaction', params);
-      return signature;
+      const signature = await this._rpcRequest('sendTransaction', params);
+      return signature.result;
     } catch (error) {
       console.error('Send transaction error:', error);
       throw error;
@@ -364,12 +373,12 @@ export class ProxyConnection extends Connection {
     }
     
     try {
-      const response = await this.customRpcRequest('getSignatureStatuses', [params]);
-      console.log("getSignatureStatuses Response:", response.value)
-      if (!response.value[0]) {
+      const response = await this._rpcRequest('getSignatureStatuses', params);
+      console.log("getSignatureStatuses Response:", response.result.value)
+      if (!response.result.value[0]) {
         throw new Error('No status returned for signature');
       }
-      return { context: { slot: 0 }, value: response.value }; // Matching Connection class response format
+      return { context: { slot: 0 }, value: response.result.value }; // Matching Connection class response format
     } catch (error) {
       console.error('Get signature status error:', error);
       throw error;
@@ -386,7 +395,8 @@ export class ProxyConnection extends Connection {
 
     const params = config ? [config] : [];
     try {
-      return await this.customRpcRequest('getBlockHeight', params);
+      const result = await this._rpcRequest('getBlockHeight', params);
+      return result.result;
     } catch (error) {
       console.error('Get block height error:', error);
       throw error;

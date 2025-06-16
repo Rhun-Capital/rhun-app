@@ -53,6 +53,8 @@ import { getToolCommand } from '@/app/config/tool-commands';
 import { XIcon, MenuIcon } from "lucide-react";
 import { Suspense } from "react";
 import { useModal } from "@/contexts/modal-context";
+import { Button } from "@/components/ui/button";
+import { PencilIcon } from "lucide-react";
 
 const getTextFromDataUrl = (dataUrl: string) => {
   try {
@@ -218,9 +220,9 @@ const AttachmentDisplay = ({ attachment }: { attachment: Attachment }) => {
 
 export default function Home() {
   const params = useParams();
-  const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;  
+  const agentId = params && Array.isArray(params.agentId) ? params.agentId[0] : params?.agentId;  
   const searchParams = useSearchParams(); 
-  const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
+  const chatId = decodeURIComponent(searchParams?.get('chatId') || '');  
 
   return (
     <Suspense fallback={
@@ -359,9 +361,9 @@ export default function Home() {
 
 function HomeContent() {
   const params = useParams();
-  const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;  
+  const agentId = params && Array.isArray(params.agentId) ? params.agentId[0] : params?.agentId || '';  
   const searchParams = useSearchParams(); 
-  const chatId = decodeURIComponent(searchParams.get('chatId') || '');  
+  const chatId = decodeURIComponent(searchParams?.get('chatId') || '');  
 
   const { user, getAccessToken, ready } = usePrivy();
   const { refreshRecentChats } = useRecentChats();
@@ -373,7 +375,7 @@ function HomeContent() {
   const [isDragging, setIsDragging] = useState(false);
   const [savedInput, setSavedInput] = useState("");
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
-  const [newChatId] = useState<string>(`chat_${decodeURIComponent(params.userId as string)}_${Date.now()}`);
+  const [newChatId] = useState<string>(`chat_${decodeURIComponent(params?.userId as string || 'unknown')}_${Date.now()}`);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isHeadersReady, setIsHeadersReady] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
@@ -383,7 +385,7 @@ function HomeContent() {
   const { wallets } = useSolanaWallets();
   const pathname = usePathname();
 
-  const templateWallet = params.userId === 'template' || pathname === '/' 
+  const templateWallet = params?.userId === 'template' || pathname === '/' 
     ? wallets[0]?.address 
     : null  
 
@@ -422,7 +424,7 @@ function HomeContent() {
         body: JSON.stringify({
           chatId: chatId ? chatId : newChatId,
           userId: user?.id,
-          isTemplate: params.userId === 'template',
+          isTemplate: params?.userId === 'template',
           agentId,
           agentName: agent?.name,
           lastMessage: command,
@@ -445,7 +447,7 @@ function HomeContent() {
     } catch (error) {
       console.error('Error in handleToolSelect:', error);
     }
-  }, [append, chatId, newChatId, user?.id, params.userId, agentId, agent?.name, getAccessToken, setSidebarOpen]);
+  }, [append, chatId, newChatId, user?.id, params?.userId, agentId, agent?.name, getAccessToken, setSidebarOpen]);
 
   const handleFormSubmit = (event: React.FormEvent, options = {}) => {
     if (input.trim()) {
@@ -493,7 +495,7 @@ function HomeContent() {
 
   useEffect(() => {
     const loadInitialMessages = async (): Promise<void> => {
-      if (!chatId || !params.userId) return;
+      if (!chatId || !params?.userId) return;
       
       try {
         const token = await getAccessToken();
@@ -554,14 +556,14 @@ function HomeContent() {
     };
   
     loadInitialMessages();
-  }, [chatId, params.userId, getAccessToken, user?.id]);
+  }, [chatId, params?.userId, getAccessToken, user?.id]);
 
   // Handle tool query parameter (Now placed after dependencies)
   const hasTriggeredTool = useRef(false);
   const router = useRouter();
   
   useEffect(() => {
-    const tool = searchParams.get('tool');
+    const tool = searchParams?.get('tool');
     // Ensure all dependencies are ready and the tool hasn't been triggered yet
     if (!hasTriggeredTool.current && tool && messages.length === 0 && handleToolSelect && ready && user?.id && agent) {
       // Add a small delay to ensure everything is initialized
@@ -572,9 +574,11 @@ function HomeContent() {
           hasTriggeredTool.current = true;
           
           // Remove the tool parameter from the URL
-          const newSearchParams = new URLSearchParams(searchParams);
-          newSearchParams.delete('tool');
-          router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+          if (searchParams) {
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.delete('tool');
+            router.replace(`?${newSearchParams.toString()}`, { scroll: false });
+          }
         }
       }, 500);
 
@@ -787,27 +791,23 @@ function HomeContent() {
   }, [user])
 
   const refreshAgent = async () => {
-    if (!user) return;
-    getAgent().then((agent) => {
-      setAgent(agent);
-    });
-  }
+    await getAgent();
+  };
 
   const getAgent = async () => {
-    const accessToken = await getAccessToken();
+    if (!params?.userId || !agentId) return;
+    
     const response = await fetch(
       `/api/agents/${decodeURIComponent(params.userId as string)}/${agentId}`,
       {
         headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+          'Authorization': `Bearer ${await getAccessToken()}`
+        }
       }
     );
-    if (!response.ok) {
-      throw new Error("Failed to fetch agent configuration");
-    }
-    return response.json();
-  }
+    const agentData = await response.json();
+    setAgent(agentData);
+  };
 
   const handlePaste = (event: React.ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -1119,7 +1119,7 @@ function HomeContent() {
               className="w-full sm:w-auto"
             >
               <button className="w-full px-6 py-2.5 rounded-lg bg-indigo-400 text-white hover:bg-indigo-400 transition-colors text-sm sm:text-base">
-                {params.userId === 'template' ? 'View Agent' : 'Edit Agent'}
+                {params?.userId === 'template' ? 'View Agent' : 'Edit Agent'}
               </button>
             </Link>
             <button
@@ -1152,7 +1152,7 @@ function HomeContent() {
               </div>
             )}
           </div>
-          <Link className="text-indigo-500 text-indigo-400" href={`/agents/${decodeURIComponent(params.userId as string)}/${agentId}/edit`}>          
+          <Link className="text-indigo-500 text-indigo-400" href={`/agents/${decodeURIComponent(params?.userId as string || '')}/${agentId}/edit`}>          
             <h1 className="text-lg font-medium text-white">{agent.name}</h1>
           </Link>
         </div>
@@ -1365,13 +1365,13 @@ function HomeContent() {
                     </div>
                   </motion.div>
                 ))
-              ) : !searchParams.get('tool') && (
+              ) : !searchParams?.get('tool') && (
                 <div className="flex items-center justify-center min-h-[calc(100vh-250px)]">
                   <div className="w-full max-w-md">
-                    <EmptyState 
+                                        <EmptyState
                       agent={agent}
-                      userId={decodeURIComponent(params.userId as string)}
-                      agentId={agentId}
+                      userId={decodeURIComponent(params?.userId as string || '')}
+                      agentId={Array.isArray(agentId) ? agentId[0] || '' : agentId || ''}
                       onDescribeTools={() => handleToolSelect('What tools do you have access to?')}
                     />
                   </div>

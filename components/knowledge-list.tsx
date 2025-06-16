@@ -194,7 +194,7 @@ export function KnowledgeList({ agentId, refreshTrigger }: { agentId: string, re
                     {displayName}
                   </span>
                 </div>
-                {params.userId !== 'template' && (
+                {params?.userId !== 'template' && (
                   <button 
                     onClick={() => handleDelete(item)}
                     disabled={isDeleting}

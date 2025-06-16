@@ -27,12 +27,9 @@ const PUBLIC_ROUTES = new Set([
   '/api/auth/token',
 ]);
 
-// Define protected routes that require authentication
+// Define protected routes that require authentication - now empty to make all pages accessible
 const PROTECTED_ROUTES = new Set([
-  '/account',
-  '/portfolio',
-  '/watchers',
-  '/agents'
+  // All routes are now accessible without authentication
 ]);
 
 // Define API routes that can use either API key or token authentication
@@ -414,24 +411,25 @@ export async function middleware(request: NextRequest) {
   }
 
   // For protected web routes, use Privy token from cookies
-  if (PROTECTED_ROUTES.has(pathname)) {
-    const privyToken = request.cookies.get('privy-token')?.value;
-    if (!privyToken) {
-      // For web routes, redirect to home page
-      return NextResponse.redirect(new URL('/', request.url));
-    }
+  // Since PROTECTED_ROUTES is now empty, all routes are accessible without authentication
+  // if (PROTECTED_ROUTES.has(pathname)) {
+  //   const privyToken = request.cookies.get('privy-token')?.value;
+  //   if (!privyToken) {
+  //     // For web routes, redirect to home page
+  //     return NextResponse.redirect(new URL('/', request.url));
+  //   }
 
-    try {
-      const user = await privy.verifyAuthToken(privyToken, process.env.PRIVY_VERIFICATION_KEY);
-      if (!user?.userId) {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-      return NextResponse.next();
-    } catch (error) {
-      console.error('Error verifying Privy token:', error);
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-  }
+  //   try {
+  //     const user = await privy.verifyAuthToken(privyToken, process.env.PRIVY_VERIFICATION_KEY);
+  //     if (!user?.userId) {
+  //       return NextResponse.redirect(new URL('/', request.url));
+  //     }
+  //     return NextResponse.next();
+  //   } catch (error) {
+  //     console.error('Error verifying Privy token:', error);
+  //     return NextResponse.redirect(new URL('/', request.url));
+  //   }
+  // }
 
   return NextResponse.next();
 }

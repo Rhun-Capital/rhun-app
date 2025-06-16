@@ -37,7 +37,7 @@ const ExecuteSwapComponent: React.FC<{
   const [toToken, setToToken] = useState<SwapToken | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const chatId = searchParams.get('chatId');
+  const chatId = searchParams?.get('chatId');
   const [isHistoricalSuccess, setIsHistoricalSuccess] = useState(false);
   const [userRejected, setUserRejected] = useState(false);
   const [attemptedExecution, setAttemptedExecution] = useState(false);

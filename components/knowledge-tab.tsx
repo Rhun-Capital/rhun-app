@@ -142,7 +142,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     try {
       // Step 1: Get presigned URL
       const accessToken = await getAccessToken();
-      const presignedResponse = await fetch(`/api/upload/${params.userId}/presigned`, {
+      const presignedResponse = await fetch(`/api/upload/${params?.userId}/presigned`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
         }
       );
 
-      const processResponse = await fetch(`/api/upload/${params.userId}/process`, {
+      const processResponse = await fetch(`/api/upload/${params?.userId}/process`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -237,7 +237,7 @@ export default function KnowledgeTab({ agentId }: { agentId: string }) {
     );
   }
 
-  if (params.userId === 'template') {
+  if (params?.userId === 'template') {
     return (
      <div className="border-t border-zinc-700 pt-6">
       <h3 className="text-lg font-semibold mb-4">Knowledge Base Content</h3>

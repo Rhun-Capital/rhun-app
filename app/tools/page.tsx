@@ -539,7 +539,7 @@ export default function HomePage() {
 
           {/* Meteora Staking Card - Full Width */}
           <HolographicCard className="group hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 m-2">
-            <Link href="https://www.meteora.ag/dlmm/2jxVjkPignEbR5pbGNtiRyCc6fAKZTKuFTf1MQED9pt5" target="_blank">
+            <Link href="/pools/rhun-sol">
               <div className="group cursor-pointer w-full">
                 <div className="relative h-[300px] sm:h-[200px] overflow-hidden rounded-lg transition-all duration-300 border border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]">
                   {/* Gradient background */}
@@ -583,6 +583,9 @@ export default function HomePage() {
                           <div className="px-3 py-1.5 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-2">
                             <Activity className="w-4 h-4" />
                             <span>Earn Rewards</span>
+                          </div>
+                          <div className="px-3 py-1.5 bg-zinc-800/50 rounded-full backdrop-blur-sm flex items-center gap-2">
+                            <span>Meteora</span>
                           </div>
                         </div>
                       </div>
