@@ -1092,7 +1092,7 @@ function HomeContent() {
   const params = useParams();
   const agentId = 'cc425065-b039-48b0-be14-f8afa0704357'
   const searchParams = useSearchParams();
-  const chatId = decodeURIComponent(searchParams.get('chatId') || '');
+  const chatId = decodeURIComponent(searchParams?.get('chatId') || '');
   const [agent, setAgent] = useState<any>(DEFAULT_AGENT);
   const [files, setFiles] = useState<FileList | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -1122,7 +1122,7 @@ function HomeContent() {
   const { wallets } = useSolanaWallets();
   const pathname = usePathname();
   const savedWallet = localStorage.getItem('rhun_selected_wallet_address');
-  const templateWallet = params.userId === 'template' || pathname === '/' 
+  const templateWallet = params?.userId === 'template' || pathname === '/' 
     ? savedWallet || wallets[0]?.address 
     : null
   const [artifacts, setArtifacts] = useState<any[]>([]);
@@ -1587,7 +1587,7 @@ function HomeContent() {
       if (hasTriggeredTool.current || isProcessingTool) return;
 
       // Check both URL and localStorage for tool command
-      const toolFromUrl = searchParams.get('tool');
+      const toolFromUrl = searchParams?.get('tool');
       const toolFromStorage = localStorage.getItem('pendingTool');
       const tool = toolFromUrl || toolFromStorage;
 

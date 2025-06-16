@@ -27,7 +27,7 @@ const ReceiveModal = ({ isOpen, agent, onClose, selectedWalletAddress }: Receive
   const pathname = usePathname();
   
   // For template agents, use the selectedWalletAddress if provided, otherwise fall back to first wallet
-  const activeWallet = params.userId === 'template' || pathname === '/' 
+  const activeWallet = params?.userId === 'template' || pathname === '/' 
     ? selectedWalletAddress || solanaWallets[0]?.address 
     : agent?.wallets?.solana;
 

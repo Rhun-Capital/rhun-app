@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MenuIcon, CloseIcon, BookIcon } from '@/components/icons';
-import { Home, Eye, UserCircle, AreaChart, Bot, LayoutGrid, PlusCircle } from 'lucide-react';
+import { DollarSign, UserCircle, Bot, LayoutGrid, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
 import { usePathname } from 'next/navigation';
@@ -56,12 +56,13 @@ export const Sidebar = () => {
   }, [pathname]);
 
   const navigation = [
+    { name: 'Agents', href: '/agents', icon: Bot },
     { name: 'Tools', href: '/tools', icon: LayoutGrid },
-    { name: 'Agents', href: '/agents', icon: Bot, requiresAuth: true },
-    { name: 'Watchers', href: '/watchers', icon: Eye, requiresAuth: true, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
-    // { name: 'Portfolio', href: '/portfolio', icon: AreaChart, requiresAuth: true },
-    // { name: 'Apps', href: '/marketplace', icon: LayoutGrid, requiresAuth: true },
-    { name: 'Account', href: '/account', icon: UserCircle, requiresAuth: true },
+    { name: 'Earn', href: '/pools/rhun-sol', icon: DollarSign },
+    // { name: 'Watchers', href: '/watchers', icon: Eye, badge: unreadWatcherCount > 0 ? unreadWatcherCount : null },
+    // { name: 'Portfolio', href: '/portfolio', icon: AreaChart },
+    // { name: 'Apps', href: '/marketplace', icon: LayoutGrid },
+    { name: 'Account', href: '/account', icon: UserCircle },
   ];
 
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -76,11 +77,6 @@ export const Sidebar = () => {
     localStorage.removeItem('rhun_selected_wallet_address');
     await clearCookies(); // Clear access tokens
     await logout(); // Clear Privy state
-    if (pathname === '/tools') {
-      router.push('/tools');
-    } else {
-      router.push('/');
-    }
   }
 
   return (
@@ -153,48 +149,37 @@ export const Sidebar = () => {
             </li>
             {navigation.map((item) => (
               <li key={item.name}>
-                {(!item.requiresAuth || authenticated) ? (
-                  <Link 
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className={`flex items-center p-2 rounded transition-colors ${
-                      pathname === item.href
-                        ? 'bg-zinc-800' 
-                        : 'hover:bg-zinc-800'
-                    }`}
-                  >
-                    <div className="text-zinc-400"> 
-                      <item.icon className="h-5 w-5"/>                  
-                    </div>
-                    <span className={`${ 
-                      pathname === item.href
-                        ? 'text-white'
-                        : 'text-white hover:text-white'
-                    } ml-3`}>
-                      
-                      {item.badge ? (
-                      <div className="flex items-center gap-2">
-                         {item.name}
-                        <div className="-top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {item.badge > 9 ? '9+' : item.badge}
-                      </div></div>): item.name}                      
-                    </span>
-                  </Link>
-                ) : (
-                  <div className="flex items-center p-2 cursor-not-allowed opacity-50">
-                    <div className="text-zinc-600"> 
-                      <item.icon className="h-5 w-5"/>                  
-                    </div>
-                    <span className="text-zinc-600 ml-3">
-                      {item.name}
-                    </span>
+                <Link 
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center p-2 rounded transition-colors ${
+                    pathname === item.href
+                      ? 'bg-zinc-800' 
+                      : 'hover:bg-zinc-800'
+                  }`}
+                >
+                  <div className="text-zinc-400"> 
+                    <item.icon className="h-5 w-5"/>                  
                   </div>
-                )}
+                  <span className={`${ 
+                    pathname === item.href
+                      ? 'text-white'
+                      : 'text-white hover:text-white'
+                  } ml-3`}>
+                    
+                    {(item as any).badge ? (
+                    <div className="flex items-center gap-2">
+                       {item.name}
+                      <div className="-top-1 -right-1 bg-indigo-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {(item as any).badge > 9 ? '9+' : (item as any).badge}
+                    </div></div>): item.name}                      
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
 
-          {authenticated && <RecentChats setIsOpen={setIsOpen} />}
+          <RecentChats setIsOpen={setIsOpen} />
         </nav>
 
         <div className="ml-4 w-[89%] hidden sm:block">

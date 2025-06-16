@@ -3,57 +3,81 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const HELIUS_RPC = `${process.env.HELIUS_RPC_URL}/?api-key=${process.env.HELIUS_API_KEY}`;
 
-export async function POST(request: NextRequest) {
-    try {
-      const body = await request.json();
-  
-      const rpcRequest = {
-        jsonrpc: '2.0',
-        id: body.id || 1,
-        method: body.method,
-        params: body.params || []
-      };
+export const runtime = 'nodejs';
 
-      const response = await fetch(HELIUS_RPC, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(rpcRequest)
-      });
-  
-      if (!response.ok) {
-        const error = await response.text();
-        console.error('Helius error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          error
-        });
-        return NextResponse.json(
-          { error: { message: `RPC request failed: ${response.status} ${response.statusText}`, details: error } },
-          { status: response.status }
-        );
-      }
-  
-      const data = await response.json();
-  
-      return NextResponse.json(data);
-    } catch (error: any) {
-      console.error('RPC proxy error:', {
-        error,
-        message: error.message,
-        stack: error.stack
-      });
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { method, params } = body;
+
+    console.log('RPC Proxy Request:', { method, params });
+
+    const rpcUrl = process.env.HELIUS_RPC_URL;
+    const heliusApiKey = process.env.HELIUS_API_KEY;
+
+    if (!rpcUrl || !heliusApiKey) {
       return NextResponse.json(
-        { 
-          error: {
-            message: error.message || 'Internal server error',
-            details: error.stack
-          }
-        }, 
+        { error: 'HELIUS_RPC_URL and HELIUS_API_KEY must be set in environment variables' },
         { status: 500 }
       );
     }
+
+    const response = await fetch(`${rpcUrl}/?api-key=${heliusApiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method,
+        params,
+      }),
+    });
+
+    const responseData = await response.json();
+    console.log('RPC Proxy Response:', { method, status: response.status, data: responseData });
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { 
+          error: responseData.error?.message || 'RPC request failed',
+          details: responseData
+        },
+        { status: response.status }
+      );
+    }
+
+    if (responseData.error) {
+      return NextResponse.json(
+        { 
+          error: responseData.error.message || 'RPC error',
+          details: responseData.error
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(responseData);
+  } catch (error) {
+    console.error('RPC proxy error:', error);
+    return NextResponse.json(
+      { 
+        error: error instanceof Error ? error.message : 'Internal server error',
+        details: error
+      },
+      { status: 500 }
+    );
+  }
 }
 
-export const runtime = 'edge';
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+  return NextResponse.json({}, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
+}

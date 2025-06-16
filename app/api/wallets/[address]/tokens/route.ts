@@ -176,7 +176,12 @@ export async function GET(
     const enrichedData = await enrichTokenData(nonSolTokens, rawData.metadata)
 
     // Get SOL balance for total value calculation only
-    const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    const connection = new Connection(
+      process.env.HELIUS_RPC_URL ? 
+        `${process.env.HELIUS_RPC_URL}?api-key=${process.env.HELIUS_API_KEY}` : 
+        'https://mainnet.helius-rpc.com', 
+      'confirmed'
+    );
     const pubKey = new PublicKey(address);
     const solBalance = await connection.getBalance(pubKey);
     const solInWallet = solBalance / LAMPORTS_PER_SOL;
@@ -186,13 +191,31 @@ export async function GET(
     const solPrice = prices[WRAPPED_SOL_MINT] || 0;
     const solUsdValue = solInWallet * solPrice;
 
+    // Create SOL token entry
+    const solTokenEntry = {
+      token_account: 'native',
+      token_address: WRAPPED_SOL_MINT,
+      amount: solBalance,
+      token_decimals: 9,
+      owner: address,
+      formatted_amount: solInWallet,
+      token_name: 'Solana',
+      token_symbol: 'SOL',
+      token_icon: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
+      usd_price: solPrice,
+      usd_value: solUsdValue
+    };
+
+    // Include SOL in the data array
+    const allTokens = [solTokenEntry, ...enrichedData];
+
     // Calculate total portfolio value including SOL
     const tokensValue = enrichedData.reduce((sum, token) => sum + (token.usd_value || 0), 0);
     const totalUsdValue = tokensValue + solUsdValue;
 
     return NextResponse.json({
       success: true,
-      data: enrichedData,
+      data: allTokens,
       metadata: rawData.metadata,
       portfolio: {
         total_usd_value: totalUsdValue,

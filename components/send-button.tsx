@@ -83,7 +83,7 @@ const TransferModal = ({
   const pathname = usePathname();
   
   // For template agents, use the first wallet from useSolanaWallets
-  const solanaWallet = params.userId === 'template' || pathname === '/' 
+  const solanaWallet = params?.userId === 'template' || pathname === '/' 
     ? wallets[0]
     : wallets.find(w => w.address === agent.wallets?.solana);
   

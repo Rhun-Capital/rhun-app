@@ -45,7 +45,7 @@ export default function ImageUpload({ onImageChange, initialImage }: ImageUpload
           </div>
         )}
       </div>
-      {params.userId !== 'template' && <div><input
+      {params?.userId !== 'template' && <div><input
         type="file"
         accept="image/png, image/jpeg, image/jpg, image/webp"
         onChange={handleImageChange}

@@ -24,7 +24,7 @@ export default function SwapComponent({ quote, agent }: { quote: Quote, agent: a
   let transaction = new Transaction();
 
   // Get the active wallet based on whether it's a template agent or not
-  const activeWallet = params.userId === 'template' || pathname === '/' 
+  const activeWallet = params?.userId === 'template' || pathname === '/' 
     ? wallets[0]?.address 
     : agent.wallets?.solana;
 

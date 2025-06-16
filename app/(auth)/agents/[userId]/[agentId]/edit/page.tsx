@@ -35,7 +35,10 @@ export default function EditAgentPage() {
 
   useEffect(() => {
     const fetchAgent = async () => {
-      if (!user) return;
+      if (!user || !params || !params.userId || !params.agentId) {
+        setLoading(false);
+        return;
+      }
       
       try {
         const accessToken = await getAccessToken();
@@ -65,7 +68,7 @@ export default function EditAgentPage() {
     if (user) {
       fetchAgent();
     }
-  }, [user, params.userId, params.agentId, getAccessToken]);
+  }, [user, params?.userId, params?.agentId, getAccessToken]);
 
   if (loading) {
     return (
