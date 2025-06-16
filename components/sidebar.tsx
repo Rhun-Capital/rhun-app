@@ -78,6 +78,7 @@ export const Sidebar = () => {
     await clearCookies(); // Clear access tokens
     await logout(); // Clear Privy state
   }
+  
 
   return (
     <>
