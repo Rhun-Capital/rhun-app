@@ -783,11 +783,9 @@ function HomeContent() {
   }, [messages]);    
 
   useEffect(() => {
-    // get agent and sey agent name
+    // get agent and set agent name
     if (!user) return;
-    getAgent().then((agent) => {
-      setAgent(agent);
-    });
+    getAgent();
   }, [user])
 
   const refreshAgent = async () => {
